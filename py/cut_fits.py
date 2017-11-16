@@ -3,7 +3,9 @@ from astropy.io import fits
 import random
 
 # Takes a CoLoRe output file, and cuts it to have N_obj objects.
-def cut_fits(original_filename, N_obj_desired, mode):
+def cut_fits(file_location, file_name, N_obj_desired, mode):
+
+    original_filename = file_location + '/' + file_name
 
     original = fits.open(original_filename)
     N_obj_original = original[1].data.shape[0]
@@ -29,7 +31,6 @@ def cut_fits(original_filename, N_obj_desired, mode):
             new_3 = original[3].data[sample,:]
             new_4 = original[4].data
 
-
         else:
             print('Mode %d not recognised; please try again.' % mode)
 
@@ -42,8 +43,8 @@ def cut_fits(original_filename, N_obj_desired, mode):
 
         hdulist = fits.HDUList([prihdu, hdu_new_1, hdu_new_2, hdu_new_3, hdu_new_4])
 
-        #Re write this to give a better filename (use prefix and suffix)
-        original_filename_nofits = original_filename[:-5]
-        hdulist.writeto(original_filename_nofits + 'cut_%d' % N_obj_desired + '.fits')
+        new_filename = file_location + 'cut_%d_' % N_obj_desired + file_name
+
+        hdulist.writeto(new_filename)
 
         return
