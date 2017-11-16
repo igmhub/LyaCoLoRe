@@ -14,7 +14,7 @@ import split_pixels as split
 #Option 2: set up a prefix/suffix structure.
 #Set up a list of the files to import.
 file_location = '/Users/jfarr/Projects/repixelise/test_input'
-file_prefix = 'cut_5000_out_srcs_s0_'
+file_prefix = 'test_skewers_4096_gaussian_srcs_s0_'
 file_numbers = [0]
 files = split.file_list(file_location,file_prefix,file_numbers)
 

@@ -69,8 +69,6 @@ def split_file(N_side,original_filename,file_number,save_location,output_format)
     MJD = np.zeros(N_qso)
     FIBER = np.zeros(N_qso)
 
-
-
     #Convert the coordinates into new pixel identifier numbers, according to the N_side specified.
     pixel_ID=np.zeros([1,len(RA)])
     for i in range(len(RA)):
@@ -102,8 +100,6 @@ def split_file(N_side,original_filename,file_number,save_location,output_format)
         else:
             exit('The row number is too great to construct a unique THING_ID (more than 7 digits).')
         THING_ID[i] = node+row_numbers[i]
-
-
 
     #For each pixel represented in the original .fits file, make a new file.
     for n in pixel_list:
