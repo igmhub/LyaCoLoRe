@@ -13,7 +13,7 @@ def cut_fits(original_filename, N_obj_desired, mode):
         quit()
     else:
         if mode == 0:
-            
+
             # Option 0: select the last N_obj_desired entries.
             new_1 = original[1].data[-N_obj_desired:]
             new_2 = original[2].data[-N_obj_desired:]
@@ -44,6 +44,6 @@ def cut_fits(original_filename, N_obj_desired, mode):
 
         #Re write this to give a better filename (use prefix and suffix)
         original_filename_nofits = original_filename[:-5]
-        hdulist.writeto(original_filename_nofits + '_cut_%d' % N_obj_desired + '.fits')
+        hdulist.writeto(original_filename_nofits + 'cut_%d' % N_obj_desired + '.fits')
 
         return
