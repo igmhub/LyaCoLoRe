@@ -1,7 +1,8 @@
 import numpy as np
 from astropy.io import fits
 import matplotlib.pyplot as plt
-import lya_mock_functions as mock
+import py.lya_mock_functions as mock
+import py.lya_stats_functions as stats
 
 #Open data file
 hdulist = fits.open('/Users/jfarr/Projects/repixelise/test_input/out_srcs_s0_15.fits')
@@ -34,7 +35,6 @@ plt.plot(hdulist[4].data['R'],hdulist[2].data[id])
 plt.xlabel('$r\\,\\,[{\\rm Mpc}/h]$')
 plt.ylabel('$\\delta$')
 
-#CHECK DELTA VS DENSITY
 #Show delta vs z
 plt.figure()
 plt.plot(z,delta)
@@ -70,18 +70,20 @@ plt.figure()
 plt.plot(z,flux)
 plt.xlabel('z')
 plt.ylabel('transmitted flux fraction')
+plt.xlim(2,1.01*max(z))
 print(" ")
 
 #Show a test skewer spectrum
-freq = 1215.67*(1+z)
+wavelength = 1215.67*(1+z)
 plt.figure()
-plt.plot(freq,flux)
-plt.xlabel('frequency')
+plt.plot(wavelength,flux)
+plt.xlabel('wavelength')
 plt.ylabel('transmitted flux fraction')
+plt.xlim(1215.67*(1+2),1.01*max(wavelength))
 print(" ")
 
 #Calculate density statistics
-binned_z, binned_mean_density, binned_density_var, binned_delta_var = mock.density_stats(z,z_qso,(hdulist[2].data)+1)
+binned_z, binned_mean_density, binned_density_var, binned_delta_var = stats.density_stats(z,z_qso,(hdulist[2].data)+1)
 
 #Show the calculated statistics against z
 plt.figure()

@@ -12,28 +12,34 @@ def split_pixels(N_side,files,file_numbers,save_location,output_format):
     #Determine number of files to be split.
     N_files = len(files)
 
-    #Set up the structures for the master file.
-    master_pixel_ID=[]
-    master_THING_ID=[]
-
     #Run through each file and split it into pixel fits files, adding each pixel's THING_IDs and pixel_IDs to the master.
     for i in range(N_files):
         THING_ID, pixel_ID = split_file(N_side,files[i],file_numbers[i],save_location,output_format)
         THING_ID = list(THING_ID)
         pixel_ID = list(pixel_ID)
-        master_THING_ID += (THING_ID)
-        master_pixel_ID += (pixel_ID)
+        master_ID_data = []
 
-    #Sort the THING_IDs and pixel_IDs into the right order, as specified in ForetFusion.
-    master_ID = np.array([master_THING_ID,master_pixel_ID])
-    master_ID_T = np.transpose(master_ID)
-    master_ID_T_sort = np.sort(master_ID_T,axis=0)
-    master_ID_T_sort = np.sort(master_ID_T,axis=-1)
-    master_ID_sort = np.transpose(master_ID_T_sort)
+        for j in range(len(THING_ID)):
+            master_ID_data += [(THING_ID[j],pixel_ID[j])]
+
+
+    #Sort the THING_IDs and pixel_IDs into the right order: first by pixel number, and then by THING_ID.
+    dtype = [('THING_ID', 'S10'), ('PIX', int)]
+    master_ID = np.array(master_ID_data, dtype=dtype)
+    master_ID_sort = np.sort(master_ID, order=['PIX','THING_ID'])
 
     #Take the output from each splitting and make it into a master file
-    master = Table([master_ID_sort[0,:],master_ID_sort[1,:]], names=('THING_ID','PIX'))
-    master.write(save_location + 'master.fits', format='fits')
+    master_header = fits.Header()
+    master_header['NSIDE'] = N_side
+    master = fits.BinTableHDU.from_columns(master_ID_sort,header=master_header)
+
+    #Make a primary HDU.
+    prihdr = fits.Header()
+    prihdu = fits.PrimaryHDU(header=prihdr)
+
+    #Make the .fits file.
+    hdulist = fits.HDUList([prihdu,master])
+    hdulist.writeto(save_location + '/' + 'master.fits')
 
     return
 
@@ -69,21 +75,6 @@ def split_file(N_side,original_filename,file_number,save_location,output_format)
     MJD = np.zeros(N_qso)
     FIBER = np.zeros(N_qso)
 
-    #Convert the coordinates into new pixel identifier numbers, according to the N_side specified.
-    pixel_ID=np.zeros([1,len(RA)])
-    for i in range(len(RA)):
-        #Can we just import healpy on cori? May need to install
-        pixel_ID[0,i] = hp.pixelfunc.ang2pix(N_side,(np.pi/180.0)*(90.0-DEC[i]),(np.pi/180.0)*RA[i])
-
-    #Set up a pixel_ID list to map between objects and their pixel.
-    pixel_ID = pixel_ID.reshape(-1)
-
-    #Set up a list of pixels represented in the original .fits file.
-    pixel_list = list(set(pixel_ID))
-
-    #NEEDS UPDATING to actual LOGLAM_MAP
-    LOGLAM_MAP = 1215.67*(1+z)
-
     #Set THING_ID as a 10 digit string, of which the first 3 digits correspond to the node number, and the last 7 correspond to the row number in the original file.
     THING_ID = ['']*N_qso
     node = str(file_number)
@@ -101,46 +92,72 @@ def split_file(N_side,original_filename,file_number,save_location,output_format)
             exit('The row number is too great to construct a unique THING_ID (more than 7 digits).')
         THING_ID[i] = node+row_numbers[i]
 
+    #Set up the LOGLAM_MAP
+    LOGLAM_MAP = 1215.67*(1+z)
+
+    #Convert the coordinates into new pixel identifier numbers, according to the N_side specified.
+    pixel_ID=np.zeros([1,len(RA)])
+
+    #Convert DEC and RA in degrees to theta and phi in radians.
+    theta = (np.pi/180.0)*(90.0-DEC)
+    phi = (np.pi/180.0)*RA
+
+    #Make a list of the HEALPix pixel coordinate of each quasar.
+    for i in range(len(RA)):
+        #Can we just import healpy on cori? May need to install
+        #Check that the angular coordinates are valid. Put all objects with invalid coordinates into a non-realistic ID number (-1).
+        if 0 <= theta[i] <= np.pi and 0 <= phi[i] <= 2*np.pi:
+            pixel_ID[0,i] = hp.pixelfunc.ang2pix(N_side,theta[i],phi[i])
+        else:
+            pixel_ID[0,i] = -int(node)
+
+    #print('There are %d objects with invalid angular coordinates.' % (sum(pixel_ID[i] == -1 for i in range(len(pixel_ID)))))
+    print('Details of these objects are stored in a file corresponding to a pixel number of -(node number).')
+
+    #Set up a pixel_ID list to map between objects and their pixel.
+    pixel_ID = pixel_ID.reshape(-1)
+
+    #Set up a list of pixels represented in the original .fits file.
+    pixel_list = list(np.sort(list(set(pixel_ID))))
+
     #For each pixel represented in the original .fits file, make a new file.
     for n in pixel_list:
 
         #Progress check aide.
-        print('Working on pixel %d of %d...' % (n+1,N_pix))
+        if n+1>0:
+            print('Working on pixel %d (N_pix = %d)' % (n,N_pix))
+            print('There are %d quasars in pixel %d.' % (sum(pixel_ID[i] == n for i in range(len(pixel_ID))),n))
+        else:
+            print('Working on set of objects with invalid coordinates.')
+            print('There are %d quasars with invalid coordinates.' % (sum(pixel_ID[i] == n for i in range(len(pixel_ID)))))
 
-        #Set up the per-pixel structures to go into the new per-pixel .fits file
-        pixel_DENSITY = np.zeros([1,N_cells])
-        pixel_iv = np.zeros([1,N_cells])
-        pixel_RA = []
-        pixel_DEC = []
-        pixel_z_qso = []
-        pixel_PLATE = []
-        pixel_MJD = []
-        pixel_FIBER = []
-        pixel_THING_ID = []
+        pixel_indices = [i for i in range(len(pixel_ID)) if pixel_ID[i]==n]
 
-        for i in range(pixel_ID.shape[0]):
-            #For each object, assess if they are in the current pixel (n).
-            #If so, take the data from the original and add it to the per-pixel output.
-            if pixel_ID[i]==n:
-                pixel_DENSITY = np.concatenate((pixel_DENSITY,np.asarray([DENSITY[i,:]])),axis=0)
-                pixel_iv = np.concatenate((pixel_iv,np.asarray([iv[i,:]])),axis=0)
-                pixel_RA += [RA[i]]
-                pixel_DEC += [DEC[i]]
-                pixel_z_qso += [z_qso[i]]
-                pixel_PLATE += [PLATE[i]]
-                pixel_MJD += [MJD[i]]
-                pixel_FIBER += [FIBER[i]]
-                pixel_THING_ID += [THING_ID[i]]
+        pixel_DENSITY = np.array([DENSITY[i,:] for i in pixel_indices])
+        pixel_iv = np.array([iv[i,:] for i in pixel_indices])
+        pixel_RA = [RA[i] for i in pixel_indices]
+        pixel_DEC = [DEC[i] for i in pixel_indices]
+        pixel_z_qso = [z_qso[i] for i in pixel_indices]
+        pixel_PLATE = [PLATE[i] for i in pixel_indices]
+        pixel_MJD = [MJD[i] for i in pixel_indices]
+        pixel_FIBER = [FIBER[i] for i in pixel_indices]
+        pixel_THING_ID = [THING_ID[i] for i in pixel_indices]
 
-        #Remove the first row of the DENSITY array, which is blank.
-        pixel_DENSITY = np.delete(pixel_DENSITY,0,0)
-        pixel_iv = np.delete(pixel_iv,0,0)
+        #Transpose pixel_DENSITY and pixel_iv to match picca input.
+        pixel_DENSITY = np.transpose(pixel_DENSITY)
+        pixel_iv = np.transpose(pixel_iv)
 
+        if n+1>0:
+            print('There are %d quasars in pixel %d.' % (len(pixel_THING_ID),n))
+        else:
+            print('There are %d quasars with invalid coordinates.' % (len(pixel_THING_ID)))
 
         if len(pixel_THING_ID)!=0:
+
             if output_format==0:
                 #Make output for from fitsio
                 print('Not written yet!')
+
             if output_format==1:
                 #Construct a table for the final hdu.
                 col_RA = fits.Column(name='RA', array=pixel_RA, format='E')
@@ -153,17 +170,25 @@ def split_file(N_side,original_filename,file_number,save_location,output_format)
 
                 cols = fits.ColDefs([col_RA, col_DEC, col_z_qso, col_PLATE, col_MJD, col_FIBER, col_THING_ID])
 
+                #Add a couple of headers to the file.
+                header = fits.Header()
+                header['NSIDE'] = N_side
+                header['NQSO'] = len(pixel_THING_ID)
+                header['PIX'] = int(n)
+
                 #Create hdus from the data arrays
-                hdu_DENSITY = fits.PrimaryHDU(data=pixel_DENSITY)
-                hdu_iv = fits.ImageHDU(data=pixel_iv,header=None,name='IV')
-                hdu_LOGLAM_MAP = fits.ImageHDU(data=LOGLAM_MAP,header=None,name='LOGLAM_MAP')
-                tbhdu = fits.BinTableHDU.from_columns(cols)
+                hdu_DENSITY = fits.PrimaryHDU(data=pixel_DENSITY,header=header)
+                hdu_iv = fits.ImageHDU(data=pixel_iv,header=header,name='IV')
+                hdu_LOGLAM_MAP = fits.ImageHDU(data=LOGLAM_MAP,header=header,name='LOGLAM_MAP')
+                tbhdu = fits.BinTableHDU.from_columns(cols,header=header)
 
                 hdulist = fits.HDUList([hdu_DENSITY,hdu_iv,hdu_LOGLAM_MAP,tbhdu])
-                hdulist.writeto(save_location + 'pix_%d.fits' % n)
+                hdulist.writeto(save_location + '/' + 'node_%s_nside_%d_pix_%d.fits' % (node, N_side, n))
+
             else:
                 #Some kind of error and option to put in a new format code?
                 print('Try another format!')
+
         else:
             print('No objects in pixel %d.' % n)
 
