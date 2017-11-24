@@ -10,7 +10,7 @@ def density_stats(z,z_qso,density_skewers):
     density_squared_skewers = density_skewers**2
     N_qso = len(z_qso)
 
-    #Make a mask to remove irrelevant data (densities for z>z_qso)
+    #Make a mask to remove irrelevant data when averaging (densities for z>z_qso)
     mask = np.ones(density_skewers.shape)
     max_pixel_qso = [0.]*N_qso
     for j in range(N_qso):
@@ -69,8 +69,8 @@ def density_stats(z,z_qso,density_skewers):
     #Calculate the binned z values by linear interpolation
     binned_z = np.interp(binned_z_location,list(range(N_cells)),z)
 
-    for j in range(N_bins):
-        conversion_mask = mask*conversion[j,:]
-        binned_mean_density_alt[j] = sum(sum(density_skewers*conversion_mask))/sum(sum(conversion_mask))
+    #for j in range(N_bins):
+    #    conversion_mask = mask*conversion[j,:]
+    #    binned_mean_density_alt[j] = sum(sum(density_skewers*conversion_mask))/sum(sum(conversion_mask))
 
     return binned_z, binned_mean_density, binned_density_var, binned_delta_var

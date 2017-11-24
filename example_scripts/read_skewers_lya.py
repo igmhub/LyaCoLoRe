@@ -1,8 +1,8 @@
 import numpy as np
 from astropy.io import fits
 import matplotlib.pyplot as plt
-import py.lya_mock_functions as mock
-import py.lya_stats_functions as stats
+import lya_mock_functions as mock
+import lya_stats_functions as stats
 
 #Open data file
 hdulist = fits.open('/Users/jfarr/Projects/repixelise/test_input/out_srcs_s0_15.fits')
@@ -15,6 +15,16 @@ z = np.asarray(z)
 z_qso = hdulist[1].data['Z_COSMO']
 N_qso = len(z_qso)
 print('There are %d quasars in the sample.' % N_qso)
+
+#Plot the locations of the quasars according to the HEALPix pixel grid.
+RA = hdulist[1].data['RA']
+DEC = hdulist[1].data['DEC']
+phi = RA*np.pi/180
+theta = np.pi/2 - DEC*np.pi/180
+plt.figure()
+plt.scatter(phi/np.pi,np.cos(theta))
+plt.xlim(0.0,2.0)
+plt.ylim(-1.0,1.0)
 
 #Get the length of each skewer.
 N_pix_skewer = hdulist[2].data.shape[1]
