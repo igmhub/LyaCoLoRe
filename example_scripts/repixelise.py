@@ -2,7 +2,7 @@ import numpy as np
 from astropy.io import fits
 from astropy.table import Table
 import healpy as hp
-import py.split_pixels as split
+import split_pixels as split
 
 #Define the files that are to be repixelised.
 #Option 1: name each file individually.

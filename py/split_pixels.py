@@ -70,7 +70,7 @@ def split_file(N_side,original_filename,file_number,save_location,output_format)
     N_qso = z_qso.shape[0]
     N_pix = 12*N_side**2
 
-    iv = np.zeros((N_qso,N_cells))
+    iv = np.ones((N_qso,N_cells))
     PLATE = np.zeros(N_qso)
     MJD = np.zeros(N_qso)
     FIBER = np.zeros(N_qso)
@@ -93,7 +93,7 @@ def split_file(N_side,original_filename,file_number,save_location,output_format)
         THING_ID[i] = node+row_numbers[i]
 
     #Set up the LOGLAM_MAP
-    LOGLAM_MAP = 1215.67*(1+z)
+    LOGLAM_MAP = np.log10(1215.67*(1+z))
 
     #Convert the coordinates into new pixel identifier numbers, according to the N_side specified.
     pixel_ID=np.zeros([1,len(RA)])
