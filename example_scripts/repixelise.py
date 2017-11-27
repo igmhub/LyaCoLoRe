@@ -9,7 +9,7 @@ import split_pixels as split
 #file_location =
 #filename_1 =
 #filename_2 =
-#ifiles = [file_location+filename_1, file_location+filename_2]
+#files = [file_location+filename_1, file_location+filename_2]
 
 #Option 2: set up a prefix/suffix structure.
 #Set up a list of the files to import.

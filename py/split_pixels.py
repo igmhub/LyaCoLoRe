@@ -64,16 +64,16 @@ def split_file(N_side,original_filename,file_number,save_location,output_format)
     DEC = initial[1].data['DEC']
     z_qso = initial[1].data['Z_COSMO']
     z = initial[4].data['Z']
-    DENSITY = initial[2].data[:]
+    DELTA = initial[2].data[:]
 
     N_cells = z.shape[0]
     N_qso = z_qso.shape[0]
     N_pix = 12*N_side**2
 
     iv = np.ones((N_qso,N_cells))
-    PLATE = np.zeros(N_qso)
-    MJD = np.zeros(N_qso)
-    FIBER = np.zeros(N_qso)
+    PLATE = np.zeros(N_qso,dtype=np.int)
+    MJD = np.zeros(N_qso,dtype=np.int)
+    FIBER = np.zeros(N_qso,dtype=np.int)
 
     #Set THING_ID as a 10 digit string, of which the first 3 digits correspond to the node number, and the last 7 correspond to the row number in the original file.
     THING_ID = ['']*N_qso
@@ -133,7 +133,7 @@ def split_file(N_side,original_filename,file_number,save_location,output_format)
 
         pixel_indices = [i for i in range(len(pixel_ID)) if pixel_ID[i]==n]
 
-        pixel_DENSITY = np.array([DENSITY[i,:] for i in pixel_indices])
+        pixel_DELTA = np.array([DELTA[i,:] for i in pixel_indices])
         pixel_iv = np.array([iv[i,:] for i in pixel_indices])
         pixel_RA = [RA[i] for i in pixel_indices]
         pixel_DEC = [DEC[i] for i in pixel_indices]
@@ -143,8 +143,8 @@ def split_file(N_side,original_filename,file_number,save_location,output_format)
         pixel_FIBER = [FIBER[i] for i in pixel_indices]
         pixel_THING_ID = [THING_ID[i] for i in pixel_indices]
 
-        #Transpose pixel_DENSITY and pixel_iv to match picca input.
-        pixel_DENSITY = np.transpose(pixel_DENSITY)
+        #Transpose pixel_DELTA and pixel_iv to match picca input.
+        pixel_DELTA = np.transpose(pixel_DELTA)
         pixel_iv = np.transpose(pixel_iv)
 
         if n+1>0:
@@ -177,12 +177,12 @@ def split_file(N_side,original_filename,file_number,save_location,output_format)
                 header['PIX'] = int(n)
 
                 #Create hdus from the data arrays
-                hdu_DENSITY = fits.PrimaryHDU(data=pixel_DENSITY,header=header)
+                hdu_DELTA = fits.PrimaryHDU(data=pixel_DELTA,header=header)
                 hdu_iv = fits.ImageHDU(data=pixel_iv,header=header,name='IV')
                 hdu_LOGLAM_MAP = fits.ImageHDU(data=LOGLAM_MAP,header=header,name='LOGLAM_MAP')
                 tbhdu = fits.BinTableHDU.from_columns(cols,header=header)
 
-                hdulist = fits.HDUList([hdu_DENSITY,hdu_iv,hdu_LOGLAM_MAP,tbhdu])
+                hdulist = fits.HDUList([hdu_DELTA,hdu_iv,hdu_LOGLAM_MAP,tbhdu])
                 hdulist.writeto(save_location + '/' + 'node_%s_nside_%d_pix_%d.fits' % (node, N_side, n))
 
             else:
