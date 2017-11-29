@@ -153,7 +153,7 @@ def split_file(N_side,original_filename,file_number,save_location,output_format)
         pixel_DELTA = np.transpose(pixel_DELTA)
         pixel_iv = np.transpose(pixel_iv)
 
-        if n+1>0:
+        if n>=0:
             print('There are %d quasars in pixel %d.' % (len(pixel_THING_ID),n))
         else:
             print('There are %d quasars with invalid coordinates.' % (len(pixel_THING_ID)))
@@ -189,7 +189,11 @@ def split_file(N_side,original_filename,file_number,save_location,output_format)
                 tbhdu = fits.BinTableHDU.from_columns(cols,header=header)
 
                 hdulist = fits.HDUList([hdu_DELTA,hdu_iv,hdu_LOGLAM_MAP,tbhdu])
-                hdulist.writeto(save_location + '/' + 'node_%s_nside_%d_pix_%d.fits' % (node, N_side, n))
+
+                if n>=0:
+                    hdulist.writeto(save_location + '/' + 'node_%s_nside_%d_pix_%d.fits' % (node, N_side, n))
+                else:
+                    hdulist.writeto(save_location + '/' + 'invalid_coordinates_node_%s_nside_%d.fits' % (node, N_side))
 
             else:
                 #Some kind of error and option to put in a new format code?
