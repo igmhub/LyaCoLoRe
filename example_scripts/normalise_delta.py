@@ -1,15 +1,11 @@
 import numpy as np
 from astropy.io import fits
 
-#Script to normalise the value of delta such that its mean is 0.
+#Function to normalise the value of delta from a CoLoRe output file such that its mean is 0.
 
-#Set up a list of the files to import.
-file_location = '/Users/jfarr/Projects/repixelise/test_input'
-file_prefix = 'out_srcs_s0_'
-file_numbers = [16]
-files = split.file_list(file_location,file_prefix,file_numbers)
+def normalise_delta(file_location,file_prefix,file_number):
 
-for i, file in enumerate files:
+    file = file_location + '/' + file_prefix + str(file_numbers[i]) + '.fits'
     initial = fits.open(file)
     DELTA = initial[2].data
     new_DENSITY = np.array([1+x for x in DELTA])/(1+np.mean(DELTA))
@@ -18,5 +14,9 @@ for i, file in enumerate files:
     final = initial
     final[2].data = new_DELTA
 
-    new_filename = file_location + file_prefix + 'normalised_delta_' + file_numbers[i] + '.fits'
-    final.write(new_filename)
+    new_filename = file_location + '/' + file_prefix + 'normalised_delta_' + str(file_numbers[i]) + '.fits'
+    final.writeto(new_filename)
+
+    initial.close()
+
+    return
