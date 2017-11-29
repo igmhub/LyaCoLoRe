@@ -5,7 +5,7 @@ import lya_mock_functions as mock
 import lya_stats_functions as stats
 
 #Open data file
-hdulist = fits.open('/Users/jfarr/Projects/repixelise/test_input/out_srcs_s0_15.fits')
+hdulist = fits.open('/Users/jfarr/Projects/repixelise/test_input/cut_10000_out_srcs_s0_15.fits')
 
 #Extract redshift from data file
 z = hdulist[4].data['Z']
@@ -26,22 +26,30 @@ plt.scatter(phi/np.pi,np.cos(theta))
 plt.xlim(0.0,2.0)
 plt.ylim(-1.0,1.0)
 
+#Extract the delta skewers from the file, and make a mask for them.
+delta_skewers = hdulist[2].data
+mask = stats.make_mask(z,z_qso)
+
+#NORMALISE THE DELTA FIELD SO THAT ITS MEAN IS 0.
+#THIS IS AN ONGOING ISSUE IN COLORE, AND IS LISTED TO BE FIXED SO THAT THE DELTA MEAN IS 0 AUTOMATICALLY.
+delta_skewers = stats.normalise_delta(mask,delta_skewers)
+
 #Get the length of each skewer.
-N_pix_skewer = hdulist[2].data.shape[1]
+N_pix_skewer = delta_skewers.shape[1]
 print('There are %d pixels in each skewer.' % N_pix_skewer)
 
 #Show the structure of the data
 print(hdulist[2].header.keys)
 
-#Get delta (the deviation from average density field) for the highest redshift quasar in the sample.
+#Get delta for the highest redshift quasar in the sample.
 id = np.argmax(hdulist[1].data['Z_COSMO'])
-delta = hdulist[2].data[id]
+delta = delta_skewers[id,:]
 
 #Show delta vs r
-print('mean delta =', np.mean(delta))
+print('mean delta =', np.average(delta,weights=mask[id]))
 print('var delta =', np.var(delta))
 plt.figure()
-plt.plot(hdulist[4].data['R'],hdulist[2].data[id])
+plt.plot(hdulist[4].data['R'],delta)
 plt.xlabel('$r\\,\\,[{\\rm Mpc}/h]$')
 plt.ylabel('$\\delta$')
 
@@ -93,11 +101,11 @@ plt.xlim(1215.67*(1+2),1.01*max(wavelength))
 print(" ")
 
 #Calculate density statistics
-binned_z, binned_mean_density, binned_density_var, binned_delta_var = stats.density_stats(z,z_qso,(hdulist[2].data)+1)
+binned_z, mean_binned_density, binned_density_var, binned_delta_var = stats.density_stats(z,z_qso,(delta_skewers)+1)
 
 #Show the calculated statistics against z
 plt.figure()
-plot_binned_mean_density = plt.plot(binned_z, binned_mean_density)
+plot_mean_binned_density = plt.plot(binned_z, mean_binned_density)
 plt.xlabel('z')
 plt.ylabel('Mean density')
 plt.figure()
@@ -116,15 +124,8 @@ print(" ")
 z_hist_bins_boundaries = [0,2,3]
 N_bins = len(z_hist_bins_boundaries)
 
-#For each quasar, set up a mask to remove entries of 0 delta beyond the quasar.
-mask = np.ones(hdulist[2].data.shape)
-max_pixel_qso = [0.]*N_qso
 lower_bound = [0]*N_bins
 upper_bound = [0]*N_bins
-
-for j in range(N_qso):
-    max_pixel_qso[j] = (np.argmax(z>z_qso[j]))%N_pix_skewer
-    mask[j,max_pixel_qso[j]+1:]=np.zeros(1,(mask.shape[1]-max_pixel_qso[j]-1))
 
 for i in range(N_bins):
     #get boundaries in skewer length terms
@@ -136,21 +137,22 @@ for i in range(N_bins):
 
     #print histogram
     plt.figure()
-    plt.hist(np.ravel(hdulist[2].data[:,lower_bound[i]:upper_bound[i]]),bins=1000,weights=np.ravel(mask[:,lower_bound[i]:upper_bound[i]]))
+    plt.hist(np.ravel(delta_skewers[:,lower_bound[i]:upper_bound[i]]),bins=1000,weights=np.ravel(mask[:,lower_bound[i]:upper_bound[i]]))
     plt.yscale('log',nonposy='clip')
     plt.xlabel('$\\delta$')
-    #y-axis is labelled differently depending on which bin we're looking at.
+    plt.ylabel('frequency')
+
     if i+1 < N_bins:
-        plt.ylabel('frequency for %d<z<%d' % (z_hist_bins_boundaries[i], z_hist_bins_boundaries[i+1]))
+        plt.title('{}<z<{}'.format(z_hist_bins_boundaries[i], z_hist_bins_boundaries[i+1]))
     else:
-        plt.ylabel('frequency for z>%d' % z_hist_bins_boundaries[i])
+        plt.title('z>{}'.format(z_hist_bins_boundaries[i]))
 
 #Make one plot with all of the
 #plt.figure()
 #plt.yscale('log',nonposy='clip')
 #plt.xscale('log',nonposy='clip')
 #for i in range(N_bins):
-#    plt.hist(np.ravel(hdulist[2].data[:,lower_bound[i]:upper_bound[i]]),bins=100,weights=np.ravel(mask[:,lower_bound[i]:upper_bound[i]]),normed=True,histtype='step')
+#    plt.hist(np.ravel(delta_skewers[:,lower_bound[i]:upper_bound[i]]),bins=100,weights=np.ravel(mask[:,lower_bound[i]:upper_bound[i]]),normed=True,histtype='step')
 #plt.xlabel('$\\delta$')
 #plt.ylabel('frequency')
 #plt.xlim(-1,50)
@@ -167,7 +169,7 @@ plt.show()
 
 #Second HDU contains the density skewers as a FITS image
 #The skewers have the same ordering as the sources in the catalog
-#(i.e. skewer hdulist[2].data[i,:] corresponds to source hdulist[1].data[i])
+#(i.e. skewer delta_skewers[i,:] corresponds to source hdulist[1].data[i])
 
 #Third HDU contains the velocity skewers. The units of the velocity are
 #such that the skewers contain the redshift distortion associated with

@@ -60,11 +60,17 @@ def file_list(file_location,file_prefix,file_suffices):
 def split_file(N_side,original_filename,file_number,save_location,output_format):
     #Open the original .fits file, and extract the data we need.
     initial = fits.open(original_filename)
+
+    #NORMALISE THE DELTA FIELD SO THAT ITS MEAN IS 0.
+    #THIS IS AN ONGOING ISSUE IN COLORE, AND IS LISTED TO BE FIXED SO THAT THE DELTA MEAN IS 0 AUTOMATICALLY.
+    #initial = stats.normalise_delta(initial)
+
     RA = initial[1].data['RA']
     DEC = initial[1].data['DEC']
     z_qso = initial[1].data['Z_COSMO']
     z = initial[4].data['Z']
     DELTA = initial[2].data[:]
+    initial.close()
 
     N_cells = z.shape[0]
     N_qso = z_qso.shape[0]
@@ -83,7 +89,7 @@ def split_file(N_side,original_filename,file_number,save_location,output_format)
     else:
         exit('The node number is too great to construct a unique THING_ID (more than 3 digits).')
 
-    row_numbers = list(range(initial[2].data[:].shape[0]))
+    row_numbers = list(range(N_qso))
     for i in range(len(row_numbers)):
         row_numbers[i] = str(row_numbers[i])
         if len(row_numbers[i])<=7:

@@ -15,11 +15,11 @@ import split_pixels as split
 #Set up a list of the files to import.
 file_location = '/Users/jfarr/Projects/repixelise/test_input'
 file_prefix = 'out_srcs_s0_'
-file_numbers = [16]
+file_numbers = [15]
 files = split.file_list(file_location,file_prefix,file_numbers)
 
 #Define the desired power of 2 for Nside for the output. This should be larger than that of the input.
-N_side_pow2 = 1
+N_side_pow2 = 2
 N_side = 2**N_side_pow2
 N_pix = 12*N_side**2
 
