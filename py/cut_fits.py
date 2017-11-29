@@ -32,15 +32,15 @@ def cut_fits(file_location, file_name, structure, N_obj_desired, mode):
                 new_4 = original[4].data
 
                 #Check if there's now irrelevant cells (i.e. all zeros). If so, trim them.
-                sum_of_new_2_columns = np.sum(new_2,axis=0)
-                zero_sum_start = np.argmax(sum_of_new_2_columns==0)
+                #sum_of_new_2_columns = np.sum(new_2,axis=0)
+                #zero_sum_start = np.argmax(sum_of_new_2_columns==0)
 
-                if zero_sum_start==0 and sum_of_new_2_columns[0]==0:
-                    exit()
-                elif zero_sum_start>0:
-                    new_2 = new_2[:,0:zero_sum_start]
-                    new_3 = new_3[:,0:zero_sum_start]
-                    new_4 = new_4[0:zero_sum_start]
+                #if zero_sum_start==0 and sum_of_new_2_columns[0]==0:
+                #    exit()
+                #elif zero_sum_start>0:
+                #    new_2 = new_2[:,0:zero_sum_start]
+                #    new_3 = new_3[:,0:zero_sum_start]
+                #    new_4 = new_4[0:zero_sum_start]
 
             else:
                 print('Mode {} not recognised; please try again.'.format(mode))

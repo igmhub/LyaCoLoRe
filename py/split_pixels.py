@@ -193,7 +193,7 @@ def split_file(N_side,original_filename,file_number,save_location,output_format)
                 if n>=0:
                     hdulist.writeto(save_location + '/' + 'node_%s_nside_%d_pix_%d.fits' % (node, N_side, n))
                 else:
-                    hdulist.writeto(save_location + '/' + 'invalid_coordinates_node_%s_nside_%d.fits' % (node, N_side))
+                    hdulist.writeto(save_location + '/' + 'invalid_coords_node_%s_nside_%d.fits' % (node, N_side))
 
             else:
                 #Some kind of error and option to put in a new format code?
