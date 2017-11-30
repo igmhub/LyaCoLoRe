@@ -14,12 +14,11 @@ def split_pixels(N_side,files,file_numbers,save_location,output_format):
     N_files = len(files)
 
     #Run through each file and split it into pixel fits files, adding each pixel's THING_IDs and pixel_IDs to the master.
+    master_ID_data = []
     for i in range(N_files):
         THING_ID, pixel_ID = split_file(N_side,files[i],file_numbers[i],save_location,output_format)
         THING_ID = list(THING_ID)
         pixel_ID = list(pixel_ID)
-        master_ID_data = []
-
         for j in range(len(THING_ID)):
             master_ID_data += [(THING_ID[j],pixel_ID[j])]
 
@@ -45,8 +44,11 @@ def split_pixels(N_side,files,file_numbers,save_location,output_format):
     hdulist.writeto(save_location + '/' + 'master.fits')
 
     #Group the data from different nodes but the same pixel into per-pixel files.
-    pixels = list(set(master_ID_sort['PIX']))
-    collect_pixels(save_location,file_numbers,N_side,pixels)
+    pixels = list(set(master_ID_sort_filter['PIX']))
+    N_qso = collect_pixels(save_location,file_numbers,N_side,pixels)
+
+    print('Before collecting pixels, we have {} quasars.'.format(master_ID.shape[0]))
+    print('After collecting pixels, we have {} quasars.'.format(N_qso))
 
     return
 
@@ -215,14 +217,14 @@ def split_file(N_side,original_filename,file_number,save_location,output_format)
     return THING_ID, pixel_ID
 
 
+#Function to look for files outputted by split_file that are for the same pixel, but from different nodes.
+#It then combines them into one file and saves it.
 def collect_pixels(location, nodes, N_side, pixels):
-    """
-    WANT IT TO COUNT FILES THAT HAVE THE SAME PIXEL NUMBER.
-    IF THERE'S MORE THAN 1, THEN OPEN THEM BOTH AND MERGE THEM.
-    IF THERE'S ONLY 1, THEN MOVE ON.
-    """
+
+    N_qso = 0
+
+    #Standardise node numbers into 3 digit strings
     for i, node in enumerate(nodes):
-        #Standardise node numbers into 3 digit strings
         node_str = str(node)
         if len(node_str)<=3:
             node_str = '0'*(3-len(node_str))+node_str
@@ -230,22 +232,24 @@ def collect_pixels(location, nodes, N_side, pixels):
         else:
             exit('The node number is too great.')
 
+    #Cycle through pixels.
     for i, pixel in enumerate(pixels):
 
         print('Collecting information for pixel {} ({} of {}).'.format(pixel,i+1,len(pixels)))
         node_list = []
 
+        #Cycle through nodes.
         for j, node in enumerate(nodes):
 
             print('Looking in files from node {} ({} of {}).'.format(node,j+1,len(nodes)))
 
+            #Look for a file from current node, with quasars from current pixel.
             filename = location + '/node_{}_nside_{}_pix_{}.fits'.format(node,N_side,pixel)
-
             if os.path.exists(filename)==True:
                 print('  -> data found!')
                 node_list += [node]
 
-        #Open the first file and import the data.
+        #If any files were found for the current pixel, open the first file and import the data.
         if len(node_list)>0:
             node = node_list[0]
             first_file = fits.open(location + '/node_{}_nside_{}_pix_{}.fits'.format(node,N_side,pixel))
@@ -255,7 +259,7 @@ def collect_pixels(location, nodes, N_side, pixels):
             combined_3 = first_file[3].data
             first_file.close()
 
-        #If there are subsequent files, open them and concatenate the data.
+        #If there are subsequent files for the current pixel, open them and concatenate the data.
         if len(node_list)>1:
             for node in node_list[1:]:
                 additional_file = fits.open(location + '/node_{}_nside_{}_pix_{}.fits'.format(node,N_side,pixel))
@@ -268,23 +272,27 @@ def collect_pixels(location, nodes, N_side, pixels):
         ADD IN SOMETHING TO CHECK FOR DUPLICATES? (REALLY SHOULDN'T HAPPEN BUT JUST IN CASE?)
         """
 
+        N_qso += combined_0.shape[1]
+
+        #Set up the same headers as before.
         header = fits.Header()
         header['NSIDE'] = N_side
         header['NQSO'] = combined_0.shape[0]
         header['PIX'] = pixel
         header['LYA'] = 1215.67
 
+        #Make the data into suitable HDUs.
         hdu_DELTA = fits.PrimaryHDU(data=combined_0,header=header)
         hdu_iv = fits.ImageHDU(data=combined_1,header=header,name='IV')
         hdu_LOGLAM_MAP = fits.ImageHDU(data=combined_2,header=header,name='LOGLAM_MAP')
         hdu_CATALOG = fits.BinTableHDU(combined_3,name='CATALOG')
 
+        #Combine the HDUs into and HDUlist and save as a new file. Close the HDUlist.
         hdulist = fits.HDUList([hdu_DELTA, hdu_iv, hdu_LOGLAM_MAP, hdu_CATALOG])
-
         combined_filename = location + '/nside_{}_pix_{}.fits'.format(N_side,pixel)
-
         hdulist.writeto(combined_filename)
+        hdulist.close()
 
-        print("\n")
+        print(" ")
 
-    return
+    return N_qso
