@@ -5,7 +5,7 @@ import lya_mock_functions as mock
 import lya_stats_functions as stats
 
 #Open data file
-hdulist = fits.open('/Users/jfarr/Projects/repixelise/test_input/cut_10000_out_srcs_s0_15.fits')
+hdulist = fits.open('../example_data/raw_colore/N1000_out_srcs_s0_15.fits')
 
 #Extract redshift from data file
 z = hdulist[4].data['Z']
