@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import healpy as hp
 
 # identify output file we want to plot
-hdulist = fits.open('../example_data/raw_colore/test_N1000.fits')
+hdulist = fits.open('../example_data/raw_colore/N1000_out_srcs_s0_15.fits')
 
 # get quasar catalog
 initial_catalog = hdulist[1].data
