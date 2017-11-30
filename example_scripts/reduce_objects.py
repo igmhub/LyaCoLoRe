@@ -15,7 +15,7 @@ file_suffices = [15]
 structure = 0
 
 #Set the number of objects desired in the output.
-N_obj_desired = 1020
+N_obj_desired = 1000
 
 #Specify the mode of object selection:
 #0=select the last (highest z) N_obj_desired objects
