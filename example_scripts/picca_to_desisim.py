@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import lya_mock_functions as mock
 
 # identify output file we want to plot
-h = fitsio.FITS('../example_data/delta_picca/nside_4_pix_0.fits')
+h = fitsio.FITS('../example_data/delta_picca/z1.85/z1.85_N1000_node_015_nside_4_pix_10.fits')
 
 # get information about quasars (TYPE,RA,DEC,Z_COSMO,DZ_RSD)
 catalog = h[3].read()
@@ -15,7 +15,8 @@ print(np.min(z_qso),'< z_qso <',np.max(z_qso))
 
 # get arraw with redshift in each cell of grid
 loglam = h[2].read()
-z = loglam/1215.67-1.0
+wave=np.power(10.0,loglam)
+z = wave/1215.67-1.0
 Nz=len(z)
 
 # Get deltas (fluctuation around mean density) 
