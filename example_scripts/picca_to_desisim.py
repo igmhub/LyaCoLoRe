@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import lya_mock_functions as mock
 
 # identify output file we want to plot
-h = fitsio.FITS('../example_data/delta_picca/z1.85/z1.85_N1000_node_015_nside_4_pix_10.fits')
+h = fitsio.FITS('../example_data/delta_picca/nside_4_pix_0.fits')
 
 # get information about quasars (TYPE,RA,DEC,Z_COSMO,DZ_RSD)
 catalog = h[3].read()
@@ -25,7 +25,9 @@ filename='test_desisim_lya_N'+str(Nq)+'.fits'
 fits = fitsio.FITS(filename,'rw',clobber=True)
 
 # write skewers for desisim
+Ngood,Nbad=0,0
 for i in range(Nq):
+    if i%1000 < 1: print(i,Ngood,Nbad)
     # Convert density to flux
     tau = mock.get_tau(z,1+delta[:,i])
     flux = np.exp(-tau)
@@ -40,7 +42,11 @@ for i in range(Nq):
     head['RA']=catalog['RA'][i]
     head['DEC']=catalog['DEC'][i]
     head['MAG_G']=22
-    fits.write(data,header=head)
+    if catalog['DEC'][i] < 90.0 and catalog['DEC'][i] > -90.0:
+        Ngood+=1
+        fits.write(data,header=head)
+    else:
+        Nbad+=1
 fits.close()
 
 
