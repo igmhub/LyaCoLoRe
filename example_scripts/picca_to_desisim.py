@@ -1,13 +1,13 @@
 import os
 import numpy as np
 import fitsio
-import matplotlib.pyplot as plt
 import healpy as hp
 import desitarget.mock.io as mockio
 import lya_mock_functions as mock
 
 # identify output file we want to plot
-h = fitsio.FITS('../example_data/delta_picca/z1.85/z1.85_N1000_node_015_nside_4_pix_10.fits')
+filename='../example_data/delta_picca/z1.85/z1.85_N1000_node_015_nside_4_pix_10.fits'
+h = fitsio.FITS(filename)
 
 # get information about quasars (TYPE,RA,DEC,Z_COSMO,DZ_RSD)
 catalog = h[3].read()
@@ -49,6 +49,7 @@ Npix=12*nside*nside
 pixels=hp.ang2pix(nside,(catalog['DEC']+90.0)/180.0*np.pi,catalog['RA']/180.0*np.pi)
 
 transmission_base_dir='test_dir'
+
 for pix in range(Npix):
     # get quasars in HEALPix pixel
     in_pix=(pixels==pix)
@@ -58,6 +59,7 @@ for pix in range(Npix):
     # select relevant quasars
     qso_in_pix = catalog[in_pix]
     delta_in_pix = delta[:,in_pix]
+    z_in_pix = z_qso[in_pix]
     N_in_pix=len(qso_in_pix)
     print('useful pixel',pix,N_in_pix)
     # open file to write
@@ -74,13 +76,13 @@ for pix in range(Npix):
         tau = mock.get_tau(z,1+delta_in_pix[:,i])
         flux = np.exp(-tau)
         # only add absorption in the forest 
-        no_forest = (z > z_qso[i])
+        no_forest = (z > z_in_pix[i])
         flux[no_forest]=1.0
         data = {}
         data['LAMBDA']=wave
         data['FLUX']=flux
         head = {}
-        head['ZQSO']=z_qso[i]
+        head['ZQSO']=z_in_pix[i]
         head['RA']=qso['RA']
         head['DEC']=qso['DEC']
         head['MAG_G']=22
