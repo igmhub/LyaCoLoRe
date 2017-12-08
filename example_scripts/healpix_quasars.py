@@ -16,14 +16,15 @@ print('initial size',len(initial_catalog))
 print('final size',len(catalog))
 
 # specify Nside parameter in HEALPix maps (power of 2)
-Nside=2**2
+nside=2**1
 
 # convert (RA,DEC) to (theta,phi) and find HEALPix pixel for each point
-pix = hp.ang2pix(Nside,(catalog['DEC']+90.0)/180.0*np.pi,catalog['RA']/180.0*np.pi)
+theta,phi = np.radians(90-catalog['DEC']), np.radians(catalog['RA'])
+pixels = hp.ang2pix(nside,theta,phi,nest=True)
 
 # plot angular positions of quasars color-coded by HEALPix pixel
-for i in range(12*Nside*Nside):
-    plt.plot(catalog['RA'][pix==i],catalog['DEC'][pix==i],'o')
+for pix in range(12*nside*nside):
+    plt.plot(catalog['RA'][pixels==pix],catalog['DEC'][pixels==pix],'o')
 
 plt.xlabel('RA (deg)')
 plt.ylabel('Dec (deg)')
