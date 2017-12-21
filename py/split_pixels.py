@@ -23,7 +23,7 @@ def split_pixels(N_side,files,file_numbers,save_location,output_format):
             master_ID_data += [(THING_ID[j],pixel_ID[j])]
 
     #Sort the THING_IDs and pixel_IDs into the right order: first by pixel number, and then by THING_ID.
-    dtype = [('THING_ID', 'S10'), ('PIX', int)]
+    dtype = [('THING_ID', 'U10'), ('PIX', int)]
     master_ID = np.array(master_ID_data, dtype=dtype)
     master_ID_sort = np.sort(master_ID, order=['PIX','THING_ID'])
 
@@ -126,7 +126,7 @@ def split_file(N_side,original_filename,file_number,save_location,output_format)
         if 0 <= theta[i] <= np.pi and 0 <= phi[i] <= 2*np.pi:
             pixel_ID[0,i] = hp.pixelfunc.ang2pix(N_side,theta[i],phi[i])
         else:
-            pixel_ID[0,i] = -int(node)
+            pixel_ID[0,i] = int(node)-12*N_side**2
 
     #print('There are %d objects with invalid angular coordinates.' % (sum(pixel_ID[i] == -1 for i in range(len(pixel_ID)))))
     print('Details of these objects are stored in a file corresponding to a pixel number of -(node number).')
