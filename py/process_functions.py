@@ -3,6 +3,8 @@ from astropy.io import fits
 import healpy as hp
 import os
 
+lya = 1215.67
+
 #Function to create a 'simulation_data' object given a specific pixel, information about the complete simulation, and the location/filenames of data files.
 def make_pixel_object(pixel,original_file_location,original_filename_structure,input_format,master_data,pixel_list,file_number_list,file_pixel_map,z_min):
 
@@ -17,7 +19,7 @@ def make_pixel_object(pixel,original_file_location,original_filename_structure,i
         print(' -> Extracting data from file number {} ({} of {})...'.format(file_number,relevant_file_numbers.index(file_number)+1,len(relevant_file_numbers)))
 
         #Get the THING_IDs of the relevant quasars: those that are located in the current pixel, stored in the current file, and have z_qso<z_min.
-        relevant_THING_IDs = [qso['THING_ID'] for qso in master_data if qso['PIX']==pixel and qso['FILE_NUMBER']==file_number]
+        relevant_THING_IDs = [qso['THING_ID'] for qso in master_data if qso['PIXNUM']==pixel and int(str(qso['THING_ID'])[:-7])==file_number]
         N_relevant_qso = len(relevant_THING_IDs)
         print('    -> {} relevant quasars found.'.format(N_relevant_qso))
 
@@ -78,7 +80,7 @@ def numbers_to_strings(numbers,string_length):
 #Function to extract RA values from a colore or picca format hdulist.
 def get_RA(h,input_format):
 
-    if input_format == 'colore':
+    if input_format == 'physical_colore':
         RA = h[1].data['RA']
     elif input_format == 'picca':
         RA = h[3].data['RA']
@@ -90,7 +92,7 @@ def get_RA(h,input_format):
 #Function to extract DEC values from a colore or picca format hdulist.
 def get_DEC(h,input_format):
 
-    if input_format == 'colore':
+    if input_format == 'physical_colore':
         DEC = h[1].data['DEC']
     elif input_format == 'picca':
         DEC = h[3].data['DEC']
@@ -102,7 +104,7 @@ def get_DEC(h,input_format):
 #Function to extract Z_QSO values from a colore or picca format hdulist.
 def get_Z_QSO(h,input_format):
 
-    if input_format == 'colore':
+    if input_format == 'physical_colore':
         Z_QSO = h[1].data['Z_COSMO']
     elif input_format == 'picca':
         Z_QSO = h[3].data['Z']
@@ -111,10 +113,22 @@ def get_Z_QSO(h,input_format):
 
     return Z_QSO
 
+#Function to extract DZ_RSD values from a colore.
+def get_DZ_RSD(h,input_format):
+
+    if input_format == 'physical_colore':
+        DZ_RSD = h[1].data['DZ_RSD']
+    elif input_format == 'picca':
+        print('Error: DZ_RSD not stored in picca files.')
+    else:
+        print('Error.')
+
+    return DZ_RSD
+
 #Function to extract THING_ID values from a colore, picca or ID format hdulist.
 def get_THING_ID(h,input_format,file_number):
 
-    if input_format == 'colore':
+    if input_format == 'physical_colore':
 
         #CoLoRe files do not have a THING_ID entry normally.
         #I am adding entries to any files processed via this code.
@@ -161,7 +175,7 @@ def get_Z(h,input_format):
 
     lya = 1215.67
 
-    if input_format == 'colore':
+    if input_format == 'physical_colore':
         Z = h[4].data['Z']
     elif input_format == 'picca':
         LOGLAM_MAP = h[2].data
@@ -195,7 +209,7 @@ def make_pixel_ID(N_side,RA,DEC):
 def get_ID_data(original_location,original_filename_structure,input_format,file_numbers,N_side):
 
     ID_data = []
-
+    print('Assembling master data...')
     #Set up the file_pixel_map.
     #file_pixel_map[i,j] is 1 if the jth file contains qsos from the ith pixel, 0 otherwise.
     N_pixels = 12*N_side**2
@@ -203,20 +217,24 @@ def get_ID_data(original_location,original_filename_structure,input_format,file_
 
     for file_number in file_numbers:
         #Open the file and extract the angular coordinate data.
+        print(' -> extracting data from {} ({} of {})'.format(original_filename_structure.format(file_number),file_numbers.index(file_number)+1,len(file_numbers)))
         filename = original_location + '/' + original_filename_structure.format(file_number)
         h = fits.open(filename)
 
         #Extract the component parts of the master file's data from h.
         RA = get_RA(h,input_format)
         DEC = get_DEC(h,input_format)
-        Z_QSO = get_Z_QSO(h,input_format)
+        Z_QSO_NO_RSD = get_Z_QSO(h,input_format)
+        DZ_RSD = get_DZ_RSD(h,input_format)
         THING_ID = get_THING_ID(h,input_format,file_number)
 
         h.close()
 
         #Construct the remaining component parts of the master file's data.
         pixel_ID = make_pixel_ID(N_side,RA,DEC)
-        file_number_list = np.ones(RA.shape)*file_number
+
+        #Calculate Z_QSO.
+        Z_QSO = Z_QSO_NO_RSD + DZ_RSD
 
         file_pixel_list = np.sort(list(set(pixel_ID)))
         N_qso = len(THING_ID)
@@ -225,7 +243,7 @@ def get_ID_data(original_location,original_filename_structure,input_format,file_
         #for j in range(N_qso):
         #    ID_data += [(THING_ID[j],pixel_ID[j],file_number)]
 
-        ID_data = list(zip(RA,DEC,Z_QSO,THING_ID,pixel_ID,file_number_list))
+        ID_data = list(zip(RA,DEC,Z_QSO_NO_RSD,Z_QSO,THING_ID,pixel_ID))
 
         #Add information to file_pixel_map
         for pixel in file_pixel_list:
@@ -233,13 +251,13 @@ def get_ID_data(original_location,original_filename_structure,input_format,file_
                 file_pixel_map[pixel,file_number]=1
 
     #Sort the THING_IDs and pixel_IDs into the right order: first by pixel number, and then by THING_ID.
-    dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z_QSO', '>f4'), ('THING_ID', int), ('PIX', int), ('FILE_NUMBER', int)]
+    dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z_QSO_NO_RSD', '>f4'), ('Z_QSO', '>f4'), ('THING_ID', int), ('PIXNUM', int)]
     ID = np.array(ID_data, dtype=dtype)
-    ID_sort = np.sort(ID, order=['PIX','THING_ID'])
+    ID_sort = np.sort(ID, order=['PIXNUM','THING_ID'])
 
     #Separate the quasars with invalid coordinates from the ID data.
-    ID_sort_filter = ID_sort[ID_sort['PIX']>=0]
-    ID_sort_bad = ID_sort[ID_sort['PIX']<0]
+    ID_sort_filter = ID_sort[ID_sort['PIXNUM']>=0]
+    ID_sort_bad = ID_sort[ID_sort['PIXNUM']<0]
 
     return ID_sort_filter, ID_sort_bad, file_pixel_map
 
@@ -276,12 +294,12 @@ def get_tau(z,density):
 #Function to make ivar mask
 def make_IVAR_rows(lya,Z_QSO,LOGLAM_MAP,N_qso,N_cells):
 
-    lya_frequencies = lya*(1+Z_QSO)
+    lya_lambdas = lya*(1+Z_QSO)
     IVAR_rows = []
 
     for i in range(N_qso):
 
-        first_not_relevant_cell = np.argmax(10**LOGLAM_MAP > lya_frequencies[i])
+        first_not_relevant_cell = np.argmax(10**LOGLAM_MAP > lya_lambdas[i])
 
         new_IVAR_row = [list(np.concatenate((np.ones(first_not_relevant_cell),np.zeros(N_cells-first_not_relevant_cell))))]
         IVAR_rows += new_IVAR_row
@@ -348,7 +366,7 @@ class simulation_data:
         #Calculate the first_relevant_cell.
         first_relevant_cell = np.argmax(h_Z >= z_min)
 
-        if input_format == 'colore':
+        if input_format == 'physical_colore':
 
             #Extract data from the HDUlist.
             TYPE = h[1].data['TYPE']
@@ -368,7 +386,7 @@ class simulation_data:
             N_cells = Z.shape[0]
             # TODO: check if this is how the header is labelled
             # TODO: also put in the proper formula once the update has been made to colore!
-            SIGMA_G = 1 #h[2].header['SIGMA_G']
+            SIGMA_G = h[4].header['SIGMA_G']
 
             #Derive the THING_ID and LOGLAM_MAP.
             THING_ID = get_THING_ID(h,input_format,file_number)
@@ -377,7 +395,7 @@ class simulation_data:
             F_rows = np.exp(-TAU_rows)
 
             #Insert placeholder values for remaining variables.
-            PLATE = np.zeros(N_qso)
+            PLATE = THING_ID
             MJD = np.zeros(N_qso)
             FIBER = np.zeros(N_qso)
             IVAR_rows = make_IVAR_rows(lya,Z_QSO,LOGLAM_MAP,N_qso,N_cells)
@@ -457,7 +475,7 @@ class simulation_data:
         #Calculate the first_relevant_cell.
         first_relevant_cell = np.argmax(h_Z >= z_min)
 
-        if input_format == 'colore':
+        if input_format == 'physical_colore':
 
             #Extract data from the HDUlist.
             TYPE = h[1].data['TYPE'][rows]
@@ -480,8 +498,8 @@ class simulation_data:
             N_cells = Z.shape[0]
             # TODO: check if this is how the header is labelled
             # TODO: also put in the proper formula once the update has been made to colore!
-            SIGMA_G = 1 #h[2].header['SIGMA_G']
-            
+            SIGMA_G = h[4].header['SIGMA_G']
+
             #Derive THING_IDs, LOGLAM_MAP and transmitted flux fraction.
             THING_ID = h_THING_ID[rows]
             LOGLAM_MAP = np.log10(lya*(1+Z))
@@ -489,7 +507,7 @@ class simulation_data:
             F_rows = np.exp(-TAU_rows)
 
             #Insert placeholder values for remaining variables.
-            PLATE = np.zeros(N_qso)
+            PLATE = THING_ID
             MJD = np.zeros(N_qso)
             FIBER = np.zeros(N_qso)
             IVAR_rows = make_IVAR_rows(lya,Z_QSO,LOGLAM_MAP,N_qso,N_cells)
@@ -624,7 +642,7 @@ class simulation_data:
         return
 
     #Function to save data as a Lognormal colore file.
-    def save_as_lognormal_colore(self,location,filename,header):
+    def save_as_physical_colore(self,location,filename,header):
 
         #Organise the data into colore-format arrays.
         colore_1_data = []
@@ -649,7 +667,7 @@ class simulation_data:
         prihdu = fits.PrimaryHDU(header=prihdr)
         cols_CATALOG = fits.ColDefs(colore_1)
         hdu_CATALOG = fits.BinTableHDU.from_columns(cols_CATALOG,header=header,name='CATALOG')
-        hdu_DELTA = fits.ImageHDU(data=colore_2,header=header,name='DELTA')
+        hdu_DELTA = fits.ImageHDU(data=colore_2,header=header,name='PHYSICAL DELTA')
         hdu_VEL = fits.ImageHDU(data=colore_3,header=header,name='VELOCITY')
         cols_COSMO = fits.ColDefs(colore_4)
         hdu_COSMO = fits.BinTableHDU.from_columns(cols_COSMO,header=header,name='CATALOG')
@@ -701,18 +719,29 @@ class simulation_data:
         return
 
     #Function to save data as a transmission file.
-    # TODO: Check if it's F that we want here
-    def save_as_transmission(self,location,filename,header):
+    def save_as_transmission(self,location,filename,header,lambda_min=0):
+
+        lya = 1215.67
+
+        if lambda_min > 0:
+            first_relevant_cell = np.argmax(10**self.LOGLAM_MAP >= lambda_min)
+            relevant_rows = [i for i in range(self.N_qso) if self.Z_QSO[i] > self.Z[first_relevant_cell]]
+
+            if len(relevant_rows)<self.N_qso:
+                print(' -> {} quasars removed from transmission by lambda_min constraint.'.format(self.N_qso-len(relevant_rows)))
+        else:
+            first_relevant_cell = 0
 
         transmission_1_data = []
         for i in range(self.N_qso):
-            transmission_1_data += [(self.RA[i],self.DEC[i],self.Z_QSO[i],self.THING_ID[i])]
+            if i in relevant_rows:
+                transmission_1_data += [(self.RA[i],self.DEC[i],self.Z_QSO[i],self.THING_ID[i])]
 
         dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z', '>f4'), ('THING_ID', int)]
         transmission_1 = np.array(transmission_1_data,dtype=dtype)
 
         transmission_2 = 10**(self.LOGLAM_MAP)
-        transmission_3 = self.F_rows.T
+        transmission_3 = self.F_rows[relevant_rows,first_relevant_cell:].T
 
         #Construct HDUs from the data arrays.
         prihdr = fits.Header()
@@ -1020,7 +1049,7 @@ class simulation_data:
             FIBER = []
             IVAR_rows = []
 
-            if input_format == 'colore':
+            if input_format == 'physical_colore':
 
                 #Extract data from the HDUlist.
                 TYPE = np.concatenate((TYPE,h[1].data['TYPE'][rows]))

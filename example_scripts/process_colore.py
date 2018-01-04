@@ -16,7 +16,7 @@ N_pix = 12*N_side**2
 original_file_location = '/Users/jfarr/Projects/repixelise/test_input/'
 original_filename_structure = 'out_srcs_s0_{}.fits' #file_number
 file_numbers = [15,16]
-input_format = 'colore'
+input_format = 'physical_colore'
 
 #Set file structure
 new_base_file_location = '/Users/jfarr/Projects/repixelise/test_output/test/'
@@ -48,8 +48,8 @@ print('"Bad coordinates" file containing {} objects saved at:\n{}\n'.format(bad_
 
 
 #Make a list of the pixels that the files cover.
-pixel_list = list(sorted(set(master_data['PIX'])))
-file_number_list = list(sorted(set(master_data['FILE_NUMBER'])))
+pixel_list = list(sorted(set(master_data['PIXNUM'])))
+file_number_list = list(sorted(set([int(str(qso['THING_ID'])[:-7]) for qso in master_data])))
 
 
 
@@ -62,12 +62,12 @@ for pixel in pixel_list:
     location = new_base_file_location + new_file_structure.format(pixel//100,pixel)
 
     #Make file into an object
-    pixel_object = functions.make_pixel_object(pixel,original_file_location,original_filename_structure,'colore',master_data,pixel_list,file_number_list,file_pixel_map,z_min)
+    pixel_object = functions.make_pixel_object(pixel,original_file_location,original_filename_structure,input_format,master_data,pixel_list,file_number_list,file_pixel_map,z_min)
 
     #Make some useful headers
     header = fits.Header()
     header['NSIDE'] = N_side
-    header['PIX'] = pixel
+    header['PIXNUM'] = pixel
     header['LYA'] = lya
     header['NQSO'] = pixel_object.N_qso
 
@@ -78,9 +78,9 @@ for pixel in pixel_list:
     print(' -> complete!')
 
     #lognorm CoLoRe
-    print('Working on lognormal CoLoRe file...')
-    filename = new_filename_structure.format('lognormal-colore',N_side,pixel)
-    pixel_object.save_as_lognormal_colore(location,filename,header)
+    print('Working on physical CoLoRe file...')
+    filename = new_filename_structure.format('physical-colore',N_side,pixel)
+    pixel_object.save_as_physical_colore(location,filename,header)
     print(' -> complete!')
 
     #Picca density
@@ -92,7 +92,7 @@ for pixel in pixel_list:
     #transmission
     print('Working on transmission file...')
     filename = new_filename_structure.format('transmission',N_side,pixel)
-    pixel_object.save_as_transmission(location,filename,header)
+    pixel_object.save_as_transmission(location,filename,header,lambda_min=lambda_min)
     print(' -> complete!')
 
     #picca flux
