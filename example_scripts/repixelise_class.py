@@ -26,10 +26,10 @@ output_filename_structure = '{}_zmin_{}_nside_{}_pix_{}.fits'
 output_format = 'picca'
 
 #Define what the program should do if files with the proposed filename already exist. Options are:
-#0 - save as a separate file with a suffix _2 (and then _3 if _2 already exists etc.).
+#0 - save as a separate file with a suffix _v2 (and then _v3 if _v2 already exists etc.).
 #1 - if there are duplicate quasars, follow #0. Otherwise merge the existing file with the new data.
 #2 - Merge the existing file with the new data, avoiding duplicate objects.
-existing_file_option = 2
+existing_file_option = 0
 
 start = time.time()
 split_pixels_class.split_pixels(input_file_location,input_filename_structure,file_numbers,input_format,N_side,output_location,output_filename_structure,output_format,z_min=z_min,existing_file_option=existing_file_option)

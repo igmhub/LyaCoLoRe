@@ -112,7 +112,6 @@ def split_pixels(original_location,original_filename_structure,file_numbers,inpu
             #Set up filename.
             filename = save_location + '/' + new_filename_structure.format(output_format,z_min,N_side,pixel)
 
-
             #Check for any issues with pre-existing files with the same filename.
             #Produce a final object and filename, as per 'existing_file_option'.
             final_filename, final_object = check_pixel_filename(filename,combined,output_format,pixel,existing_file_option,z_min)
@@ -369,7 +368,7 @@ def check_ID_filename(proposed_filename,working_data,existing_file_option):
         #For this option, we always save the working data as a new file.
         if existing_file_option == 0:
 
-            working_filename = proposed_filename[:-5] + '_' + str(i) + '.fits'
+            working_filename = proposed_filename[:-5] + '_v' + str(i) + '.fits'
             print('Will attempt to save new data in a new file named {}.'.format(working_filename))
             i = i+1
 
@@ -407,7 +406,7 @@ def check_ID_filename(proposed_filename,working_data,existing_file_option):
                 elif existing_file_option == 1:
 
                     #Append the filename with '_i', and try to save again.
-                    working_filename = proposed_filename[:-5] + '_' + str(i) + '.fits'
+                    working_filename = proposed_filename[:-5] + '_v' + str(i) + '.fits'
                     print('Duplicate entries found. Will attempt to save new data in a new file named {}.'.format(working_filename))
                     i = i+1
 
@@ -443,7 +442,7 @@ def check_ID_filename(proposed_filename,working_data,existing_file_option):
             else:
 
                 #Append the filename with '_i', and try to save again.
-                working_filename = proposed_filename[:-5] + '_' + str(i) + '.fits'
+                working_filename = proposed_filename[:-5] + '_v' + str(i) + '.fits'
                 print('Existing file is of a different format.')
                 print('Will attempt to save new data in a new file named {}.'.format(proposed_filename))
                 i = i+1
@@ -469,7 +468,7 @@ def check_pixel_filename(proposed_filename,working_object,output_format,pixel,ex
         #For this option, we always save the working data as a new file.
         if existing_file_option == 0:
 
-            working_filename = proposed_filename[:-5] + '_' + str(i) + '.fits'
+            working_filename = proposed_filename[:-5] + '_v' + str(i) + '.fits'
             print('Will attempt to save new data in a new file named {}.'.format(working_filename))
             i = i+1
 
@@ -507,7 +506,7 @@ def check_pixel_filename(proposed_filename,working_object,output_format,pixel,ex
                 elif existing_file_option == 1:
 
                     #Append the filename with '_i', and try to save again.
-                    working_filename = proposed_filename[:-5] + '_' + str(i) + '.fits'
+                    working_filename = proposed_filename[:-5] + '_v' + str(i) + '.fits'
                     print('Duplicate entries found. Will attempt to save new data in a new file named {}.'.format(working_filename))
                     i = i+1
 
@@ -530,7 +529,7 @@ def check_pixel_filename(proposed_filename,working_object,output_format,pixel,ex
             else:
 
                 #Append the filename with '_i', and try to save again.
-                working_filename = proposed_filename[:-5] + '_' + str(i) + '.fits'
+                working_filename = proposed_filename[:-5] + '_v' + str(i) + '.fits'
                 print('Existing file is of a different format.')
                 print('Will attempt to save new data in a new file named {}.'.format(proposed_filename))
                 i = i+1
@@ -655,7 +654,7 @@ class simulation_data:
     #NOT YET READY TO BE USED
     #Method to extract reduced data from a set of input files of a given format, with a given list of THING_IDs for each file.
     @classmethod
-    def get_reduced_data(cls,file_infos,input_format,z_min):
+    def WIP(cls,file_infos,input_format,z_min):
 
         """
         NEED TO GENERATE FILE_INFOS TO PUT INTO THIS
