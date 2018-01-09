@@ -13,21 +13,22 @@ N_side = 2**N_side_pow2
 N_pix = 12*N_side**2
 
 #Define the original file structure
-original_file_location = '/Users/jfarr/Projects/repixelise/test_input/'
+original_file_location = '/Users/James/Programs/CoLoRe/sample_run'
 original_filename_structure = 'out_srcs_s0_{}.fits' #file_number
-file_numbers = [15,16]
+file_numbers = [0]
 input_format = 'physical_colore'
 
 #Set file structure
-new_base_file_location = '/Users/jfarr/Projects/repixelise/test_output/test/'
+new_base_file_location = '/Users/James/Projects/test/'
 new_file_structure = '{}/{}/'               #pixel number//100, pixel number
 new_filename_structure = '{}-{}-{}.fits'    #file type, nside, pixel number
 
 #Choose options
-lambda_min = 3550
+lambda_min = 0
 enforce_picca_zero_mean_delta = True
 
-#Define the minimum value of z that we are interested in.
+#Calculate the minimum value of z that we are interested in.
+#i.e. the z value for which lambda_min cooresponds to the lya wavelength.
 z_min = lambda_min/lya - 1
 
 
@@ -49,13 +50,15 @@ print('"Bad coordinates" file containing {} objects saved at:\n{}\n'.format(bad_
 
 #Make a list of the pixels that the files cover.
 pixel_list = list(sorted(set(master_data['PIXNUM'])))
-file_number_list = list(sorted(set([int(str(qso['THING_ID'])[:-7]) for qso in master_data])))
+file_number_list = list(sorted(set([int(functions.number_to_string(qso['MOCKID'],10)[:-7]) for qso in master_data])))
 
 
 
 #Make the new file structure
 functions.make_file_structure(new_base_file_location,pixel_list)
 
+#For each pixel, create a 'pixel object' by using the master file's data to collect QSOs from the same pixel, stored in different files.
+#Then save this object in the various formats required.
 print(' \n')
 for pixel in pixel_list:
 
