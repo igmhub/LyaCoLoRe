@@ -239,7 +239,7 @@ def get_ID_data(original_location,original_filename_structure,input_format,file_
         #for j in range(N_qso):
         #    ID_data += [(MOCKID[j],pixel_ID[j],file_number)]
 
-        ID_data = list(zip(RA,DEC,Z_QSO_NO_RSD,Z_QSO,MOCKID,pixel_ID))
+        ID_data += list(zip(RA,DEC,Z_QSO_NO_RSD,Z_QSO,MOCKID,pixel_ID))
 
         #Add information to file_pixel_map
         for pixel in file_pixel_list:
@@ -334,6 +334,7 @@ def get_relevant_indices(minimum,values):
 
     return relevant_indices
 
+# TODO: write this function
 #Function to retrieve relevant simulation parameters from the param.cfg file.
 def retrieve_simulation_parameters(location,filename):
 
