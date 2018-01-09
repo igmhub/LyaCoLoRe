@@ -18,16 +18,16 @@ def make_pixel_object(pixel,original_file_location,original_filename_structure,i
     for file_number in relevant_file_numbers:
         print(' -> Extracting data from file number {} ({} of {})...'.format(file_number,relevant_file_numbers.index(file_number)+1,len(relevant_file_numbers)))
 
-        #Get the THING_IDs of the relevant quasars: those that are located in the current pixel, stored in the current file, and have z_qso<z_min.
-        relevant_THING_IDs = [qso['THING_ID'] for qso in master_data if qso['PIXNUM']==pixel and int(str(qso['THING_ID'])[:-7])==file_number]
-        N_relevant_qso = len(relevant_THING_IDs)
+        #Get the MOCKIDs of the relevant quasars: those that are located in the current pixel, stored in the current file, and have z_qso<z_min.
+        relevant_MOCKIDs = [qso['MOCKID'] for qso in master_data if qso['PIXNUM']==pixel and int(number_to_string(qso['MOCKID'],10)[:-7])==file_number]
+        N_relevant_qso = len(relevant_MOCKIDs)
         print('    -> {} relevant quasars found.'.format(N_relevant_qso))
 
         #If there are some relevant quasars, open the data file and make it into a simulation_data object.
         #We use simulation_data.get_reduced_data to avoid loading all of the file's data into the object.
         if N_relevant_qso > 0:
             filename = original_file_location + '/' + original_filename_structure.format(file_number)
-            working = simulation_data.get_reduced_data(filename,file_number,input_format,relevant_THING_IDs)
+            working = simulation_data.get_reduced_data(filename,file_number,input_format,relevant_MOCKIDs)
 
         #Combine the data from the working file with that from the files already looked at.
         if files_included > 0:
@@ -63,19 +63,15 @@ def make_file_structure(base_location,numbers):
     return
 
 #Function to convert a list of numbers to a list of n-digit strings.
-def numbers_to_strings(numbers,string_length):
+def number_to_string(number,string_length):
 
-    strings=[]
-    for number in numbers:
-        number_str = str(number)
-        if len(number_str)<=string_length:
-            string = '0'*(string_length-len(number_str))+number_str
-        else:
-            exit('The file number is too great to construct a unique THING_ID (more than 3 digits).')
+    number_str = str(number)
+    if len(number_str)<=string_length:
+        string = '0'*(string_length-len(number_str))+number_str
+    else:
+        exit('The file number is too great to construct a unique MOCKID (more than 3 digits).')
 
-        strings += [string]
-
-    return strings
+    return string
 
 #Function to extract RA values from a colore or picca format hdulist.
 def get_RA(h,input_format):
@@ -125,50 +121,50 @@ def get_DZ_RSD(h,input_format):
 
     return DZ_RSD
 
-#Function to extract THING_ID values from a colore, picca or ID format hdulist.
-def get_THING_ID(h,input_format,file_number):
+#Function to extract MOCKID values from a colore, picca or ID format hdulist.
+def get_MOCKID(h,input_format,file_number):
 
     if input_format == 'physical_colore':
 
-        #CoLoRe files do not have a THING_ID entry normally.
+        #CoLoRe files do not have a MOCKID entry normally.
         #I am adding entries to any files processed via this code.
-        #Hence we try to look for a THING_ID entry, and if this fails, we make one.
+        #Hence we try to look for a MOCKID entry, and if this fails, we make one.
         try:
-            THING_ID = h[1].data['THING_ID']
+            MOCKID = h[1].data['MOCKID']
         except KeyError:
             h_N_qso = h[1].data.shape[0]
             row_numbers = list(range(h_N_qso))
-            THING_ID = make_THING_ID(file_number,row_numbers)
+            MOCKID = make_MOCKID(file_number,row_numbers)
 
     elif input_format == 'picca':
 
-        #Get THING_ID list.
-        THING_ID = h[3].data['THING_ID']
+        #Get MOCKID list.
+        MOCKID = h[3].data['MOCKID']
 
     elif input_format == 'ID':
 
-        THING_ID = h[1].data['THING_ID']
+        MOCKID = h[1].data['MOCKID']
 
-    return THING_ID
+    return MOCKID
 
-#Function to construct an array of THING_IDs given a file_number and a list of row_numbers.
-def make_THING_ID(file_number,row_numbers):
+#Function to construct an array of MOCKIDs given a file_number and a list of row_numbers.
+def make_MOCKID(file_number,row_numbers):
 
     N_qso = len(row_numbers)
     node = '0'*(len(str(file_number))-3) + str(file_number)
 
-    THING_ID = ['']*N_qso
+    MOCKID = ['']*N_qso
     for i in range(N_qso):
         row_numbers[i] = str(row_numbers[i])
         if len(row_numbers[i])<=7:
             row_numbers[i] = '0'*(7-len(row_numbers[i]))+row_numbers[i]
         else:
-            exit('The row number is too great to construct a unique THING_ID (more than 7 digits).')
-        THING_ID[i] = int(node+row_numbers[i])
+            exit('The row number is too great to construct a unique MOCKID (more than 7 digits).')
+        MOCKID[i] = int(node+row_numbers[i])
 
-    THING_ID = np.array(THING_ID)
+    MOCKID = np.array(MOCKID)
 
-    return THING_ID
+    return MOCKID
 
 #Function to extract Z values from a colore or picca format hdulist.
 def get_Z(h,input_format):
@@ -226,7 +222,7 @@ def get_ID_data(original_location,original_filename_structure,input_format,file_
         DEC = get_DEC(h,input_format)
         Z_QSO_NO_RSD = get_Z_QSO(h,input_format)
         DZ_RSD = get_DZ_RSD(h,input_format)
-        THING_ID = get_THING_ID(h,input_format,file_number)
+        MOCKID = get_MOCKID(h,input_format,file_number)
 
         h.close()
 
@@ -237,23 +233,23 @@ def get_ID_data(original_location,original_filename_structure,input_format,file_
         Z_QSO = Z_QSO_NO_RSD + DZ_RSD
 
         file_pixel_list = np.sort(list(set(pixel_ID)))
-        N_qso = len(THING_ID)
+        N_qso = len(MOCKID)
 
-        #Add the THING_ID and pixel_ID from this file to the ID list.
+        #Add the MOCKID and pixel_ID from this file to the ID list.
         #for j in range(N_qso):
-        #    ID_data += [(THING_ID[j],pixel_ID[j],file_number)]
+        #    ID_data += [(MOCKID[j],pixel_ID[j],file_number)]
 
-        ID_data = list(zip(RA,DEC,Z_QSO_NO_RSD,Z_QSO,THING_ID,pixel_ID))
+        ID_data = list(zip(RA,DEC,Z_QSO_NO_RSD,Z_QSO,MOCKID,pixel_ID))
 
         #Add information to file_pixel_map
         for pixel in file_pixel_list:
             if pixel >= 0:
                 file_pixel_map[pixel,file_number]=1
 
-    #Sort the THING_IDs and pixel_IDs into the right order: first by pixel number, and then by THING_ID.
-    dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z_QSO_NO_RSD', '>f4'), ('Z_QSO', '>f4'), ('THING_ID', int), ('PIXNUM', int)]
+    #Sort the MOCKIDs and pixel_IDs into the right order: first by pixel number, and then by MOCKID.
+    dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z_QSO_NO_RSD', '>f4'), ('Z_QSO', '>f4'), ('MOCKID', int), ('PIXNUM', int)]
     ID = np.array(ID_data, dtype=dtype)
-    ID_sort = np.sort(ID, order=['PIXNUM','THING_ID'])
+    ID_sort = np.sort(ID, order=['PIXNUM','MOCKID'])
 
     #Separate the quasars with invalid coordinates from the ID data.
     ID_sort_filter = ID_sort[ID_sort['PIXNUM']>=0]
@@ -275,7 +271,7 @@ def write_ID(filename,ID_data,N_side):
 
     #Make the .fits file.
     hdulist = fits.HDUList([prihdu,bt])
-    hdulist.writeto(filename,overwrite=True)
+    hdulist.writeto(filename)
     hdulist.close()
 
     return
@@ -309,9 +305,9 @@ def make_IVAR_rows(lya,Z_QSO,LOGLAM_MAP,N_qso,N_cells):
     return IVAR_rows
 
 #Function to convert lognormal delta skewers (in rows) to gaussian field skewers (in rows).
-def lognormal_to_gaussian(LN_DELTA_rows,SIGMA_G,D):
+def lognormal_to_gaussian(LN_DENSITY_DELTA_rows,SIGMA_G,D):
 
-    LN_DENSITY_rows = 1 + LN_DELTA_rows
+    LN_DENSITY_rows = 1 + LN_DENSITY_DELTA_rows
 
     GAUSSIAN_rows = np.zeros(LN_DENSITY_rows.shape)
 
@@ -320,10 +316,35 @@ def lognormal_to_gaussian(LN_DELTA_rows,SIGMA_G,D):
 
     return GAUSSIAN_rows
 
+#Function to determine the first index corresponding to a value in an array greater than a minimum value.
+def get_first_relevant_index(minimum,values):
+
+    if minimum > 0:
+        first_relevant_index = np.argmax(values >= minimum)
+    else:
+        first_relevant_index = 0
+
+    return first_relevant_index
+
+#Function to determine the indices corresponding to the values in an array greater than a minimum value.
+def get_relevant_indices(minimum,values):
+
+    N = values.shape[0]
+    relevant_indices = [i for i in range(N) if values[i] > minimum]
+
+    return relevant_indices
+
+#Function to retrieve relevant simulation parameters from the param.cfg file.
+def retrieve_simulation_parameters(location,filename):
+
+
+
+    return density_type
+
 #Definition of a generic 'simulation_data' class, from which it is easy to save in new formats.
 class simulation_data:
     #Initialisation function.
-    def __init__(self,N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,THING_ID,PLATE,MJD,FIBER,DELTA_rows,VEL_rows,IVAR_rows,F_rows,R,Z,D,V,LOGLAM_MAP,A):
+    def __init__(self,N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,F_rows,R,Z,D,V,LOGLAM_MAP,A):
 
         self.N_qso = N_qso
         self.N_cells = N_cells
@@ -335,12 +356,12 @@ class simulation_data:
         self.DEC = DEC
         self.Z_QSO = Z_QSO
         self.DZ_RSD = DZ_RSD
-        self.THING_ID = THING_ID
+        self.MOCKID = MOCKID
         self.PLATE = PLATE
         self.MJD = MJD
         self.FIBER = FIBER
 
-        self.DELTA_rows = DELTA_rows
+        self.DENSITY_DELTA_rows = DENSITY_DELTA_rows
         self.VEL_rows = VEL_rows
         self.IVAR_rows = IVAR_rows
         self.F_rows = F_rows
@@ -374,7 +395,7 @@ class simulation_data:
             DEC = h[1].data['DEC']
             Z_QSO = h[1].data['Z_COSMO']
             DZ_RSD = h[1].data['DZ_RSD']
-            DELTA_rows = h[2].data[:,first_relevant_cell:]
+            DENSITY_DELTA_rows = h[2].data[:,first_relevant_cell:]
             VEL_rows = h[3].data[:,first_relevant_cell:]
             Z = h[4].data['Z'][first_relevant_cell:]
             R = h[4].data['R'][first_relevant_cell:]
@@ -384,18 +405,17 @@ class simulation_data:
             #Derive the number of quasars and cells in the file.
             N_qso = RA.shape[0]
             N_cells = Z.shape[0]
-            # TODO: check if this is how the header is labelled
             # TODO: also put in the proper formula once the update has been made to colore!
-            SIGMA_G = h[4].header['SIGMA_G']
+            SIGMA_G = 1#h[4].header['SIGMA_G']
 
-            #Derive the THING_ID and LOGLAM_MAP.
-            THING_ID = get_THING_ID(h,input_format,file_number)
+            #Derive the MOCKID and LOGLAM_MAP.
+            MOCKID = get_MOCKID(h,input_format,file_number)
             LOGLAM_MAP = np.log10(lya*(1+Z))
-            A,ALPHA,TAU_rows = get_tau(Z,DELTA_rows+1)
+            A,ALPHA,TAU_rows = get_tau(Z,DENSITY_DELTA_rows+1)
             F_rows = np.exp(-TAU_rows)
 
             #Insert placeholder values for remaining variables.
-            PLATE = THING_ID
+            PLATE = MOCKID
             MJD = np.zeros(N_qso)
             FIBER = np.zeros(N_qso)
             IVAR_rows = make_IVAR_rows(lya,Z_QSO,LOGLAM_MAP,N_qso,N_cells)
@@ -410,7 +430,7 @@ class simulation_data:
         elif input_format == 'picca':
 
             #Extract data from the HDUlist.
-            DELTA_rows = h[0].data.T[:,first_relevant_cell:]
+            DENSITY_DELTA_rows = h[0].data.T[:,first_relevant_cell:]
             IVAR_rows = h[1].data.T[:,first_relevant_cell:]
             LOGLAM_MAP = h[2].data[first_relevant_cell:]
             RA = h[3].data['RA']
@@ -419,7 +439,7 @@ class simulation_data:
             PLATE = h[3].data['PLATE']
             MJD = h[3].data['MJD']
             FIBER = h[3].data['FIBER']
-            THING_ID = h[3].data['THING_ID']
+            MOCKID = h[3].data['MOCKID']
 
             #Derive the number of quasars and cells in the file.
             N_qso = RA.shape[0]
@@ -427,7 +447,7 @@ class simulation_data:
 
             #Derive Z.
             Z = (10**LOGLAM_MAP)/lya - 1
-            A,ALPHA,TAU_rows = get_tau(Z,DELTA_rows+1)
+            A,ALPHA,TAU_rows = get_tau(Z,DENSITY_DELTA_rows+1)
             F_rows = np.exp(-TAU_rows)
 
             """
@@ -450,24 +470,24 @@ class simulation_data:
 
         h.close()
 
-        return cls(N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,THING_ID,PLATE,MJD,FIBER,DELTA_rows,VEL_rows,IVAR_rows,F_rows,R,Z,D,V,LOGLAM_MAP,A)
+        return cls(N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,F_rows,R,Z,D,V,LOGLAM_MAP,A)
 
-    #Method to extract reduced data from an input file of a given format, with a given list of THING_IDs.
+    #Method to extract reduced data from an input file of a given format, with a given list of MOCKIDs.
     @classmethod
-    def get_reduced_data(cls,filename,file_number,input_format,THING_IDs,z_min=0):
+    def get_reduced_data(cls,filename,file_number,input_format,MOCKIDs,z_min=0):
 
         lya = 1215.67
 
         h = fits.open(filename)
 
-        h_THING_ID = get_THING_ID(h,input_format,file_number)
+        h_MOCKID = get_MOCKID(h,input_format,file_number)
         h_Z = get_Z(h,input_format)
 
         #Work out which rows in the hdulist we are interested in.
-        rows = ['']*len(THING_IDs)
-        s = set(THING_IDs)
+        rows = ['']*len(MOCKIDs)
+        s = set(MOCKIDs)
         j = 0
-        for i, qso in enumerate(h_THING_ID):
+        for i, qso in enumerate(h_MOCKID):
             if qso in s:
                 rows[j] = i
                 j = j+1
@@ -484,7 +504,7 @@ class simulation_data:
             Z_QSO = h[1].data['Z_COSMO'][rows]
             DZ_RSD = h[1].data['DZ_RSD'][rows]
 
-            DELTA_rows = h[2].data[rows,first_relevant_cell:]
+            DENSITY_DELTA_rows = h[2].data[rows,first_relevant_cell:]
 
             VEL_rows = h[3].data[rows,first_relevant_cell:]
 
@@ -498,16 +518,16 @@ class simulation_data:
             N_cells = Z.shape[0]
             # TODO: check if this is how the header is labelled
             # TODO: also put in the proper formula once the update has been made to colore!
-            SIGMA_G = h[4].header['SIGMA_G']
+            SIGMA_G = 1#h[4].header['SIGMA_G']
 
-            #Derive THING_IDs, LOGLAM_MAP and transmitted flux fraction.
-            THING_ID = h_THING_ID[rows]
+            #Derive MOCKIDs, LOGLAM_MAP and transmitted flux fraction.
+            MOCKID = h_MOCKID[rows]
             LOGLAM_MAP = np.log10(lya*(1+Z))
-            A,ALPHA,TAU_rows = get_tau(Z,DELTA_rows+1)
+            A,ALPHA,TAU_rows = get_tau(Z,DENSITY_DELTA_rows+1)
             F_rows = np.exp(-TAU_rows)
 
             #Insert placeholder values for remaining variables.
-            PLATE = THING_ID
+            PLATE = MOCKID
             MJD = np.zeros(N_qso)
             FIBER = np.zeros(N_qso)
             IVAR_rows = make_IVAR_rows(lya,Z_QSO,LOGLAM_MAP,N_qso,N_cells)
@@ -515,7 +535,7 @@ class simulation_data:
         elif input_format == 'picca':
 
             #Extract data from the HDUlist.
-            DELTA_rows = h[0].data.T[rows,first_relevant_cell:]
+            DENSITY_DELTA_rows = h[0].data.T[rows,first_relevant_cell:]
 
             IVAR_rows = h[1].data.T[rows,first_relevant_cell:]
 
@@ -527,7 +547,7 @@ class simulation_data:
             PLATE = h[3].data['PLATE'][rows]
             MJD = h[3].data['MJD'][rows]
             FIBER = h[3].data['FIBER'][rows]
-            THING_ID = h[3].data['THING_ID'][rows]
+            MOCKID = h[3].data['MOCKID'][rows]
 
             #Derive the number of quasars and cells in the file.
             N_qso = RA.shape[0]
@@ -535,7 +555,7 @@ class simulation_data:
 
             #Derive Z and transmitted flux fraction.
             Z = (10**LOGLAM_MAP)/lya - 1
-            A,ALPHA,TAU_rows = get_tau(Z,DELTA_rows+1)
+            A,ALPHA,TAU_rows = get_tau(Z,DENSITY_DELTA_rows+1)
             F_rows = np.exp(-TAU_rows)
 
             """
@@ -548,7 +568,7 @@ class simulation_data:
             D = np.zeros(Z.shape[0])
             V = np.zeros(Z.shape[0])
             DZ_RSD = np.zeros(RA.shape[0])
-            VEL_rows = np.zeros(DELTA_rows.shape)
+            VEL_rows = np.zeros(DENSITY_DELTA_rows.shape)
             # TODO: THIS IS CLEARLY NOT VALID. WORK OUT A WAY TO DO IT BETTER.
             SIGMA_G = 0
 
@@ -558,7 +578,7 @@ class simulation_data:
 
         h.close()
 
-        return cls(N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,THING_ID,PLATE,MJD,FIBER,DELTA_rows,VEL_rows,IVAR_rows,F_rows,R,Z,D,V,LOGLAM_MAP,A)
+        return cls(N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,F_rows,R,Z,D,V,LOGLAM_MAP,A)
 
     #Method to combine data from two objects into one.
     # TODO: add something to check that we can just take values from 1 of the objects
@@ -580,12 +600,12 @@ class simulation_data:
         DEC = np.concatenate((object_A.DEC,object_B.DEC),axis=0)
         Z_QSO = np.concatenate((object_A.Z_QSO,object_B.Z_QSO),axis=0)
         DZ_RSD = np.concatenate((object_A.DZ_RSD,object_B.DZ_RSD),axis=0)
-        THING_ID = np.concatenate((object_A.THING_ID,object_B.THING_ID),axis=0)
+        MOCKID = np.concatenate((object_A.MOCKID,object_B.MOCKID),axis=0)
         PLATE = np.concatenate((object_A.PLATE,object_B.PLATE),axis=0)
         MJD = np.concatenate((object_A.MJD,object_B.MJD),axis=0)
         FIBER = np.concatenate((object_A.FIBER,object_B.FIBER),axis=0)
 
-        DELTA_rows = np.concatenate((object_A.DELTA_rows,object_B.DELTA_rows),axis=0)
+        DENSITY_DELTA_rows = np.concatenate((object_A.DENSITY_DELTA_rows,object_B.DENSITY_DELTA_rows),axis=0)
         VEL_rows = np.concatenate((object_A.VEL_rows,object_B.VEL_rows),axis=0)
         IVAR_rows = np.concatenate((object_A.IVAR_rows,object_B.IVAR_rows),axis=0)
         F_rows = np.concatenate((object_A.F_rows,object_B.F_rows),axis=0)
@@ -601,7 +621,7 @@ class simulation_data:
         V = object_A.V
         A = object_A.A
 
-        return cls(N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,THING_ID,PLATE,MJD,FIBER,DELTA_rows,VEL_rows,IVAR_rows,F_rows,R,Z,D,V,LOGLAM_MAP,A)
+        return cls(N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,F_rows,R,Z,D,V,LOGLAM_MAP,A)
 
     #Function to save data as a Gaussian colore file.
     def save_as_gaussian_colore(self,location,filename,header):
@@ -609,12 +629,12 @@ class simulation_data:
         #Organise the data into colore-format arrays.
         colore_1_data = []
         for i in range(self.N_qso):
-            colore_1_data += [(self.TYPE[i],self.RA[i],self.DEC[i],self.Z_QSO[i],self.DZ_RSD[i],self.THING_ID[i])]
+            colore_1_data += [(self.TYPE[i],self.RA[i],self.DEC[i],self.Z_QSO[i],self.DZ_RSD[i],self.MOCKID[i])]
 
-        dtype = [('TYPE', '>f4'), ('RA', '>f4'), ('DEC', '>f4'), ('Z_COSMO', '>f4'), ('DZ_RSD', '>f4'), ('THING_ID', int)]
+        dtype = [('TYPE', '>f4'), ('RA', '>f4'), ('DEC', '>f4'), ('Z_COSMO', '>f4'), ('DZ_RSD', '>f4'), ('MOCKID', int)]
         colore_1 = np.array(colore_1_data,dtype=dtype)
 
-        colore_2 = lognormal_to_gaussian(self.DELTA_rows,self.SIGMA_G,self.D)
+        colore_2 = lognormal_to_gaussian(self.DENSITY_DELTA_rows,self.SIGMA_G,self.D)
         colore_3 = self.VEL_rows
 
         colore_4_data = []
@@ -647,12 +667,12 @@ class simulation_data:
         #Organise the data into colore-format arrays.
         colore_1_data = []
         for i in range(self.N_qso):
-            colore_1_data += [(self.TYPE[i],self.RA[i],self.DEC[i],self.Z_QSO[i],self.DZ_RSD[i],self.THING_ID[i])]
+            colore_1_data += [(self.TYPE[i],self.RA[i],self.DEC[i],self.Z_QSO[i],self.DZ_RSD[i],self.MOCKID[i])]
 
-        dtype = [('TYPE', '>f4'), ('RA', '>f4'), ('DEC', '>f4'), ('Z_COSMO', '>f4'), ('DZ_RSD', '>f4'), ('THING_ID', int)]
+        dtype = [('TYPE', '>f4'), ('RA', '>f4'), ('DEC', '>f4'), ('Z_COSMO', '>f4'), ('DZ_RSD', '>f4'), ('MOCKID', int)]
         colore_1 = np.array(colore_1_data,dtype=dtype)
 
-        colore_2 = self.DELTA_rows
+        colore_2 = self.DENSITY_DELTA_rows
         colore_3 = self.VEL_rows
 
         colore_4_data = []
@@ -682,26 +702,23 @@ class simulation_data:
     #Function to save data as a picca density file.
     def save_as_picca_density(self,location,filename,header,zero_mean_delta=False,lambda_min=0):
 
-        if lambda_min > 0:
-            first_relevant_cell = np.argmax(10**self.LOGLAM_MAP >= lambda_min)
-            relevant_rows = [i for i in range(self.N_qso) if self.Z_QSO[i] > self.Z[first_relevant_cell]]
+        z_min = max(lambda_min/lya - 1, 0)
 
-            if len(relevant_rows)<self.N_qso:
-                print(' -> {} quasars removed from picca density by lambda_min constraint.'.format(self.N_qso-len(relevant_rows)))
-        else:
-            first_relevant_cell = 0
+        first_relevant_cell = get_first_relevant_index(lambda_min,10**self.LOGLAM_MAP)
+        relevant_QSOs = get_relevant_indices(z_min,self.Z_QSO)
+        print(' -> {} quasars removed from transmission by lambda_min constraint.'.format(self.N_qso-len(relevant_QSOs)))
 
         #Organise the data into picca-format arrays.
-        picca_0 = self.DELTA_rows[relevant_rows,first_relevant_cell:].T
-        picca_1 = self.IVAR_rows[relevant_rows,first_relevant_cell:].T
+        picca_0 = self.DENSITY_DELTA_rows[relevant_QSOs,first_relevant_cell:].T
+        picca_1 = self.IVAR_rows[relevant_QSOs,first_relevant_cell:].T
         picca_2 = self.LOGLAM_MAP[first_relevant_cell:]
 
         picca_3_data = []
         for i in range(self.N_qso):
-            if i in relevant_rows:
-                picca_3_data += [(self.RA[i],self.DEC[i],self.Z_QSO[i],self.PLATE[i],self.MJD[i],self.FIBER[i],self.THING_ID[i])]
+            if i in relevant_QSOs:
+                picca_3_data += [(self.RA[i],self.DEC[i],self.Z_QSO[i],self.PLATE[i],self.MJD[i],self.FIBER[i],self.MOCKID[i])]
 
-        dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z', '>f4'), ('PLATE', '>f4'), ('MJD', '>f4'), ('FIBER', '>f4'), ('THING_ID', int)]
+        dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z', '>f4'), ('PLATE', '>f4'), ('MJD', '>f4'), ('FIBER', '>f4'), ('MOCKID', int)]
         picca_3 = np.array(picca_3_data,dtype=dtype)
 
         #Make the data into suitable HDUs.
@@ -721,27 +738,23 @@ class simulation_data:
     #Function to save data as a transmission file.
     def save_as_transmission(self,location,filename,header,lambda_min=0):
 
-        lya = 1215.67
+        z_min = max(lambda_min/lya - 1, 0)
 
-        if lambda_min > 0:
-            first_relevant_cell = np.argmax(10**self.LOGLAM_MAP >= lambda_min)
-            relevant_rows = [i for i in range(self.N_qso) if self.Z_QSO[i] > self.Z[first_relevant_cell]]
+        first_relevant_cell = get_first_relevant_index(lambda_min,10**self.LOGLAM_MAP)
+        relevant_QSOs = get_relevant_indices(z_min,self.Z_QSO)
+        print(' -> {} quasars removed from transmission by lambda_min constraint.'.format(self.N_qso-len(relevant_QSOs)))
 
-            if len(relevant_rows)<self.N_qso:
-                print(' -> {} quasars removed from transmission by lambda_min constraint.'.format(self.N_qso-len(relevant_rows)))
-        else:
-            first_relevant_cell = 0
+        #transmission_1_data = []
+        #for i in relevant_QSOs:
+        #    transmission_1_data += [(self.RA[i],self.DEC[i],self.Z_QSO[i],self.MOCKID[i])]
 
-        transmission_1_data = []
-        for i in range(self.N_qso):
-            if i in relevant_rows:
-                transmission_1_data += [(self.RA[i],self.DEC[i],self.Z_QSO[i],self.THING_ID[i])]
+        transmission_1_data = list(zip(self.RA[relevant_QSOs],self.DEC[relevant_QSOs],self.Z_QSO[relevant_QSOs],self.MOCKID[relevant_QSOs]))
 
-        dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z', '>f4'), ('THING_ID', int)]
+        dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z', '>f4'), ('MOCKID', int)]
         transmission_1 = np.array(transmission_1_data,dtype=dtype)
 
         transmission_2 = 10**(self.LOGLAM_MAP)
-        transmission_3 = self.F_rows[relevant_rows,first_relevant_cell:].T
+        transmission_3 = self.F_rows[relevant_QSOs,first_relevant_cell:].T
 
         #Construct HDUs from the data arrays.
         prihdr = fits.Header()
@@ -759,31 +772,26 @@ class simulation_data:
         return
 
     #Function to save data as a picca flux file.
-    # TODO: Check if it's F that we want here
+    # TODO: Change F_rows to F_delta_rows here
     def save_as_picca_flux(self,location,filename,header,zero_mean_delta=False,lambda_min=0):
 
-        lya = 1215.67
+        z_min = max(lambda_min/lya - 1, 0)
 
-        if lambda_min > 0:
-            first_relevant_cell = np.argmax(10**self.LOGLAM_MAP >= lambda_min)
-            relevant_rows = [i for i in range(self.N_qso) if self.Z_QSO[i] > self.Z[first_relevant_cell]]
-
-            if len(relevant_rows)<self.N_qso:
-                print(' -> {} quasars removed from picca flux by lambda_min constraint.'.format(self.N_qso-len(relevant_rows)))
-        else:
-            first_relevant_cell = 0
+        first_relevant_cell = get_first_relevant_index(lambda_min,10**self.LOGLAM_MAP)
+        relevant_QSOs = get_relevant_indices(z_min,self.Z_QSO)
+        print(' -> {} quasars removed from transmission by lambda_min constraint.'.format(self.N_qso-len(relevant_QSOs)))
 
         #Organise the data into picca-format arrays.
-        picca_0 = self.F_rows[relevant_rows,first_relevant_cell:].T
-        picca_1 = self.IVAR_rows[relevant_rows,first_relevant_cell:].T
+        picca_0 = self.F_rows[relevant_QSOs,first_relevant_cell:].T + 1
+        picca_1 = self.IVAR_rows[relevant_QSOs,first_relevant_cell:].T
         picca_2 = self.LOGLAM_MAP[first_relevant_cell:]
 
         picca_3_data = []
         for i in range(self.N_qso):
-            if i in relevant_rows:
-                picca_3_data += [(self.RA[i],self.DEC[i],self.Z_QSO[i],self.PLATE[i],self.MJD[i],self.FIBER[i],self.THING_ID[i])]
+            if i in relevant_QSOs:
+                picca_3_data += [(self.RA[i],self.DEC[i],self.Z_QSO[i],self.PLATE[i],self.MJD[i],self.FIBER[i],self.MOCKID[i])]
 
-        dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z', '>f4'), ('PLATE', '>f4'), ('MJD', '>f4'), ('FIBER', '>f4'), ('THING_ID', int)]
+        dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z', '>f4'), ('PLATE', '>f4'), ('MJD', '>f4'), ('FIBER', '>f4'), ('MOCKID', int)]
         picca_3 = np.array(picca_3_data,dtype=dtype)
 
         #Make the data into suitable HDUs.
@@ -800,15 +808,15 @@ class simulation_data:
 
         return
 
-    #Method to create a new object from an existing one, having specified which THING_IDs we want to include.
+    #Method to create a new object from an existing one, having specified which MOCKIDs we want to include.
     # TODO: add something to check that we can just take values from 1 of the objects
     @classmethod
-    def choose_qsos(cls,object_A,THING_IDs):
+    def choose_qsos(cls,object_A,MOCKIDs):
 
-        rows = ['']*len(THING_IDs)
-        s = set(THING_IDs)
+        rows = ['']*len(MOCKIDs)
+        s = set(MOCKIDs)
         j = 0
-        for i, qso in enumerate(object_A.THING_ID):
+        for i, qso in enumerate(object_A.MOCKID):
             if qso in s:
                 rows[j] = i
                 j=j+1
@@ -823,12 +831,12 @@ class simulation_data:
         DEC = object_A.DEC[rows]
         Z_QSO = object_A.Z_QSO[rows]
         DZ_RSD = object_A.DZ_RSD[rows]
-        THING_ID = object_A.THING_ID[rows]
+        MOCKID = object_A.MOCKID[rows]
         PLATE = object_A.PLATE[rows]
         MJD = object_A.MJD[rows]
         FIBER = object_A.FIBER[rows]
 
-        DELTA_rows = object_A.DELTA_rows[rows,:]
+        DENSITY_DELTA_rows = object_A.DENSITY_DELTA_rows[rows,:]
         VEL_rows = object_A.VEL_rows[rows,:]
         IVAR_rows = object_A.IVAR_rows[rows,:]
         F_rows = object_A.F_rows[rows,:]
@@ -840,7 +848,7 @@ class simulation_data:
         V = object_A.V
         A = object_A.A
 
-        return cls(N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,THING_ID,PLATE,MJD,FIBER,DELTA_rows,VEL_rows,IVAR_rows,F_rows,R,Z,D,V,LOGLAM_MAP,A)
+        return cls(N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,F_rows,R,Z,D,V,LOGLAM_MAP,A)
 
     #Method to create a new object from an existing one, having specified which cells we want to include.
     # TODO: change this so you can specify a z_min/max, or lambda_min/max, rather than just any list of cells. Would need to deal with the case of both z and lambda limits being set.
@@ -858,12 +866,12 @@ class simulation_data:
         DEC = object_A.DEC
         Z_QSO = object_A.Z_QSO
         DZ_RSD = object_A.DZ_RSD
-        THING_ID = object_A.THING_ID
+        MOCKID = object_A.MOCKID
         PLATE = object_A.PLATE
         MJD = object_A.MJD
         FIBER = object_A.FIBER
 
-        DELTA_rows = object_A.DELTA_rows[:,cells]
+        DENSITY_DELTA_rows = object_A.DENSITY_DELTA_rows[:,cells]
         VEL_rows = object_A.VEL_rows[:,cells]
         IVAR_rows = object_A.IVAR_rows[:,cells]
 
@@ -874,7 +882,7 @@ class simulation_data:
         V = object_A.V[cells]
         A = object_A.A[cells]
 
-        return cls(N_qso,N_cells,SIGMA_G,TYPE,RA,DEC,Z_QSO,DZ_RSD,THING_ID,PLATE,MJD,FIBER,DELTA_rows,VEL_rows,IVAR_rows,R,Z,D,V,LOGLAM_MAP)
+        return cls(N_qso,N_cells,SIGMA_G,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,R,Z,D,V,LOGLAM_MAP)
 
 
     """
@@ -890,12 +898,12 @@ class simulation_data:
                 #Organise the data into colore-format arrays.
                 colore_1_data = []
                 for i in range(self.N_qso):
-                    colore_1_data += [(self.TYPE[i],self.RA[i],self.DEC[i],self.Z_QSO[i],self.DZ_RSD[i],self.THING_ID[i])]
+                    colore_1_data += [(self.TYPE[i],self.RA[i],self.DEC[i],self.Z_QSO[i],self.DZ_RSD[i],self.MOCKID[i])]
 
-                dtype = [('TYPE', '>f4'), ('RA', '>f4'), ('DEC', '>f4'), ('Z_COSMO', '>f4'), ('DZ_RSD', '>f4'), ('THING_ID', int)]
+                dtype = [('TYPE', '>f4'), ('RA', '>f4'), ('DEC', '>f4'), ('Z_COSMO', '>f4'), ('DZ_RSD', '>f4'), ('MOCKID', int)]
                 colore_1 = np.array(colore_1_data,dtype=dtype)
 
-                colore_2 = self.DELTA_rows
+                colore_2 = self.DENSITY_DELTA_rows
                 colore_3 = self.VEL_rows
 
                 colore_4_data = []
@@ -925,15 +933,15 @@ class simulation_data:
             elif output_format == 'picca':
 
                 #Organise the data into picca-format arrays.
-                picca_0 = self.DELTA_rows.T
+                picca_0 = self.DENSITY_DELTA_rows.T
                 picca_1 = self.IVAR_rows.T
                 picca_2 = self.LOGLAM_MAP
 
                 picca_3_data = []
                 for i in range(self.N_qso):
-                    picca_3_data += [(self.RA[i],self.DEC[i],self.Z_QSO[i],self.PLATE[i],self.MJD[i],self.FIBER[i],self.THING_ID[i])]
+                    picca_3_data += [(self.RA[i],self.DEC[i],self.Z_QSO[i],self.PLATE[i],self.MJD[i],self.FIBER[i],self.MOCKID[i])]
 
-                dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z', '>f4'), ('PLATE', '>f4'), ('MJD', '>f4'), ('FIBER', '>f4'), ('THING_ID', int)]
+                dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z', '>f4'), ('PLATE', '>f4'), ('MJD', '>f4'), ('FIBER', '>f4'), ('MOCKID', int)]
                 picca_3 = np.array(picca_3_data,dtype=dtype)
 
                 #Make the data into suitable HDUs.
@@ -957,12 +965,12 @@ class simulation_data:
         return
 
     @classmethod
-    def crop(cls,object_A,THING_ID,cells):
+    def crop(cls,object_A,MOCKID,cells):
 
-        rows = ['']*len(THING_ID)
-        s = set(THING_ID)
+        rows = ['']*len(MOCKID)
+        s = set(MOCKID)
         j = 0
-        for i, qso in enumerate(object_A.THING_ID):
+        for i, qso in enumerate(object_A.MOCKID):
             if qso in s:
                 rows[j] = i
                 j=j+1
@@ -975,13 +983,13 @@ class simulation_data:
         DEC = object_A.DEC[rows]
         Z_QSO = object_A.Z_QSO[rows]
         DZ_RSD = object_A.DZ_RSD[rows]
-        THING_ID = object_A.THING_ID[rows]
+        MOCKID = object_A.MOCKID[rows]
         PLATE = object_A.PLATE[rows]
         MJD = object_A.MJD[rows]
         FIBER = object_A.FIBER[rows]
 
-        DELTA_rows = object_A.DELTA_rows[rows,:]
-        DELTA_rows = DELTA_rows[:,cells]
+        DENSITY_DELTA_rows = object_A.DENSITY_DELTA_rows[rows,:]
+        DENSITY_DELTA_rows = DENSITY_DELTA_rows[:,cells]
 
         VEL_rows = object_A.VEL_rows[rows,:]
         VEL_rows = VEL_rows[:,cells]
@@ -995,16 +1003,16 @@ class simulation_data:
         D = object_A.D[cells]
         V = object_A.V[cells]
 
-        return cls(N_qso,N_cells,TYPE,RA,DEC,Z_QSO,DZ_RSD,THING_ID,PLATE,MJD,FIBER,DELTA_rows,VEL_rows,IVAR_rows,R,Z,D,V,LOGLAM_MAP)
+        return cls(N_qso,N_cells,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,R,Z,D,V,LOGLAM_MAP)
 
     #NOT YET READY TO BE USED - maybe not necessary?
-    #Method to extract reduced data from a set of input files of a given format, with a given list of THING_IDs for each file.
+    #Method to extract reduced data from a set of input files of a given format, with a given list of MOCKIDs for each file.
     @classmethod
     def WIP(cls,file_infos,input_format,z_min):
 
         """
         NEED TO GENERATE FILE_INFOS TO PUT INTO THIS
-        A DICTIONARY (?) OF FILENAME, FILE_NUMBER AND THING_IDS
+        A DICTIONARY (?) OF FILENAME, FILE_NUMBER AND MOCKIDS
         FORMATS STRING, INTEGER AND LIST
         """
 
@@ -1014,14 +1022,14 @@ class simulation_data:
 
             h = fits.open(file_info[filename])
 
-            h_THING_ID = get_THING_ID(h,input_format,file_info[file_number])
+            h_MOCKID = get_MOCKID(h,input_format,file_info[file_number])
             h_Z = get_Z(h,input_format)
 
             #Work out which rows in the hdulist we are interested in.
-            rows = ['']*len(file_info[THING_IDs])
-            s = set(file_info[THING_IDs])
+            rows = ['']*len(file_info[MOCKIDs])
+            s = set(file_info[MOCKIDs])
             j = 0
-            for i, qso in enumerate(h_THING_ID):
+            for i, qso in enumerate(h_MOCKID):
                 if qso in s:
                     rows[j] = i
                     j = j+1
@@ -1034,7 +1042,7 @@ class simulation_data:
             DEC = []
             Z_QSO = []
             DZ_RSD = []
-            DELTA_rows = []
+            DENSITY_DELTA_rows = []
             VEL_rows = []
             Z = []
             R = []
@@ -1042,7 +1050,7 @@ class simulation_data:
             V = []
             N_qso = []
             N_cells = []
-            THING_ID = []
+            MOCKID = []
             LOGLAM_MAP = []
             PLATE = []
             MJD = []
@@ -1058,7 +1066,7 @@ class simulation_data:
                 Z_QSO = np.concatenate((Z_QSO,h[1].data['Z_COSMO'][rows]))
                 DZ_RSD = np.concatenate((DZ_RSD,h[1].data['DZ_RSD'][rows]))
 
-                DELTA_rows = np.concatenate((DELTA_rows,h[2].data[rows,first_relevant_cell:]),axis=0)
+                DENSITY_DELTA_rows = np.concatenate((DENSITY_DELTA_rows,h[2].data[rows,first_relevant_cell:]),axis=0)
 
                 VEL_rows = np.concatenate((VEL_rows,h[3].data[rows,first_relevant_cell:]),axis=0)
 
@@ -1071,8 +1079,8 @@ class simulation_data:
                 N_qso = N_qso + RA.shape[0]
                 N_cells = Z.shape[0]
 
-                #Derive the THING_ID and LOGLAM_MAP.
-                THING_ID = np.concatenate((THING_ID,h_THING_ID[rows]))
+                #Derive the MOCKID and LOGLAM_MAP.
+                MOCKID = np.concatenate((MOCKID,h_MOCKID[rows]))
                 LOGLAM_MAP = np.log10(lya*(1+Z))
 
                 #Insert placeholder values for remaining variables.
@@ -1088,7 +1096,7 @@ class simulation_data:
                 """
 
                 #Extract data from the HDUlist.
-                DELTA_rows = h[0].data.T[rows,first_relevant_cell:]
+                DENSITY_DELTA_rows = h[0].data.T[rows,first_relevant_cell:]
 
                 IVAR_rows = h[1].data.T[rows,first_relevant_cell:]
 
@@ -1100,7 +1108,7 @@ class simulation_data:
                 PLATE = h[3].data['PLATE'][rows]
                 MJD = h[3].data['MJD'][rows]
                 FIBER = h[3].data['FIBER'][rows]
-                THING_ID = h[3].data['THING_ID'][rows]
+                MOCKID = h[3].data['MOCKID'][rows]
 
                 #Derive the number of quasars and cells in the file.
                 N_qso = RA.shape[0]
@@ -1118,7 +1126,7 @@ class simulation_data:
                 D = np.zeros(Z.shape[0])
                 V = np.zeros(Z.shape[0])
                 DZ_RSD = np.zeros(RA.shape[0])
-                VEL_rows = np.zeros(DELTA_rows.shape)
+                VEL_rows = np.zeros(DENSITY_DELTA_rows.shape)
 
             else:
                 print('Input format not recognised: current options are "colore" and "picca".')
@@ -1126,4 +1134,4 @@ class simulation_data:
 
             h.close()
 
-        return cls(N_qso,N_cells,TYPE,RA,DEC,Z_QSO,DZ_RSD,THING_ID,PLATE,MJD,FIBER,DELTA_rows,VEL_rows,IVAR_rows,R,Z,D,V,LOGLAM_MAP)
+        return cls(N_qso,N_cells,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,R,Z,D,V,LOGLAM_MAP)
