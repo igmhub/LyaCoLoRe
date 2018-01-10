@@ -3,6 +3,9 @@ from astropy.io import fits
 import process_functions as functions
 from multiprocessing import Pool
 import sys
+import time
+
+start = time.time()
 
 #Top level script to manage the conversion of CoLoRe output files into files more useful for analysis.
 #These are produced on a per-HEALPix pixel basis.
@@ -15,9 +18,9 @@ N_side = 2**N_side_pow2
 N_pix = 12*N_side**2
 
 #Define the original file structure
-original_file_location = '/Users/jfarr/Projects/repixelise/test_input/old/'
-original_filename_structure = 'out_srcs_s0_{}.fits' #file_number
-file_numbers = [15]
+original_file_location = '/Users/jfarr/Projects/repixelise/test_input/'
+original_filename_structure = 'N10000_out_srcs_s1_{}.fits' #file_number
+file_numbers = [16]
 input_format = 'physical_colore'
 
 #Set file structure
@@ -63,6 +66,9 @@ print('"Bad coordinates" file containing {} objects saved at:\n{}\n'.format(bad_
 pixel_list = list(sorted(set(master_data['PIXNUM'])))
 file_number_list = list(sorted(set([int(functions.number_to_string(qso['MOCKID'],10)[:-7]) for qso in master_data])))
 
+
+print('Making master file: {}s.'.format(time.time()-start))
+start=time.time()
 
 
 #Make the new file structure
@@ -123,3 +129,5 @@ for pixel in pixel_list:
 if __name__ == '__main__':
     pool = Pool(processes = N_processes)
     results = pool.starmap  (pixelise,tasks)
+
+print('Making pixel files: {}s.'.format(time.time()-start))

@@ -312,7 +312,7 @@ def lognormal_to_gaussian(LN_DENSITY_DELTA_rows,SIGMA_G,D):
     GAUSSIAN_rows = np.zeros(LN_DENSITY_rows.shape)
 
     for j in range(GAUSSIAN_rows.shape[1]):
-        GAUSSIAN_rows[:,j] = LN_DENSITY_rows[:,j]/D[j] - (D[j])*(SIGMA_G**2)/2
+        GAUSSIAN_rows[:,j] = np.log(LN_DENSITY_rows[:,j])/D[j] + (D[j])*(SIGMA_G**2)/2
 
     return GAUSSIAN_rows
 
@@ -737,7 +737,6 @@ class simulation_data:
 
         first_relevant_cell = get_first_relevant_index(lambda_min,10**self.LOGLAM_MAP)
         relevant_QSOs = get_relevant_indices(z_min,self.Z_QSO)
-        print(' -> {} quasars removed from transmission by lambda_min constraint.'.format(self.N_qso-len(relevant_QSOs)))
 
         #Organise the data into picca-format arrays.
         picca_0 = self.DENSITY_DELTA_rows[relevant_QSOs,first_relevant_cell:].T
@@ -773,7 +772,6 @@ class simulation_data:
 
         first_relevant_cell = get_first_relevant_index(lambda_min,10**self.LOGLAM_MAP)
         relevant_QSOs = get_relevant_indices(z_min,self.Z_QSO)
-        print(' -> {} quasars removed from transmission by lambda_min constraint.'.format(self.N_qso-len(relevant_QSOs)))
 
         #transmission_1_data = []
         #for i in relevant_QSOs:
@@ -810,7 +808,6 @@ class simulation_data:
 
         first_relevant_cell = get_first_relevant_index(lambda_min,10**self.LOGLAM_MAP)
         relevant_QSOs = get_relevant_indices(z_min,self.Z_QSO)
-        print(' -> {} quasars removed from transmission by lambda_min constraint.'.format(self.N_qso-len(relevant_QSOs)))
 
         #Organise the data into picca-format arrays.
         picca_0 = self.F_rows[relevant_QSOs,first_relevant_cell:].T + 1
