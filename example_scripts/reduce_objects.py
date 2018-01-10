@@ -1,13 +1,14 @@
 import numpy as np
 from astropy.io import fits
 import cut_fits as cut
+import sys
 
 #Reduces the number of objects in a CoLoRe output file.
 
 #Input the original filename and location.
 file_location = '/Users/jfarr/Projects/repixelise/test_input'
-file_prefix = 'out_srcs_s0_'
-file_suffices = [15]
+file_prefix = 'out_srcs_s1_'
+file_suffices = [16]
 
 #Specify the structure of the original file:
 #0 = CoLoRe output format
@@ -15,7 +16,7 @@ file_suffices = [15]
 structure = 0
 
 #Set the number of objects desired in the output.
-N_obj_desired = 1000
+N_obj_desired = int(sys.argv[1])
 
 #Specify the mode of object selection:
 #0=select the last (highest z) N_obj_desired objects
