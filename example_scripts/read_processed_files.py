@@ -42,28 +42,10 @@ picca_flux_hdu = fits.open(picca_flux_file)
 picca_flux_hdu.info()
 picca_flux_hdu.close()
 
+# file with transmission for desisim
+trans_flux_file = dirname+'/transmission-'+suffix
+print('transmission flux file',trans_flux_file)
+trans_flux_hdu = fits.open(trans_flux_file)
+trans_flux_hdu.info()
+trans_flux_hdu.close()
 
-exit()
-
-#Extract redshift from data file
-z = hdulist[4].data['Z']
-z = np.asarray(z)
-
-#Get number of quasars, and redshift array
-z_qso = hdulist[1].data['Z_COSMO']
-N_qso = len(z_qso)
-print('There are %d quasars in the sample.' % N_qso)
-
-#Extract the delta skewers from the file, and make a mask for them.
-delta_skewers = hdulist[2].data
-
-#Get delta for the highest redshift quasar in the sample.
-id = np.argmax(hdulist[1].data['Z_COSMO'])
-delta = delta_skewers[id,:]
-
-#Show delta vs z
-plt.figure()
-plt.plot(z,delta)
-plt.xlabel('z')
-plt.ylabel('$\\delta$')
-print(" ")
