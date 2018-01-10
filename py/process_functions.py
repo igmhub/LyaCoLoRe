@@ -300,7 +300,7 @@ def make_IVAR_rows(lya,Z_QSO,LOGLAM_MAP,N_qso,N_cells):
         new_IVAR_row = [list(np.concatenate((np.ones(first_not_relevant_cell),np.zeros(N_cells-first_not_relevant_cell))))]
         IVAR_rows += new_IVAR_row
 
-    IVAR_rows = np.array(IVAR_rows)
+    IVAR_rows = np.array(IVAR_rows).astype('float32')
 
     return IVAR_rows
 
@@ -313,6 +313,8 @@ def lognormal_to_gaussian(LN_DENSITY_DELTA_rows,SIGMA_G,D):
 
     for j in range(GAUSSIAN_rows.shape[1]):
         GAUSSIAN_rows[:,j] = np.log(LN_DENSITY_rows[:,j])/D[j] + (D[j])*(SIGMA_G**2)/2
+
+    GAUSSIAN_rows = GAUSSIAN_rows.astype('float32')
 
     return GAUSSIAN_rows
 
@@ -680,10 +682,10 @@ class simulation_data:
         prihdu = fits.PrimaryHDU(header=prihdr)
         cols_CATALOG = fits.ColDefs(colore_1)
         hdu_CATALOG = fits.BinTableHDU.from_columns(cols_CATALOG,header=header,name='CATALOG')
-        hdu_GAUSSIAN = fits.ImageHDU(data=colore_2,header=header,name='GAUSSIAN')
+        hdu_GAUSSIAN = fits.ImageHDU(data=colore_2,header=header,name='GAUSSIAN_DELTA')
         hdu_VEL = fits.ImageHDU(data=colore_3,header=header,name='VELOCITY')
         cols_COSMO = fits.ColDefs(colore_4)
-        hdu_COSMO = fits.BinTableHDU.from_columns(cols_COSMO,header=header,name='CATALOG')
+        hdu_COSMO = fits.BinTableHDU.from_columns(cols_COSMO,header=header,name='COSMO')
 
         #Combine the HDUs into an HDUlist and save as a new file. Close the HDUlist.
         hdulist = fits.HDUList([prihdu, hdu_CATALOG, hdu_GAUSSIAN, hdu_VEL, hdu_COSMO])
@@ -718,10 +720,10 @@ class simulation_data:
         prihdu = fits.PrimaryHDU(header=prihdr)
         cols_CATALOG = fits.ColDefs(colore_1)
         hdu_CATALOG = fits.BinTableHDU.from_columns(cols_CATALOG,header=header,name='CATALOG')
-        hdu_DELTA = fits.ImageHDU(data=colore_2,header=header,name='PHYSICAL DELTA')
+        hdu_DELTA = fits.ImageHDU(data=colore_2,header=header,name='PHYSICAL_DELTA')
         hdu_VEL = fits.ImageHDU(data=colore_3,header=header,name='VELOCITY')
         cols_COSMO = fits.ColDefs(colore_4)
-        hdu_COSMO = fits.BinTableHDU.from_columns(cols_COSMO,header=header,name='CATALOG')
+        hdu_COSMO = fits.BinTableHDU.from_columns(cols_COSMO,header=header,name='COSMO')
 
         #Combine the HDUs into an HDUlist and save as a new file. Close the HDUlist.
         hdulist = fits.HDUList([prihdu, hdu_CATALOG, hdu_DELTA, hdu_VEL, hdu_COSMO])
@@ -782,7 +784,7 @@ class simulation_data:
         dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z', '>f4'), ('MOCKID', int)]
         transmission_1 = np.array(transmission_1_data,dtype=dtype)
 
-        transmission_2 = 10**(self.LOGLAM_MAP)
+        transmission_2 = 10**(self.LOGLAM_MAP)[first_relevant_cell:]
         transmission_3 = self.F_rows[relevant_QSOs,first_relevant_cell:].T
 
         #Construct HDUs from the data arrays.
