@@ -128,6 +128,6 @@ for pixel in pixel_list:
 
 if __name__ == '__main__':
     pool = Pool(processes = N_processes)
-    results = pool.starmap  (pixelise,tasks)
+    results = pool.starmap(pixelise,tasks)
 
 print('Making pixel files: {}s.'.format(time.time()-start))
