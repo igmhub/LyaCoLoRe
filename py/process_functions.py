@@ -334,13 +334,43 @@ def get_relevant_indices(minimum,values):
 
     return relevant_indices
 
-# TODO: write this function
+# TODO: sort out the float/integer problem
 #Function to retrieve relevant simulation parameters from the param.cfg file.
-def retrieve_simulation_parameters(location,filename):
+def get_simulation_parameters(location,filename):
+
+    #Create a string of the parameter file to search.
+    parameter_str = open(location + '/' + filename,'r').read()
+
+    #Define the parameters to search for and the intricacies of the parameter file.
+    divider = '\n'
+    parameters = [('dens_type','int'),('omega_M','>f4'),('omega_L','>f4'),('omega_B','>f4'),('h','>f4'),('w','>f4'),('ns','>f4'),('sigma_8','>f4')]
+    equality_format = ' = '
+    N_parameters = len(parameters)
+
+    parameter_values = np.array([tuple([0]*N_parameters)],dtype=parameters)
+
+    #For each parameter defined, find its value and put it into the output array.
+    for i, parameter in enumerate(parameters):
+        search_term = parameter[0] + equality_format
+        data_type = parameter[1]
+        N_char = len(search_term)
+
+        first_char = parameter_str.find(search_term)
+        parameter_values[0][i] = float(parameter_str[first_char+N_char:parameter_str.find(divider,first_char+N_char)])
+
+    return parameter_values
+
+class simulation_parameters:
+    def __init__():
+
+        return
+
+    @classmethod
+    def get_parameters(cls,location,filename):
+
+        return
 
 
-
-    return density_type
 
 #Definition of a generic 'simulation_data' class, from which it is easy to save in new formats.
 class simulation_data:
