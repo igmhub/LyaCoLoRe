@@ -33,6 +33,15 @@ enforce_picca_zero_mean_delta = True
 #i.e. the z value for which lambda_min cooresponds to the lya wavelength.
 z_min = lambda_min/lya - 1
 
+#Get the simulation parameters from the parameter file.
+parameter_filename = 'out_params.cfg'
+simulation_parameters = functions.get_simulation_parameters(original_file_location,parameter_filename)
+
+# TODO: Modify this to accomodate other density types.
+#If density type is not lognormal, then crash.
+if simulation_parameters['dens_type'] != 0:
+    error('Density is not lognormal. Non-lognormal densities are not currently supported.')
+
 
 
 #Make master file
@@ -113,4 +122,4 @@ for pixel in pixel_list:
 
 if __name__ == '__main__':
     pool = Pool(processes = N_processes)
-    results = pool.starmap(pixelise,tasks)
+    results = pool.starmap  (pixelise,tasks)
