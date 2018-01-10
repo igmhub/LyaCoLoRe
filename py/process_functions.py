@@ -8,7 +8,7 @@ lya = 1215.67
 #Function to create a 'simulation_data' object given a specific pixel, information about the complete simulation, and the location/filenames of data files.
 def make_pixel_object(pixel,original_file_location,original_filename_structure,input_format,master_data,pixel_list,file_number_list,file_pixel_map,z_min):
 
-    print('Working on HEALPix pixel number {} ({} of {})...'.format(pixel,pixel_list.index(pixel)+1,len(pixel_list)))
+    #print('Working on HEALPix pixel number {} ({} of {})...'.format(pixel,pixel_list.index(pixel)+1,len(pixel_list)))
 
     #Determine which file numbers we need to look at for the current pixel.
     relevant_file_numbers = [file_number for file_number in file_number_list if file_pixel_map[pixel,file_number]==1]
@@ -16,12 +16,12 @@ def make_pixel_object(pixel,original_file_location,original_filename_structure,i
 
     #For each relevant file, extract the data and aggregate over all files into a 'combined' object.
     for file_number in relevant_file_numbers:
-        print(' -> Extracting data from file number {} ({} of {})...'.format(file_number,relevant_file_numbers.index(file_number)+1,len(relevant_file_numbers)))
+        #print(' -> Extracting data from file number {} ({} of {})...'.format(file_number,relevant_file_numbers.index(file_number)+1,len(relevant_file_numbers)))
 
         #Get the MOCKIDs of the relevant quasars: those that are located in the current pixel, stored in the current file, and have z_qso<z_min.
         relevant_MOCKIDs = [qso['MOCKID'] for qso in master_data if qso['PIXNUM']==pixel and int(number_to_string(qso['MOCKID'],10)[:-7])==file_number]
         N_relevant_qso = len(relevant_MOCKIDs)
-        print('    -> {} relevant quasars found.'.format(N_relevant_qso))
+        #print('    -> {} relevant quasars found.'.format(N_relevant_qso))
 
         #If there are some relevant quasars, open the data file and make it into a simulation_data object.
         #We use simulation_data.get_reduced_data to avoid loading all of the file's data into the object.
@@ -38,7 +38,7 @@ def make_pixel_object(pixel,original_file_location,original_filename_structure,i
             files_included += 1
 
     pixel_object = combined
-    print('Data extraction completed; {} quasars were found in total.'.format(pixel_object.N_qso))
+    #print('Data extraction completed; {} quasars were found in total.'.format(pixel_object.N_qso))
 
     return pixel_object
 
@@ -295,9 +295,10 @@ def make_IVAR_rows(lya,Z_QSO,LOGLAM_MAP,N_qso,N_cells):
 
     for i in range(N_qso):
 
-        first_not_relevant_cell = np.argmax(10**LOGLAM_MAP > lya_lambdas[i])
+        lambdas = 10**LOGLAM_MAP
+        last_relevant_cell = (np.argmax(lambdas > lya_lambdas[i]) - 1) % N_cells
 
-        new_IVAR_row = [list(np.concatenate((np.ones(first_not_relevant_cell),np.zeros(N_cells-first_not_relevant_cell))))]
+        new_IVAR_row = [list(np.concatenate((np.ones(last_relevant_cell+1),np.zeros(N_cells-last_relevant_cell-1))))]
         IVAR_rows += new_IVAR_row
 
     IVAR_rows = np.array(IVAR_rows).astype('float32')
