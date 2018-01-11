@@ -48,12 +48,13 @@ if simulation_parameters['dens_type'] != 0:
 
 
 #Make master file
+print('\nWorking on master file...')
 master_data, bad_coordinates_data, file_pixel_map = functions.get_ID_data(original_file_location,original_filename_structure,input_format,file_numbers,N_side)
 
 #Write master file.
 master_filename = new_base_file_location + '/' + 'nside_{}_'.format(N_side) + 'master.fits'
 functions.write_ID(master_filename,master_data,N_side)
-print('Master file containing {} objects saved at :\n{}\n'.format(master_data.shape[0],master_filename))
+print('\n\nMaster file containing {} objects saved at:\n{}\n'.format(master_data.shape[0],master_filename))
 
 #Write bad coordinates file.
 bad_coordinates_filename = new_base_file_location + '/' + 'nside_{}_'.format(N_side) + 'bad_coordinates.fits'
@@ -67,9 +68,9 @@ pixel_list = list(sorted(set(master_data['PIXNUM'])))
 file_number_list = list(sorted(set([int(functions.number_to_string(qso['MOCKID'],10)[:-7]) for qso in master_data])))
 
 
-print('Making master file: {}s.'.format(time.time()-start))
+print('Time to make master file: {}s.'.format(time.time()-start))
 start=time.time()
-
+print('\nWorking on per-HEALPix pixel files...')
 
 #Make the new file structure
 functions.make_file_structure(new_base_file_location,pixel_list)
@@ -77,10 +78,9 @@ functions.make_file_structure(new_base_file_location,pixel_list)
 #Define the pixelisation process.
 #For each pixel, create a 'pixel object' by using the master file's data to collect QSOs from the same pixel, stored in different files.
 #Then save this object in the various formats required.
-print(' \n')
 def pixelise(pixel,original_file_location,original_filename_structure,input_format,master_data,pixel_list,file_number_list,file_pixel_map,z_min,new_base_file_location,new_file_structure,N_side):
 
-    print('Working on pixel number {}.'.format(pixel))
+    #print('Working on pixel number {}.'.format(pixel))
     location = new_base_file_location + new_file_structure.format(pixel//100,pixel)
 
     #Make file into an object
@@ -114,20 +114,44 @@ def pixelise(pixel,original_file_location,original_filename_structure,input_form
     pixel_object.save_as_picca_flux(location,filename,header,zero_mean_delta=True*enforce_picca_zero_mean_delta,lambda_min=lambda_min)
 
     #Close everything
-    print('\nPixel number {} complete!\n'.format(pixel))
+    #print('\nPixel number {} complete!\n'.format(pixel))
 
-    return
+    return pixel
 
 #Use multiprocessing to pixelise quickly.
 N_processes = int(sys.argv[1])
 pool = Pool(processes = N_processes)
 
+#Generate list of 'tasks': tuples containing the arguments requried for repixelisation for each pixel.
 tasks = []
 for pixel in pixel_list:
     tasks += [(pixel,original_file_location,original_filename_structure,input_format,master_data,pixel_list,file_number_list,file_pixel_map,z_min,new_base_file_location,new_file_structure,N_side)]
 
+#Define a progress-tracking function.
+def log_result(retval):
+    results.append(retval)
+    N_complete_pixels = len(results)
+    N_tasks = len(tasks)
+
+    N_chunks = 20
+    N_chunks_complete = int((N_complete_pixels*N_chunks) // (N_tasks))
+    block_char = bytes((219,)).decode('cp437')
+    progress_bar = '|' + block_char*N_chunks_complete + ' '*(N_chunks-N_chunks_complete) + '|'
+    print(' -> current progress: {} {} of {} pixels complete ({:.0%})'.format(progress_bar,N_complete_pixels,N_tasks,N_complete_pixels/N_tasks),end="\r")
+
+    if len(results) == len(tasks):
+        print('\n\nProcess complete!')
+
+#Run the multiprocessing pool
 if __name__ == '__main__':
     pool = Pool(processes = N_processes)
-    results = pool.starmap(pixelise,tasks)
+    results = []
 
-print('Making pixel files: {}s.'.format(time.time()-start))
+    for task in tasks:
+        pool.apply_async(pixelise,task,callback=log_result)
+
+    pool.close()
+    pool.join()
+
+print('\nTime to make pixel files: {}s.'.format(time.time()-start))
+print(' ')
