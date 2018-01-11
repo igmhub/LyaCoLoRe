@@ -205,7 +205,6 @@ def make_pixel_ID(N_side,RA,DEC):
 def get_ID_data(original_location,original_filename_structure,input_format,file_numbers,N_side):
 
     ID_data = []
-    print('Assembling master data...')
     #Set up the file_pixel_map.
     #file_pixel_map[i,j] is 1 if the jth file contains qsos from the ith pixel, 0 otherwise.
     N_pixels = 12*N_side**2
@@ -213,7 +212,7 @@ def get_ID_data(original_location,original_filename_structure,input_format,file_
 
     for file_number in file_numbers:
         #Open the file and extract the angular coordinate data.
-        print(' -> extracting data from {} ({} of {})'.format(original_filename_structure.format(file_number),file_numbers.index(file_number)+1,len(file_numbers)))
+        print(' -> extracting data from {} ({} of {})'.format(original_filename_structure.format(file_number),file_numbers.index(file_number)+1,len(file_numbers)),end='\r')
         filename = original_location + '/' + original_filename_structure.format(file_number)
         h = fits.open(filename)
 
