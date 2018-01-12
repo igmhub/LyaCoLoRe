@@ -31,6 +31,11 @@ def cut_fits(file_location, file_name, structure, N_obj_desired, mode):
                 new_3 = original[3].data[sample,:]
                 new_4 = original[4].data
 
+                headers_1 = original[1].header
+                headers_2 = original[2].header
+                headers_3 = original[3].header
+                headers_4 = original[4].header
+
                 #Check if there's now irrelevant cells (i.e. all zeros). If so, trim them.
                 #sum_of_new_2_columns = np.sum(new_2,axis=0)
                 #zero_sum_start = np.argmax(sum_of_new_2_columns==0)
@@ -47,10 +52,10 @@ def cut_fits(file_location, file_name, structure, N_obj_desired, mode):
 
 
             prihdu = original[0]
-            hdu_new_1 = fits.BinTableHDU(new_1,name='Catalog')
-            hdu_new_2 = fits.ImageHDU(data=new_2,header=None,name='Density skewers')
-            hdu_new_3 = fits.ImageHDU(data=new_3,header=None,name='Velocity skewers')
-            hdu_new_4 = fits.BinTableHDU(new_4,name='Background cosmology')
+            hdu_new_1 = fits.BinTableHDU(new_1,header=headers_1,name='Catalog')
+            hdu_new_2 = fits.ImageHDU(data=new_2,header=headers_2,name='Density skewers')
+            hdu_new_3 = fits.ImageHDU(data=new_3,header=headers_3,name='Velocity skewers')
+            hdu_new_4 = fits.BinTableHDU(new_4,header=headers_4,name='Background cosmology')
 
             hdulist = fits.HDUList([prihdu, hdu_new_1, hdu_new_2, hdu_new_3, hdu_new_4])
 

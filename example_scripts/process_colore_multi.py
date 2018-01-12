@@ -4,8 +4,14 @@ import process_functions as functions
 from multiprocessing import Pool
 import sys
 import time
+import os
 
-start = time.time()
+###############################################################################
+
+"""
+Set up the file locations and filename structures.
+Also define option preferences.
+"""
 
 #Top level script to manage the conversion of CoLoRe output files into files more useful for analysis.
 #These are produced on a per-HEALPix pixel basis.
@@ -20,7 +26,7 @@ N_pix = 12*N_side**2
 #Define the original file structure
 original_file_location = '/Users/jfarr/Projects/repixelise/test_input/'
 original_filename_structure = 'N10000_out_srcs_s1_{}.fits' #file_number
-file_numbers = [16]
+file_numbers = [15,16]
 input_format = 'physical_colore'
 
 #Set file structure
@@ -45,46 +51,118 @@ simulation_parameters = functions.get_simulation_parameters(original_file_locati
 if simulation_parameters['dens_type'] != 0:
     error('Density is not lognormal. Non-lognormal densities are not currently supported.')
 
+###############################################################################
 
+"""
+Define the multiprocessing tracking functions
+"""
 
-#Make master file
+#Define a progress-tracking function.
+def log_result(retval):
+    results.append(retval)
+    N_complete = len(results)
+    N_tasks = len(tasks)
+    N_tasks_digits = int(np.log10(N_tasks)) + 1
+
+    N_chunks = 20
+    N_chunks_complete = int((N_complete*N_chunks) // (N_tasks))
+    block_char = '-'
+    progress_bar = '|' + block_char*N_chunks_complete + ' '*(N_chunks-N_chunks_complete) + '|'
+
+    current_time = time.time()
+    time_elapsed = current_time - start_time
+    estimated_time_remaining = (time_elapsed)*((N_tasks-N_complete)/N_complete)
+    print(' -> current progress: {} {:3d} of {:3d} complete ({:3.0%}), {:4.0f}s elapsed, ~{:4.0f}s remaining'.format(progress_bar,N_complete,N_tasks,N_complete/N_tasks,time_elapsed,estimated_time_remaining),end="\r")
+
+    if len(results) == len(tasks):
+        print('\n\nProcess complete!')
+
+#Define an error-tracking function.
+def log_error(retval):
+    print('error',retval)
+
+###############################################################################
+
+"""
+Produce the data required to make a master file using multiprocessing (one task per original file).
+Join the outputs from the many processes together.
+Save the master file, and a similarly structured file containing QSOs with 'bad coordinates'.
+"""
+
 print('\nWorking on master file...')
-master_data, bad_coordinates_data, file_pixel_map = functions.get_ID_data(original_file_location,original_filename_structure,input_format,file_numbers,N_side)
+start = time.time()
+
+def make_master_data(original_file_location,original_filename_structure,input_format,file_number,N_side):
+
+    master_data, bad_coordinates_data = functions.get_ID_data(original_file_location,original_filename_structure,input_format,file_number,N_side)
+    data = np.concatenate((master_data,bad_coordinates_data))
+
+    return data
+
+#Set up the multiprocessing pool parameters and make a list of tasks.
+N_processes = int(sys.argv[1])
+tasks = []
+for file_number in file_numbers:
+    tasks += [(original_file_location,original_filename_structure,input_format,[file_number],N_side)]
+
+#Run the multiprocessing pool
+if __name__ == '__main__':
+    pool = Pool(processes = N_processes)
+    results = []
+    start_time = time.time()
+
+    for task in tasks:
+        pool.apply_async(make_master_data,task,callback=log_result,error_callback=log_error)
+
+    pool.close()
+    pool.join()
+
+#Join the multiprocessing results into 'master' and 'bad_coordinates' arrays.
+master_data, bad_coordinates_data = functions.join_ID_data(results)
 
 #Write master file.
 master_filename = new_base_file_location + '/' + 'nside_{}_'.format(N_side) + 'master.fits'
 functions.write_ID(master_filename,master_data,N_side)
-print('\n\nMaster file containing {} objects saved at:\n{}\n'.format(master_data.shape[0],master_filename))
+print('\nMaster file containing {} objects saved at:\n{}\n'.format(master_data.shape[0],master_filename))
 
 #Write bad coordinates file.
 bad_coordinates_filename = new_base_file_location + '/' + 'nside_{}_'.format(N_side) + 'bad_coordinates.fits'
 functions.write_ID(bad_coordinates_filename,bad_coordinates_data,N_side)
 print('"Bad coordinates" file containing {} objects saved at:\n{}\n'.format(bad_coordinates_data.shape[0],bad_coordinates_filename))
 
-
-
 #Make a list of the pixels that the files cover.
 pixel_list = list(sorted(set(master_data['PIXNUM'])))
-file_number_list = list(sorted(set([int(functions.number_to_string(qso['MOCKID'],10)[:-7]) for qso in master_data])))
-
+file_number_list = list(sorted(set(file_numbers)))
 
 print('Time to make master file: {}s.'.format(time.time()-start))
-start=time.time()
-print('\nWorking on per-HEALPix pixel files...')
+
+###############################################################################
+
+"""
+Make the new file structure.
+For each pixel, run 'pixelise' to make a pixel object, and save it in the required formats.
+Done using a multiprocessing pool, with one task per pixel.
+"""
+
+print('\nWorking on per-HEALPix pixel skewer files...')
+start = time.time()
 
 #Make the new file structure
 functions.make_file_structure(new_base_file_location,pixel_list)
 
 #Define the pixelisation process.
-#For each pixel, create a 'pixel object' by using the master file's data to collect QSOs from the same pixel, stored in different files.
-#Then save this object in the various formats required.
-def pixelise(pixel,original_file_location,original_filename_structure,input_format,master_data,pixel_list,file_number_list,file_pixel_map,z_min,new_base_file_location,new_file_structure,N_side):
+def pixelise(pixel,original_file_location,original_filename_structure,input_format,master_data,pixel_list,file_number_list,z_min,new_base_file_location,new_file_structure,N_side):
 
-    #print('Working on pixel number {}.'.format(pixel))
+    pix_start = time.time()
+    total_start = pix_start
+
     location = new_base_file_location + new_file_structure.format(pixel//100,pixel)
 
     #Make file into an object
-    pixel_object = functions.make_pixel_object(pixel,original_file_location,original_filename_structure,input_format,master_data,pixel_list,file_number_list,file_pixel_map,z_min)
+    pixel_object = functions.make_pixel_object(pixel,original_file_location,original_filename_structure,input_format,master_data,pixel_list,file_number_list)
+
+    time_make_obj = time.time()-pix_start
+    pix_start = time.time()
 
     #Make some useful headers
     header = fits.Header()
@@ -97,58 +175,57 @@ def pixelise(pixel,original_file_location,original_filename_structure,input_form
     filename = new_filename_structure.format('gaussian-colore',N_side,pixel)
     pixel_object.save_as_gaussian_colore(location,filename,header)
 
+    time_gc = time.time()-pix_start
+    pix_start = time.time()
+
     #lognorm CoLoRe
     filename = new_filename_structure.format('physical-colore',N_side,pixel)
     pixel_object.save_as_physical_colore(location,filename,header)
+
+    time_lc = time.time()-pix_start
+    pix_start = time.time()
 
     #Picca density
     filename = new_filename_structure.format('picca-density',N_side,pixel)
     pixel_object.save_as_picca_density(location,filename,header,zero_mean_delta=True*enforce_picca_zero_mean_delta,lambda_min=lambda_min)
 
+    time_pd = time.time()-pix_start
+    pix_start = time.time()
+
     #transmission
     filename = new_filename_structure.format('transmission',N_side,pixel)
     pixel_object.save_as_transmission(location,filename,header,lambda_min=lambda_min)
+
+    time_t = time.time()-pix_start
+    pix_start = time.time()
 
     #picca flux
     filename = new_filename_structure.format('picca-flux',N_side,pixel)
     pixel_object.save_as_picca_flux(location,filename,header,zero_mean_delta=True*enforce_picca_zero_mean_delta,lambda_min=lambda_min)
 
-    #Close everything
-    #print('\nPixel number {} complete!\n'.format(pixel))
+    time_pf = time.time()-pix_start
+    total = time.time()-total_start
+
+    #print('Process {:5}: Pixel {:3} timings: {:6.2f} {:6.2f} {:6.2f} {:6.2f} {:6.2f} {:6.2f}, total {:6.2f}s.'.format(os.getpid(),pixel,time_make_obj,time_gc,time_lc,time_pd,time_t,time_pf,total))
 
     return pixel
 
-#Use multiprocessing to pixelise quickly.
+#Set up the multiprocessing pool parameters and make a list of tasks.
 N_processes = int(sys.argv[1])
-pool = Pool(processes = N_processes)
-
-#Generate list of 'tasks': tuples containing the arguments requried for repixelisation for each pixel.
 tasks = []
 for pixel in pixel_list:
-    tasks += [(pixel,original_file_location,original_filename_structure,input_format,master_data,pixel_list,file_number_list,file_pixel_map,z_min,new_base_file_location,new_file_structure,N_side)]
-
-#Define a progress-tracking function.
-def log_result(retval):
-    results.append(retval)
-    N_complete_pixels = len(results)
-    N_tasks = len(tasks)
-
-    N_chunks = 20
-    N_chunks_complete = int((N_complete_pixels*N_chunks) // (N_tasks))
-    block_char = bytes((219,)).decode('cp437')
-    progress_bar = '|' + block_char*N_chunks_complete + ' '*(N_chunks-N_chunks_complete) + '|'
-    print(' -> current progress: {} {} of {} pixels complete ({:.0%})'.format(progress_bar,N_complete_pixels,N_tasks,N_complete_pixels/N_tasks),end="\r")
-
-    if len(results) == len(tasks):
-        print('\n\nProcess complete!')
+    tasks += [(pixel,original_file_location,original_filename_structure,input_format,master_data,pixel_list,file_number_list,z_min,new_base_file_location,new_file_structure,N_side)]
 
 #Run the multiprocessing pool
 if __name__ == '__main__':
     pool = Pool(processes = N_processes)
     results = []
+    start_time = time.time()
 
     for task in tasks:
-        pool.apply_async(pixelise,task,callback=log_result)
+        pool.apply_async(pixelise,task,callback=log_result,error_callback=log_error)
+    #pool.starmap_async(pixelise,tasks,callback=log_result,error_callback=log_error)
+    #pool.starmap(pixelise,tasks)
 
     pool.close()
     pool.join()
