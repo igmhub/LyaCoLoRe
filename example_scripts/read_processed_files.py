@@ -2,12 +2,13 @@ import numpy as np
 from astropy.io import fits
 import matplotlib.pyplot as plt
 import lya_mock_functions as mock
+import sys
 
-# main folder where the processed files are 
-basedir = '/global/cscratch1/sd/font/LyaSkewers/'
-basedir += 'processed_output_hZ_4096_32_jfarr/'
+# main folder where the processed files are
+basedir = '/Users/jfarr/Projects/repixelise/test_output/'
+basedir += 'test_multi/'
 nside = 8
-pix = 3
+pix = int(sys.argv[1])
 pix_100 = int(pix/100)
 
 dirname = basedir+'/'+str(pix_100)+'/'+str(pix)+'/'
@@ -48,4 +49,3 @@ print('transmission flux file',trans_flux_file)
 trans_flux_hdu = fits.open(trans_flux_file)
 trans_flux_hdu.info()
 trans_flux_hdu.close()
-

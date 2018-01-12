@@ -18,8 +18,8 @@ N_pix = 12*N_side**2
 
 #Define the original file structure
 original_file_location = '/Users/jfarr/Projects/repixelise/test_input/'
-original_filename_structure = 'N10000_out_srcs_s1_{}.fits' #file_number
-file_numbers = [16]
+original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
+file_numbers = [15]
 input_format = 'physical_colore'
 
 #Set file structure
@@ -38,7 +38,7 @@ z_min = lambda_min/lya - 1
 
 
 #Make master file
-master_data, bad_coordinates_data, file_pixel_map = functions.get_ID_data(original_file_location,original_filename_structure,input_format,file_numbers,N_side)
+master_data, bad_coordinates_data = functions.get_ID_data(original_file_location,original_filename_structure,input_format,file_numbers,N_side)
 
 #Write master file.
 master_filename = new_base_file_location + '/' + 'nside_{}_'.format(N_side) + 'master.fits'
@@ -71,7 +71,7 @@ for pixel in pixel_list:
     location = new_base_file_location + new_file_structure.format(pixel//100,pixel)
 
     #Make file into an object
-    pixel_object = functions.make_pixel_object(pixel,original_file_location,original_filename_structure,input_format,master_data,pixel_list,file_number_list,file_pixel_map,z_min)
+    pixel_object = functions.make_pixel_object(pixel,original_file_location,original_filename_structure,input_format,master_data,pixel_list,file_number_list,z_min)
 
     #Make some useful headers
     header = fits.Header()

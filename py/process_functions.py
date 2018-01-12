@@ -2,32 +2,30 @@ import numpy as np
 from astropy.io import fits
 import healpy as hp
 import os
+import time
 
 lya = 1215.67
 
 #Function to create a 'simulation_data' object given a specific pixel, information about the complete simulation, and the location/filenames of data files.
-def make_pixel_object(pixel,original_file_location,original_filename_structure,input_format,master_data,pixel_list,file_number_list,file_pixel_map,z_min):
+def make_pixel_object(pixel,original_file_location,original_filename_structure,input_format,master_data,pixel_list,file_number_list,lambda_min=0):
 
     #print('Working on HEALPix pixel number {} ({} of {})...'.format(pixel,pixel_list.index(pixel)+1,len(pixel_list)))
 
     #Determine which file numbers we need to look at for the current pixel.
-    relevant_file_numbers = [file_number for file_number in file_number_list if file_pixel_map[pixel,file_number]==1]
+    relevant_file_numbers = list(set([int(number_to_string(qso['MOCKID'],10)[:-7]) for qso in master_data if qso['PIXNUM'] == pixel]))
     files_included = 0
 
     #For each relevant file, extract the data and aggregate over all files into a 'combined' object.
     for file_number in relevant_file_numbers:
-        #print(' -> Extracting data from file number {} ({} of {})...'.format(file_number,relevant_file_numbers.index(file_number)+1,len(relevant_file_numbers)))
-
-        #Get the MOCKIDs of the relevant quasars: those that are located in the current pixel, stored in the current file, and have z_qso<z_min.
+        #Get the MOCKIDs of the relevant quasars: those that are located in the current pixel, stored in the current file.
         relevant_MOCKIDs = [qso['MOCKID'] for qso in master_data if qso['PIXNUM']==pixel and int(number_to_string(qso['MOCKID'],10)[:-7])==file_number]
         N_relevant_qso = len(relevant_MOCKIDs)
-        #print('    -> {} relevant quasars found.'.format(N_relevant_qso))
 
         #If there are some relevant quasars, open the data file and make it into a simulation_data object.
         #We use simulation_data.get_reduced_data to avoid loading all of the file's data into the object.
         if N_relevant_qso > 0:
             filename = original_file_location + '/' + original_filename_structure.format(file_number)
-            working = simulation_data.get_reduced_data(filename,file_number,input_format,relevant_MOCKIDs)
+            working = simulation_data.get_reduced_data(filename,file_number,input_format,relevant_MOCKIDs,lambda_min=lambda_min)
 
         #Combine the data from the working file with that from the files already looked at.
         if files_included > 0:
@@ -181,6 +179,22 @@ def get_Z(h,input_format):
 
     return Z
 
+#Function to extract Z values from a colore or picca format hdulist.
+def get_lya_lambdas(h,input_format):
+
+    lya = 1215.67
+
+    if input_format == 'physical_colore':
+        Z = h[4].data['Z']
+        lya_lambdas = lya*(1+Z)
+    elif input_format == 'picca':
+        LOGLAM_MAP = h[2].data
+        lya_lambdas = (10**LOGLAM_MAP)
+    else:
+        print('Error.')
+
+    return lya_lambdas
+
 #Function to determine in which HEALPix pixel each of a set of (RA,DEC) coordinates lies, given N_side.
 def make_pixel_ID(N_side,RA,DEC):
 
@@ -208,11 +222,11 @@ def get_ID_data(original_location,original_filename_structure,input_format,file_
     #Set up the file_pixel_map.
     #file_pixel_map[i,j] is 1 if the jth file contains qsos from the ith pixel, 0 otherwise.
     N_pixels = 12*N_side**2
-    file_pixel_map = np.zeros((N_pixels,max(file_numbers)+1))
+    #file_pixel_map = np.zeros((N_pixels,max(file_numbers)+1))
 
     for file_number in file_numbers:
         #Open the file and extract the angular coordinate data.
-        print(' -> extracting data from {} ({} of {})'.format(original_filename_structure.format(file_number),file_numbers.index(file_number)+1,len(file_numbers)),end='\r')
+        #print(' -> extracting data from {} ({} of {})'.format(original_filename_structure.format(file_number),file_numbers.index(file_number)+1,len(file_numbers)),end='\r')
         filename = original_location + '/' + original_filename_structure.format(file_number)
         h = fits.open(filename)
 
@@ -241,9 +255,9 @@ def get_ID_data(original_location,original_filename_structure,input_format,file_
         ID_data += list(zip(RA,DEC,Z_QSO_NO_RSD,Z_QSO,MOCKID,pixel_ID))
 
         #Add information to file_pixel_map
-        for pixel in file_pixel_list:
-            if pixel >= 0:
-                file_pixel_map[pixel,file_number]=1
+        #for pixel in file_pixel_list:
+        #    if pixel >= 0:
+        #        file_pixel_map[pixel,file_number]=1
 
     #Sort the MOCKIDs and pixel_IDs into the right order: first by pixel number, and then by MOCKID.
     dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z_QSO_NO_RSD', '>f4'), ('Z_QSO', '>f4'), ('MOCKID', int), ('PIXNUM', int)]
@@ -254,7 +268,22 @@ def get_ID_data(original_location,original_filename_structure,input_format,file_
     ID_sort_filter = ID_sort[ID_sort['PIXNUM']>=0]
     ID_sort_bad = ID_sort[ID_sort['PIXNUM']<0]
 
-    return ID_sort_filter, ID_sort_bad, file_pixel_map
+    return ID_sort_filter, ID_sort_bad
+
+#Function to join together the outputs from 'get_ID_data' in several multiprocessing processes.
+def join_ID_data(results):
+    
+    master_results = []
+    bad_coordinates_results = []
+
+    for result in results:
+        master_results += [result[result['PIXNUM']>=0]]
+        bad_coordinates_results += [result[result['PIXNUM']<0]]
+
+    master_data = np.concatenate(master_results)
+    bad_coordinates_data = np.concatenate(bad_coordinates_results)
+
+    return master_data, bad_coordinates_data
 
 #Function to write a single ID file, given the data.
 def write_ID(filename,ID_data,N_side):
@@ -290,17 +319,15 @@ def get_tau(z,density):
 def make_IVAR_rows(lya,Z_QSO,LOGLAM_MAP,N_qso,N_cells):
 
     lya_lambdas = lya*(1+Z_QSO)
-    IVAR_rows = []
+    IVAR_rows = np.ones((N_qso,N_cells),dtype='float32')
+    lambdas = 10**LOGLAM_MAP
 
     for i in range(N_qso):
 
-        lambdas = 10**LOGLAM_MAP
         last_relevant_cell = (np.argmax(lambdas > lya_lambdas[i]) - 1) % N_cells
 
-        new_IVAR_row = [list(np.concatenate((np.ones(last_relevant_cell+1),np.zeros(N_cells-last_relevant_cell-1))))]
-        IVAR_rows += new_IVAR_row
-
-    IVAR_rows = np.array(IVAR_rows).astype('float32')
+        for j in range(last_relevant_cell+1,N_cells):
+            IVAR_rows[i,j] = 0.
 
     return IVAR_rows
 
@@ -410,15 +437,16 @@ class simulation_data:
 
     #Method to extract all data from an input file of a given format.
     @classmethod
-    def get_all_data(cls,filename,file_number,input_format,z_min=0):
+    def get_all_data(cls,filename,file_number,input_format,lambda_min=0):
 
         lya = 1215.67
         h = fits.open(filename)
 
         h_Z = get_Z(h,input_format)
+        h_lya_lambdas = get_lya_lambdas(h,input_format)
 
         #Calculate the first_relevant_cell.
-        first_relevant_cell = np.argmax(h_Z >= z_min)
+        first_relevant_cell = np.argmax(h_lya_lambdas >= lambda_min)
 
         if input_format == 'physical_colore':
 
@@ -439,7 +467,7 @@ class simulation_data:
             N_qso = RA.shape[0]
             N_cells = Z.shape[0]
             # TODO: also put in the proper formula once the update has been made to colore!
-            SIGMA_G = 1#h[4].header['SIGMA_G']
+            SIGMA_G = h[4].header['SIGMA_G']
 
             #Derive the MOCKID and LOGLAM_MAP.
             MOCKID = get_MOCKID(h,input_format,file_number)
@@ -507,7 +535,7 @@ class simulation_data:
 
     #Method to extract reduced data from an input file of a given format, with a given list of MOCKIDs.
     @classmethod
-    def get_reduced_data(cls,filename,file_number,input_format,MOCKIDs,z_min=0):
+    def get_reduced_data(cls,filename,file_number,input_format,MOCKIDs,lambda_min=0):
 
         lya = 1215.67
 
@@ -515,6 +543,7 @@ class simulation_data:
 
         h_MOCKID = get_MOCKID(h,input_format,file_number)
         h_Z = get_Z(h,input_format)
+        h_lya_lambdas = get_lya_lambdas(h,input_format)
 
         #Work out which rows in the hdulist we are interested in.
         rows = ['']*len(MOCKIDs)
@@ -526,7 +555,8 @@ class simulation_data:
                 j = j+1
 
         #Calculate the first_relevant_cell.
-        first_relevant_cell = np.argmax(h_Z >= z_min)
+        first_relevant_cell = np.argmax(h_lya_lambdas >= lambda_min)
+        actual_lambda_min = h_lya_lambdas[first_relevant_cell]
 
         if input_format == 'physical_colore':
 
@@ -551,11 +581,12 @@ class simulation_data:
             N_cells = Z.shape[0]
             # TODO: check if this is how the header is labelled
             # TODO: also put in the proper formula once the update has been made to colore!
-            SIGMA_G = 1#h[4].header['SIGMA_G']
+            SIGMA_G = h[4].header['SIGMA_G']
 
             #Derive MOCKIDs, LOGLAM_MAP and transmitted flux fraction.
             MOCKID = h_MOCKID[rows]
             LOGLAM_MAP = np.log10(lya*(1+Z))
+
             A,ALPHA,TAU_rows = get_tau(Z,DENSITY_DELTA_rows+1)
             F_rows = np.exp(-TAU_rows)
 
@@ -563,6 +594,7 @@ class simulation_data:
             PLATE = MOCKID
             MJD = np.zeros(N_qso)
             FIBER = np.zeros(N_qso)
+
             IVAR_rows = make_IVAR_rows(lya,Z_QSO,LOGLAM_MAP,N_qso,N_cells)
 
         elif input_format == 'picca':
@@ -736,8 +768,15 @@ class simulation_data:
     def save_as_picca_density(self,location,filename,header,zero_mean_delta=False,lambda_min=0):
 
         z_min = max(lambda_min/lya - 1, 0)
+        lya_lambdas = 10**self.LOGLAM_MAP
 
-        first_relevant_cell = get_first_relevant_index(lambda_min,10**self.LOGLAM_MAP)
+        first_relevant_cell = get_first_relevant_index(lambda_min,lya_lambdas)
+
+        #Update lambda_min and z_min to the values of lambda and z of the first relevant cell.
+        #This avoids including quasars that have Z_QSO higher than the original z_min, but no relevant skewer cells.
+        lambda_min = lya_lambdas[first_relevant_cell]
+        z_min = self.Z[first_relevant_cell]
+
         relevant_QSOs = get_relevant_indices(z_min,self.Z_QSO)
 
         #Organise the data into picca-format arrays.
@@ -750,7 +789,7 @@ class simulation_data:
             if i in relevant_QSOs:
                 picca_3_data += [(self.RA[i],self.DEC[i],self.Z_QSO[i],self.PLATE[i],self.MJD[i],self.FIBER[i],self.MOCKID[i])]
 
-        dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z', '>f4'), ('PLATE', '>f4'), ('MJD', '>f4'), ('FIBER', '>f4'), ('MOCKID', int)]
+        dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z', '>f4'), ('PLATE', '>f4'), ('MJD', '>f4'), ('FIBER', '>f4'), ('THING_ID', int)]
         picca_3 = np.array(picca_3_data,dtype=dtype)
 
         #Make the data into suitable HDUs.
@@ -771,8 +810,15 @@ class simulation_data:
     def save_as_transmission(self,location,filename,header,lambda_min=0):
 
         z_min = max(lambda_min/lya - 1, 0)
+        lya_lambdas = 10**self.LOGLAM_MAP
 
-        first_relevant_cell = get_first_relevant_index(lambda_min,10**self.LOGLAM_MAP)
+        first_relevant_cell = get_first_relevant_index(lambda_min,lya_lambdas)
+
+        #Update lambda_min and z_min to the values of lambda and z of the first relevant cell.
+        #This avoids including quasars that have Z_QSO higher than the original z_min, but no relevant skewer cells.
+        lambda_min = lya_lambdas[first_relevant_cell]
+        z_min = self.Z[first_relevant_cell]
+
         relevant_QSOs = get_relevant_indices(z_min,self.Z_QSO)
 
         #transmission_1_data = []
@@ -807,8 +853,15 @@ class simulation_data:
     def save_as_picca_flux(self,location,filename,header,zero_mean_delta=False,lambda_min=0):
 
         z_min = max(lambda_min/lya - 1, 0)
+        lya_lambdas = 10**self.LOGLAM_MAP
 
-        first_relevant_cell = get_first_relevant_index(lambda_min,10**self.LOGLAM_MAP)
+        first_relevant_cell = get_first_relevant_index(lambda_min,lya_lambdas)
+
+        #Update lambda_min and z_min to the values of lambda and z of the first relevant cell.
+        #This avoids including quasars that have Z_QSO higher than the original z_min, but no relevant skewer cells.
+        lambda_min = lya_lambdas[first_relevant_cell]
+        z_min = self.Z[first_relevant_cell]
+
         relevant_QSOs = get_relevant_indices(z_min,self.Z_QSO)
 
         #Organise the data into picca-format arrays.
@@ -821,7 +874,7 @@ class simulation_data:
             if i in relevant_QSOs:
                 picca_3_data += [(self.RA[i],self.DEC[i],self.Z_QSO[i],self.PLATE[i],self.MJD[i],self.FIBER[i],self.MOCKID[i])]
 
-        dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z', '>f4'), ('PLATE', '>f4'), ('MJD', '>f4'), ('FIBER', '>f4'), ('MOCKID', int)]
+        dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z', '>f4'), ('PLATE', '>f4'), ('MJD', '>f4'), ('FIBER', '>f4'), ('THING_ID', int)]
         picca_3 = np.array(picca_3_data,dtype=dtype)
 
         #Make the data into suitable HDUs.
