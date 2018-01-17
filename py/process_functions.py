@@ -855,19 +855,26 @@ class simulation_data:
         lya_lambdas = 10**self.LOGLAM_MAP
 
         first_relevant_cell = get_first_relevant_index(lambda_min,lya_lambdas)
+        last_relevant_cell = np.argmax(np.sum(self.IVAR_rows,axis=0)==0) - 1
 
         #Update lambda_min and z_min to the values of lambda and z of the first relevant cell.
         #This avoids including quasars that have Z_QSO higher than the original z_min, but no relevant skewer cells.
-        lambda_min = lya_lambdas[first_relevant_cell]
-        z_min = self.Z[first_relevant_cell]
+        lambda_min = lya_lambdas[first_relevant_cell:last_relevant_cell]
+        z_min = self.Z[first_relevant_cell:last_relevant_cell]
 
+        #Get the relevant quasars as a list of MOCKIDs.
         relevant_QSOs = get_relevant_indices(z_min,self.Z_QSO)
 
-        F_bar = np.average(self.F_rows,weights=self.IVAR_rows)
+        #Trim F_rows and IVAR_rows according to the relevant cells and QSOs.
+        relevant_F_rows = self.F_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
+        relevant_IVAR_rows = self.IVAR_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
+
+        #Calculate mean F as a function of z.
+        relevant_F_BAR = np.average(relevant_F_rows,weights=relevant_IVAR_rows)
 
         #Organise the data into picca-format arrays.
-        picca_0 = (self.F_rows[relevant_QSOs,first_relevant_cell:].T)/F_bar - 1
-        picca_1 = self.IVAR_rows[relevant_QSOs,first_relevant_cell:].T
+        picca_0 = (((relevant_F_rows)/F_bar - 1)*relevant_IVAR_rows).T
+        picca_1 = relevant_IVAR_rows.T
         picca_2 = self.LOGLAM_MAP[first_relevant_cell:]
 
         picca_3_data = []
