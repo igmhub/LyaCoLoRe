@@ -3,22 +3,33 @@ from astropy.io import fits
 import matplotlib.pyplot as plt
 import lya_mock_functions as mock
 import lya_stats_functions as stats
+import process_functions as pf
+import sys
 
-#Open data file
-hdulist = fits.open('/Users/jfarr/Projects/repixelise/test_input/out_srcs_s1_16.fits')
+default_filename = '/Users/jfarr/Projects/repixelise/test_input/out_srcs_s1_16.fits'
+input_format = 'physical_colore'
+file_number = 0
+
+if len(sys.argv) >1:
+    filename = sys.argv[1]
+else:
+    filename = default_filename
+
+#Make an object out of the file.
+file_object = pf.simulation_data.get_all_data(filename,file_number,input_format)
 
 #Extract redshift from data file
-z = hdulist[4].data['Z']
+z = file_object.Z
 z = np.asarray(z)
 
 #Get number of quasars, and redshift array
-z_qso = hdulist[1].data['Z_COSMO']
+z_qso = file_object.Z_QSO
 N_qso = len(z_qso)
 print('There are %d quasars in the sample.' % N_qso)
 
 #Plot the locations of the quasars according to the HEALPix pixel grid.
-RA = hdulist[1].data['RA']
-DEC = hdulist[1].data['DEC']
+RA = file_object.RA
+DEC = file_object.DEC
 phi = RA*np.pi/180
 theta = np.pi/2 - DEC*np.pi/180
 plt.figure()
@@ -27,29 +38,26 @@ plt.xlim(0.0,2.0)
 plt.ylim(-1.0,1.0)
 
 #Extract the delta skewers from the file, and make a mask for them.
-delta_skewers = hdulist[2].data
+delta_skewers = file_object.DENSITY_DELTA_rows
 mask = stats.make_mask(z,z_qso)
 
 #NORMALISE THE DELTA FIELD SO THAT ITS MEAN IS 0.
 #THIS IS AN ONGOING ISSUE IN COLORE, AND IS LISTED TO BE FIXED SO THAT THE DELTA MEAN IS 0 AUTOMATICALLY.
-delta_skewers = stats.normalise_delta(mask,delta_skewers)
+#delta_skewers = stats.normalise_delta(mask,delta_skewers)
 
 #Get the length of each skewer.
-N_pix_skewer = delta_skewers.shape[1]
+N_pix_skewer = file_object.N_cells
 print('There are %d pixels in each skewer.' % N_pix_skewer)
 
-#Show the structure of the data
-print(hdulist[2].header.keys)
-
 #Get delta for the highest redshift quasar in the sample.
-id = np.argmax(hdulist[1].data['Z_COSMO'])
+id = np.argmax(z_qso)
 delta = delta_skewers[id,:]
 
 #Show delta vs r
 print('mean delta =', np.average(delta,weights=mask[id]))
 print('var delta =', np.var(delta))
 plt.figure()
-plt.plot(hdulist[4].data['R'],delta)
+plt.plot(file_object.R,delta)
 plt.xlabel('$r\\,\\,[{\\rm Mpc}/h]$')
 plt.ylabel('$\\delta$')
 
