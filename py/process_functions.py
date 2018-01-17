@@ -272,7 +272,7 @@ def get_ID_data(original_location,original_filename_structure,input_format,file_
 
 #Function to join together the outputs from 'get_ID_data' in several multiprocessing processes.
 def join_ID_data(results):
-    
+
     master_results = []
     bad_coordinates_results = []
 
@@ -308,7 +308,7 @@ def write_ID(filename,ID_data,N_side):
 def get_tau(z,density):
     """transform lognormal density to optical depth, at each z"""
     # add redshift evolution to mean optical depth
-    alpha = 1
+    alpha = 1.0
     A = 0.374*pow((1+z)/4.0,5.10)
 
     tau = A*(density**alpha)
@@ -389,6 +389,7 @@ def get_simulation_parameters(location,filename):
 
     return parameter_values
 
+# TODO: write this
 class simulation_parameters:
     def __init__():
 
@@ -398,8 +399,6 @@ class simulation_parameters:
     def get_parameters(cls,location,filename):
 
         return
-
-
 
 #Definition of a generic 'simulation_data' class, from which it is easy to save in new formats.
 class simulation_data:
@@ -500,7 +499,7 @@ class simulation_data:
             PLATE = h[3].data['PLATE']
             MJD = h[3].data['MJD']
             FIBER = h[3].data['FIBER']
-            MOCKID = h[3].data['MOCKID']
+            MOCKID = h[3].data['THING_ID']
 
             #Derive the number of quasars and cells in the file.
             N_qso = RA.shape[0]
@@ -612,7 +611,7 @@ class simulation_data:
             PLATE = h[3].data['PLATE'][rows]
             MJD = h[3].data['MJD'][rows]
             FIBER = h[3].data['FIBER'][rows]
-            MOCKID = h[3].data['MOCKID'][rows]
+            MOCKID = h[3].data['THING_ID'][rows]
 
             #Derive the number of quasars and cells in the file.
             N_qso = RA.shape[0]
@@ -789,7 +788,7 @@ class simulation_data:
             if i in relevant_QSOs:
                 picca_3_data += [(self.RA[i],self.DEC[i],self.Z_QSO[i],self.PLATE[i],self.MJD[i],self.FIBER[i],self.MOCKID[i])]
 
-        dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z', '>f4'), ('PLATE', '>f4'), ('MJD', '>f4'), ('FIBER', '>f4'), ('THING_ID', int)]
+        dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z', '>f4'), ('PLATE', int), ('MJD', '>f4'), ('FIBER', int), ('THING_ID', int)]
         picca_3 = np.array(picca_3_data,dtype=dtype)
 
         #Make the data into suitable HDUs.
@@ -864,8 +863,10 @@ class simulation_data:
 
         relevant_QSOs = get_relevant_indices(z_min,self.Z_QSO)
 
+        F_bar = np.average(self.F_rows,weights=self.IVAR_rows)
+
         #Organise the data into picca-format arrays.
-        picca_0 = self.F_rows[relevant_QSOs,first_relevant_cell:].T + 1
+        picca_0 = (self.F_rows[relevant_QSOs,first_relevant_cell:].T)/F_bar - 1
         picca_1 = self.IVAR_rows[relevant_QSOs,first_relevant_cell:].T
         picca_2 = self.LOGLAM_MAP[first_relevant_cell:]
 
@@ -874,7 +875,7 @@ class simulation_data:
             if i in relevant_QSOs:
                 picca_3_data += [(self.RA[i],self.DEC[i],self.Z_QSO[i],self.PLATE[i],self.MJD[i],self.FIBER[i],self.MOCKID[i])]
 
-        dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z', '>f4'), ('PLATE', '>f4'), ('MJD', '>f4'), ('FIBER', '>f4'), ('THING_ID', int)]
+        dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z', '>f4'), ('PLATE', int), ('MJD', '>f4'), ('FIBER', int), ('THING_ID', int)]
         picca_3 = np.array(picca_3_data,dtype=dtype)
 
         #Make the data into suitable HDUs.
@@ -1024,7 +1025,7 @@ class simulation_data:
                 for i in range(self.N_qso):
                     picca_3_data += [(self.RA[i],self.DEC[i],self.Z_QSO[i],self.PLATE[i],self.MJD[i],self.FIBER[i],self.MOCKID[i])]
 
-                dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z', '>f4'), ('PLATE', '>f4'), ('MJD', '>f4'), ('FIBER', '>f4'), ('MOCKID', int)]
+                dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z', '>f4'), ('PLATE', int), ('MJD', '>f4'), ('FIBER', int), ('MOCKID', int)]
                 picca_3 = np.array(picca_3_data,dtype=dtype)
 
                 #Make the data into suitable HDUs.

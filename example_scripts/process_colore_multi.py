@@ -6,7 +6,7 @@ import sys
 import time
 import os
 
-###############################################################################
+################################################################################
 
 """
 Set up the file locations and filename structures.
@@ -25,7 +25,7 @@ N_pix = 12*N_side**2
 
 #Define the original file structure
 original_file_location = '/Users/jfarr/Projects/repixelise/test_input/'
-original_filename_structure = 'N10000_out_srcs_s1_{}.fits' #file_number
+original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
 file_numbers = [15,16]
 input_format = 'physical_colore'
 
@@ -51,7 +51,7 @@ simulation_parameters = functions.get_simulation_parameters(original_file_locati
 if simulation_parameters['dens_type'] != 0:
     error('Density is not lognormal. Non-lognormal densities are not currently supported.')
 
-###############################################################################
+################################################################################
 
 """
 Define the multiprocessing tracking functions
@@ -81,7 +81,7 @@ def log_result(retval):
 def log_error(retval):
     print('error',retval)
 
-###############################################################################
+################################################################################
 
 """
 Produce the data required to make a master file using multiprocessing (one task per original file).
@@ -120,12 +120,10 @@ if __name__ == '__main__':
 #Join the multiprocessing results into 'master' and 'bad_coordinates' arrays.
 master_data, bad_coordinates_data = functions.join_ID_data(results)
 
-#Write master file.
+#Write master and bad coordinates files.
 master_filename = new_base_file_location + '/' + 'nside_{}_'.format(N_side) + 'master.fits'
 functions.write_ID(master_filename,master_data,N_side)
 print('\nMaster file containing {} objects saved at:\n{}\n'.format(master_data.shape[0],master_filename))
-
-#Write bad coordinates file.
 bad_coordinates_filename = new_base_file_location + '/' + 'nside_{}_'.format(N_side) + 'bad_coordinates.fits'
 functions.write_ID(bad_coordinates_filename,bad_coordinates_data,N_side)
 print('"Bad coordinates" file containing {} objects saved at:\n{}\n'.format(bad_coordinates_data.shape[0],bad_coordinates_filename))
@@ -136,7 +134,7 @@ file_number_list = list(sorted(set(file_numbers)))
 
 print('Time to make master file: {}s.'.format(time.time()-start))
 
-###############################################################################
+################################################################################
 
 """
 Make the new file structure.
@@ -170,6 +168,7 @@ def pixelise(pixel,original_file_location,original_filename_structure,input_form
     header['PIXNUM'] = pixel
     header['LYA'] = lya
     header['NQSO'] = pixel_object.N_qso
+    header['SIGMA_G'] = pixel_object.SIGMA_G
 
     #Gaussian CoLoRe
     filename = new_filename_structure.format('gaussian-colore',N_side,pixel)
@@ -229,6 +228,12 @@ if __name__ == '__main__':
 
     pool.close()
     pool.join()
+
+################################################################################
+
+"""
+Celebrate!
+"""
 
 print('\nTime to make pixel files: {}s.'.format(time.time()-start))
 print(' ')
