@@ -72,7 +72,7 @@ def log_result(retval):
     current_time = time.time()
     time_elapsed = current_time - start_time
     estimated_time_remaining = (time_elapsed)*((N_tasks-N_complete)/N_complete)
-    print(' -> current progress: {} {:3d} of {:3d} complete ({:3.0%}), {:4.0f}s elapsed, ~{:4.0f}s remaining'.format(progress_bar,N_complete,N_tasks,N_complete/N_tasks,time_elapsed,estimated_time_remaining),end="\r")
+    print(' -> current progress: {} {:4d} of {:4d} complete ({:3.0%}), {:4.0f}s elapsed, ~{:4.0f}s remaining'.format(progress_bar,N_complete,N_tasks,N_complete/N_tasks,time_elapsed,estimated_time_remaining),end="\r")
 
     if len(results) == len(tasks):
         print('\n\nProcess complete!')
