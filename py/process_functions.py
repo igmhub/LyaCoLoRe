@@ -770,6 +770,7 @@ class simulation_data:
         lya_lambdas = 10**self.LOGLAM_MAP
 
         first_relevant_cell = get_first_relevant_index(lambda_min,lya_lambdas)
+        last_relevant_cell = (np.argmax(np.sum(self.IVAR_rows,axis=0)==0) - 1) % self.N_cells
 
         #Update lambda_min and z_min to the values of lambda and z of the first relevant cell.
         #This avoids including quasars that have Z_QSO higher than the original z_min, but no relevant skewer cells.
@@ -778,9 +779,14 @@ class simulation_data:
 
         relevant_QSOs = get_relevant_indices(z_min,self.Z_QSO)
 
+        #Trim data according to the relevant cells and QSOs.
+        relevant_DENSITY_DELTA_rows = self.DENSITY_DELTA_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
+        relevant_IVAR_rows = self.IVAR_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
+        relevant_LOGLAM_MAP = self.LOGLAM_MAP[first_relevant_cell:last_relevant_cell+1]
+
         #Organise the data into picca-format arrays.
-        picca_0 = self.DENSITY_DELTA_rows[relevant_QSOs,first_relevant_cell:].T
-        picca_1 = self.IVAR_rows[relevant_QSOs,first_relevant_cell:].T
+        picca_0 = relevant_DENSITY_DELTA_rows.T
+        picca_1 = relevant_IVAR_rows.T
         picca_2 = self.LOGLAM_MAP[first_relevant_cell:]
 
         picca_3_data = []
@@ -848,7 +854,6 @@ class simulation_data:
         return
 
     #Function to save data as a picca flux file.
-    # TODO: Change F_rows to F_delta_rows here
     def save_as_picca_flux(self,location,filename,header,zero_mean_delta=False,lambda_min=0):
 
         z_min = max(lambda_min/lya - 1, 0)
@@ -856,26 +861,28 @@ class simulation_data:
 
         first_relevant_cell = get_first_relevant_index(lambda_min,lya_lambdas)
         last_relevant_cell = (np.argmax(np.sum(self.IVAR_rows,axis=0)==0) - 1) % self.N_cells
-        
+
         #Update lambda_min and z_min to the values of lambda and z of the first relevant cell.
         #This avoids including quasars that have Z_QSO higher than the original z_min, but no relevant skewer cells.
         lambda_min = lya_lambdas[first_relevant_cell]
         z_min = self.Z[first_relevant_cell]
-        
+
         #Get the relevant quasars as a list of MOCKIDs.
         relevant_QSOs = get_relevant_indices(z_min,self.Z_QSO)
-        
-        #Trim F_rows and IVAR_rows according to the relevant cells and QSOs.
+
+        #Trim data according to the relevant cells and QSOs.
         relevant_F_rows = self.F_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
         relevant_IVAR_rows = self.IVAR_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
-        
-        #Calculate mean F as a function of z.
+        relevant_LOGLAM_MAP = self.LOGLAM_MAP[first_relevant_cell:last_relevant_cell+1]
+
+        #Calculate mean F as a function of z for the relevant cells, then F_DELTA_rows.
         relevant_F_BAR = np.average(relevant_F_rows,weights=relevant_IVAR_rows)
+        relevant_F_DELTA_rows = ((relevant_F_rows)/relevant_F_BAR - 1)*relevant_IVAR_rows
 
         #Organise the data into picca-format arrays.
-        picca_0 = (((relevant_F_rows)/relevant_F_BAR - 1)*relevant_IVAR_rows).T
+        picca_0 = relevant_F_DELTA_rows.T
         picca_1 = relevant_IVAR_rows.T
-        picca_2 = self.LOGLAM_MAP[first_relevant_cell:]
+        picca_2 = relevant_LOGLAM_MAP
 
         picca_3_data = []
         for i in range(self.N_qso):
