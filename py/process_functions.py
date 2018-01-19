@@ -876,7 +876,7 @@ class simulation_data:
         relevant_LOGLAM_MAP = self.LOGLAM_MAP[first_relevant_cell:last_relevant_cell+1]
 
         #Calculate mean F as a function of z for the relevant cells, then F_DELTA_rows.
-        relevant_F_BAR = np.average(relevant_F_rows,weights=relevant_IVAR_rows)
+        relevant_F_BAR = np.average(relevant_F_rows,weights=relevant_IVAR_rows,axis=0)
         relevant_F_DELTA_rows = ((relevant_F_rows)/relevant_F_BAR - 1)*relevant_IVAR_rows
 
         #Organise the data into picca-format arrays.

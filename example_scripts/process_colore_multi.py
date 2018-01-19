@@ -25,7 +25,7 @@ N_pix = 12*N_side**2
 
 #Define the original file structure
 original_file_location = '/Users/jfarr/Projects/repixelise/test_input/'
-original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
+original_filename_structure = 'N10000_out_srcs_s1_{}.fits' #file_number
 file_numbers = [15,16]
 input_format = 'physical_colore'
 
@@ -123,10 +123,9 @@ master_data, bad_coordinates_data = functions.join_ID_data(results)
 #Write master and bad coordinates files.
 master_filename = new_base_file_location + '/' + 'nside_{}_'.format(N_side) + 'master.fits'
 functions.write_ID(master_filename,master_data,N_side)
-print('\nMaster file containing {} objects saved at:\n{}\n'.format(master_data.shape[0],master_filename))
 bad_coordinates_filename = new_base_file_location + '/' + 'nside_{}_'.format(N_side) + 'bad_coordinates.fits'
 functions.write_ID(bad_coordinates_filename,bad_coordinates_data,N_side)
-print('"Bad coordinates" file containing {} objects saved at:\n{}\n'.format(bad_coordinates_data.shape[0],bad_coordinates_filename))
+print('\nMaster file contains {} objects.\n"bad coordinates" file contains {} objects.'.format(master_data.shape[0],bad_coordinates_data.shape[0]))
 
 #Make a list of the pixels that the files cover.
 pixel_list = list(sorted(set(master_data['PIXNUM'])))
@@ -151,16 +150,10 @@ functions.make_file_structure(new_base_file_location,pixel_list)
 #Define the pixelisation process.
 def pixelise(pixel,original_file_location,original_filename_structure,input_format,master_data,pixel_list,file_number_list,z_min,new_base_file_location,new_file_structure,N_side):
 
-    pix_start = time.time()
-    total_start = pix_start
-
     location = new_base_file_location + new_file_structure.format(pixel//100,pixel)
 
     #Make file into an object
     pixel_object = functions.make_pixel_object(pixel,original_file_location,original_filename_structure,input_format,master_data,pixel_list,file_number_list)
-
-    time_make_obj = time.time()-pix_start
-    pix_start = time.time()
 
     #Make some useful headers
     header = fits.Header()
@@ -174,38 +167,21 @@ def pixelise(pixel,original_file_location,original_filename_structure,input_form
     filename = new_filename_structure.format('gaussian-colore',N_side,pixel)
     pixel_object.save_as_gaussian_colore(location,filename,header)
 
-    time_gc = time.time()-pix_start
-    pix_start = time.time()
-
     #lognorm CoLoRe
     filename = new_filename_structure.format('physical-colore',N_side,pixel)
     pixel_object.save_as_physical_colore(location,filename,header)
-
-    time_lc = time.time()-pix_start
-    pix_start = time.time()
 
     #Picca density
     filename = new_filename_structure.format('picca-density',N_side,pixel)
     pixel_object.save_as_picca_density(location,filename,header,zero_mean_delta=True*enforce_picca_zero_mean_delta,lambda_min=lambda_min)
 
-    time_pd = time.time()-pix_start
-    pix_start = time.time()
-
     #transmission
     filename = new_filename_structure.format('transmission',N_side,pixel)
     pixel_object.save_as_transmission(location,filename,header,lambda_min=lambda_min)
 
-    time_t = time.time()-pix_start
-    pix_start = time.time()
-
     #picca flux
     filename = new_filename_structure.format('picca-flux',N_side,pixel)
     pixel_object.save_as_picca_flux(location,filename,header,zero_mean_delta=True*enforce_picca_zero_mean_delta,lambda_min=lambda_min)
-
-    time_pf = time.time()-pix_start
-    total = time.time()-total_start
-
-    #print('Process {:5}: Pixel {:3} timings: {:6.2f} {:6.2f} {:6.2f} {:6.2f} {:6.2f} {:6.2f}, total {:6.2f}s.'.format(os.getpid(),pixel,time_make_obj,time_gc,time_lc,time_pd,time_t,time_pf,total))
 
     return pixel
 
