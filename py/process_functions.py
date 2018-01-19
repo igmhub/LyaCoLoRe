@@ -725,6 +725,56 @@ class simulation_data:
 
         return
 
+    #Function to save data as a picca density file.
+    def save_as_picca_gaussian(self,location,filename,header,zero_mean_delta=False,lambda_min=0):
+
+        z_min = max(lambda_min/lya - 1, 0)
+        lya_lambdas = 10**self.LOGLAM_MAP
+
+        first_relevant_cell = get_first_relevant_index(lambda_min,lya_lambdas)
+        last_relevant_cell = (np.argmax(np.sum(self.IVAR_rows,axis=0)==0) - 1) % self.N_cells
+
+        GAUSSIAN_DELTA_rows = lognormal_to_gaussian(self.DENSITY_DELTA_rows,self.SIGMA_G,self.D)
+
+        #Update lambda_min and z_min to the values of lambda and z of the first relevant cell.
+        #This avoids including quasars that have Z_QSO higher than the original z_min, but no relevant skewer cells.
+        lambda_min = lya_lambdas[first_relevant_cell]
+        z_min = self.Z[first_relevant_cell]
+
+        relevant_QSOs = get_relevant_indices(z_min,self.Z_QSO)
+
+        #Trim data according to the relevant cells and QSOs.
+        relevant_GAUSSIAN_DELTA_rows = GAUSSIAN_DELTA_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
+        relevant_IVAR_rows = self.IVAR_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
+        relevant_LOGLAM_MAP = self.LOGLAM_MAP[first_relevant_cell:last_relevant_cell+1]
+
+        #Organise the data into picca-format arrays.
+        picca_0 = relevant_GAUSSIAN_DELTA_rows.T
+        picca_1 = relevant_IVAR_rows.T
+        picca_2 = self.LOGLAM_MAP[first_relevant_cell:]
+
+        picca_3_data = []
+        for i in range(self.N_qso):
+            if i in relevant_QSOs:
+                picca_3_data += [(self.RA[i],self.DEC[i],self.Z_QSO[i],self.PLATE[i],self.MJD[i],self.FIBER[i],self.MOCKID[i])]
+
+        dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z', '>f4'), ('PLATE', int), ('MJD', '>f4'), ('FIBER', int), ('THING_ID', int)]
+        picca_3 = np.array(picca_3_data,dtype=dtype)
+
+        #Make the data into suitable HDUs.
+        hdu_DELTA = fits.PrimaryHDU(data=picca_0,header=header)
+        hdu_iv = fits.ImageHDU(data=picca_1,header=header,name='IV')
+        hdu_LOGLAM_MAP = fits.ImageHDU(data=picca_2,header=header,name='LOGLAM_MAP')
+        cols_CATALOG = fits.ColDefs(picca_3)
+        hdu_CATALOG = fits.BinTableHDU.from_columns(cols_CATALOG,header=header,name='CATALOG')
+
+        #Combine the HDUs into and HDUlist and save as a new file. Close the HDUlist.
+        hdulist = fits.HDUList([hdu_DELTA, hdu_iv, hdu_LOGLAM_MAP, hdu_CATALOG])
+        hdulist.writeto(location+filename)
+        hdulist.close()
+
+        return
+
     #Function to save data as a Lognormal colore file.
     def save_as_physical_colore(self,location,filename,header):
 
