@@ -167,6 +167,10 @@ def pixelise(pixel,original_file_location,original_filename_structure,input_form
     filename = new_filename_structure.format('gaussian-colore',N_side,pixel)
     pixel_object.save_as_gaussian_colore(location,filename,header)
 
+    #Picca Gaussian
+    filename = new_filename_structure.format('picca-gaussian',N_side,pixel)
+    pixel_object.save_as_picca_gaussian(location,filename,header)
+
     #lognorm CoLoRe
     filename = new_filename_structure.format('physical-colore',N_side,pixel)
     pixel_object.save_as_physical_colore(location,filename,header)
