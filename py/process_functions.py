@@ -219,14 +219,10 @@ def make_pixel_ID(N_side,RA,DEC):
 def get_ID_data(original_location,original_filename_structure,input_format,file_numbers,N_side):
 
     ID_data = []
-    #Set up the file_pixel_map.
-    #file_pixel_map[i,j] is 1 if the jth file contains qsos from the ith pixel, 0 otherwise.
     N_pixels = 12*N_side**2
-    #file_pixel_map = np.zeros((N_pixels,max(file_numbers)+1))
 
     for file_number in file_numbers:
         #Open the file and extract the angular coordinate data.
-        #print(' -> extracting data from {} ({} of {})'.format(original_filename_structure.format(file_number),file_numbers.index(file_number)+1,len(file_numbers)),end='\r')
         filename = original_location + '/' + original_filename_structure.format(file_number)
         h = fits.open(filename)
 
@@ -245,19 +241,8 @@ def get_ID_data(original_location,original_filename_structure,input_format,file_
         #Calculate Z_QSO.
         Z_QSO = Z_QSO_NO_RSD + DZ_RSD
 
-        file_pixel_list = np.sort(list(set(pixel_ID)))
-        N_qso = len(MOCKID)
-
-        #Add the MOCKID and pixel_ID from this file to the ID list.
-        #for j in range(N_qso):
-        #    ID_data += [(MOCKID[j],pixel_ID[j],file_number)]
-
+        #Join the pieces of the ID_data together.
         ID_data += list(zip(RA,DEC,Z_QSO_NO_RSD,Z_QSO,MOCKID,pixel_ID))
-
-        #Add information to file_pixel_map
-        #for pixel in file_pixel_list:
-        #    if pixel >= 0:
-        #        file_pixel_map[pixel,file_number]=1
 
     #Sort the MOCKIDs and pixel_IDs into the right order: first by pixel number, and then by MOCKID.
     dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z_QSO_NO_RSD', '>f4'), ('Z_QSO', '>f4'), ('MOCKID', int), ('PIXNUM', int)]
@@ -265,10 +250,10 @@ def get_ID_data(original_location,original_filename_structure,input_format,file_
     ID_sort = np.sort(ID, order=['PIXNUM','MOCKID'])
 
     #Separate the quasars with invalid coordinates from the ID data.
-    ID_sort_filter = ID_sort[ID_sort['PIXNUM']>=0]
-    ID_sort_bad = ID_sort[ID_sort['PIXNUM']<0]
+    #ID_sort_good = ID_sort[ID_sort['PIXNUM']>=0]
+    #ID_sort_bad = ID_sort[ID_sort['PIXNUM']<0]
 
-    return ID_sort_filter, ID_sort_bad
+    return ID_sort
 
 #Function to join together the outputs from 'get_ID_data' in several multiprocessing processes.
 def join_ID_data(results):
@@ -578,8 +563,6 @@ class simulation_data:
             #Derive the number of quasars and cells in the file.
             N_qso = RA.shape[0]
             N_cells = Z.shape[0]
-            # TODO: check if this is how the header is labelled
-            # TODO: also put in the proper formula once the update has been made to colore!
             SIGMA_G = h[4].header['SIGMA_G']
 
             #Derive MOCKIDs, LOGLAM_MAP and transmitted flux fraction.

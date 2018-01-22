@@ -25,7 +25,7 @@ N_pix = 12*N_side**2
 
 #Define the original file structure
 original_file_location = '/Users/jfarr/Projects/repixelise/test_input/'
-original_filename_structure = 'N10000_out_srcs_s1_{}.fits' #file_number
+original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
 file_numbers = [15,16]
 input_format = 'physical_colore'
 
@@ -92,18 +92,16 @@ Save the master file, and a similarly structured file containing QSOs with 'bad 
 print('\nWorking on master file...')
 start = time.time()
 
+#Define the process to make the master data.
 def make_master_data(original_file_location,original_filename_structure,input_format,file_number,N_side):
 
-    master_data, bad_coordinates_data = functions.get_ID_data(original_file_location,original_filename_structure,input_format,file_number,N_side)
-    data = np.concatenate((master_data,bad_coordinates_data))
+    ID_data = functions.get_ID_data(original_file_location,original_filename_structure,input_format,file_number,N_side)
 
-    return data
+    return ID_data
 
 #Set up the multiprocessing pool parameters and make a list of tasks.
 N_processes = int(sys.argv[1])
-tasks = []
-for file_number in file_numbers:
-    tasks += [(original_file_location,original_filename_structure,input_format,[file_number],N_side)]
+tasks = [(original_file_location,original_filename_structure,input_format,[file_number],N_side) for file_number in file_numbers]
 
 #Run the multiprocessing pool
 if __name__ == '__main__':
@@ -120,18 +118,17 @@ if __name__ == '__main__':
 #Join the multiprocessing results into 'master' and 'bad_coordinates' arrays.
 master_data, bad_coordinates_data = functions.join_ID_data(results)
 
+#Make a list of the pixels that the files cover.
+pixel_list = list(sorted(set(master_data['PIXNUM'])))
+file_number_list = list(sorted(set(file_numbers)))
+
 #Write master and bad coordinates files.
 master_filename = new_base_file_location + '/' + 'nside_{}_'.format(N_side) + 'master.fits'
 functions.write_ID(master_filename,master_data,N_side)
 bad_coordinates_filename = new_base_file_location + '/' + 'nside_{}_'.format(N_side) + 'bad_coordinates.fits'
 functions.write_ID(bad_coordinates_filename,bad_coordinates_data,N_side)
 print('\nMaster file contains {} objects.\n"bad coordinates" file contains {} objects.'.format(master_data.shape[0],bad_coordinates_data.shape[0]))
-
-#Make a list of the pixels that the files cover.
-pixel_list = list(sorted(set(master_data['PIXNUM'])))
-file_number_list = list(sorted(set(file_numbers)))
-
-print('Time to make master file: {}s.'.format(time.time()-start))
+print('Time to make master file: {:4.0f}s.'.format(time.time()-start))
 
 ################################################################################
 
@@ -150,6 +147,7 @@ functions.make_file_structure(new_base_file_location,pixel_list)
 #Define the pixelisation process.
 def pixelise(pixel,original_file_location,original_filename_structure,input_format,master_data,pixel_list,file_number_list,z_min,new_base_file_location,new_file_structure,N_side):
 
+    #Define the save location for the pixel, according to the new file structure.
     location = new_base_file_location + new_file_structure.format(pixel//100,pixel)
 
     #Make file into an object
@@ -168,7 +166,7 @@ def pixelise(pixel,original_file_location,original_filename_structure,input_form
     pixel_object.save_as_gaussian_colore(location,filename,header)
 
     #Picca Gaussian
-    filename = new_filename_structure.format('picca-gaussian',N_side,pixel)
+    filename = new_filename_structure.format('picca-gaussian',N_side,pixel,lambda_min=lambda_min)
     pixel_object.save_as_picca_gaussian(location,filename,header)
 
     #lognorm CoLoRe
@@ -177,7 +175,7 @@ def pixelise(pixel,original_file_location,original_filename_structure,input_form
 
     #Picca density
     filename = new_filename_structure.format('picca-density',N_side,pixel)
-    pixel_object.save_as_picca_density(location,filename,header,zero_mean_delta=True*enforce_picca_zero_mean_delta,lambda_min=lambda_min)
+    pixel_object.save_as_picca_density(location,filename,header,lambda_min=lambda_min)
 
     #transmission
     filename = new_filename_structure.format('transmission',N_side,pixel)
@@ -185,15 +183,13 @@ def pixelise(pixel,original_file_location,original_filename_structure,input_form
 
     #picca flux
     filename = new_filename_structure.format('picca-flux',N_side,pixel)
-    pixel_object.save_as_picca_flux(location,filename,header,zero_mean_delta=True*enforce_picca_zero_mean_delta,lambda_min=lambda_min)
+    pixel_object.save_as_picca_flux(location,filename,header,lambda_min=lambda_min)
 
     return pixel
 
 #Set up the multiprocessing pool parameters and make a list of tasks.
 N_processes = int(sys.argv[1])
-tasks = []
-for pixel in pixel_list:
-    tasks += [(pixel,original_file_location,original_filename_structure,input_format,master_data,pixel_list,file_number_list,z_min,new_base_file_location,new_file_structure,N_side)]
+tasks = [(pixel,original_file_location,original_filename_structure,input_format,master_data,pixel_list,file_number_list,z_min,new_base_file_location,new_file_structure,N_side) for pixel in pixel_list]
 
 #Run the multiprocessing pool
 if __name__ == '__main__':
@@ -203,8 +199,6 @@ if __name__ == '__main__':
 
     for task in tasks:
         pool.apply_async(pixelise,task,callback=log_result,error_callback=log_error)
-    #pool.starmap_async(pixelise,tasks,callback=log_result,error_callback=log_error)
-    #pool.starmap(pixelise,tasks)
 
     pool.close()
     pool.join()
@@ -215,5 +209,5 @@ if __name__ == '__main__':
 Celebrate!
 """
 
-print('\nTime to make pixel files: {}s.'.format(time.time()-start))
+print('\nTime to make pixel files: {:4.0f}s.'.format(time.time()-start))
 print(' ')
