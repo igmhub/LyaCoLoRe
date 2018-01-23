@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import numpy as np
 from astropy.io import fits
 import process_functions as functions
@@ -25,7 +27,7 @@ N_pix = 12*N_side**2
 
 #Define the original file structure
 original_file_location = '/Users/jfarr/Projects/repixelise/test_input/'
-original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
+original_filename_structure = 'N100000_out_srcs_s1_{}.fits' #file_number
 file_numbers = [15,16]
 input_format = 'physical_colore'
 
@@ -166,8 +168,8 @@ def pixelise(pixel,original_file_location,original_filename_structure,input_form
     pixel_object.save_as_gaussian_colore(location,filename,header)
 
     #Picca Gaussian
-    filename = new_filename_structure.format('picca-gaussian',N_side,pixel,lambda_min=lambda_min)
-    pixel_object.save_as_picca_gaussian(location,filename,header)
+    filename = new_filename_structure.format('picca-gaussian',N_side,pixel)
+    pixel_object.save_as_picca_gaussian(location,filename,header,lambda_min=lambda_min)
 
     #lognorm CoLoRe
     filename = new_filename_structure.format('physical-colore',N_side,pixel)

@@ -734,7 +734,7 @@ class simulation_data:
         #Organise the data into picca-format arrays.
         picca_0 = relevant_GAUSSIAN_DELTA_rows.T
         picca_1 = relevant_IVAR_rows.T
-        picca_2 = self.LOGLAM_MAP[first_relevant_cell:]
+        picca_2 = relevant_LOGLAM_MAP
 
         picca_3_data = []
         for i in range(self.N_qso):
@@ -820,7 +820,7 @@ class simulation_data:
         #Organise the data into picca-format arrays.
         picca_0 = relevant_DENSITY_DELTA_rows.T
         picca_1 = relevant_IVAR_rows.T
-        picca_2 = self.LOGLAM_MAP[first_relevant_cell:]
+        picca_2 = relevant_LOGLAM_MAP
 
         picca_3_data = []
         for i in range(self.N_qso):
