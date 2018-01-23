@@ -22,6 +22,13 @@ phys_dens_hdu = fits.open(phys_dens_file)
 phys_dens_hdu.info()
 phys_dens_hdu.close()
 
+# file with delta gaussian for picca
+picca_gauss_file = dirname+'/picca-gaussian-'+suffix
+print('picca gaussian file',picca_gauss_file)
+picca_dens_hdu = fits.open(picca_gauss_file)
+picca_dens_hdu.info()
+picca_dens_hdu.close()
+
 # file with Gaussian density
 gauss_dens_file = dirname+'/gaussian-colore-'+suffix
 print('gaussian density file',gauss_dens_file)
