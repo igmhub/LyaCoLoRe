@@ -17,7 +17,7 @@ rmax = 160.0
 rmin = 0.0
 nr = 40
 
-pixels = list(range(10,20))
+pixels = list(range(10,15))
 
 skewers = []
 IVAR_skewers = []
@@ -51,9 +51,19 @@ for pixel in pixels:
 
 [h_picca[0].data[:,j] for j in range(h_picca[0].data.shape[0])]
 
-#skewers = skewers[-1000:]
+#skewers = skewers[0:1000]
 N_skewers = len(skewers)
 print('there are {} skewers in total.'.format(N_skewers))
+
+
+total = 0
+N = 0
+for n,skewer in enumerate(skewers):
+    total += sum(skewer*IVAR_skewers[n])
+    N += sum(IVAR_skewers[n])
+
+mean = total/N
+print(mean)
 
 
 #Calculate the separations of pixel pairs. If separation > rmax, set to -1.
@@ -140,7 +150,7 @@ def get_bin_xi(bin_n,bin_coordinates,skewers,IVAR_skewers):
                 if IVAR_skewers[skewer_n][i]*IVAR_skewers[skewer_n][j] != 0:
 
                     del_squared_bin += skewer[i]*skewer[j]
-                    N_contributions += 1
+                    N_contributions_bin += 1
 
     return [bin_n,N_contributions_bin,del_squared_bin]
 
@@ -178,7 +188,7 @@ if __name__ == '__main__':
     pool = Pool(processes = N_processes)
     results = []
     del_squared = np.zeros(nr)
-    N_cells = np.zeros(nr)
+    N_contributions = np.zeros(nr)
     start_time = time.time()
 
     print('calculating xi')
@@ -194,7 +204,7 @@ if __name__ == '__main__':
 
 print(' ')
 
-xi = del_squared/N_cells
+xi = del_squared/N_contributions
 
 mean_delta = np.zeros(max_N_cells_picca)
 for i in range(max_N_cells_picca):
