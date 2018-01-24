@@ -206,22 +206,6 @@ print(' ')
 
 xi = del_squared/N_contributions
 
-mean_delta = np.zeros(max_N_cells_picca)
-for i in range(max_N_cells_picca):
-    count = 0
-    sum = 0
-    for n in range(N_skewers):
-        if len(skewers[n]) > i and IVAR_skewers[n][i] == 1:
-            sum += skewers[n][i]
-            count += 1
-    if count != 0:
-        mean_delta[i] = sum/count
-    else:
-        mean_delta[i] = 0
-
-mean = np.mean(mean_delta)
-print('mean delta is {}'.format(mean))
-
 plt.figure()
 plt.plot(R_binned,xi)
 #plt.plot(R_binned,(mean*np.ones(nr)))
