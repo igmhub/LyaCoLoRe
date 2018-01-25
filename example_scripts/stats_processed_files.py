@@ -34,6 +34,14 @@ basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_revamp/process_output_hZ
 nside = 8
 pixels = [0,100,200,300,400,500,600,700]
 
+# first figure out Gaussian smoothing
+filename=basedir+'0/0/physical-colore-'+str(nside)+'-0.fits'
+h = fits.open(filename)
+h.info()
+h[4].header
+sigma_g=h[4].header['SIGMA_G']
+print('sigma=',sigma_g)
+
 # will combine pixel statistics
 sum_mean=None
 sum_weights=None
@@ -65,7 +73,9 @@ sum_err = np.sqrt(sum_var/sum_weights)
 plt.errorbar(zs,sum_mean,yerr=sum_err,fmt='o',lw=2,color='black')
 plt.plot(zs,sum_var,lw=2,color='black')
 plt.ylim(-0.2,1.5)
-plt.title('Gaussian delta, mean and variance')
+plt.axhline(y=0,lw=0.5,ls='--',color='gray')
+plt.axhline(y=sigma_g**2,lw=0.5,ls='--',color='gray')
+plt.title('Gaussian delta stats: mean and variance')
 plt.xlabel('z')
 plt.savefig('mean_var_gauss.pdf')
 plt.show()
