@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import numpy as np
 from astropy.io import fits
 import sys
@@ -17,7 +19,7 @@ rmax = 160.0
 rmin = 0.0
 nr = 40
 
-pixels = list(range(10,15))
+pixels = list(range(0,100))
 
 skewers = []
 IVAR_skewers = []
@@ -116,7 +118,7 @@ N_processes = int(sys.argv[1])
 
 #Divide up the bins if desired. A larger number of jobs is helpful for judging progress as the program is running.
 #N_bin_splits = N_processes//nr + 1
-N_bin_splits = 1
+N_bin_splits = 100
 if N_bin_splits > 1:
     split_size = N_skewers//N_bin_splits
     splits = []
@@ -209,9 +211,9 @@ xi = del_squared/N_contributions
 plt.figure()
 plt.plot(R_binned,xi)
 #plt.plot(R_binned,(mean*np.ones(nr)))
+plt.savefig('xi_{}_{}.pdf'.format(pixels[0],pixels[-1]))
 
 plt.figure()
 plt.plot(R_binned,xi*(R_binned**2))
 #plt.plot(R_binned,(mean*R_binned**2))
-
-plt.show()
+plt.savefig('xir2_{}_{}.pdf'.format(pixels[0],pixels[-1]))
