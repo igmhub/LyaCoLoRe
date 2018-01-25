@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from astropy.io import fits
 import sys
 
-defaultpixel = 0
+default_pixel = 0
 
 if len(sys.argv) > 1:
     pixel = int(sys.argv[1])
