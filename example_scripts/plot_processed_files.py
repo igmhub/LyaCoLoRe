@@ -40,11 +40,11 @@ print('picca gaussian file',picca_gauss_file)
 picca_gauss_hdu = fits.open(picca_gauss_file)
 picca_gauss_hdu.info()
 picca_gauss_delta = picca_gauss_hdu[0].data
-picca_gauss_ivar = picca_gauss_hdu[1].data
+picca_ivar = picca_gauss_hdu[1].data
 picca_gauss_ll = picca_gauss_hdu[2].data
 picca_gauss_hdu.close()
 lya=1215.67
-picca_gauss_zs = (10**picca_gauss_ll)/lya - 1.0
+picca_zs = (10**picca_gauss_ll)/lya - 1.0
 
 # file with delta density for picca
 picca_dens_file = dirname+'/picca-density-'+suffix
@@ -54,12 +54,13 @@ picca_dens_hdu.info()
 picca_dens_delta = picca_dens_hdu[0].data
 picca_dens_hdu.close()
 
+# plot all fields, for a given skewer
 iskewer=0
 plt.plot(phys_dens_zs,phys_dens[iskewer],lw=2,label='physical density')
-plt.plot(gauss_dens_zs,gauss_dens[iskewer],lw=2,label='gaussian density')
-plt.plot(picca_gauss_zs,picca_gauss_delta[:,iskewer],ls=':',label='gaussian picca')
-plt.plot(picca_gauss_zs,picca_dens_delta[:,iskewer],ls=':',label='density picca')
-plt.plot(picca_gauss_zs,picca_gauss_ivar[:,iskewer],label='ivar picca')
+plt.plot(gauss_dens_zs,gauss_dens[iskewer],lw=2,label='gauss density')
+plt.plot(picca_zs,picca_ivar[:,iskewer],label='ivar picca')
+plt.plot(picca_zs,picca_gauss_delta[:,iskewer],ls=':',label='gauss picca')
+plt.plot(picca_zs,picca_dens_delta[:,iskewer],ls=':',label='density picca')
 plt.axvline(x=zq[iskewer])
 plt.legend()
 plt.show()
