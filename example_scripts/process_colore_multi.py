@@ -26,19 +26,20 @@ N_side = 2**N_side_pow2
 N_pix = 12*N_side**2
 
 #Define the original file structure
-original_file_location = '/Users/jfarr/Projects/repixelise/test_input/'
-original_filename_structure = 'N100000_out_srcs_s1_{}.fits' #file_number
-file_numbers = [15,16]
+original_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_revamp/output_4096_32'
+original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
+file_numbers = list(range(32))
 input_format = 'physical_colore'
 
 #Set file structure
-new_base_file_location = '/Users/jfarr/Projects/repixelise/test_output/test_multi/'
+new_base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_revamp/test/lya1100/'
 new_file_structure = '{}/{}/'               #pixel number//100, pixel number
 new_filename_structure = '{}-{}-{}.fits'    #file type, nside, pixel number
 
 #Choose options
 lambda_min = 3550
-enforce_picca_zero_mean_delta = True
+zero_mean_delta = True
+IVAR_cutoff = lya
 
 #Calculate the minimum value of z that we are interested in.
 #i.e. the z value for which lambda_min cooresponds to the lya wavelength.
@@ -153,7 +154,7 @@ def pixelise(pixel,original_file_location,original_filename_structure,input_form
     location = new_base_file_location + new_file_structure.format(pixel//100,pixel)
 
     #Make file into an object
-    pixel_object = functions.make_pixel_object(pixel,original_file_location,original_filename_structure,input_format,master_data,pixel_list,file_number_list)
+    pixel_object = functions.make_pixel_object(pixel,original_file_location,original_filename_structure,input_format,master_data,pixel_list,file_number_list,IVAR_cutoff=IVAR_cutoff)
 
     #Make some useful headers
     header = fits.Header()
@@ -169,7 +170,7 @@ def pixelise(pixel,original_file_location,original_filename_structure,input_form
 
     #Picca Gaussian
     filename = new_filename_structure.format('picca-gaussian',N_side,pixel)
-    pixel_object.save_as_picca_gaussian(location,filename,header,lambda_min=lambda_min)
+    pixel_object.save_as_picca_gaussian(location,filename,header,zero_mean_delta=zero_mean_delta,lambda_min=lambda_min)
 
     #lognorm CoLoRe
     filename = new_filename_structure.format('physical-colore',N_side,pixel)
@@ -177,7 +178,7 @@ def pixelise(pixel,original_file_location,original_filename_structure,input_form
 
     #Picca density
     filename = new_filename_structure.format('picca-density',N_side,pixel)
-    pixel_object.save_as_picca_density(location,filename,header,lambda_min=lambda_min)
+    pixel_object.save_as_picca_density(location,filename,header,zero_mean_delta=zero_mean_delta,lambda_min=lambda_min)
 
     #transmission
     filename = new_filename_structure.format('transmission',N_side,pixel)
