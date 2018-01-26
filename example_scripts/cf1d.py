@@ -3,13 +3,19 @@
 import numpy as np
 from astropy.io import fits
 import sys
+import matplotlib
+#matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from multiprocessing import Pool
 import time
 
+# TODO: Change the retrival of R once the master file format has been modified.
+# TODO: Convert the parallelisation to per-pixel
+# TODO: Save the output data as a file
 
-basedir = '/Users/jfarr/Projects/repixelise/test_output/test_multi'
-basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_revamp/process_output_4096_32'
+#basedir = '/Users/jfarr/Projects/repixelise/test_output/test_multi'
+basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_revamp/test/lya1100'
+
 correl_quantity = 'gaussian'
 N_side = 8
 lambda_min = 3550
@@ -19,7 +25,9 @@ rmax = 160.0
 rmin = 0.0
 nr = 40
 
-pixels = list(range(0,100))
+N_bin_splits = 1
+
+pixels = list(range(0,1))
 
 skewers = []
 IVAR_skewers = []
@@ -53,7 +61,7 @@ for pixel in pixels:
 
 [h_picca[0].data[:,j] for j in range(h_picca[0].data.shape[0])]
 
-#skewers = skewers[0:1000]
+#skewers = skewers[0:100]
 N_skewers = len(skewers)
 print('there are {} skewers in total.'.format(N_skewers))
 
@@ -118,7 +126,6 @@ N_processes = int(sys.argv[1])
 
 #Divide up the bins if desired. A larger number of jobs is helpful for judging progress as the program is running.
 #N_bin_splits = N_processes//nr + 1
-N_bin_splits = 100
 if N_bin_splits > 1:
     split_size = N_skewers//N_bin_splits
     splits = []
@@ -207,13 +214,16 @@ if __name__ == '__main__':
 print(' ')
 
 xi = del_squared/N_contributions
+#err_1 = (np.average(xi**2) - (np.average(xi))**2)*np.ones(xi.shape)
 
 plt.figure()
-plt.plot(R_binned,xi)
-#plt.plot(R_binned,(mean*np.ones(nr)))
+#plt.errorbar(R_binned,xi,yerr=err_1,fmt='o')
+plt.plot(R_binned,(mean*np.ones(nr)))
 plt.savefig('xi_{}_{}.pdf'.format(pixels[0],pixels[-1]))
 
 plt.figure()
-plt.plot(R_binned,xi*(R_binned**2))
-#plt.plot(R_binned,(mean*R_binned**2))
+#plt.errorbar(R_binned,xi*(R_binned**2),yerr=err_1*(R_binned**2),fmt='o')
+plt.plot(R_binned,(mean*(R_binned)**2))
 plt.savefig('xir2_{}_{}.pdf'.format(pixels[0],pixels[-1]))
+
+#plt.show()

@@ -6,8 +6,10 @@ import time
 
 lya = 1215.67
 
+# TODO: Add a second HDU to the master file to contain the cosmological quantities: Z,R,D etc
+
 #Function to create a 'simulation_data' object given a specific pixel, information about the complete simulation, and the location/filenames of data files.
-def make_pixel_object(pixel,original_file_location,original_filename_structure,input_format,master_data,pixel_list,file_number_list,lambda_min=0):
+def make_pixel_object(pixel,original_file_location,original_filename_structure,input_format,master_data,pixel_list,file_number_list,lambda_min=0,IVAR_cutoff=lya):
 
     #print('Working on HEALPix pixel number {} ({} of {})...'.format(pixel,pixel_list.index(pixel)+1,len(pixel_list)))
 
@@ -25,7 +27,7 @@ def make_pixel_object(pixel,original_file_location,original_filename_structure,i
         #We use simulation_data.get_reduced_data to avoid loading all of the file's data into the object.
         if N_relevant_qso > 0:
             filename = original_file_location + '/' + original_filename_structure.format(file_number)
-            working = simulation_data.get_reduced_data(filename,file_number,input_format,relevant_MOCKIDs,lambda_min=lambda_min)
+            working = simulation_data.get_reduced_data(filename,file_number,input_format,relevant_MOCKIDs,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff)
 
         #Combine the data from the working file with that from the files already looked at.
         if files_included > 0:
@@ -301,7 +303,10 @@ def get_tau(z,density):
     return A, alpha, tau
 
 #Function to make ivar mask
-def make_IVAR_rows(lya,Z_QSO,LOGLAM_MAP,N_qso,N_cells):
+def make_IVAR_rows(lya,Z_QSO,LOGLAM_MAP):
+
+    N_cells = LOGLAM_MAP.shape[0]
+    N_qso = Z_QSO.shape[0]
 
     lya_lambdas = lya*(1+Z_QSO)
     IVAR_rows = np.ones((N_qso,N_cells),dtype='float32')
@@ -319,12 +324,12 @@ def make_IVAR_rows(lya,Z_QSO,LOGLAM_MAP,N_qso,N_cells):
 #Function to convert lognormal delta skewers (in rows) to gaussian field skewers (in rows).
 def lognormal_to_gaussian(LN_DENSITY_DELTA_rows,SIGMA_G,D):
 
-    LN_DENSITY_rows = 1 + LN_DENSITY_DELTA_rows
+    LN_DENSITY_rows = 1.0 + LN_DENSITY_DELTA_rows
 
     GAUSSIAN_rows = np.zeros(LN_DENSITY_rows.shape)
 
     for j in range(GAUSSIAN_rows.shape[1]):
-        GAUSSIAN_rows[:,j] = np.log(LN_DENSITY_rows[:,j])/D[j] + (D[j])*(SIGMA_G**2)/2
+        GAUSSIAN_rows[:,j] = (np.log(LN_DENSITY_rows[:,j]))/D[j] + (D[j])*(SIGMA_G**2)/2
 
     GAUSSIAN_rows = GAUSSIAN_rows.astype('float32')
 
@@ -374,6 +379,17 @@ def get_simulation_parameters(location,filename):
 
     return parameter_values
 
+#Function to normalise a set of delta skewer rows to zero.
+def normalise_deltas(DELTA_rows,weights):
+
+    DELTA_rows_mean = np.average(DELTA_rows,weights=weights,axis=0)
+
+    DELTA_rows_normalised = np.zeros(DELTA_rows.shape)
+    for j in range(DELTA_rows_mean.shape[0]):
+        DELTA_rows_normalised[:,j] = (DELTA_rows[:,j] + 1)/(DELTA_rows_mean[j] + 1) - 1
+
+    return DELTA_rows_normalised
+
 # TODO: write this
 class simulation_parameters:
     def __init__():
@@ -421,7 +437,7 @@ class simulation_data:
 
     #Method to extract all data from an input file of a given format.
     @classmethod
-    def get_all_data(cls,filename,file_number,input_format,lambda_min=0):
+    def get_all_data(cls,filename,file_number,input_format,lambda_min=0,IVAR_cutoff=lya):
 
         lya = 1215.67
         h = fits.open(filename)
@@ -463,7 +479,8 @@ class simulation_data:
             PLATE = MOCKID
             MJD = np.zeros(N_qso)
             FIBER = np.zeros(N_qso)
-            IVAR_rows = make_IVAR_rows(lya,Z_QSO,LOGLAM_MAP,N_qso,N_cells)
+
+            IVAR_rows = make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP)
 
             # TODO: Think about how to do this. Also make sure to implement everwhere!
             #Construct grouping variables for appearance.
@@ -519,7 +536,7 @@ class simulation_data:
 
     #Method to extract reduced data from an input file of a given format, with a given list of MOCKIDs.
     @classmethod
-    def get_reduced_data(cls,filename,file_number,input_format,MOCKIDs,lambda_min=0):
+    def get_reduced_data(cls,filename,file_number,input_format,MOCKIDs,lambda_min=0,IVAR_cutoff=lya):
 
         lya = 1215.67
 
@@ -577,7 +594,7 @@ class simulation_data:
             MJD = np.zeros(N_qso)
             FIBER = np.zeros(N_qso)
 
-            IVAR_rows = make_IVAR_rows(lya,Z_QSO,LOGLAM_MAP,N_qso,N_cells)
+            IVAR_rows = make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP)
 
         elif input_format == 'picca':
 
@@ -714,22 +731,27 @@ class simulation_data:
         z_min = max(lambda_min/lya - 1, 0)
         lya_lambdas = 10**self.LOGLAM_MAP
 
+        #Determine the first cell which corresponds to a lya_line at wavelength > lambda_min
         first_relevant_cell = get_first_relevant_index(lambda_min,lya_lambdas)
-        last_relevant_cell = (np.argmax(np.sum(self.IVAR_rows,axis=0)==0) - 1) % self.N_cells
 
+        #Determine the furthest cell which is still relevant: i.e. the one in which at least one QSO has non-zero value of IVAR.
+        furthest_QSO_index = np.argmax(self.Z_QSO)
+        last_relevant_cell = (np.argmax(self.IVAR_rows[furthest_QSO_index,:]==0) - 1) % self.N_cells
+
+        #Determine the relevant QSOs: those that have relevant cells (IVAR > 0) beyond the first_relevant_cell.
+        relevant_QSOs = [i for i in range(self.N_qso) if self.IVAR_rows[i,first_relevant_cell] == 1]
+
+        #Convert the density delta rows to gaussian delta rows.
         GAUSSIAN_DELTA_rows = lognormal_to_gaussian(self.DENSITY_DELTA_rows,self.SIGMA_G,self.D)
-
-        #Update lambda_min and z_min to the values of lambda and z of the first relevant cell.
-        #This avoids including quasars that have Z_QSO higher than the original z_min, but no relevant skewer cells.
-        lambda_min = lya_lambdas[first_relevant_cell]
-        z_min = self.Z[first_relevant_cell]
-
-        relevant_QSOs = get_relevant_indices(z_min,self.Z_QSO)
 
         #Trim data according to the relevant cells and QSOs.
         relevant_GAUSSIAN_DELTA_rows = GAUSSIAN_DELTA_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
         relevant_IVAR_rows = self.IVAR_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
         relevant_LOGLAM_MAP = self.LOGLAM_MAP[first_relevant_cell:last_relevant_cell+1]
+
+        #If desired, enforce that the Delta rows have zero mean.
+        if zero_mean_delta == True:
+            relevant_GAUSSIAN_DELTA_rows = normalise_deltas(relevant_GAUSSIAN_DELTA_rows,relevant_IVAR_rows)
 
         #Organise the data into picca-format arrays.
         picca_0 = relevant_GAUSSIAN_DELTA_rows.T
@@ -802,20 +824,24 @@ class simulation_data:
         z_min = max(lambda_min/lya - 1, 0)
         lya_lambdas = 10**self.LOGLAM_MAP
 
+        #Determine the first cell which corresponds to a lya_line at wavelength > lambda_min
         first_relevant_cell = get_first_relevant_index(lambda_min,lya_lambdas)
-        last_relevant_cell = (np.argmax(np.sum(self.IVAR_rows,axis=0)==0) - 1) % self.N_cells
 
-        #Update lambda_min and z_min to the values of lambda and z of the first relevant cell.
-        #This avoids including quasars that have Z_QSO higher than the original z_min, but no relevant skewer cells.
-        lambda_min = lya_lambdas[first_relevant_cell]
-        z_min = self.Z[first_relevant_cell]
+        #Determine the furthest cell which is still relevant: i.e. the one in which at least one QSO has non-zero value of IVAR.
+        furthest_QSO_index = np.argmax(self.Z_QSO)
+        last_relevant_cell = (np.argmax(self.IVAR_rows[furthest_QSO_index,:]==0) - 1) % self.N_cells
 
-        relevant_QSOs = get_relevant_indices(z_min,self.Z_QSO)
+        #Determine the relevant QSOs: those that have relevant cells (IVAR > 0) beyond the first_relevant_cell.
+        relevant_QSOs = [i for i in range(self.N_qso) if self.IVAR_rows[i,first_relevant_cell] == 1]
 
         #Trim data according to the relevant cells and QSOs.
         relevant_DENSITY_DELTA_rows = self.DENSITY_DELTA_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
         relevant_IVAR_rows = self.IVAR_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
         relevant_LOGLAM_MAP = self.LOGLAM_MAP[first_relevant_cell:last_relevant_cell+1]
+
+        #If desired, enforce that the Delta rows have zero mean.
+        if zero_mean_delta == True:
+            relevant_DENSITY_DELTA_rows = normalise_deltas(relevant_DENSITY_DELTA_rows,relevant_IVAR_rows)
 
         #Organise the data into picca-format arrays.
         picca_0 = relevant_DENSITY_DELTA_rows.T
@@ -887,21 +913,20 @@ class simulation_data:
         return
 
     #Function to save data as a picca flux file.
-    def save_as_picca_flux(self,location,filename,header,zero_mean_delta=False,lambda_min=0):
+    def save_as_picca_flux(self,location,filename,header,lambda_min=0):
 
         z_min = max(lambda_min/lya - 1, 0)
         lya_lambdas = 10**self.LOGLAM_MAP
 
+        #Determine the first cell which corresponds to a lya_line at wavelength > lambda_min
         first_relevant_cell = get_first_relevant_index(lambda_min,lya_lambdas)
-        last_relevant_cell = (np.argmax(np.sum(self.IVAR_rows,axis=0)==0) - 1) % self.N_cells
 
-        #Update lambda_min and z_min to the values of lambda and z of the first relevant cell.
-        #This avoids including quasars that have Z_QSO higher than the original z_min, but no relevant skewer cells.
-        lambda_min = lya_lambdas[first_relevant_cell]
-        z_min = self.Z[first_relevant_cell]
+        #Determine the furthest cell which is still relevant: i.e. the one in which at least one QSO has non-zero value of IVAR.
+        furthest_QSO_index = np.argmax(self.Z_QSO)
+        last_relevant_cell = (np.argmax(self.IVAR_rows[furthest_QSO_index,:]==0) - 1) % self.N_cells
 
-        #Get the relevant quasars as a list of MOCKIDs.
-        relevant_QSOs = get_relevant_indices(z_min,self.Z_QSO)
+        #Determine the relevant QSOs: those that have relevant cells (IVAR > 0) beyond the first_relevant_cell.
+        relevant_QSOs = [i for i in range(self.N_qso) if self.IVAR_rows[i,first_relevant_cell] == 1]
 
         #Trim data according to the relevant cells and QSOs.
         relevant_F_rows = self.F_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
