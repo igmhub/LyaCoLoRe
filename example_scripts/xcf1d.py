@@ -161,7 +161,7 @@ plt.figure()
 #plt.errorbar(R_binned,xi,yerr=err_1,fmt='o')
 plt.plot(binned_lambdas,binned_mean_delta)
 plt.plot(binned_lambdas,binned_var_delta)
-plt.plot(binned_lambdas,binned_mean_delta*10*((binned_lambdas-IVAR_cutoff)/(np.ones(N_bins)*IVAR_cutoff-lambda_lower))**2)
+plt.plot(binned_lambdas,binned_mean_delta*(((binned_lambdas-IVAR_cutoff)/(np.ones(N_bins)*IVAR_cutoff-lambda_lower))**2)/binned_mean_delta[0])
 plt.savefig('xcf1d_{}_{}_with_squared.pdf'.format(pixels[0],pixels[-1]))
 
 plt.figure()
