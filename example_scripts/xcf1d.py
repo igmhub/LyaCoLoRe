@@ -164,6 +164,13 @@ plt.plot(binned_lambdas,binned_mean_delta)
 plt.plot(binned_lambdas,binned_var_delta)
 plt.savefig('xcf1d_{}_{}.pdf'.format(pixels[0],pixels[-1]))
 
+plt.figure()
+#plt.errorbar(R_binned,xi,yerr=err_1,fmt='o')
+plt.plot(binned_lambdas,binned_mean_delta)
+plt.savefig('xcf1d_{}_{}.pdf'.format(pixels[0],pixels[-1]))
+limit = 1.5*max(binned_mean_delta[:int(N_bins/2.0)])
+plt.ylim(-limit,limit)
+
 plt.show()
 
 """
