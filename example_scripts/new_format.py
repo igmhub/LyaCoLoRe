@@ -1,12 +1,14 @@
 import os
 import numpy as np
+import time
 from astropy.io import fits
 import healpy as hp
 import desitarget.mock.io as mockio
 import lya_mock_functions as mock
 
 # identify output file we want to plot
-filename='../example_data/delta_picca/z1.85/z1.85_N1000_node_015_nside_4_pix_10.fits'
+filename='/global/cscratch1/sd/jfarr/LyaSkewers/healpix_4096_32/per_pixel/nside_4_pix_1.fits'
+#filename='/global/cscratch1/sd/jfarr/LyaSkewers/healpix_4096_32/per_pixel/nside_4_pix_0.fits'
 h = fits.open(filename)
 
 # get information about quasars (TYPE,RA,DEC,Z_COSMO,DZ_RSD)
@@ -15,33 +17,46 @@ catalog = h[3].data
 loglam = h[2].data
 # get deltas (fluctuation around mean density) 
 delta = h[0].data
-z_qso = catalog['Z']
-print('# initial quasars =',len(z_qso))
-# keep only quasars with z>2.0
-highz=z_qso>2.0
-z_qso = z_qso[highz]
-catalog = catalog[highz]
-print('original shape',delta.shape)
-delta = delta[:,highz]
-print(np.min(z_qso),'< z_qso <',np.max(z_qso))
-print('# high-z quasars =',len(z_qso))
-# keep only quasars with good Dec
-bad_dec = np.isnan(catalog['DEC']) | (catalog['DEC'] < -90.0) | (catalog['DEC'] > 90.0)
-catalog = catalog[np.invert(bad_dec)]
-z_qso = z_qso[np.invert(bad_dec)]
-delta = delta[:,np.invert(bad_dec)]
-Nq=len(z_qso)
-print('# good quasars =',len(z_qso))
+print('original delta shape',delta.shape)
+
+# we will only write pixels with wavelength in DESI spectrograph
 wave=np.power(10.0,loglam)
 z = wave/1215.67-1.0
-Nz=len(z)
-print('full wavelength shape',delta.shape)
-# we will only write pixels with wavelength in DESI spectrograph
-in_desi=wave>3550.0
-z = z[in_desi]
+in_desi = wave>3550.0
+in_desi = np.where(in_desi)[0]
 wave = wave[in_desi]
+z = z[in_desi]
+t0=time.time()
 delta = delta[in_desi]
-print('DESI shape',delta.shape)
+t1=time.time()
+print('desi delta shape',delta.shape,'time =',t1-t0)
+
+# keep only quasars with z>2.0
+z_qso = catalog['Z']
+print('# initial quasars =',len(z_qso))
+print(np.min(z_qso),'< z_qso <',np.max(z_qso))
+highz = z_qso>2.0
+highz = np.where(highz)[0]
+z_qso = z_qso[highz]
+print('# high-z quasars =',len(z_qso))
+catalog = catalog[highz]
+t0=time.time()
+delta = delta[:,highz]
+t1=time.time()
+print('highz delta shape',delta.shape,'time =',t1-t0)
+
+# keep only quasars with good Dec
+bad_dec = np.isnan(catalog['DEC']) | (catalog['DEC'] < -90.0) | (catalog['DEC'] > 90.0)
+good_dec = np.invert(bad_dec)
+good_dec = np.where(good_dec)[0]
+catalog = catalog[good_dec]
+z_qso = z_qso[good_dec]
+Nq=len(z_qso)
+print('# good quasars =',len(z_qso))
+t0=time.time()
+delta = delta[:,good_dec]
+t1=time.time()
+print('final delta shape',delta.shape,'time =',t1-t0)
 
 # identify HEALPix pixels for our quasars
 nside=16
