@@ -35,6 +35,12 @@ binned_lambdas = np.zeros(N_bins)
 for i in range(N_bins):
     binned_lambdas[i] = (bins[i]+bins[i+1])/2
 
+#For each pixel, get the files and MOCKIDs (HDU 1, 'MOCKID')
+#Make a cross=pixel list
+#Divide it up
+#Make tasks (pixel,THING_ID list)
+#Change c_p_c to run per task
+
 def compute_pixel_contribution(pixel):
 
     sum_delta_pixel = np.zeros(N_bins)
@@ -167,9 +173,9 @@ plt.savefig('xcf1d_{}_{}.pdf'.format(pixels[0],pixels[-1]))
 plt.figure()
 #plt.errorbar(R_binned,xi,yerr=err_1,fmt='o')
 plt.plot(binned_lambdas,binned_mean_delta)
-plt.savefig('xcf1d_{}_{}.pdf'.format(pixels[0],pixels[-1]))
 limit = 1.5*max(binned_mean_delta[:int(N_bins/2.0)])
 plt.ylim(-limit,limit)
+plt.savefig('xcf1d_{}_{}_zoom.pdf'.format(pixels[0],pixels[-1]))
 
 plt.show()
 
