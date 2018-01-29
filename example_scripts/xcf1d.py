@@ -21,7 +21,7 @@ pixels = list(range(0,1))
 
 N_bins = 1000
 lambda_lower = 800.0
-IVAR_cutoff = lya
+IVAR_cutoff = 1200
 
 sum_delta = np.zeros(N_bins)
 sum_delta_squared = np.zeros(N_bins)
@@ -98,6 +98,7 @@ plt.figure()
 #plt.errorbar(R_binned,xi,yerr=err_1,fmt='o')
 plt.plot(binned_lambdas,binned_mean_delta)
 plt.plot(binned_lambdas,binned_var_delta)
+plt.plot(binned_lambdas,binned_mean_delta*((binned_lambdas-IVAR_cutoff)/(np.ones(N_bins)*IVAR_cutoff-lambda_lower))**2)
 plt.savefig('xcf1d_{}_{}.pdf'.format(pixels[0],pixels[-1]))
 
 plt.show()
