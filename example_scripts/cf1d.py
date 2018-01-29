@@ -202,7 +202,6 @@ if __name__ == '__main__':
 
     print('calculating xi')
     for task in tasks:
-        a=[]
         pool.apply_async(get_bin_xi,task,callback=log_result,error_callback=log_error)
 
     #xi = pool.starmap(get_bin_xi,tasks)
