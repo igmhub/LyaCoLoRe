@@ -4,7 +4,7 @@ import numpy as np
 from astropy.io import fits
 import sys
 import matplotlib
-#matplotlib.use('Agg')
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from multiprocessing import Pool
 import time
@@ -41,7 +41,7 @@ def compute_pixel_contribution(pixel):
     sum_delta_squared_pixel = np.zeros(N_bins)
     N_contributions_pixel = np.zeros(N_bins)
 
-    print('looking at pixel {}'.format(pixel))
+    #print('looking at pixel {}'.format(pixel))
 
     pixel_100 = pixel//100
 
@@ -62,7 +62,7 @@ def compute_pixel_contribution(pixel):
     LAMBDA_R_rows = np.zeros(DELTA_rows.shape)
     binned_LAMBDA_R_rows = np.zeros(DELTA_rows.shape)
 
-    print('calculating the lambda_R bins')
+    #print('calculating the lambda_R bins')
     lya_lambdas = 10**LOGLAM_MAP
     for i in range(N_qso):
         LAMBDA_R_rows[i,:] = ((lya_lambdas)/(1+Z_QSO[i]))*(IVAR_rows[i,:])
@@ -71,7 +71,7 @@ def compute_pixel_contribution(pixel):
 
     for n in range(N_bins):
 
-        print('looking at bin {} ({:4.1f} to {:4.1f}A)'.format(n,bins[n],bins[n+1]),end='\r')
+        #print('looking at bin {} ({:4.1f} to {:4.1f}A)'.format(n,bins[n],bins[n+1]),end='\r')
 
         bin_coordinates_initial = np.where(binned_LAMBDA_R_rows == n)
         bin_coordinates_i = bin_coordinates_initial[0]
@@ -84,20 +84,26 @@ def compute_pixel_contribution(pixel):
         for coordinate_pair in bin_coordinates:
             i = coordinate_pair[0]
             j = coordinate_pair[1]
-            sum_delta[n] += DELTA_rows[i,j]
-            sum_delta_squared[n] += (DELTA_rows[i,j])**2
-            N_contributions[n] += 1
+            sum_delta_pixel[n] += DELTA_rows[i,j]
+            sum_delta_squared_pixel[n] += (DELTA_rows[i,j])**2
+            N_contributions_pixel[n] += 1
 
-    print(' ')
 
-    return pixel
+    return [pixel,sum_delta_pixel,sum_delta_squared_pixel,N_contributions_pixel]
 
 #Get the number of processes.
 N_processes = int(sys.argv[1])
 
 #Define a progress-tracking function.
 def log_result(retval):
-    pixel = retval
+    pixel = retval[0]
+    #sum_delta_pixel = retval[1]
+    #sum_delta_squared_pixel = retval[2]
+    #N_contributions_pixel = retval[3]
+
+    #sum_delta += sum_delta_pixel
+    #sum_delta_squared += sum_delta_squared_pixel
+    #N_contributions += N_contributions_pixel
 
     results.append(retval)
     N_complete = len(results)
@@ -123,6 +129,7 @@ def log_error(retval):
 if __name__ == '__main__':
     pool = Pool(processes = N_processes)
     results = []
+
     start_time = time.time()
 
     print('calculating...')
@@ -132,17 +139,29 @@ if __name__ == '__main__':
     pool.close()
     pool.join()
 
+for result in results:
+    sum_delta += result[1]
+    sum_delta_squared += result[2]
+    N_contributions += result[3]
+
 for n in range(N_bins):
     if N_contributions[n] > 0:
         binned_mean_delta[n] = sum_delta[n]/N_contributions[n]
         binned_var_delta[n] = sum_delta_squared[n]/N_contributions[n] - (binned_mean_delta[n])**2
 
+print(' ')
 
 plt.figure()
 #plt.errorbar(R_binned,xi,yerr=err_1,fmt='o')
 plt.plot(binned_lambdas,binned_mean_delta)
 plt.plot(binned_lambdas,binned_var_delta)
-plt.plot(binned_lambdas,binned_mean_delta*((binned_lambdas-IVAR_cutoff)/(np.ones(N_bins)*IVAR_cutoff-lambda_lower))**2)
+plt.plot(binned_lambdas,binned_mean_delta*10*((binned_lambdas-IVAR_cutoff)/(np.ones(N_bins)*IVAR_cutoff-lambda_lower))**2)
+plt.savefig('xcf1d_{}_{}_with_squared.pdf'.format(pixels[0],pixels[-1]))
+
+plt.figure()
+#plt.errorbar(R_binned,xi,yerr=err_1,fmt='o')
+plt.plot(binned_lambdas,binned_mean_delta)
+plt.plot(binned_lambdas,binned_var_delta)
 plt.savefig('xcf1d_{}_{}.pdf'.format(pixels[0],pixels[-1]))
 
 plt.show()
