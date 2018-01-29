@@ -2,6 +2,9 @@ import numpy as np
 from astropy.io import fits
 import process_functions as functions
 from multiprocessing import Pool
+import time
+
+start = time.time()
 
 #Top level script to manage the conversion of CoLoRe output files into files more useful for analysis.
 #These are produced on a per-HEALPix pixel basis.
@@ -14,8 +17,8 @@ N_side = 2**N_side_pow2
 N_pix = 12*N_side**2
 
 #Define the original file structure
-original_file_location = '/Users/jfarr/Projects/repixelise/test_input/old/'
-original_filename_structure = 'out_srcs_s0_{}.fits' #file_number
+original_file_location = '/Users/jfarr/Projects/repixelise/test_input/'
+original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
 file_numbers = [15]
 input_format = 'physical_colore'
 
@@ -35,7 +38,7 @@ z_min = lambda_min/lya - 1
 
 
 #Make master file
-master_data, bad_coordinates_data, file_pixel_map = functions.get_ID_data(original_file_location,original_filename_structure,input_format,file_numbers,N_side)
+master_data, bad_coordinates_data = functions.get_ID_data(original_file_location,original_filename_structure,input_format,file_numbers,N_side)
 
 #Write master file.
 master_filename = new_base_file_location + '/' + 'nside_{}_'.format(N_side) + 'master.fits'
@@ -53,6 +56,8 @@ print('"Bad coordinates" file containing {} objects saved at:\n{}\n'.format(bad_
 pixel_list = list(sorted(set(master_data['PIXNUM'])))
 file_number_list = list(sorted(set([int(functions.number_to_string(qso['MOCKID'],10)[:-7]) for qso in master_data])))
 
+print('Making master file: {}s.'.format(time.time()-start))
+start=time.time()
 
 
 #Make the new file structure
@@ -66,7 +71,7 @@ for pixel in pixel_list:
     location = new_base_file_location + new_file_structure.format(pixel//100,pixel)
 
     #Make file into an object
-    pixel_object = functions.make_pixel_object(pixel,original_file_location,original_filename_structure,input_format,master_data,pixel_list,file_number_list,file_pixel_map,z_min)
+    pixel_object = functions.make_pixel_object(pixel,original_file_location,original_filename_structure,input_format,master_data,pixel_list,file_number_list,z_min)
 
     #Make some useful headers
     header = fits.Header()
@@ -107,3 +112,5 @@ for pixel in pixel_list:
 
     #Close everything
     print('\nPixel number {} complete!\n'.format(pixel))
+
+print('Making pixel files: {}s.'.format(time.time()-start))
