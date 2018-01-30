@@ -382,7 +382,12 @@ def get_simulation_parameters(location,filename):
 #Function to normalise a set of delta skewer rows to zero.
 def normalise_deltas(DELTA_rows,weights):
 
-    DELTA_rows_mean = np.average(DELTA_rows,weights=weights,axis=0)
+    N_cells = DELTA_rows.shape[1]
+    DELTA_rows_mean = np.zeros(N_cells)
+
+    for j in range(N_cells):
+        if np.sum(relevant_IVAR_rows[:,j]) != 0:
+            DELTA_rows_mean[j] = np.average(DELTA_rows[:,j],weights=weights[:,j])
 
     DELTA_rows_normalised = np.zeros(DELTA_rows.shape)
     for j in range(DELTA_rows_mean.shape[0]):
@@ -736,7 +741,8 @@ class simulation_data:
 
         #Determine the furthest cell which is still relevant: i.e. the one in which at least one QSO has non-zero value of IVAR.
         furthest_QSO_index = np.argmax(self.Z_QSO)
-        last_relevant_cell = (np.argmax(self.IVAR_rows[furthest_QSO_index,:]==0) - 1) % self.N_cells
+        #last_relevant_cell = (np.argmax(self.IVAR_rows[furthest_QSO_index,:]==0) - 1) % self.N_cells
+        last_relevant_cell = self.N_cells - 1
 
         #Determine the relevant QSOs: those that have relevant cells (IVAR > 0) beyond the first_relevant_cell.
         relevant_QSOs = [i for i in range(self.N_qso) if self.IVAR_rows[i,first_relevant_cell] == 1]
@@ -829,7 +835,8 @@ class simulation_data:
 
         #Determine the furthest cell which is still relevant: i.e. the one in which at least one QSO has non-zero value of IVAR.
         furthest_QSO_index = np.argmax(self.Z_QSO)
-        last_relevant_cell = (np.argmax(self.IVAR_rows[furthest_QSO_index,:]==0) - 1) % self.N_cells
+        #last_relevant_cell = (np.argmax(self.IVAR_rows[furthest_QSO_index,:]==0) - 1) % self.N_cells
+        last_relevant_cell = self.N_cells - 1
 
         #Determine the relevant QSOs: those that have relevant cells (IVAR > 0) beyond the first_relevant_cell.
         relevant_QSOs = [i for i in range(self.N_qso) if self.IVAR_rows[i,first_relevant_cell] == 1]
@@ -923,7 +930,8 @@ class simulation_data:
 
         #Determine the furthest cell which is still relevant: i.e. the one in which at least one QSO has non-zero value of IVAR.
         furthest_QSO_index = np.argmax(self.Z_QSO)
-        last_relevant_cell = (np.argmax(self.IVAR_rows[furthest_QSO_index,:]==0) - 1) % self.N_cells
+        #last_relevant_cell = (np.argmax(self.IVAR_rows[furthest_QSO_index,:]==0) - 1) % self.N_cells
+        last_relevant_cell = self.N_cells - 1
 
         #Determine the relevant QSOs: those that have relevant cells (IVAR > 0) beyond the first_relevant_cell.
         relevant_QSOs = [i for i in range(self.N_qso) if self.IVAR_rows[i,first_relevant_cell] == 1]
@@ -934,7 +942,12 @@ class simulation_data:
         relevant_LOGLAM_MAP = self.LOGLAM_MAP[first_relevant_cell:last_relevant_cell+1]
 
         #Calculate mean F as a function of z for the relevant cells, then F_DELTA_rows.
-        relevant_F_BAR = np.average(relevant_F_rows,weights=relevant_IVAR_rows,axis=0)
+        #This is done column by column to avoid problems with weights summing to zero.
+        new_N_cells = last_relevant_cell - first_relevant_cell + 1
+        relevant_F_BAR = np.zeros(new_N_cells)
+        for j in range(new_N_cells):
+            if np.sum(relevant_IVAR_rows[:,j]) != 0:
+                relevant_F_BAR[j] = np.average(relevant_F_rows[:,j],weights=relevant_IVAR_rows[:,j])
         relevant_F_DELTA_rows = ((relevant_F_rows)/relevant_F_BAR - 1)*relevant_IVAR_rows
 
         #Organise the data into picca-format arrays.
