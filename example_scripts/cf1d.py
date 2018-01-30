@@ -15,6 +15,7 @@ import time
 
 #basedir = '/Users/jfarr/Projects/repixelise/test_output/test_multi'
 basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_revamp/test/lya1100'
+basedir = sys.argv[2]
 
 correl_quantity = 'gaussian'
 N_side = 8
@@ -25,9 +26,9 @@ rmax = 160.0
 rmin = 0.0
 nr = 40
 
-N_bin_splits = 1
+N_bin_splits = 100
 
-pixels = list(range(0,1))
+pixels = list(range(10,11))
 
 skewers = []
 IVAR_skewers = []
@@ -65,15 +66,15 @@ for pixel in pixels:
 N_skewers = len(skewers)
 print('there are {} skewers in total.'.format(N_skewers))
 
-
-total = 0
-N = 0
-for n,skewer in enumerate(skewers):
-    total += sum(skewer*IVAR_skewers[n])
-    N += sum(IVAR_skewers[n])
-
-mean = total/N
-print(mean)
+mean_skewer = np.zeros(max_N_cells_picca)
+for i in range(max_N_cells_picca):
+    total = 0
+    N = 0
+    for skewer in skewers:
+        if len(skewer) >= i:
+            total += skewer[i]
+            N += 1
+    mean_skewer[i] = total/N
 
 
 #Calculate the separations of pixel pairs. If separation > rmax, set to -1.
@@ -98,22 +99,7 @@ R_binned = np.zeros(nr)
 for i in range(nr):
     R_binned[i] = bins[i]+(bins[i+1]-bins[i])/2
 
-"""
-OBSOLETE
-
-#Produce a list of nr masks, one for each r bin.
-reduced_separations = binned_separations + 1 + np.identity(max_N_cells_picca)
-bin_masks = []
-for n in range(nr,0,-1):
-    mask = reduced_separations//n
-    bin_masks += [mask]
-    reduced_separations = reduced_separations - n*mask
-
-bin_masks[-1] = bin_masks[-1] - np.identity(bin_masks[-1].shape[0])
-bin_masks.reverse()
-"""
-
-#Convert each of these masks into a list of coordinates. Store a list of these lists.
+#For each bin, make a list of the pixel pairs - coordinates - associated with that bin. Store a list of these lists.
 bin_coordinates = []
 for n in range(nr):
     coord_arrays = np.where(binned_separations==n)
@@ -146,6 +132,7 @@ print('divided job up into {} tasks, with ~{} skewers in each one.'.format(len(t
 def get_bin_xi(bin_n,bin_coordinates,skewers,IVAR_skewers):
     del_squared_bin = 0
     N_contributions_bin = 0
+    del_squared_dev_bin = 0
     N_skewers = len(skewers)
 
     #For each skewer, find the coordinates in the list which correspond to valid cells.
@@ -158,19 +145,25 @@ def get_bin_xi(bin_n,bin_coordinates,skewers,IVAR_skewers):
             if i < N_cells_skewer and j < N_cells_skewer:
                 if IVAR_skewers[skewer_n][i]*IVAR_skewers[skewer_n][j] != 0:
 
-                    del_squared_bin += skewer[i]*skewer[j]
-                    N_contributions_bin += 1
+                    del_squared_pair = skewer[i]*skewer[j]
+                    mean_pair = mean_skewer[i]*mean_skewer[j]
 
-    return [bin_n,N_contributions_bin,del_squared_bin]
+                    del_squared_bin += del_squared_pair
+                    N_contributions_bin += 1
+                    del_squared_dev_bin += del_squared_pair - mean_pair
+
+    return [bin_n,N_contributions_bin,del_squared_bin,del_squared_dev_bin]
 
 #Define a progress-tracking function.
 def log_result(retval):
     bin_n = retval[0]
     N_contributions_bin = retval[1]
     del_squared_bin = retval[2]
+    del_squared_dev_bin = retval[3]
 
     N_contributions[bin_n] += N_contributions_bin
     del_squared[bin_n] += del_squared_bin
+    del_squared_dev[bin_n] += del_squared_dev_bin
 
     results.append(retval)
     N_complete = len(results)
@@ -198,6 +191,7 @@ if __name__ == '__main__':
     results = []
     del_squared = np.zeros(nr)
     N_contributions = np.zeros(nr)
+    del_squared_dev = np.zeros(nr)
     start_time = time.time()
 
     print('calculating xi')
@@ -213,16 +207,31 @@ if __name__ == '__main__':
 print(' ')
 
 xi = del_squared/N_contributions
-#err_1 = (np.average(xi**2) - (np.average(xi))**2)*np.ones(xi.shape)
+cov = del_squared_dev/N_contributions
+err = np.sqrt(cov)
 
 plt.figure()
-#plt.errorbar(R_binned,xi,yerr=err_1,fmt='o')
-plt.plot(R_binned,(mean*np.ones(nr)))
+plt.plot(R_binned,xi)
+#plt.plot(R_binned,(mean*np.ones(nr)))
+plt.xlabel('r [Mpc/h]')
+plt.ylabel('xi(r)')
+plt.grid(True, which='both')
 plt.savefig('xi_{}_{}.pdf'.format(pixels[0],pixels[-1]))
 
 plt.figure()
-#plt.errorbar(R_binned,xi*(R_binned**2),yerr=err_1*(R_binned**2),fmt='o')
-plt.plot(R_binned,(mean*(R_binned)**2))
+plt.plot(R_binned,xi*(R_binned**2))
+#plt.plot(R_binned,(mean*R_binned**2))
+plt.xlabel('r [Mpc/h]')
+plt.ylabel('r^2 xi(r)')
+plt.grid(True, which='both')
+plt.savefig('xir2_{}_{}.pdf'.format(pixels[0],pixels[-1]))
+
+plt.figure()
+plt.errorbar(R_binned,xi*(R_binned**2),yerr=err*(R_binned**2),fmt='o')
+#plt.plot(R_binned,(mean*R_binned**2))
+plt.xlabel('r [Mpc/h]')
+plt.ylabel('r^2 xi(r)')
+plt.grid(True, which='both')
 plt.savefig('xir2_{}_{}.pdf'.format(pixels[0],pixels[-1]))
 
 #plt.show()
