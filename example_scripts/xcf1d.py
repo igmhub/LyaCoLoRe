@@ -14,10 +14,10 @@ lya = 1215.67
 
 basedir = '/Users/jfarr/Projects/repixelise/test_output/test_multi'
 #basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_revamp/process_output_4096_32'
-#basedir = '/Users/James/Projects/test_data/pixel_0'
+basedir = '/Users/James/Projects/test_data/pixel_0'
 
 N_side = 8
-pixels = list(range(10,11))
+pixels = list(range(0,1))
 
 N_bins = 1000
 lambda_lower = 800.0
@@ -157,17 +157,22 @@ for n in range(N_bins):
 
 print(' ')
 
+
 plt.figure()
 #plt.errorbar(R_binned,xi,yerr=err_1,fmt='o')
 plt.plot(binned_lambdas,binned_mean_delta)
 plt.plot(binned_lambdas,binned_var_delta)
-plt.plot(binned_lambdas,binned_mean_delta*(((binned_lambdas-IVAR_cutoff)/(np.ones(N_bins)*IVAR_cutoff-lambda_lower))**2)/binned_mean_delta[0])
+plt.plot(binned_lambdas,binned_mean_delta*(((binned_lambdas-IVAR_cutoff)/(np.ones(N_bins)*IVAR_cutoff-lambda_lower))**2)/(binned_mean_delta[0]))
+plt.grid(True, which='both')
+plt.axhline(y=0, color='k')
 plt.savefig('xcf1d_{}_{}_with_squared.pdf'.format(pixels[0],pixels[-1]))
 
 plt.figure()
 #plt.errorbar(R_binned,xi,yerr=err_1,fmt='o')
 plt.plot(binned_lambdas,binned_mean_delta)
 plt.plot(binned_lambdas,binned_var_delta)
+plt.grid(True, which='both')
+plt.axhline(y=0, color='k')
 plt.savefig('xcf1d_{}_{}.pdf'.format(pixels[0],pixels[-1]))
 
 plt.figure()
@@ -175,6 +180,8 @@ plt.figure()
 plt.plot(binned_lambdas,binned_mean_delta)
 limit = 1.5*max(binned_mean_delta[:int(N_bins/2.0)])
 plt.ylim(-limit,limit)
+plt.grid(True, which='both')
+plt.axhline(y=0, color='k')
 plt.savefig('xcf1d_{}_{}_zoom.pdf'.format(pixels[0],pixels[-1]))
 
 plt.show()

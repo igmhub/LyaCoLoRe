@@ -4,18 +4,16 @@ import numpy as np
 from astropy.io import fits
 import sys
 import matplotlib
-#matplotlib.use('Agg')
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from multiprocessing import Pool
 import time
 
-# TODO: Change the retrival of R once the master file format has been modified.
-# TODO: Convert the parallelisation to per-pixel
-# TODO: Save the output data as a file
 
-#basedir = '/Users/jfarr/Projects/repixelise/test_output/test_multi'
-basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_revamp/test/lya1100'
+basedir = '/Users/jfarr/Projects/repixelise/test_output/test_multi'
+basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_revamp/process_output_4096_32_NGP/'
 basedir = sys.argv[2]
+save_location = '/global/homes/j/jfarr/Projects/LyaCoLoRe/'
 
 correl_quantity = 'gaussian'
 N_side = 8
@@ -26,9 +24,7 @@ rmax = 160.0
 rmin = 0.0
 nr = 40
 
-N_bin_splits = 100
-
-pixels = list(range(10,11))
+pixels = list(range(0,1))
 
 skewers = []
 IVAR_skewers = []
@@ -62,19 +58,19 @@ for pixel in pixels:
 
 [h_picca[0].data[:,j] for j in range(h_picca[0].data.shape[0])]
 
-#skewers = skewers[0:100]
+skewers = skewers[0:500]
 N_skewers = len(skewers)
 print('there are {} skewers in total.'.format(N_skewers))
 
-mean_skewer = np.zeros(max_N_cells_picca)
-for i in range(max_N_cells_picca):
-    total = 0
-    N = 0
-    for skewer in skewers:
-        if len(skewer) >= i:
-            total += skewer[i]
-            N += 1
-    mean_skewer[i] = total/N
+
+total = 0
+N = 0
+for n,skewer in enumerate(skewers):
+    total += sum(skewer*IVAR_skewers[n])
+    N += sum(IVAR_skewers[n])
+
+mean = total/N
+print(mean)
 
 
 #Calculate the separations of pixel pairs. If separation > rmax, set to -1.
@@ -99,7 +95,22 @@ R_binned = np.zeros(nr)
 for i in range(nr):
     R_binned[i] = bins[i]+(bins[i+1]-bins[i])/2
 
-#For each bin, make a list of the pixel pairs - coordinates - associated with that bin. Store a list of these lists.
+"""
+OBSOLETE
+
+#Produce a list of nr masks, one for each r bin.
+reduced_separations = binned_separations + 1 + np.identity(max_N_cells_picca)
+bin_masks = []
+for n in range(nr,0,-1):
+    mask = reduced_separations//n
+    bin_masks += [mask]
+    reduced_separations = reduced_separations - n*mask
+
+bin_masks[-1] = bin_masks[-1] - np.identity(bin_masks[-1].shape[0])
+bin_masks.reverse()
+"""
+
+#Convert each of these masks into a list of coordinates. Store a list of these lists.
 bin_coordinates = []
 for n in range(nr):
     coord_arrays = np.where(binned_separations==n)
@@ -112,6 +123,7 @@ N_processes = int(sys.argv[1])
 
 #Divide up the bins if desired. A larger number of jobs is helpful for judging progress as the program is running.
 #N_bin_splits = N_processes//nr + 1
+N_bin_splits = 10
 if N_bin_splits > 1:
     split_size = N_skewers//N_bin_splits
     splits = []
@@ -132,7 +144,6 @@ print('divided job up into {} tasks, with ~{} skewers in each one.'.format(len(t
 def get_bin_xi(bin_n,bin_coordinates,skewers,IVAR_skewers):
     del_squared_bin = 0
     N_contributions_bin = 0
-    del_squared_dev_bin = 0
     N_skewers = len(skewers)
 
     #For each skewer, find the coordinates in the list which correspond to valid cells.
@@ -145,25 +156,19 @@ def get_bin_xi(bin_n,bin_coordinates,skewers,IVAR_skewers):
             if i < N_cells_skewer and j < N_cells_skewer:
                 if IVAR_skewers[skewer_n][i]*IVAR_skewers[skewer_n][j] != 0:
 
-                    del_squared_pair = skewer[i]*skewer[j]
-                    mean_pair = mean_skewer[i]*mean_skewer[j]
-
-                    del_squared_bin += del_squared_pair
+                    del_squared_bin += skewer[i]*skewer[j]
                     N_contributions_bin += 1
-                    del_squared_dev_bin += del_squared_pair - mean_pair
 
-    return [bin_n,N_contributions_bin,del_squared_bin,del_squared_dev_bin]
+    return [bin_n,N_contributions_bin,del_squared_bin]
 
 #Define a progress-tracking function.
 def log_result(retval):
     bin_n = retval[0]
     N_contributions_bin = retval[1]
     del_squared_bin = retval[2]
-    del_squared_dev_bin = retval[3]
 
     N_contributions[bin_n] += N_contributions_bin
     del_squared[bin_n] += del_squared_bin
-    del_squared_dev[bin_n] += del_squared_dev_bin
 
     results.append(retval)
     N_complete = len(results)
@@ -191,11 +196,11 @@ if __name__ == '__main__':
     results = []
     del_squared = np.zeros(nr)
     N_contributions = np.zeros(nr)
-    del_squared_dev = np.zeros(nr)
     start_time = time.time()
 
     print('calculating xi')
     for task in tasks:
+        a=[]
         pool.apply_async(get_bin_xi,task,callback=log_result,error_callback=log_error)
 
     #xi = pool.starmap(get_bin_xi,tasks)
@@ -207,8 +212,6 @@ if __name__ == '__main__':
 print(' ')
 
 xi = del_squared/N_contributions
-cov = del_squared_dev/N_contributions
-err = np.sqrt(cov)
 
 plt.figure()
 plt.plot(R_binned,xi)
@@ -216,7 +219,7 @@ plt.plot(R_binned,xi)
 plt.xlabel('r [Mpc/h]')
 plt.ylabel('xi(r)')
 plt.grid(True, which='both')
-plt.savefig('xi_{}_{}.pdf'.format(pixels[0],pixels[-1]))
+plt.savefig(save_location+'xi_{}_{}_{}.pdf'.format(pixels[0],pixels[-1],basedir[-7:-2]))
 
 plt.figure()
 plt.plot(R_binned,xi*(R_binned**2))
@@ -224,14 +227,7 @@ plt.plot(R_binned,xi*(R_binned**2))
 plt.xlabel('r [Mpc/h]')
 plt.ylabel('r^2 xi(r)')
 plt.grid(True, which='both')
-plt.savefig('xir2_{}_{}.pdf'.format(pixels[0],pixels[-1]))
+plt.savefig(save_location+'xir2_{}_{}_{}.pdf'.format(pixels[0],pixels[-1],basedir[-7:-2]))
 
-plt.figure()
-plt.errorbar(R_binned,xi*(R_binned**2),yerr=err*(R_binned**2),fmt='o')
-#plt.plot(R_binned,(mean*R_binned**2))
-plt.xlabel('r [Mpc/h]')
-plt.ylabel('r^2 xi(r)')
-plt.grid(True, which='both')
-plt.savefig('xir2_{}_{}.pdf'.format(pixels[0],pixels[-1]))
-
+print('files saved to {}!'.format(save_location))
 #plt.show()

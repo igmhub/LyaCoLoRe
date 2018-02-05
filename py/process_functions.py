@@ -167,19 +167,27 @@ def make_MOCKID(file_number,row_numbers):
     return MOCKID
 
 #Function to extract Z values from a colore or picca format hdulist.
-def get_Z(h,input_format):
+def get_COSMO(h,input_format):
 
     lya = 1215.67
 
     if input_format == 'physical_colore':
+        R = h[4].data['R']
         Z = h[4].data['Z']
+        D = h[4].data['D']
+        V = h[4].data['V']
     elif input_format == 'picca':
         LOGLAM_MAP = h[2].data
         Z = ((10**LOGLAM_MAP)/lya) - 1
+
+        # TODO: Update this
+        R = np.zeros(Z.shape)
+        D = np.zeros(Z.shape)
+        V = np.zeros(Z.shape)
     else:
         print('Error.')
 
-    return Z
+    return R, Z, D, V
 
 #Function to extract Z values from a colore or picca format hdulist.
 def get_lya_lambdas(h,input_format):
@@ -221,6 +229,7 @@ def make_pixel_ID(N_side,RA,DEC):
 def get_ID_data(original_location,original_filename_structure,input_format,file_numbers,N_side):
 
     ID_data = []
+    cosmologies = []
     N_pixels = 12*N_side**2
 
     for file_number in file_numbers:
@@ -234,6 +243,12 @@ def get_ID_data(original_location,original_filename_structure,input_format,file_
         Z_QSO_NO_RSD = get_Z_QSO(h,input_format)
         DZ_RSD = get_DZ_RSD(h,input_format)
         MOCKID = get_MOCKID(h,input_format,file_number)
+
+        h_R, h_Z, h_D, h_V = get_COSMO(h,input_format)
+        file_cosmologies_list = zip(h_R,h_Z,h_D,h_V)
+        dtype = [('R', '>f4'), ('Z', '>f4'), ('D', '>f4'), ('V', '>f4')]
+        file_cosmologies = np.array(file_cosmologies_list,dtype=dtype)
+        cosmologies += [file_cosmologies]
 
         h.close()
 
@@ -251,11 +266,7 @@ def get_ID_data(original_location,original_filename_structure,input_format,file_
     ID = np.array(ID_data, dtype=dtype)
     ID_sort = np.sort(ID, order=['PIXNUM','MOCKID'])
 
-    #Separate the quasars with invalid coordinates from the ID data.
-    #ID_sort_good = ID_sort[ID_sort['PIXNUM']>=0]
-    #ID_sort_bad = ID_sort[ID_sort['PIXNUM']<0]
-
-    return ID_sort
+    return ID_sort, cosmologies
 
 #Function to join together the outputs from 'get_ID_data' in several multiprocessing processes.
 def join_ID_data(results):
@@ -447,7 +458,7 @@ class simulation_data:
         lya = 1215.67
         h = fits.open(filename)
 
-        h_Z = get_Z(h,input_format)
+        h_R, h_Z, h_D, h_V = get_COSMO(h,input_format)
         h_lya_lambdas = get_lya_lambdas(h,input_format)
 
         #Calculate the first_relevant_cell.
@@ -548,7 +559,7 @@ class simulation_data:
         h = fits.open(filename)
 
         h_MOCKID = get_MOCKID(h,input_format,file_number)
-        h_Z = get_Z(h,input_format)
+        h_R, h_Z, h_D, h_V = get_COSMO(h,input_format)
         h_lya_lambdas = get_lya_lambdas(h,input_format)
 
         #Work out which rows in the hdulist we are interested in.
@@ -1192,7 +1203,7 @@ class simulation_data:
             h = fits.open(file_info[filename])
 
             h_MOCKID = get_MOCKID(h,input_format,file_info[file_number])
-            h_Z = get_Z(h,input_format)
+            h_R, h_Z, h_D, h_V = get_COSMO(h,input_format)
 
             #Work out which rows in the hdulist we are interested in.
             rows = ['']*len(file_info[MOCKIDs])

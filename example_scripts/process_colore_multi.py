@@ -98,7 +98,7 @@ start = time.time()
 #Define the process to make the master data.
 def make_master_data(original_file_location,original_filename_structure,input_format,file_number,N_side):
 
-    ID_data = functions.get_ID_data(original_file_location,original_filename_structure,input_format,file_number,N_side)
+    ID_data, cosmologies = functions.get_ID_data(original_file_location,original_filename_structure,input_format,file_number,N_side)
 
     return ID_data
 
