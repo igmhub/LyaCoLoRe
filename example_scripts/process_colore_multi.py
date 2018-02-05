@@ -27,12 +27,14 @@ N_pix = 12*N_side**2
 
 #Define the original file structure
 original_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_revamp/output_4096_32'
+original_file_location = '/Users/jfarr/Projects/repixelise/test_input'
 original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
-file_numbers = list(range(32))
+file_numbers = list(range(15,16))
 input_format = 'physical_colore'
 
 #Set file structure
 new_base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_revamp/test/lya1100/'
+new_base_file_location = '/Users/jfarr/Projects/repixelise/test_output/test_multi/'
 new_file_structure = '{}/{}/'               #pixel number//100, pixel number
 new_filename_structure = '{}-{}-{}.fits'    #file type, nside, pixel number
 
