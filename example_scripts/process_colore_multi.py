@@ -26,9 +26,9 @@ N_side = 2**N_side_pow2
 N_pix = 12*N_side**2
 
 #Define the original file structure
-original_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_revamp/output_4096_32'
-original_file_location = '/Users/jfarr/Projects/repixelise/test_input'
-original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
+original_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_revamp/output_4096_32/'
+original_file_location = '/Users/jfarr/Projects/repixelise/test_input/'
+original_filename_structure = 'N100000_out_srcs_s1_{}.fits' #file_number
 file_numbers = list(range(15,16))
 input_format = 'physical_colore'
 
@@ -40,8 +40,8 @@ new_filename_structure = '{}-{}-{}.fits'    #file type, nside, pixel number
 
 #Choose options
 lambda_min = 3550
-zero_mean_delta = True
-IVAR_cutoff = lya
+zero_mean_delta = False
+IVAR_cutoff = 1150
 
 #Calculate the minimum value of z that we are interested in.
 #i.e. the z value for which lambda_min cooresponds to the lya wavelength.
@@ -84,7 +84,7 @@ def log_result(retval):
 
 #Define an error-tracking function.
 def log_error(retval):
-    print('error',retval)
+    print('Error:',retval)
 
 ################################################################################
 
@@ -98,15 +98,15 @@ print('\nWorking on master file...')
 start = time.time()
 
 #Define the process to make the master data.
-def make_master_data(original_file_location,original_filename_structure,input_format,file_number,N_side):
+def make_master_data(original_file_location,original_filename_structure,file_number,input_format,N_side):
 
-    ID_data, cosmologies = functions.get_ID_data(original_file_location,original_filename_structure,input_format,file_number,N_side)
+    ID_data, cosmology = functions.get_ID_data(original_file_location,original_filename_structure,file_number,input_format,N_side)
 
-    return ID_data
+    return [ID_data, cosmology]
 
 #Set up the multiprocessing pool parameters and make a list of tasks.
 N_processes = int(sys.argv[1])
-tasks = [(original_file_location,original_filename_structure,input_format,[file_number],N_side) for file_number in file_numbers]
+tasks = [(original_file_location,original_filename_structure,file_number,input_format,N_side) for file_number in file_numbers]
 
 #Run the multiprocessing pool
 if __name__ == '__main__':
@@ -121,7 +121,7 @@ if __name__ == '__main__':
     pool.join()
 
 #Join the multiprocessing results into 'master' and 'bad_coordinates' arrays.
-master_data, bad_coordinates_data = functions.join_ID_data(results)
+master_data, bad_coordinates_data, cosmology_data = functions.join_ID_data(results)
 
 #Make a list of the pixels that the files cover.
 pixel_list = list(sorted(set(master_data['PIXNUM'])))
@@ -129,9 +129,16 @@ file_number_list = list(sorted(set(file_numbers)))
 
 #Write master and bad coordinates files.
 master_filename = new_base_file_location + '/' + 'nside_{}_'.format(N_side) + 'master.fits'
-functions.write_ID(master_filename,master_data,N_side)
+functions.write_ID(master_filename,master_data,cosmology_data,N_side)
+
 bad_coordinates_filename = new_base_file_location + '/' + 'nside_{}_'.format(N_side) + 'bad_coordinates.fits'
-functions.write_ID(bad_coordinates_filename,bad_coordinates_data,N_side)
+functions.write_ID(bad_coordinates_filename,bad_coordinates_data,cosmology_data,N_side)
+
+#Write the DRQ files for picca xcf to deal with.
+for RSD_option in ['RSD','NO_RSD']:
+    DRQ_filename = new_base_file_location + '/nside_{}_master_picca_{}.fits'.format(N_side,RSD_option)
+    functions.write_DRQ(DRQ_filename,RSD_option,master_data,N_side)
+
 print('\nMaster file contains {} objects.\n"bad coordinates" file contains {} objects.'.format(master_data.shape[0],bad_coordinates_data.shape[0]))
 print('Time to make master file: {:4.0f}s.'.format(time.time()-start))
 

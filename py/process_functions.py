@@ -226,77 +226,117 @@ def make_pixel_ID(N_side,RA,DEC):
     return pixel_ID
 
 #Function to extract data suitable for making ID files from a set of colore or picca format files.
-def get_ID_data(original_location,original_filename_structure,input_format,file_numbers,N_side):
+def get_ID_data(original_file_location,original_filename_structure,file_number,input_format,N_side):
 
     ID_data = []
-    cosmologies = []
+    cosmology = []
     N_pixels = 12*N_side**2
 
-    for file_number in file_numbers:
-        #Open the file and extract the angular coordinate data.
-        filename = original_location + '/' + original_filename_structure.format(file_number)
-        h = fits.open(filename)
+    #Open the file and extract the angular coordinate data.
+    filename = original_file_location + '/' + original_filename_structure.format(file_number)
+    h = fits.open(filename)
 
-        #Extract the component parts of the master file's data from h.
-        RA = get_RA(h,input_format)
-        DEC = get_DEC(h,input_format)
-        Z_QSO_NO_RSD = get_Z_QSO(h,input_format)
-        DZ_RSD = get_DZ_RSD(h,input_format)
-        MOCKID = get_MOCKID(h,input_format,file_number)
+    #Extract the component parts of the master file's data from h.
+    RA = get_RA(h,input_format)
+    DEC = get_DEC(h,input_format)
+    Z_QSO_NO_RSD = get_Z_QSO(h,input_format)
+    DZ_RSD = get_DZ_RSD(h,input_format)
+    MOCKID = get_MOCKID(h,input_format,file_number)
+    h_R, h_Z, h_D, h_V = get_COSMO(h,input_format)
 
-        h_R, h_Z, h_D, h_V = get_COSMO(h,input_format)
-        file_cosmologies_list = zip(h_R,h_Z,h_D,h_V)
-        dtype = [('R', '>f4'), ('Z', '>f4'), ('D', '>f4'), ('V', '>f4')]
-        file_cosmologies = np.array(file_cosmologies_list,dtype=dtype)
-        cosmologies += [file_cosmologies]
+    h.close()
 
-        h.close()
+    #Construct the remaining component parts of the master file's data.
+    pixel_ID = make_pixel_ID(N_side,RA,DEC)
 
-        #Construct the remaining component parts of the master file's data.
-        pixel_ID = make_pixel_ID(N_side,RA,DEC)
+    #Calculate Z_QSO_RSD.
+    Z_QSO_RSD = Z_QSO_NO_RSD + DZ_RSD
 
-        #Calculate Z_QSO.
-        Z_QSO = Z_QSO_NO_RSD + DZ_RSD
-
-        #Join the pieces of the ID_data together.
-        ID_data += list(zip(RA,DEC,Z_QSO_NO_RSD,Z_QSO,MOCKID,pixel_ID))
+    #Join the pieces of the ID_data together.
+    ID_data = list(zip(RA,DEC,Z_QSO_NO_RSD,Z_QSO_RSD,MOCKID,pixel_ID))
 
     #Sort the MOCKIDs and pixel_IDs into the right order: first by pixel number, and then by MOCKID.
-    dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z_QSO_NO_RSD', '>f4'), ('Z_QSO', '>f4'), ('MOCKID', int), ('PIXNUM', int)]
+    dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z_QSO_NO_RSD', '>f4'), ('Z_QSO_RSD', '>f4'), ('MOCKID', int), ('PIXNUM', int)]
     ID = np.array(ID_data, dtype=dtype)
     ID_sort = np.sort(ID, order=['PIXNUM','MOCKID'])
 
-    return ID_sort, cosmologies
+    #Construct the cosmology array.
+    cosmology_data = list(zip(h_R,h_Z,h_D,h_V))
+    dtype = [('R', '>f4'), ('Z', '>f4'), ('D', '>f4'), ('V', '>f4')]
+    cosmology = np.array(cosmology_data,dtype=dtype)
+
+    return ID_sort, cosmology
 
 #Function to join together the outputs from 'get_ID_data' in several multiprocessing processes.
 def join_ID_data(results):
 
     master_results = []
     bad_coordinates_results = []
+    cosmology_results = []
 
     for result in results:
-        master_results += [result[result['PIXNUM']>=0]]
-        bad_coordinates_results += [result[result['PIXNUM']<0]]
+        ID_result = result[0]
+        master_results += [ID_result[ID_result['PIXNUM']>=0]]
+        bad_coordinates_results += [ID_result[ID_result['PIXNUM']<0]]
+        cosmology_results += [result[1]]
 
     master_data = np.concatenate(master_results)
     bad_coordinates_data = np.concatenate(bad_coordinates_results)
+    cosmology_data = np.concatenate(cosmology_results)
 
-    return master_data, bad_coordinates_data
+    return master_data, bad_coordinates_data, cosmology_data
 
 #Function to write a single ID file, given the data.
-def write_ID(filename,ID_data,N_side):
+def write_ID(filename,ID_data,cosmology_data,N_side):
 
-    #Add appropriate headers and make a table from the data.
+    #Make an appropriate header.
     header = fits.Header()
     header['NSIDE'] = N_side
-    bt = fits.BinTableHDU.from_columns(ID_data,header=header)
+
+    #Make the data into tables.
+    hdu_ID = fits.BinTableHDU.from_columns(ID_data,header=header)
+    hdu_cosmology = fits.BinTableHDU.from_columns(cosmology_data,header=header)
 
     #Make a primary HDU.
     prihdr = fits.Header()
     prihdu = fits.PrimaryHDU(header=prihdr)
 
     #Make the .fits file.
-    hdulist = fits.HDUList([prihdu,bt])
+    hdulist = fits.HDUList([prihdu,hdu_ID,hdu_cosmology])
+    hdulist.writeto(filename)
+    hdulist.close()
+
+    return
+
+#Function to make the drq files needed for picca xcf functions.
+def write_DRQ(filename,RSD_option,ID_data,N_side):
+
+    #Extract data from the ID_data
+    RA = ID_data['RA']
+    DEC = ID_data['DEC']
+    Z = ID_data['Z_QSO'+'_'+RSD_option]
+    THING_ID = ID_data['MOCKID']
+    N_qso = RA.shape[0]
+
+    #Fill in the data that is not specified.
+    MJD = np.zeros(N_qso)
+    FID = np.zeros(N_qso)
+    PLATE = THING_ID
+
+    #Make the data array.
+    dtype = [('RA','>f4'),('DEC','>f4'),('Z','>f4'),('THING_ID',int),('MJD','>f4'),('FIBERID',int),('PLATE',int)]
+    DRQ_data = np.array(list(zip(RA,DEC,Z,THING_ID,MJD,FID,PLATE)),dtype=dtype)
+
+    #Make an appropriate header.
+    header = fits.Header()
+    header['NSIDE'] = N_side
+
+    #Create a new master file, with the same filename concatenated with '_picca_' and the RSD option chosen.
+    prihdr = fits.Header()
+    prihdu = fits.PrimaryHDU(header=prihdr)
+    hdu_DRQ = fits.BinTableHDU.from_columns(DRQ_data,header=header)
+
+    hdulist = fits.HDUList([prihdu,hdu_DRQ])
     hdulist.writeto(filename)
     hdulist.close()
 
@@ -953,12 +993,11 @@ class simulation_data:
         relevant_LOGLAM_MAP = self.LOGLAM_MAP[first_relevant_cell:last_relevant_cell+1]
 
         #Calculate mean F as a function of z for the relevant cells, then F_DELTA_rows.
-        #This is done column by column to avoid problems with weights summing to zero.
-        new_N_cells = last_relevant_cell - first_relevant_cell + 1
-        relevant_F_BAR = np.zeros(new_N_cells)
-        for j in range(new_N_cells):
-            if np.sum(relevant_IVAR_rows[:,j]) != 0:
-                relevant_F_BAR[j] = np.average(relevant_F_rows[:,j],weights=relevant_IVAR_rows[:,j])
+        #This is done with a 'hack' to avoid problems with weights summing to zero.
+        # TODO: find a neater way to deal with this
+        """HACK"""
+        small = 1.0e-10
+        relevant_F_BAR = np.average(relevant_F_rows,weights=relevant_IVAR_rows+small,axis=0)
         relevant_F_DELTA_rows = ((relevant_F_rows)/relevant_F_BAR - 1)*relevant_IVAR_rows
 
         #Organise the data into picca-format arrays.
