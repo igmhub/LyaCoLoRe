@@ -28,7 +28,7 @@ N_pix = 12*N_side**2
 #Define the original file structure
 original_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_revamp/output_4096_32/'
 original_file_location = '/Users/jfarr/Projects/repixelise/test_input/'
-original_filename_structure = 'N100000_out_srcs_s1_{}.fits' #file_number
+original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
 file_numbers = list(range(15,16))
 input_format = 'physical_colore'
 
@@ -151,7 +151,7 @@ Done using a multiprocessing pool, with one task per pixel.
 """
 
 print('\nWorking on per-HEALPix pixel skewer files...')
-start = time.time()
+start_time = time.time()
 
 #Make the new file structure
 functions.make_file_structure(new_base_file_location,pixel_list)
@@ -197,7 +197,10 @@ def pixelise(pixel,original_file_location,original_filename_structure,input_form
     filename = new_filename_structure.format('picca-flux',N_side,pixel)
     pixel_object.save_as_picca_flux(location,filename,header,lambda_min=lambda_min)
 
-    return pixel
+    #statistics
+    means = pixel_object.get_means(lambda_min=lambda_min)
+
+    return means
 
 #Set up the multiprocessing pool parameters and make a list of tasks.
 N_processes = int(sys.argv[1])
@@ -215,11 +218,31 @@ if __name__ == '__main__':
     pool.close()
     pool.join()
 
+print('\nTime to make pixel files: {:4.0f}s.'.format(time.time()-start_time))
+print(' ')
+
+################################################################################
+
+"""
+Group the statistics calculated to get means and variances.
+Save these into a fits file.
+"""
+
+print('\nMaking statistics file...')
+start_time = time.time()
+
+#Use combine_means and means_to_statistics to calculate the mean and variance of the different quantities over all skewers.
+means = functions.combine_means(results)
+statistics = functions.means_to_statistics(means)
+
+#Save the statistics data as a new fits file.
+functions.save_statistics(new_base_file_location,N_side,statistics)
+
+print('\nTime to make statistics file: {:4.0f}s.'.format(time.time()-start_time))
+print(' ')
+
 ################################################################################
 
 """
 Celebrate!
 """
-
-print('\nTime to make pixel files: {:4.0f}s.'.format(time.time()-start))
-print(' ')

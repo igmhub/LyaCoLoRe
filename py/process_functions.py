@@ -6,8 +6,6 @@ import time
 
 lya = 1215.67
 
-# TODO: Add a second HDU to the master file to contain the cosmological quantities: Z,R,D etc
-
 #Function to create a 'simulation_data' object given a specific pixel, information about the complete simulation, and the location/filenames of data files.
 def make_pixel_object(pixel,original_file_location,original_filename_structure,input_format,master_data,pixel_list,file_number_list,lambda_min=0,IVAR_cutoff=lya):
 
@@ -430,19 +428,18 @@ def get_simulation_parameters(location,filename):
 
     return parameter_values
 
-#Function to normalise a set of delta skewer rows to zero.
+#Function to normalise a set of delta skewer rows to zero mean according to given weights.
+#If all weights for a given cell are zero, then the output will be zero in that cell for all skewers.
 def normalise_deltas(DELTA_rows,weights):
 
     N_cells = DELTA_rows.shape[1]
     DELTA_rows_mean = np.zeros(N_cells)
+    DELTA_rows_normalised = np.zeros(DELTA_rows.shape)
 
     for j in range(N_cells):
-        if np.sum(relevant_IVAR_rows[:,j]) != 0:
+        if np.sum(weights[:,j]) != 0:
             DELTA_rows_mean[j] = np.average(DELTA_rows[:,j],weights=weights[:,j])
-
-    DELTA_rows_normalised = np.zeros(DELTA_rows.shape)
-    for j in range(DELTA_rows_mean.shape[0]):
-        DELTA_rows_normalised[:,j] = (DELTA_rows[:,j] + 1)/(DELTA_rows_mean[j] + 1) - 1
+            DELTA_rows_normalised[:,j] = (DELTA_rows[:,j] + 1)/(DELTA_rows_mean[j] + 1) - 1
 
     return DELTA_rows_normalised
 
@@ -457,10 +454,68 @@ class simulation_parameters:
 
         return
 
+#Function to take a list of sets of statistics (as produced by 'get_statistics'), and calculate means and variances.
+def combine_means(means_list):
+
+    means_shape = means_list[0].shape
+    means_data_type = means_list[0].dtype
+
+    quantities = ['GAUSSIAN_DELTA','GAUSSIAN_DELTA_SQUARED','DENSITY_DELTA','DENSITY_DELTA_SQUARED','F','F_SQUARED','F_DELTA','F_DELTA_SQUARED']
+
+    combined_means = np.zeros(means_shape,dtype=means_data_type)
+    for means_array in means_list:
+        combined_means['N'] += means_array['N']
+
+    for quantity in quantities:
+        for means_array in means_list:
+            combined_means[quantity] += (means_array['N']*means_array[quantity])/combined_means['N']
+
+    return combined_means
+
+#Functino to convert a set of means of quantities and quantities squared (as outputted by 'combine_means') to a set of means and variances.
+def means_to_statistics(means):
+
+    statistics_dtype = [('N', '>f4')
+                        , ('GAUSSIAN_DELTA_MEAN', '>f4'), ('GAUSSIAN_DELTA_VAR', '>f4')
+                        , ('DENSITY_DELTA_MEAN', '>f4'), ('DENSITY_DELTA_VAR', '>f4')
+                        , ('F_MEAN', '>f4'), ('F_VAR', '>f4')
+                        , ('F_DELTA_MEAN', '>f4'), ('F_DELTA_VAR', '>f4')]
+
+    statistics = np.zeros(means.shape,dtype=statistics_dtype)
+
+    statistics['N'] = means['N']
+    statistics['GAUSSIAN_DELTA_MEAN'] = means['GAUSSIAN_DELTA']
+    statistics['DENSITY_DELTA_MEAN'] = means['DENSITY_DELTA']
+    statistics['F_MEAN'] = means['F']
+    statistics['F_DELTA_MEAN'] = means['F_DELTA']
+
+    statistics['GAUSSIAN_DELTA_VAR'] = means['GAUSSIAN_DELTA_SQUARED'] - means['GAUSSIAN_DELTA']**2
+    statistics['DENSITY_DELTA_VAR'] = means['DENSITY_DELTA_SQUARED'] - means['DENSITY_DELTA']**2
+    statistics['F_VAR'] = means['F_SQUARED'] - means['F']**2
+    statistics['F_DELTA_VAR'] = means['F_DELTA_SQUARED'] - means['F_DELTA']**2
+
+    return statistics
+
+def save_statistics(location,N_side,statistics):
+
+    #Construct HDU from the statistics array.
+    prihdr = fits.Header()
+    prihdu = fits.PrimaryHDU(header=prihdr)
+    cols_stats = fits.ColDefs(statistics)
+    hdu_stats = fits.BinTableHDU.from_columns(cols_stats,name='STATISTICS')
+
+    #Put the HDU into an HDUlist and save as a new file. Close the HDUlist.
+    filename = 'nside_{}_statistics.fits'.format(N_side)
+    hdulist = fits.HDUList([prihdu, hdu_stats])
+    hdulist.writeto(location+filename)
+    hdulist.close
+
+    return
+
 #Definition of a generic 'simulation_data' class, from which it is easy to save in new formats.
 class simulation_data:
     #Initialisation function.
-    def __init__(self,N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,F_rows,R,Z,D,V,LOGLAM_MAP,A):
+    def __init__(self,N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,F_rows,R,Z,D,V,LOGLAM_MAP,A):
 
         self.N_qso = N_qso
         self.N_cells = N_cells
@@ -477,6 +532,7 @@ class simulation_data:
         self.MJD = MJD
         self.FIBER = FIBER
 
+        self.GAUSSIAN_DELTA_rows = GAUSSIAN_DELTA_rows
         self.DENSITY_DELTA_rows = DENSITY_DELTA_rows
         self.VEL_rows = VEL_rows
         self.IVAR_rows = IVAR_rows
@@ -522,12 +578,16 @@ class simulation_data:
             #Derive the number of quasars and cells in the file.
             N_qso = RA.shape[0]
             N_cells = Z.shape[0]
-            # TODO: also put in the proper formula once the update has been made to colore!
             SIGMA_G = h[4].header['SIGMA_G']
 
             #Derive the MOCKID and LOGLAM_MAP.
             MOCKID = get_MOCKID(h,input_format,file_number)
             LOGLAM_MAP = np.log10(lya*(1+Z))
+
+            #Calculate the Gaussian skewers.
+            GAUSSIAN_DELTA_rows = lognormal_to_gaussian(DENSITY_DELTA_rows,SIGMA_G,D)
+
+            #Calculate the transmitted flux.
             A,ALPHA,TAU_rows = get_tau(Z,DENSITY_DELTA_rows+1)
             F_rows = np.exp(-TAU_rows)
 
@@ -558,6 +618,7 @@ class simulation_data:
             MJD = h[3].data['MJD']
             FIBER = h[3].data['FIBER']
             MOCKID = h[3].data['THING_ID']
+            SIGMA_G = h[3].header['SIGMA_G']
 
             #Derive the number of quasars and cells in the file.
             N_qso = RA.shape[0]
@@ -565,11 +626,16 @@ class simulation_data:
 
             #Derive Z.
             Z = (10**LOGLAM_MAP)/lya - 1
+
+            #Calculate the Gaussian skewers.
+            GAUSSIAN_DELTA_rows = lognormal_to_gaussian(DENSITY_DELTA_rows,SIGMA_G,D)
+
+            #Calculate the transmitted flux.
             A,ALPHA,TAU_rows = get_tau(Z,DENSITY_DELTA_rows+1)
             F_rows = np.exp(-TAU_rows)
 
             """
-            Can we calculate DZ_RSD,R,D,V?
+            Can we calculate R,D,V?
             """
 
             #Insert placeholder variables for remaining variables.
@@ -579,8 +645,6 @@ class simulation_data:
             D = np.zeros(N_cells)
             V = np.zeros(N_cells)
             VEL_rows = np.zeros((N_qso,N_cells))
-            # TODO: THIS IS CLEARLY NOT VALID. WORK OUT A WAY TO DO IT BETTER. maybe put it into a header? Or do I really need the read from picca bit?
-            SIGMA_G = 0
 
         else:
             print('Input format not recognised: current options are "colore" and "picca".')
@@ -588,7 +652,7 @@ class simulation_data:
 
         h.close()
 
-        return cls(N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,F_rows,R,Z,D,V,LOGLAM_MAP,A)
+        return cls(N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,F_rows,R,Z,D,V,LOGLAM_MAP,A)
 
     #Method to extract reduced data from an input file of a given format, with a given list of MOCKIDs.
     @classmethod
@@ -638,10 +702,14 @@ class simulation_data:
             N_cells = Z.shape[0]
             SIGMA_G = h[4].header['SIGMA_G']
 
-            #Derive MOCKIDs, LOGLAM_MAP and transmitted flux fraction.
-            MOCKID = h_MOCKID[rows]
+            #Derive the MOCKID and LOGLAM_MAP.
+            MOCKID = get_MOCKID(h,input_format,file_number)
             LOGLAM_MAP = np.log10(lya*(1+Z))
 
+            #Calculate the Gaussian skewers.
+            GAUSSIAN_DELTA_rows = lognormal_to_gaussian(DENSITY_DELTA_rows,SIGMA_G,D)
+
+            #Calculate the transmitted flux.
             A,ALPHA,TAU_rows = get_tau(Z,DENSITY_DELTA_rows+1)
             F_rows = np.exp(-TAU_rows)
 
@@ -668,6 +736,7 @@ class simulation_data:
             MJD = h[3].data['MJD'][rows]
             FIBER = h[3].data['FIBER'][rows]
             MOCKID = h[3].data['THING_ID'][rows]
+            SIGMA_G = h[3].header['SIGMA_G']
 
             #Derive the number of quasars and cells in the file.
             N_qso = RA.shape[0]
@@ -675,6 +744,11 @@ class simulation_data:
 
             #Derive Z and transmitted flux fraction.
             Z = (10**LOGLAM_MAP)/lya - 1
+
+            #Calculate the Gaussian skewers.
+            GAUSSIAN_DELTA_rows = lognormal_to_gaussian(DENSITY_DELTA_rows,SIGMA_G,D)
+
+            #Calculate the transmitted flux.
             A,ALPHA,TAU_rows = get_tau(Z,DENSITY_DELTA_rows+1)
             F_rows = np.exp(-TAU_rows)
 
@@ -689,8 +763,6 @@ class simulation_data:
             V = np.zeros(Z.shape[0])
             DZ_RSD = np.zeros(RA.shape[0])
             VEL_rows = np.zeros(DENSITY_DELTA_rows.shape)
-            # TODO: THIS IS CLEARLY NOT VALID. WORK OUT A WAY TO DO IT BETTER.
-            SIGMA_G = 0
 
         else:
             print('Input format not recognised: current options are "colore" and "picca".')
@@ -698,7 +770,7 @@ class simulation_data:
 
         h.close()
 
-        return cls(N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,F_rows,R,Z,D,V,LOGLAM_MAP,A)
+        return cls(N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,F_rows,R,Z,D,V,LOGLAM_MAP,A)
 
     #Method to combine data from two objects into one.
     # TODO: add something to check that we can just take values from 1 of the objects
@@ -725,6 +797,7 @@ class simulation_data:
         MJD = np.concatenate((object_A.MJD,object_B.MJD),axis=0)
         FIBER = np.concatenate((object_A.FIBER,object_B.FIBER),axis=0)
 
+        GAUSSIAN_DELTA_rows = np.concatenate((object_A.GAUSSIAN_DELTA_rows,object_B.GAUSSIAN_DELTA_rows),axis=0)
         DENSITY_DELTA_rows = np.concatenate((object_A.DENSITY_DELTA_rows,object_B.DENSITY_DELTA_rows),axis=0)
         VEL_rows = np.concatenate((object_A.VEL_rows,object_B.VEL_rows),axis=0)
         IVAR_rows = np.concatenate((object_A.IVAR_rows,object_B.IVAR_rows),axis=0)
@@ -741,7 +814,7 @@ class simulation_data:
         V = object_A.V
         A = object_A.A
 
-        return cls(N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,F_rows,R,Z,D,V,LOGLAM_MAP,A)
+        return cls(N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,F_rows,R,Z,D,V,LOGLAM_MAP,A)
 
     #Function to save data as a Gaussian colore file.
     def save_as_gaussian_colore(self,location,filename,header):
@@ -753,8 +826,7 @@ class simulation_data:
 
         dtype = [('TYPE', '>f4'), ('RA', '>f4'), ('DEC', '>f4'), ('Z_COSMO', '>f4'), ('DZ_RSD', '>f4'), ('MOCKID', int)]
         colore_1 = np.array(colore_1_data,dtype=dtype)
-
-        colore_2 = lognormal_to_gaussian(self.DENSITY_DELTA_rows,self.SIGMA_G,self.D)
+        colore_2 = self.GAUSSIAN_DELTA_rows
         colore_3 = self.VEL_rows
 
         colore_4_data = []
@@ -798,11 +870,8 @@ class simulation_data:
         #Determine the relevant QSOs: those that have relevant cells (IVAR > 0) beyond the first_relevant_cell.
         relevant_QSOs = [i for i in range(self.N_qso) if self.IVAR_rows[i,first_relevant_cell] == 1]
 
-        #Convert the density delta rows to gaussian delta rows.
-        GAUSSIAN_DELTA_rows = lognormal_to_gaussian(self.DENSITY_DELTA_rows,self.SIGMA_G,self.D)
-
         #Trim data according to the relevant cells and QSOs.
-        relevant_GAUSSIAN_DELTA_rows = GAUSSIAN_DELTA_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
+        relevant_GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
         relevant_IVAR_rows = self.IVAR_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
         relevant_LOGLAM_MAP = self.LOGLAM_MAP[first_relevant_cell:last_relevant_cell+1]
 
@@ -995,7 +1064,6 @@ class simulation_data:
         #Calculate mean F as a function of z for the relevant cells, then F_DELTA_rows.
         #This is done with a 'hack' to avoid problems with weights summing to zero.
         # TODO: find a neater way to deal with this
-        """HACK"""
         small = 1.0e-10
         relevant_F_BAR = np.average(relevant_F_rows,weights=relevant_IVAR_rows+small,axis=0)
         relevant_F_DELTA_rows = ((relevant_F_rows)/relevant_F_BAR - 1)*relevant_IVAR_rows
@@ -1027,6 +1095,64 @@ class simulation_data:
 
         return
 
+    #Function to save the mean and variance of the different quantities as a function of Z.
+    def get_means(self,lambda_min=0):
+
+        #Determine the relevant cells and QSOs.
+        lya_lambdas = 10**self.LOGLAM_MAP
+
+        #Determine the first cell which corresponds to a lya_line at wavelength > lambda_min
+        first_relevant_cell = get_first_relevant_index(lambda_min,lya_lambdas)
+
+        #Determine the furthest cell which is still relevant: i.e. the one in which at least one QSO has non-zero value of IVAR.
+        furthest_QSO_index = np.argmax(self.Z_QSO)
+        #last_relevant_cell = (np.argmax(self.IVAR_rows[furthest_QSO_index,:]==0) - 1) % self.N_cells
+        last_relevant_cell = self.N_cells - 1
+
+        #Determine the relevant QSOs: those that have relevant cells (IVAR > 0) beyond the first_relevant_cell.
+        relevant_QSOs = [i for i in range(self.N_qso) if self.IVAR_rows[i,first_relevant_cell] == 1]
+
+        #Trim data according to the relevant cells and QSOs.
+        relevant_DENSITY_DELTA_rows = self.DENSITY_DELTA_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
+        relevant_GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
+        relevant_F_rows = self.F_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
+        relevant_IVAR_rows = self.IVAR_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
+        relevant_LOGLAM_MAP = self.LOGLAM_MAP[first_relevant_cell:last_relevant_cell+1]
+
+        #For each cell, determine the number of skewers for which it is relevant.
+        N_relevant_skewers = np.sum(relevant_IVAR_rows,axis=0)
+        relevant_cells = N_relevant_skewers>0
+
+        #Calculate F_DELTA_rows from F_rows.
+        #Introduce a small 'hack' in order to get around the problem of having cells with no skewers contributing to them.
+        # TODO: find a neater way to deal with this
+        small = 1.0e-10
+        relevant_F_BAR = np.average(relevant_F_rows,weights=relevant_IVAR_rows+small,axis=0)
+        relevant_F_DELTA_rows = ((relevant_F_rows)/relevant_F_BAR - 1)*relevant_IVAR_rows
+
+        #Calculate the mean in each cell of the gaussian delta and its square.
+        GDB = np.average(relevant_GAUSSIAN_DELTA_rows,weights=relevant_IVAR_rows+small,axis=0)*relevant_cells
+        GDSB = np.average(relevant_GAUSSIAN_DELTA_rows**2,weights=relevant_IVAR_rows+small,axis=0)*relevant_cells
+
+        #Calculate the mean in each cell of the density delta and its square.
+        DDB = np.average(relevant_DENSITY_DELTA_rows,weights=relevant_IVAR_rows+small,axis=0)*relevant_cells
+        DDSB = np.average(relevant_DENSITY_DELTA_rows**2,weights=relevant_IVAR_rows+small,axis=0)*relevant_cells
+
+        #Calculate the mean in each cell of the flux and its square.
+        FB = np.average(relevant_F_rows,weights=relevant_IVAR_rows+small,axis=0)*relevant_cells
+        FSB = np.average(relevant_F_rows**2,weights=relevant_IVAR_rows+small,axis=0)*relevant_cells
+
+        #Calculate the mean in each cell of the flux delta and its square.
+        FDB = np.average(relevant_F_DELTA_rows,weights=relevant_IVAR_rows+small,axis=0)*relevant_cells
+        FDSB = np.average(relevant_F_DELTA_rows**2,weights=relevant_IVAR_rows+small,axis=0)*relevant_cells
+
+        #Stitch together the means into a binary table.
+        dtype = [('N', '>f4'),('GAUSSIAN_DELTA', '>f4'), ('GAUSSIAN_DELTA_SQUARED', '>f4'), ('DENSITY_DELTA', '>f4'), ('DENSITY_DELTA_SQUARED', '>f4')
+                , ('F', '>f4'), ('F_SQUARED', '>f4'), ('F_DELTA', '>f4'), ('F_DELTA_SQUARED', '>f4')]
+        statistics = np.array(list(zip(N_relevant_skewers,GDB,GDSB,DDB,DDSB,FB,FSB,FDB,FDSB)),dtype=dtype)
+
+        return statistics
+
     #Method to create a new object from an existing one, having specified which MOCKIDs we want to include.
     # TODO: add something to check that we can just take values from 1 of the objects
     @classmethod
@@ -1055,6 +1181,7 @@ class simulation_data:
         MJD = object_A.MJD[rows]
         FIBER = object_A.FIBER[rows]
 
+        GAUSSIAN_DELTA_rows = object_A.GAUSSIAN_DELTA_rows[rows,:]
         DENSITY_DELTA_rows = object_A.DENSITY_DELTA_rows[rows,:]
         VEL_rows = object_A.VEL_rows[rows,:]
         IVAR_rows = object_A.IVAR_rows[rows,:]
@@ -1067,7 +1194,7 @@ class simulation_data:
         V = object_A.V
         A = object_A.A
 
-        return cls(N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,F_rows,R,Z,D,V,LOGLAM_MAP,A)
+        return cls(N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,F_rows,R,Z,D,V,LOGLAM_MAP,A)
 
     #Method to create a new object from an existing one, having specified which cells we want to include.
     # TODO: change this so you can specify a z_min/max, or lambda_min/max, rather than just any list of cells. Would need to deal with the case of both z and lambda limits being set.
@@ -1090,6 +1217,7 @@ class simulation_data:
         MJD = object_A.MJD
         FIBER = object_A.FIBER
 
+        GAUSSIAN_DELTA_rows = object_A.GAUSSIAN_DELTA_rows[:,cells]
         DENSITY_DELTA_rows = object_A.DENSITY_DELTA_rows[:,cells]
         VEL_rows = object_A.VEL_rows[:,cells]
         IVAR_rows = object_A.IVAR_rows[:,cells]
@@ -1101,12 +1229,11 @@ class simulation_data:
         V = object_A.V[cells]
         A = object_A.A[cells]
 
-        return cls(N_qso,N_cells,SIGMA_G,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,R,Z,D,V,LOGLAM_MAP)
+        return cls(N_qso,N_cells,SIGMA_G,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,R,Z,D,V,LOGLAM_MAP)
 
 
     """
     THE FUNCTIONS BELOW THIS POINT ARE CURRENTLY UNUSED, AND ARE NOT EXPECTED TO BE USED IN FUTURE.
-    """
 
     def save(self,filename,header,output_format):
 
@@ -1229,11 +1356,6 @@ class simulation_data:
     @classmethod
     def WIP(cls,file_infos,input_format,z_min):
 
-        """
-        NEED TO GENERATE FILE_INFOS TO PUT INTO THIS
-        A DICTIONARY (?) OF FILENAME, FILE_NUMBER AND MOCKIDS
-        FORMATS STRING, INTEGER AND LIST
-        """
 
         for file_info in file_infos:
 
@@ -1310,10 +1432,6 @@ class simulation_data:
 
             elif input_format == 'picca':
 
-                """
-                THIS NEEDS TO BE ADJUSTED IN THE SAME WAY THAT THE COLORE INPUT FORMAT HAS BEEN
-                """
-
                 #Extract data from the HDUlist.
                 DENSITY_DELTA_rows = h[0].data.T[rows,first_relevant_cell:]
 
@@ -1336,9 +1454,6 @@ class simulation_data:
                 #Derive Z.
                 Z = (10**LOGLAM_MAP)/lya - 1
 
-                """
-                Can we calculate DZ_RSD,R,D,V?
-                """
                 #Insert placeholder variables for remaining variables.
                 TYPE = np.zeros(RA.shape[0])
                 R = np.zeros(Z.shape[0])
@@ -1354,3 +1469,4 @@ class simulation_data:
             h.close()
 
         return cls(N_qso,N_cells,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,R,Z,D,V,LOGLAM_MAP)
+    """
