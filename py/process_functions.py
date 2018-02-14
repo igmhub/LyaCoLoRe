@@ -292,8 +292,8 @@ def write_ID(filename,ID_data,cosmology_data,N_side):
     header['NSIDE'] = N_side
 
     #Make the data into tables.
-    hdu_ID = fits.BinTableHDU.from_columns(ID_data,header=header)
-    hdu_cosmology = fits.BinTableHDU.from_columns(cosmology_data,header=header)
+    hdu_ID = fits.BinTableHDU.from_columns(ID_data,header=header,name=CATALOG)
+    hdu_cosmology = fits.BinTableHDU.from_columns(cosmology_data,header=header,name=COSMO)
 
     #Make a primary HDU.
     prihdr = fits.Header()
@@ -496,17 +496,19 @@ def means_to_statistics(means):
 
     return statistics
 
-def save_statistics(location,N_side,statistics):
+def write_statistics(location,N_side,statistics,cosmology_data):
 
     #Construct HDU from the statistics array.
     prihdr = fits.Header()
     prihdu = fits.PrimaryHDU(header=prihdr)
     cols_stats = fits.ColDefs(statistics)
     hdu_stats = fits.BinTableHDU.from_columns(cols_stats,name='STATISTICS')
+    cols_cosmology = fits.ColDefs(cosmology_data)
+    hdu_cosmology = fits.BinTableHDU.from_columns(cols_cosmology,name='COSMO')
 
     #Put the HDU into an HDUlist and save as a new file. Close the HDUlist.
     filename = 'nside_{}_statistics.fits'.format(N_side)
-    hdulist = fits.HDUList([prihdu, hdu_stats])
+    hdulist = fits.HDUList([prihdu,hdu_stats,hdu_cosmology])
     hdulist.writeto(location+filename)
     hdulist.close
 
