@@ -236,7 +236,7 @@ means = functions.combine_means(results)
 statistics = functions.means_to_statistics(means)
 
 #Save the statistics data as a new fits file.
-functions.save_statistics(new_base_file_location,N_side,statistics)
+functions.write_statistics(new_base_file_location,N_side,statistics,cosmology_data)
 
 print('\nTime to make statistics file: {:4.0f}s.'.format(time.time()-start_time))
 print(' ')
