@@ -10,14 +10,20 @@ import os
 
 ################################################################################
 
+#Top level script to manage the conversion of CoLoRe output files into files more useful for analysis.
+#These are produced on a per-HEALPix pixel basis, and currently include:
+#Gaussian delta, density delta and flux delta files in picca format
+#Gaussian and physical density files in CoLoRe format
+#Transmission files
+
+################################################################################
+
 """
 Set up the file locations and filename structures.
 Also define option preferences.
 """
 
-#Top level script to manage the conversion of CoLoRe output files into files more useful for analysis.
-#These are produced on a per-HEALPix pixel basis.
-
+#Define global variables.
 lya = 1215.67
 
 #Define the desired power of 2 for Nside for the output. This should be larger than that of the input.
