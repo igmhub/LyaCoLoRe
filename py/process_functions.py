@@ -292,8 +292,8 @@ def write_ID(filename,ID_data,cosmology_data,N_side):
     header['NSIDE'] = N_side
 
     #Make the data into tables.
-    hdu_ID = fits.BinTableHDU.from_columns(ID_data,header=header,name=CATALOG)
-    hdu_cosmology = fits.BinTableHDU.from_columns(cosmology_data,header=header,name=COSMO)
+    hdu_ID = fits.BinTableHDU.from_columns(ID_data,header=header,name='CATALOG')
+    hdu_cosmology = fits.BinTableHDU.from_columns(cosmology_data,header=header,name='COSMO')
 
     #Make a primary HDU.
     prihdr = fits.Header()
@@ -348,6 +348,7 @@ def get_tau(z,density):
     A = 0.374*pow((1+z)/4.0,5.10)
 
     tau = A*(density**alpha)
+    F = np.exp(-TAU_rows)
 
     return A, alpha, tau
 
@@ -472,7 +473,7 @@ def combine_means(means_list):
 
     return combined_means
 
-#Functino to convert a set of means of quantities and quantities squared (as outputted by 'combine_means') to a set of means and variances.
+#Function to convert a set of means of quantities and quantities squared (as outputted by 'combine_means') to a set of means and variances.
 def means_to_statistics(means):
 
     statistics_dtype = [('N', '>f4')
@@ -496,6 +497,7 @@ def means_to_statistics(means):
 
     return statistics
 
+#Function to write the statistics data to file, along with an HDU extension contanint cosmology data.
 def write_statistics(location,N_side,statistics,cosmology_data):
 
     #Construct HDU from the statistics array.
@@ -1200,7 +1202,6 @@ class simulation_data:
 
     #Method to create a new object from an existing one, having specified which cells we want to include.
     # TODO: change this so you can specify a z_min/max, or lambda_min/max, rather than just any list of cells. Would need to deal with the case of both z and lambda limits being set.
-    # TODO: add something to check that we can just take values from 1 of the objects
     @classmethod
     def choose_cells(cls,object_A,cells):
 
