@@ -76,6 +76,8 @@ def get_RA(h,input_format):
 
     if input_format == 'physical_colore':
         RA = h[1].data['RA']
+    elif input_format == 'gaussian_colore':
+        RA = h[1].data['RA']
     elif input_format == 'picca':
         RA = h[3].data['RA']
     else:
@@ -87,6 +89,8 @@ def get_RA(h,input_format):
 def get_DEC(h,input_format):
 
     if input_format == 'physical_colore':
+        DEC = h[1].data['DEC']
+    elif input_format == 'gaussian_colore':
         DEC = h[1].data['DEC']
     elif input_format == 'picca':
         DEC = h[3].data['DEC']
@@ -100,6 +104,8 @@ def get_Z_QSO(h,input_format):
 
     if input_format == 'physical_colore':
         Z_QSO = h[1].data['Z_COSMO']
+    elif input_format == 'gaussian_colore':
+        Z_QSO = h[1].data['Z_COSMO']
     elif input_format == 'picca':
         Z_QSO = h[3].data['Z']
     else:
@@ -112,6 +118,8 @@ def get_DZ_RSD(h,input_format):
 
     if input_format == 'physical_colore':
         DZ_RSD = h[1].data['DZ_RSD']
+    elif input_format == 'gaussian_colore':
+        DZ_RSD = h[1].data['DZ_RSD']
     elif input_format == 'picca':
         print('Error: DZ_RSD not stored in picca files.')
     else:
@@ -123,7 +131,6 @@ def get_DZ_RSD(h,input_format):
 def get_MOCKID(h,input_format,file_number):
 
     if input_format == 'physical_colore':
-
         #CoLoRe files do not have a MOCKID entry normally.
         #I am adding entries to any files processed via this code.
         #Hence we try to look for a MOCKID entry, and if this fails, we make one.
@@ -133,14 +140,17 @@ def get_MOCKID(h,input_format,file_number):
             h_N_qso = h[1].data.shape[0]
             row_numbers = list(range(h_N_qso))
             MOCKID = make_MOCKID(file_number,row_numbers)
-
+    elif input_format == 'gaussian_colore':
+        try:
+            MOCKID = h[1].data['MOCKID']
+        except KeyError:
+            h_N_qso = h[1].data.shape[0]
+            row_numbers = list(range(h_N_qso))
+            MOCKID = make_MOCKID(file_number,row_numbers)
+    elif input_format == 'gaussian_colore':
     elif input_format == 'picca':
-
-        #Get MOCKID list.
         MOCKID = h[3].data['MOCKID']
-
     elif input_format == 'ID':
-
         MOCKID = h[1].data['MOCKID']
 
     return MOCKID
@@ -174,6 +184,11 @@ def get_COSMO(h,input_format):
         Z = h[4].data['Z']
         D = h[4].data['D']
         V = h[4].data['V']
+    elif input_format == 'gaussian_colore':
+        R = h[4].data['R']
+        Z = h[4].data['Z']
+        D = h[4].data['D']
+        V = h[4].data['V']
     elif input_format == 'picca':
         LOGLAM_MAP = h[2].data
         Z = ((10**LOGLAM_MAP)/lya) - 1
@@ -193,6 +208,9 @@ def get_lya_lambdas(h,input_format):
     lya = 1215.67
 
     if input_format == 'physical_colore':
+        Z = h[4].data['Z']
+        lya_lambdas = lya*(1+Z)
+    elif input_format == 'gaussian_colore':
         Z = h[4].data['Z']
         lya_lambdas = lya*(1+Z)
     elif input_format == 'picca':
@@ -384,6 +402,21 @@ def lognormal_to_gaussian(LN_DENSITY_DELTA_rows,SIGMA_G,D):
     GAUSSIAN_rows = GAUSSIAN_rows.astype('float32')
 
     return GAUSSIAN_rows
+
+#Function to convert gaussian field skewers (in rows) to lognormal delta skewers (in rows).
+def gaussian_to_lognormal(GAUSSIAN_DELTA_rows,SIGMA_G,D):
+
+    LN_DENSITY_rows = np.zeros(LN_DENSITY_rows.shape)
+    LN_DENSITY_DELTA_rows = np.zeros(LN_DENSITY_rows.shape)
+
+    for j in range(GAUSSIAN_rows.shape[1]):
+        LN_DENSITY_rows[:,j] = np.exp(D[j]*GAUSSIAN_DELTA_rows[:,j] - ((D[j])**2)*(SIGMA_G**2)/2.)
+
+    LN_DENSITY_DELTA_rows = LN_DENSITY_rows - 1
+
+    LN_DENSITY_DELTA_rows = LN_DENSITY_DELTA_rows.astype('float32')
+
+    return LN_DENSITY_DELTA_rows
 
 #Function to determine the first index corresponding to a value in an array greater than a minimum value.
 def get_first_relevant_index(minimum,values):
@@ -609,6 +642,44 @@ class simulation_data:
             #III =
             #IV =
 
+        elif input_format == 'gaussian_colore':
+
+            #Extract data from the HDUlist.
+            TYPE = h[1].data['TYPE']
+            RA = h[1].data['RA']
+            DEC = h[1].data['DEC']
+            Z_QSO = h[1].data['Z_COSMO']
+            DZ_RSD = h[1].data['DZ_RSD']
+            GAUSSIAN_DELTA_rows = h[2].data[:,first_relevant_cell:]
+            VEL_rows = h[3].data[:,first_relevant_cell:]
+            Z = h[4].data['Z'][first_relevant_cell:]
+            R = h[4].data['R'][first_relevant_cell:]
+            D = h[4].data['D'][first_relevant_cell:]
+            V = h[4].data['V'][first_relevant_cell:]
+
+            #Derive the number of quasars and cells in the file.
+            N_qso = RA.shape[0]
+            N_cells = Z.shape[0]
+            SIGMA_G = h[4].header['SIGMA_G']
+
+            #Derive the MOCKID and LOGLAM_MAP.
+            MOCKID = get_MOCKID(h,input_format,file_number)
+            LOGLAM_MAP = np.log10(lya*(1+Z))
+
+            #Calculate the Gaussian skewers.
+            DENSITY_DELTA_rows = gaussian_to_lognormal(GAUSSIAN_DELTA_rows,SIGMA_G,D)
+
+            #Calculate the transmitted flux.
+            A,ALPHA,TAU_rows = get_tau(Z,DENSITY_DELTA_rows+1)
+            F_rows = np.exp(-TAU_rows)
+
+            #Insert placeholder values for remaining variables.
+            PLATE = MOCKID
+            MJD = np.zeros(N_qso)
+            FIBER = np.zeros(N_qso)
+
+            IVAR_rows = make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP)
+
         elif input_format == 'picca':
 
             #Extract data from the HDUlist.
@@ -712,6 +783,44 @@ class simulation_data:
 
             #Calculate the Gaussian skewers.
             GAUSSIAN_DELTA_rows = lognormal_to_gaussian(DENSITY_DELTA_rows,SIGMA_G,D)
+
+            #Calculate the transmitted flux.
+            A,ALPHA,TAU_rows = get_tau(Z,DENSITY_DELTA_rows+1)
+            F_rows = np.exp(-TAU_rows)
+
+            #Insert placeholder values for remaining variables.
+            PLATE = MOCKID
+            MJD = np.zeros(N_qso)
+            FIBER = np.zeros(N_qso)
+
+            IVAR_rows = make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP)
+
+        elif input_format == 'gaussian_colore':
+
+            #Extract data from the HDUlist.
+            TYPE = h[1].data['TYPE']
+            RA = h[1].data['RA']
+            DEC = h[1].data['DEC']
+            Z_QSO = h[1].data['Z_COSMO']
+            DZ_RSD = h[1].data['DZ_RSD']
+            GAUSSIAN_DELTA_rows = h[2].data[:,first_relevant_cell:]
+            VEL_rows = h[3].data[:,first_relevant_cell:]
+            Z = h[4].data['Z'][first_relevant_cell:]
+            R = h[4].data['R'][first_relevant_cell:]
+            D = h[4].data['D'][first_relevant_cell:]
+            V = h[4].data['V'][first_relevant_cell:]
+
+            #Derive the number of quasars and cells in the file.
+            N_qso = RA.shape[0]
+            N_cells = Z.shape[0]
+            SIGMA_G = h[4].header['SIGMA_G']
+
+            #Derive the MOCKID and LOGLAM_MAP.
+            MOCKID = get_MOCKID(h,input_format,file_number)
+            LOGLAM_MAP = np.log10(lya*(1+Z))
+
+            #Calculate the Gaussian skewers.
+            DENSITY_DELTA_rows = gaussian_to_lognormal(GAUSSIAN_DELTA_rows,SIGMA_G,D)
 
             #Calculate the transmitted flux.
             A,ALPHA,TAU_rows = get_tau(Z,DENSITY_DELTA_rows+1)
