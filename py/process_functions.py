@@ -147,7 +147,6 @@ def get_MOCKID(h,input_format,file_number):
             h_N_qso = h[1].data.shape[0]
             row_numbers = list(range(h_N_qso))
             MOCKID = make_MOCKID(file_number,row_numbers)
-    elif input_format == 'gaussian_colore':
     elif input_format == 'picca':
         MOCKID = h[3].data['MOCKID']
     elif input_format == 'ID':
@@ -365,10 +364,10 @@ def get_tau(z,density):
     alpha = 1.0
     A = 0.374*pow((1+z)/4.0,5.10)
 
-    tau = A*(density**alpha)
-    F = np.exp(-TAU_rows)
+    TAU_rows = A*(density**alpha)
+    #F = np.exp(-TAU_rows)
 
-    return A, alpha, tau
+    return A, alpha, TAU_rows
 
 #Function to make ivar mask
 def make_IVAR_rows(lya,Z_QSO,LOGLAM_MAP):
@@ -394,22 +393,22 @@ def lognormal_to_gaussian(LN_DENSITY_DELTA_rows,SIGMA_G,D):
 
     LN_DENSITY_rows = 1.0 + LN_DENSITY_DELTA_rows
 
-    GAUSSIAN_rows = np.zeros(LN_DENSITY_rows.shape)
+    GAUSSIAN_DELTA_rows = np.zeros(LN_DENSITY_DELTA_rows.shape)
 
-    for j in range(GAUSSIAN_rows.shape[1]):
-        GAUSSIAN_rows[:,j] = (np.log(LN_DENSITY_rows[:,j]))/D[j] + (D[j])*(SIGMA_G**2)/2
+    for j in range(GAUSSIAN_DELTA_rows.shape[1]):
+        GAUSSIAN_DELTA_rows[:,j] = (np.log(LN_DENSITY_rows[:,j]))/D[j] + (D[j])*(SIGMA_G**2)/2
 
-    GAUSSIAN_rows = GAUSSIAN_rows.astype('float32')
+    GAUSSIAN_DELTA_rows = GAUSSIAN_DELTA_rows.astype('float32')
 
-    return GAUSSIAN_rows
+    return GAUSSIAN_DELTA_rows
 
 #Function to convert gaussian field skewers (in rows) to lognormal delta skewers (in rows).
 def gaussian_to_lognormal(GAUSSIAN_DELTA_rows,SIGMA_G,D):
 
-    LN_DENSITY_rows = np.zeros(LN_DENSITY_rows.shape)
-    LN_DENSITY_DELTA_rows = np.zeros(LN_DENSITY_rows.shape)
+    LN_DENSITY_rows = np.zeros(GAUSSIAN_DELTA_rows.shape)
+    LN_DENSITY_DELTA_rows = np.zeros(GAUSSIAN_DELTA_rows.shape)
 
-    for j in range(GAUSSIAN_rows.shape[1]):
+    for j in range(GAUSSIAN_DELTA_rows.shape[1]):
         LN_DENSITY_rows[:,j] = np.exp(D[j]*GAUSSIAN_DELTA_rows[:,j] - ((D[j])**2)*(SIGMA_G**2)/2.)
 
     LN_DENSITY_DELTA_rows = LN_DENSITY_rows - 1
@@ -798,13 +797,16 @@ class simulation_data:
         elif input_format == 'gaussian_colore':
 
             #Extract data from the HDUlist.
-            TYPE = h[1].data['TYPE']
-            RA = h[1].data['RA']
-            DEC = h[1].data['DEC']
-            Z_QSO = h[1].data['Z_COSMO']
-            DZ_RSD = h[1].data['DZ_RSD']
-            GAUSSIAN_DELTA_rows = h[2].data[:,first_relevant_cell:]
-            VEL_rows = h[3].data[:,first_relevant_cell:]
+            TYPE = h[1].data['TYPE'][rows]
+            RA = h[1].data['RA'][rows]
+            DEC = h[1].data['DEC'][rows]
+            Z_QSO = h[1].data['Z_COSMO'][rows]
+            DZ_RSD = h[1].data['DZ_RSD'][rows]
+
+            GAUSSIAN_DELTA_rows = h[2].data[rows,first_relevant_cell:]
+
+            VEL_rows = h[3].data[rows,first_relevant_cell:]
+
             Z = h[4].data['Z'][first_relevant_cell:]
             R = h[4].data['R'][first_relevant_cell:]
             D = h[4].data['D'][first_relevant_cell:]
