@@ -347,10 +347,10 @@ def get_tau(z,density):
     alpha = 1.0
     A = 0.374*pow((1+z)/4.0,5.10)
 
-    tau = A*(density**alpha)
+    TAU_rows = A*(density**alpha)
     F = np.exp(-TAU_rows)
 
-    return A, alpha, tau
+    return A, alpha, TAU_rows
 
 #Function to make ivar mask
 def make_IVAR_rows(lya,Z_QSO,LOGLAM_MAP):
