@@ -9,37 +9,35 @@ import time
 lya = 1215.67
 
 #Function to create a 'simulation_data' object given a specific pixel, information about the complete simulation, and the location/filenames of data files.
-def make_pixel_object(pixel,original_file_location,original_filename_structure,input_format,master_data,pixel_list,file_number_list,lambda_min=0,IVAR_cutoff=lya):
-
-    #print('Working on HEALPix pixel number {} ({} of {})...'.format(pixel,pixel_list.index(pixel)+1,len(pixel_list)))
-
+def make_pixel_object(pixel,original_file_location,original_filename_structure,input_format,master_data,pixel_list,file_number_list,lambda_min=0,IVAR_cutoff=lya,gaussian_only=False):
+    start_mpo = time.time()
+    times = []
     #Determine which file numbers we need to look at for the current pixel.
-    relevant_file_numbers = list(set([int(number_to_string(qso['MOCKID'],10)[:-7]) for qso in master_data if qso['PIXNUM'] == pixel]))
+    relevant_file_numbers = list(set([int(number_to_string(qso['MOCKID'],12)[:-7]) for qso in master_data if qso['PIXNUM'] == pixel]))
     files_included = 0
-
+    times+=[time.time()-start_mpo-sum(times)]
     #For each relevant file, extract the data and aggregate over all files into a 'combined' object.
     for file_number in relevant_file_numbers:
         #Get the MOCKIDs of the relevant quasars: those that are located in the current pixel, stored in the current file.
-        relevant_MOCKIDs = [qso['MOCKID'] for qso in master_data if qso['PIXNUM']==pixel and int(number_to_string(qso['MOCKID'],10)[:-7])==file_number]
+        relevant_MOCKIDs = [qso['MOCKID'] for qso in master_data if qso['PIXNUM']==pixel and int(number_to_string(qso['MOCKID'],12)[:-7])==file_number]
         N_relevant_qso = len(relevant_MOCKIDs)
-
+        times+=[time.time()-start_mpo-sum(times)]
         #If there are some relevant quasars, open the data file and make it into a simulation_data object.
         #We use simulation_data.get_reduced_data to avoid loading all of the file's data into the object.
         if N_relevant_qso > 0:
             filename = original_file_location + '/' + original_filename_structure.format(file_number)
-            working = simulation_data.get_reduced_data(filename,file_number,input_format,relevant_MOCKIDs,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff)
-
+            working = simulation_data.get_reduced_data(filename,file_number,input_format,relevant_MOCKIDs,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff,gaussian_only=gaussian_only)
+        times+=[time.time()-start_mpo-sum(times)]
         #Combine the data from the working file with that from the files already looked at.
         if files_included > 0:
-            combined = simulation_data.combine_files(combined,working)
+            combined = simulation_data.combine_files(combined,working,gaussian_only=gaussian_only)
             files_included += 1
         else:
             combined = working
             files_included += 1
-
+        times+=[time.time()-start_mpo-sum(times)]
     pixel_object = combined
-    #print('Data extraction completed; {} quasars were found in total.'.format(pixel_object.N_qso))
-
+    print([round(time/sum(times),3) for time in times])
     return pixel_object
 
 #Function to create a file structure based on a set of numbers, of the form "x//100"/"x".
@@ -160,7 +158,7 @@ def get_MOCKID(h,input_format,file_number):
 def make_MOCKID(file_number,row_numbers):
 
     N_qso = len(row_numbers)
-    node = '0'*(len(str(file_number))-3) + str(file_number)
+    node = '0'*(len(str(file_number))-5) + str(file_number)
 
     MOCKID = ['']*N_qso
     for i in range(N_qso):
@@ -598,7 +596,7 @@ class simulation_data:
 
     #Method to extract all data from an input file of a given format.
     @classmethod
-    def get_all_data(cls,filename,file_number,input_format,lambda_min=0,IVAR_cutoff=lya,SIGMA_G=None):
+    def get_all_data(cls,filename,file_number,input_format,lambda_min=0,IVAR_cutoff=lya,SIGMA_G=None,gaussian_only=False):
 
         lya = 1215.67
         h = fits.open(filename)
@@ -637,9 +635,16 @@ class simulation_data:
             #Calculate the Gaussian skewers.
             GAUSSIAN_DELTA_rows = lognormal_to_gaussian(DENSITY_DELTA_rows,SIGMA_G,D)
 
-            #Calculate the transmitted flux.
-            A,ALPHA,TAU_rows = get_tau(Z,DENSITY_DELTA_rows+1)
-            F_rows = np.exp(-TAU_rows)
+            if not gaussian_only:
+                #Calculate the transmitted flux.
+                A,ALPHA,TAU_rows = get_tau(Z,DENSITY_DELTA_rows+1)
+                F_rows = np.exp(-TAU_rows)
+            else:
+                A = None
+                ALPHA = None
+                TAU_rows = None
+                F_rows = None
+                DENSITY_DELTA_rows = None
 
             #Insert placeholder values for remaining variables.
             PLATE = MOCKID
@@ -680,12 +685,19 @@ class simulation_data:
             MOCKID = get_MOCKID(h,input_format,file_number)
             LOGLAM_MAP = np.log10(lya*(1+Z))
 
-            #Calculate the Gaussian skewers.
-            DENSITY_DELTA_rows = gaussian_to_lognormal(GAUSSIAN_DELTA_rows,SIGMA_G,D)
+            if not gaussian_only:
+                #Calculate the Gaussian skewers.
+                DENSITY_DELTA_rows = gaussian_to_lognormal(GAUSSIAN_DELTA_rows,SIGMA_G,D)
 
-            #Calculate the transmitted flux.
-            A,ALPHA,TAU_rows = get_tau(Z,DENSITY_DELTA_rows+1)
-            F_rows = np.exp(-TAU_rows)
+                #Calculate the transmitted flux.
+                A,ALPHA,TAU_rows = get_tau(Z,DENSITY_DELTA_rows+1)
+                F_rows = np.exp(-TAU_rows)
+            else:
+                A = None
+                ALPHA = None
+                TAU_rows = None
+                F_rows = None
+                DENSITY_DELTA_rows = None
 
             #Insert placeholder values for remaining variables.
             PLATE = MOCKID
@@ -720,9 +732,16 @@ class simulation_data:
             #Calculate the Gaussian skewers.
             GAUSSIAN_DELTA_rows = lognormal_to_gaussian(DENSITY_DELTA_rows,SIGMA_G,D)
 
-            #Calculate the transmitted flux.
-            A,ALPHA,TAU_rows = get_tau(Z,DENSITY_DELTA_rows+1)
-            F_rows = np.exp(-TAU_rows)
+            if not gaussian_only:
+                #Calculate the transmitted flux.
+                A,ALPHA,TAU_rows = get_tau(Z,DENSITY_DELTA_rows+1)
+                F_rows = np.exp(-TAU_rows)
+            else:
+                A = None
+                ALPHA = None
+                TAU_rows = None
+                F_rows = None
+                DENSITY_DELTA_rows = None
 
             """
             Can we calculate R,D,V?
@@ -746,7 +765,7 @@ class simulation_data:
 
     #Method to extract reduced data from an input file of a given format, with a given list of MOCKIDs.
     @classmethod
-    def get_reduced_data(cls,filename,file_number,input_format,MOCKIDs,lambda_min=0,IVAR_cutoff=lya,SIGMA_G=None):
+    def get_reduced_data(cls,filename,file_number,input_format,MOCKIDs,lambda_min=0,IVAR_cutoff=lya,SIGMA_G=None,gaussian_only=False):
 
         lya = 1215.67
 
@@ -800,9 +819,16 @@ class simulation_data:
             #Calculate the Gaussian skewers.
             GAUSSIAN_DELTA_rows = lognormal_to_gaussian(DENSITY_DELTA_rows,SIGMA_G,D)
 
-            #Calculate the transmitted flux.
-            A,ALPHA,TAU_rows = get_tau(Z,DENSITY_DELTA_rows+1)
-            F_rows = np.exp(-TAU_rows)
+            if not gaussian_only:
+                #Calculate the transmitted flux.
+                A,ALPHA,TAU_rows = get_tau(Z,DENSITY_DELTA_rows+1)
+                F_rows = np.exp(-TAU_rows)
+            else:
+                A = None
+                ALPHA = None
+                TAU_rows = None
+                F_rows = None
+                DENSITY_DELTA_rows = None
 
             #Insert placeholder values for remaining variables.
             PLATE = MOCKID
@@ -839,12 +865,19 @@ class simulation_data:
             MOCKID = get_MOCKID(h,input_format,file_number)
             LOGLAM_MAP = np.log10(lya*(1+Z))
 
-            #Calculate the Gaussian skewers.
-            DENSITY_DELTA_rows = gaussian_to_lognormal(GAUSSIAN_DELTA_rows,SIGMA_G,D)
+            if not gaussian_only:
+                #Calculate the Gaussian skewers.
+                DENSITY_DELTA_rows = gaussian_to_lognormal(GAUSSIAN_DELTA_rows,SIGMA_G,D)
 
-            #Calculate the transmitted flux.
-            A,ALPHA,TAU_rows = get_tau(Z,DENSITY_DELTA_rows+1)
-            F_rows = np.exp(-TAU_rows)
+                #Calculate the transmitted flux.
+                A,ALPHA,TAU_rows = get_tau(Z,DENSITY_DELTA_rows+1)
+                F_rows = np.exp(-TAU_rows)
+            else:
+                A = None
+                ALPHA = None
+                TAU_rows = None
+                F_rows = None
+                DENSITY_DELTA_rows = None
 
             #Insert placeholder values for remaining variables.
             PLATE = MOCKID
@@ -882,9 +915,16 @@ class simulation_data:
             #Calculate the Gaussian skewers.
             GAUSSIAN_DELTA_rows = lognormal_to_gaussian(DENSITY_DELTA_rows,SIGMA_G,D)
 
-            #Calculate the transmitted flux.
-            A,ALPHA,TAU_rows = get_tau(Z,DENSITY_DELTA_rows+1)
-            F_rows = np.exp(-TAU_rows)
+            if not gaussian_only:
+                #Calculate the transmitted flux.
+                A,ALPHA,TAU_rows = get_tau(Z,DENSITY_DELTA_rows+1)
+                F_rows = np.exp(-TAU_rows)
+            else:
+                A = None
+                ALPHA = None
+                TAU_rows = None
+                F_rows = None
+                DENSITY_DELTA_rows = None
 
             """
             Can we calculate DZ_RSD,R,D,V?
@@ -909,7 +949,7 @@ class simulation_data:
     #Method to combine data from two objects into one.
     # TODO: add something to check that we can just take values from 1 of the objects
     @classmethod
-    def combine_files(cls,object_A,object_B):
+    def combine_files(cls,object_A,object_B,gaussian_only=False):
 
         N_qso = object_A.N_qso + object_B.N_qso
 
@@ -931,11 +971,18 @@ class simulation_data:
         MJD = np.concatenate((object_A.MJD,object_B.MJD),axis=0)
         FIBER = np.concatenate((object_A.FIBER,object_B.FIBER),axis=0)
 
-        GAUSSIAN_DELTA_rows = np.concatenate((object_A.GAUSSIAN_DELTA_rows,object_B.GAUSSIAN_DELTA_rows),axis=0)
-        DENSITY_DELTA_rows = np.concatenate((object_A.DENSITY_DELTA_rows,object_B.DENSITY_DELTA_rows),axis=0)
-        VEL_rows = np.concatenate((object_A.VEL_rows,object_B.VEL_rows),axis=0)
-        IVAR_rows = np.concatenate((object_A.IVAR_rows,object_B.IVAR_rows),axis=0)
-        F_rows = np.concatenate((object_A.F_rows,object_B.F_rows),axis=0)
+        if not gaussian_only:
+            GAUSSIAN_DELTA_rows = np.concatenate((object_A.GAUSSIAN_DELTA_rows,object_B.GAUSSIAN_DELTA_rows),axis=0)
+            DENSITY_DELTA_rows = np.concatenate((object_A.DENSITY_DELTA_rows,object_B.DENSITY_DELTA_rows),axis=0)
+            VEL_rows = np.concatenate((object_A.VEL_rows,object_B.VEL_rows),axis=0)
+            IVAR_rows = np.concatenate((object_A.IVAR_rows,object_B.IVAR_rows),axis=0)
+            F_rows = np.concatenate((object_A.F_rows,object_B.F_rows),axis=0)
+        else:
+            GAUSSIAN_DELTA_rows = np.concatenate((object_A.GAUSSIAN_DELTA_rows,object_B.GAUSSIAN_DELTA_rows),axis=0)
+            DENSITY_DELTA_rows = None
+            VEL_rows = np.concatenate((object_A.VEL_rows,object_B.VEL_rows),axis=0)
+            IVAR_rows = np.concatenate((object_A.IVAR_rows,object_B.IVAR_rows),axis=0)
+            F_rows = None
 
         """
         Something to check this is ok?

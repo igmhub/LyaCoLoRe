@@ -32,17 +32,17 @@ N_side = 2**N_side_pow2
 N_pix = 12*N_side**2
 
 #Define the original file structure
-original_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_revamp/output_4096_32/'
-original_file_location = '/Users/jfarr/Projects/repixelise/test_input/'
-original_file_location = '/Users/James/Projects/test_data/output_G_hZ_4096_32_sr2.0/'
+original_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/output_G_hZ_4096_32_sr4.0/'
+#original_file_location = '/Users/jfarr/Projects/repixelise/test_input/'
+#original_file_location = '/Users/James/Projects/test_data/output_G_hZ_4096_32_sr2.0/'
 original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
-file_numbers = list(range(16,17))
+file_numbers = list(range(0,32))
 input_format = 'gaussian_colore'
 
 #Set file structure
-new_base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_revamp/test/lya1100/'
-new_base_file_location = '/Users/jfarr/Projects/repixelise/test_output/test_multi/'
-new_base_file_location = '/Users/James/Projects/test_data/process_output_G_hZ_4096_32_sr2.0/'
+new_base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZ_4096_32_sr4.0_nside{}/'.format(N_side)
+#new_base_file_location = '/Users/jfarr/Projects/repixelise/test_output/test_multi/'
+#new_base_file_location = '/Users/James/Projects/test_data/process_output_G_hZ_4096_32_sr2.0/'
 new_file_structure = '{}/{}/'               #pixel number//100, pixel number
 new_filename_structure = '{}-{}-{}.fits'    #file type, nside, pixel number
 
@@ -171,7 +171,7 @@ def pixelise_gaussian_skewers(pixel,original_file_location,original_filename_str
     location = new_base_file_location + new_file_structure.format(pixel//100,pixel)
 
     #Make file into an object
-    pixel_object = functions.make_pixel_object(pixel,original_file_location,original_filename_structure,input_format,master_data,pixel_list,file_number_list,IVAR_cutoff=IVAR_cutoff)
+    pixel_object = functions.make_pixel_object(pixel,original_file_location,original_filename_structure,input_format,master_data,pixel_list,file_number_list,IVAR_cutoff=IVAR_cutoff,gaussian_only=True)
 
     # TODO: These could be made beforehand and passed to the function? Or is there already enough being passed?
     #Make some useful headers
