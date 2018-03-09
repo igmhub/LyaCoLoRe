@@ -4,6 +4,8 @@ import healpy as hp
 import os
 import time
 
+# TODO: remove SIGMA_G from the headers of the saved files as it cannot be relied upon.
+
 lya = 1215.67
 
 #Function to create a 'simulation_data' object given a specific pixel, information about the complete simulation, and the location/filenames of data files.
@@ -487,6 +489,17 @@ class simulation_parameters:
 
         return
 
+#Function to calculate the mean of deltas, mean of deltas^2, and N.
+def return_means(DELTA_rows,weights,sample_pc=1.0):
+    DELTA_SQUARED_rows = DELTA_rows**2
+
+    N = np.sum(weights)
+    mean_DELTA = np.average(DELTA_rows,weights=weights)
+    mean_DELTA_SQUARED = np.average(DELTA_SQUARED_rows,weights=weights)
+
+    return N, mean_DELTA, mean_DELTA_SQUARED
+
+
 #Function to take a list of sets of statistics (as produced by 'get_statistics'), and calculate means and variances.
 def combine_means(means_list):
 
@@ -509,10 +522,10 @@ def combine_means(means_list):
 def means_to_statistics(means):
 
     statistics_dtype = [('N', '>f4')
-                        , ('GAUSSIAN_DELTA_MEAN', '>f4'), ('GAUSSIAN_DELTA_VAR', '>f4')
-                        , ('DENSITY_DELTA_MEAN', '>f4'), ('DENSITY_DELTA_VAR', '>f4')
-                        , ('F_MEAN', '>f4'), ('F_VAR', '>f4')
-                        , ('F_DELTA_MEAN', '>f4'), ('F_DELTA_VAR', '>f4')]
+        , ('GAUSSIAN_DELTA_MEAN', '>f4'), ('GAUSSIAN_DELTA_VAR', '>f4')
+        , ('DENSITY_DELTA_MEAN', '>f4'), ('DENSITY_DELTA_VAR', '>f4')
+        , ('F_MEAN', '>f4'), ('F_VAR', '>f4')
+        , ('F_DELTA_MEAN', '>f4'), ('F_DELTA_VAR', '>f4')]
 
     statistics = np.zeros(means.shape,dtype=statistics_dtype)
 
@@ -585,7 +598,7 @@ class simulation_data:
 
     #Method to extract all data from an input file of a given format.
     @classmethod
-    def get_all_data(cls,filename,file_number,input_format,lambda_min=0,IVAR_cutoff=lya):
+    def get_all_data(cls,filename,file_number,input_format,lambda_min=0,IVAR_cutoff=lya,SIGMA_G=None):
 
         lya = 1215.67
         h = fits.open(filename)
@@ -614,7 +627,8 @@ class simulation_data:
             #Derive the number of quasars and cells in the file.
             N_qso = RA.shape[0]
             N_cells = Z.shape[0]
-            SIGMA_G = h[4].header['SIGMA_G']
+            if SIGMA_G == None:
+                SIGMA_G = h[4].header['SIGMA_G']
 
             #Derive the MOCKID and LOGLAM_MAP.
             MOCKID = get_MOCKID(h,input_format,file_number)
@@ -659,7 +673,8 @@ class simulation_data:
             #Derive the number of quasars and cells in the file.
             N_qso = RA.shape[0]
             N_cells = Z.shape[0]
-            SIGMA_G = h[4].header['SIGMA_G']
+            if SIGMA_G == None:
+                SIGMA_G = h[4].header['SIGMA_G']
 
             #Derive the MOCKID and LOGLAM_MAP.
             MOCKID = get_MOCKID(h,input_format,file_number)
@@ -692,11 +707,12 @@ class simulation_data:
             MJD = h[3].data['MJD']
             FIBER = h[3].data['FIBER']
             MOCKID = h[3].data['THING_ID']
-            SIGMA_G = h[3].header['SIGMA_G']
 
             #Derive the number of quasars and cells in the file.
             N_qso = RA.shape[0]
             N_cells = LOGLAM_MAP.shape[0]
+            if SIGMA_G == None:
+                SIGMA_G = h[4].header['SIGMA_G']
 
             #Derive Z.
             Z = (10**LOGLAM_MAP)/lya - 1
@@ -730,7 +746,7 @@ class simulation_data:
 
     #Method to extract reduced data from an input file of a given format, with a given list of MOCKIDs.
     @classmethod
-    def get_reduced_data(cls,filename,file_number,input_format,MOCKIDs,lambda_min=0,IVAR_cutoff=lya):
+    def get_reduced_data(cls,filename,file_number,input_format,MOCKIDs,lambda_min=0,IVAR_cutoff=lya,SIGMA_G=None):
 
         lya = 1215.67
 
@@ -774,7 +790,8 @@ class simulation_data:
             #Derive the number of quasars and cells in the file.
             N_qso = RA.shape[0]
             N_cells = Z.shape[0]
-            SIGMA_G = h[4].header['SIGMA_G']
+            if SIGMA_G == None:
+                SIGMA_G = h[4].header['SIGMA_G']
 
             #Derive the MOCKID and LOGLAM_MAP.
             MOCKID = get_MOCKID(h,input_format,file_number)
@@ -815,7 +832,8 @@ class simulation_data:
             #Derive the number of quasars and cells in the file.
             N_qso = RA.shape[0]
             N_cells = Z.shape[0]
-            SIGMA_G = h[4].header['SIGMA_G']
+            if SIGMA_G == None:
+                SIGMA_G = h[4].header['SIGMA_G']
 
             #Derive the MOCKID and LOGLAM_MAP.
             MOCKID = get_MOCKID(h,input_format,file_number)
@@ -851,11 +869,12 @@ class simulation_data:
             MJD = h[3].data['MJD'][rows]
             FIBER = h[3].data['FIBER'][rows]
             MOCKID = h[3].data['THING_ID'][rows]
-            SIGMA_G = h[3].header['SIGMA_G']
 
             #Derive the number of quasars and cells in the file.
             N_qso = RA.shape[0]
             N_cells = LOGLAM_MAP.shape[0]
+            if SIGMA_G == None:
+                SIGMA_G = h[4].header['SIGMA_G']
 
             #Derive Z and transmitted flux fraction.
             Z = (10**LOGLAM_MAP)/lya - 1
