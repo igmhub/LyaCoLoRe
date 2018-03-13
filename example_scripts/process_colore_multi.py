@@ -4,6 +4,7 @@ import numpy as np
 from astropy.io import fits
 import process_functions as functions
 from multiprocessing import Pool
+import multiprocessing
 import sys
 import time
 import os
@@ -27,12 +28,12 @@ Also define option preferences.
 lya = 1215.67
 
 #Define the desired power of 2 for Nside for the output. This should be larger than that of the input.
-N_side_pow2 = 3
+N_side_pow2 = 5
 N_side = 2**N_side_pow2
 N_pix = 12*N_side**2
 
 #Define the original file structure
-original_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/output_G_hZ_4096_32_sr4.0/'
+original_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/output_G_hZ_4096_32_sr2.0/'
 #original_file_location = '/Users/jfarr/Projects/repixelise/test_input/'
 #original_file_location = '/Users/James/Projects/test_data/output_G_hZ_4096_32_sr2.0/'
 original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
@@ -40,7 +41,7 @@ file_numbers = list(range(0,32))
 input_format = 'gaussian_colore'
 
 #Set file structure
-new_base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZ_4096_32_sr4.0_nside{}/'.format(N_side)
+new_base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZ_4096_32_sr2.0_nside{}/'.format(N_side)
 #new_base_file_location = '/Users/jfarr/Projects/repixelise/test_output/test_multi/'
 #new_base_file_location = '/Users/James/Projects/test_data/process_output_G_hZ_4096_32_sr2.0/'
 new_file_structure = '{}/{}/'               #pixel number//100, pixel number
@@ -102,15 +103,15 @@ Join the outputs from the many processes together.
 Save the master file, and a similarly structured file containing QSOs with 'bad coordinates'.
 """
 
-print('\nWorking on master file...')
+print('\nWorking on master data...')
 start = time.time()
 
 #Define the process to make the master data.
 def make_master_data(original_file_location,original_filename_structure,file_number,input_format,N_side):
 
-    ID_data, cosmology = functions.get_ID_data(original_file_location,original_filename_structure,file_number,input_format,N_side)
+    file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element = functions.get_ID_data(original_file_location,original_filename_structure,file_number,input_format,N_side)
 
-    return [ID_data, cosmology]
+    return [file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element]
 
 #Set up the multiprocessing pool parameters and make a list of tasks.
 N_processes = int(sys.argv[1])
@@ -128,8 +129,10 @@ if __name__ == '__main__':
     pool.close()
     pool.join()
 
+print('\nSaving the master files...')
+
 #Join the multiprocessing results into 'master' and 'bad_coordinates' arrays.
-master_data, bad_coordinates_data, cosmology_data = functions.join_ID_data(results)
+master_data, bad_coordinates_data, cosmology_data, file_pixel_map, MOCKID_lookup = functions.join_ID_data(results,N_side)
 
 #Make a list of the pixels that the files cover.
 pixel_list = list(sorted(set(master_data['PIXNUM'])))
@@ -165,13 +168,12 @@ print('\nWorking on per-HEALPix pixel Gaussian skewer files...')
 start_time = time.time()
 
 #Define the pixelisation process.
-def pixelise_gaussian_skewers(pixel,original_file_location,original_filename_structure,input_format,master_data,pixel_list,file_number_list,z_min,new_base_file_location,new_file_structure,N_side):
-
+def pixelise_gaussian_skewers(pixel,original_file_location,original_filename_structure,input_format,shared_MOCKID_lookup,z_min,new_base_file_location,new_file_structure,N_side):
     #Define the save location for the pixel, according to the new file structure.
     location = new_base_file_location + new_file_structure.format(pixel//100,pixel)
 
     #Make file into an object
-    pixel_object = functions.make_pixel_object(pixel,original_file_location,original_filename_structure,input_format,master_data,pixel_list,file_number_list,IVAR_cutoff=IVAR_cutoff,gaussian_only=True)
+    pixel_object = functions.make_pixel_object(pixel,original_file_location,original_filename_structure,input_format,shared_MOCKID_lookup,IVAR_cutoff=IVAR_cutoff,gaussian_only=True)
 
     # TODO: These could be made beforehand and passed to the function? Or is there already enough being passed?
     #Make some useful headers
@@ -201,7 +203,9 @@ def pixelise_gaussian_skewers(pixel,original_file_location,original_filename_str
 
 #Set up the multiprocessing pool parameters and make a list of tasks.
 N_processes = int(sys.argv[1])
-tasks = [(pixel,original_file_location,original_filename_structure,input_format,master_data,pixel_list,file_number_list,z_min,new_base_file_location,new_file_structure,N_side) for pixel in pixel_list]
+manager = multiprocessing.Manager()
+shared_MOCKID_lookup = manager.dict(MOCKID_lookup)
+tasks = [(pixel,original_file_location,original_filename_structure,input_format,shared_MOCKID_lookup,z_min,new_base_file_location,new_file_structure,N_side) for pixel in pixel_list]
 
 #Run the multiprocessing pool
 if __name__ == '__main__':

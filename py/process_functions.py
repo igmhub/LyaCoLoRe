@@ -9,17 +9,21 @@ import time
 lya = 1215.67
 
 #Function to create a 'simulation_data' object given a specific pixel, information about the complete simulation, and the location/filenames of data files.
-def make_pixel_object(pixel,original_file_location,original_filename_structure,input_format,master_data,pixel_list,file_number_list,lambda_min=0,IVAR_cutoff=lya,gaussian_only=False):
+def make_pixel_object(pixel,original_file_location,original_filename_structure,input_format,MOCKID_lookup,lambda_min=0,IVAR_cutoff=lya,gaussian_only=False):
     start_mpo = time.time()
     times = []
     #Determine which file numbers we need to look at for the current pixel.
-    relevant_file_numbers = list(set([int(number_to_string(qso['MOCKID'],12)[:-7]) for qso in master_data if qso['PIXNUM'] == pixel]))
+    relevant_keys = [key for key in MOCKID_lookup.keys() if key[1]==pixel]
+    #relevant_file_numbers = list(set([int(number_to_string(qso['MOCKID'],12)[:-7]) for qso in master_data if qso['PIXNUM'] == pixel]))
     files_included = 0
     times+=[time.time()-start_mpo-sum(times)]
     #For each relevant file, extract the data and aggregate over all files into a 'combined' object.
-    for file_number in relevant_file_numbers:
+    for key in relevant_keys:
+    #for file_number in relevant_file_numbers:
         #Get the MOCKIDs of the relevant quasars: those that are located in the current pixel, stored in the current file.
-        relevant_MOCKIDs = [qso['MOCKID'] for qso in master_data if qso['PIXNUM']==pixel and int(number_to_string(qso['MOCKID'],12)[:-7])==file_number]
+        file_number = key[0]
+        #relevant_MOCKIDs = [qso['MOCKID'] for qso in master_data if qso['PIXNUM']==pixel and int(number_to_string(qso['MOCKID'],12)[:-7])==file_number]
+        relevant_MOCKIDs = MOCKID_lookup[key]
         N_relevant_qso = len(relevant_MOCKIDs)
         times+=[time.time()-start_mpo-sum(times)]
         #If there are some relevant quasars, open the data file and make it into a simulation_data object.
@@ -37,7 +41,7 @@ def make_pixel_object(pixel,original_file_location,original_filename_structure,i
             files_included += 1
         times+=[time.time()-start_mpo-sum(times)]
     pixel_object = combined
-    print([round(time/sum(times),3) for time in times])
+    #print([round(time,3) for time in times],[round(time/sum(times),3) for time in times])
     return pixel_object
 
 #Function to create a file structure based on a set of numbers, of the form "x//100"/"x".
@@ -270,6 +274,15 @@ def get_ID_data(original_file_location,original_filename_structure,file_number,i
     #Join the pieces of the ID_data together.
     ID_data = list(zip(RA,DEC,Z_QSO_NO_RSD,Z_QSO_RSD,MOCKID,pixel_ID))
 
+    #Make file-pixel map element and MOCKID lookup.
+    pixel_ID_set = list(sorted(set([pixel for pixel in pixel_ID if pixel>=0])))
+    file_pixel_map_element = np.zeros(N_pixels)
+    MOCKID_lookup_element = {}
+    for pixel in pixel_ID_set:
+        file_pixel_map_element[pixel] = 1
+        MOCKID_pixel_list = [MOCKID[i] for i in range(len(pixel_ID)) if pixel_ID[i]==pixel]
+        MOCKID_lookup_element = {**MOCKID_lookup_element,**{(file_number,pixel):MOCKID_pixel_list}}
+
     #Sort the MOCKIDs and pixel_IDs into the right order: first by pixel number, and then by MOCKID.
     dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z_QSO_NO_RSD', '>f4'), ('Z_QSO_RSD', '>f4'), ('MOCKID', int), ('PIXNUM', int)]
     ID = np.array(ID_data, dtype=dtype)
@@ -280,26 +293,37 @@ def get_ID_data(original_file_location,original_filename_structure,file_number,i
     dtype = [('R', '>f4'), ('Z', '>f4'), ('D', '>f4'), ('V', '>f4')]
     cosmology = np.array(cosmology_data,dtype=dtype)
 
-    return ID_sort, cosmology
+    return file_number, ID_sort, cosmology, file_pixel_map_element, MOCKID_lookup_element
 
 #Function to join together the outputs from 'get_ID_data' in several multiprocessing processes.
-def join_ID_data(results):
+def join_ID_data(results,N_side):
 
+    file_numbers = []
     master_results = []
     bad_coordinates_results = []
     cosmology_results = []
+    file_pixel_map_results = []
+    MOCKID_lookup = {}
 
     for result in results:
-        ID_result = result[0]
+        file_numbers += [result[0]]
+        ID_result = result[1]
         master_results += [ID_result[ID_result['PIXNUM']>=0]]
         bad_coordinates_results += [ID_result[ID_result['PIXNUM']<0]]
-        cosmology_results += [result[1]]
+        cosmology_results += [result[2]]
+        file_pixel_map_results += [result[3]]
+        MOCKID_lookup = {**MOCKID_lookup,**result[4]}
+
+    file_pixel_map = np.zeros((max(file_numbers)+1,12*(N_side**2)))
+    for i, file_number in enumerate(file_numbers):
+        file_pixel_map[file_number,:] = file_pixel_map_results[i]
 
     master_data = np.concatenate(master_results)
     bad_coordinates_data = np.concatenate(bad_coordinates_results)
     cosmology_data = np.concatenate(cosmology_results)
+    file_pixel_map = np.vstack(file_pixel_map_results)
 
-    return master_data, bad_coordinates_data, cosmology_data
+    return master_data, bad_coordinates_data, cosmology_data, file_pixel_map, MOCKID_lookup
 
 #Function to write a single ID file, given the data.
 def write_ID(filename,ID_data,cosmology_data,N_side):
@@ -331,6 +355,7 @@ def write_DRQ(filename,RSD_option,ID_data,N_side):
     DEC = ID_data['DEC']
     Z = ID_data['Z_QSO'+'_'+RSD_option]
     THING_ID = ID_data['MOCKID']
+    PIXNUM = ID_data['PIXNUM']
     N_qso = RA.shape[0]
 
     #Fill in the data that is not specified.
@@ -339,8 +364,8 @@ def write_DRQ(filename,RSD_option,ID_data,N_side):
     PLATE = THING_ID
 
     #Make the data array.
-    dtype = [('RA','>f4'),('DEC','>f4'),('Z','>f4'),('THING_ID',int),('MJD','>f4'),('FIBERID',int),('PLATE',int)]
-    DRQ_data = np.array(list(zip(RA,DEC,Z,THING_ID,MJD,FID,PLATE)),dtype=dtype)
+    dtype = [('RA','>f4'),('DEC','>f4'),('Z','>f4'),('THING_ID',int),('MJD','>f4'),('FIBERID',int),('PLATE',int),('PIXNUM',int)]
+    DRQ_data = np.array(list(zip(RA,DEC,Z,THING_ID,MJD,FID,PLATE,PIXNUM)),dtype=dtype)
 
     #Make an appropriate header.
     header = fits.Header()
