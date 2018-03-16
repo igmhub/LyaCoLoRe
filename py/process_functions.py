@@ -1074,7 +1074,13 @@ class simulation_data:
         last_relevant_cell = self.N_cells - 1
 
         #Determine the relevant QSOs: those that have relevant cells (IVAR > 0) beyond the first_relevant_cell.
-        relevant_QSOs = [i for i in range(self.N_qso) if self.IVAR_rows[i,first_relevant_cell] == 1]
+        #We impose a minimum number of cells per skewer here to avoid problems with picca.
+        min_number_cells = 2
+        relevant_QSOs = []
+        for i in range(self.N_qso):
+            min_relevant_cells = self.IVAR_rows[i,first_relevant_cell:(first_relevant_cell+min_number_cells)]
+            if np.sum(min_relevant_cells)==min_number_cells:
+                relevant_QSOs += [i]
 
         #Trim data according to the relevant cells and QSOs.
         relevant_GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
@@ -1165,7 +1171,13 @@ class simulation_data:
         last_relevant_cell = self.N_cells - 1
 
         #Determine the relevant QSOs: those that have relevant cells (IVAR > 0) beyond the first_relevant_cell.
-        relevant_QSOs = [i for i in range(self.N_qso) if self.IVAR_rows[i,first_relevant_cell] == 1]
+        #We impose a minimum number of cells per skewer here to avoid problems with picca.
+        min_number_cells = 2
+        relevant_QSOs = []
+        for i in range(self.N_qso):
+            min_relevant_cells = self.IVAR_rows[i,first_relevant_cell:(first_relevant_cell+min_number_cells)]
+            if np.sum(min_relevant_cells)==min_number_cells:
+                relevant_QSOs += [i]
 
         #Trim data according to the relevant cells and QSOs.
         relevant_DENSITY_DELTA_rows = self.DENSITY_DELTA_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
@@ -1260,7 +1272,13 @@ class simulation_data:
         last_relevant_cell = self.N_cells - 1
 
         #Determine the relevant QSOs: those that have relevant cells (IVAR > 0) beyond the first_relevant_cell.
-        relevant_QSOs = [i for i in range(self.N_qso) if self.IVAR_rows[i,first_relevant_cell] == 1]
+        #We impose a minimum number of cells per skewer here to avoid problems with picca.
+        min_number_cells = 2
+        relevant_QSOs = []
+        for i in range(self.N_qso):
+            min_relevant_cells = self.IVAR_rows[i,first_relevant_cell:(first_relevant_cell+min_number_cells)]
+            if np.sum(min_relevant_cells)==min_number_cells:
+                relevant_QSOs += [i]
 
         #Trim data according to the relevant cells and QSOs.
         relevant_F_rows = self.F_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
