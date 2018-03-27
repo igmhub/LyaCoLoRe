@@ -35,7 +35,7 @@ def visual_fit(filename,b_values,beta_values,model,data_parameters,z):
 
                     r_model,xi_model_values = get_model_xi(model,[b1,b2],[beta1,beta2],data_parameters,z,b_from_z=False)
 
-                    for key in xi_model_values.keys:
+                    for key in xi_model_values.keys():
                         model_label = 'b_{}={}, beta_{}={}, b_{}={}, beta_{}={}, mu={}'.format(quantity1,b1,quantity1,beta1,quantity2,b2,quantity2,beta2,key)
                         plt.plot(r_model,xi_model_values[key]*(r_model**2),label=model_label)
 
