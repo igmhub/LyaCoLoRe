@@ -56,6 +56,9 @@ def get_model_xi(model,bs,betas,data_parameters,z,b_from_z=True):
     beta1 = betas[0]
     beta2 = betas[1]
 
+    quantity1 = data_parameters['quantity'][0]
+    quantity2 = data_parameters['quantity'][1]
+
     if model == 'no_beta':
         sr = data_parameters['sr']
 
@@ -65,9 +68,6 @@ def get_model_xi(model,bs,betas,data_parameters,z,b_from_z=True):
         xi = np.loadtxt(file_location)[:,1]
 
         #Calculate the appropriate scaling
-        quantity1 = data_parameters['quantity'][0]
-        quantity2 = data_parameters['quantity'][1]
-
         if b_from_z:
             scaling = scale_quantity(z,quantity1)*scale_quantity(z,quantity2)
         else:
@@ -130,25 +130,34 @@ def get_C2(B1,B2):
 def get_C4(B1,B2):
     return (8/35)*B1*B2
 
+def get_growth_factor(z):
+
+    h = fits.open('/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZ_4096_32_sr1.0_nside8/nside_8_master.fits')
+    D = h[2].data['D']
+    z_D = h[2].data['Z']
+    D_at_z0 = np.interp(0,z_D,D)
+    D_at_zval = np.interp(z,z_D,D)
+
+    return D_at_z0, D_at_zval
+
+def get_quasar_bias(z):
+
+    bias_data = np.loadtxt('/global/homes/j/jfarr/Projects/run_CoLoRe/input_files/Bz_qso.txt')
+    z_bq = bias_data[0,:]
+    bq = bias_data[1,:]
+    bq_at_zval = np.interp(z,z_bq,bq)
+
+    return bq_at_zval
 
 def scale_quantity(z,quantity,ignore_b=False):
     factor = 1
 
-    #Get from master file
-    h = fits.open('/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZ_4096_32_sr1.0_nside8/nside_8_master.fits')
-    D = h[2].data['D']
-    z_D = h[2].data['Z']
+    D_at_z0, D_at_zval = get_growth_factor(z)
 
     if not ignore_b:
-        bias_data = np.loadtxt('/global/homes/j/jfarr/Projects/run_CoLoRe/input_files/Bz_qso.txt')
-        z_bq = bias_data[0,:]
-        bq = bias_data[1,:]
-        bq_at_zval = np.interp(z,z_bq,bq)
+        bq_at_zval = get_quasar_bias(z)
     else:
         bq_at_zval = 1
-
-    D_at_z0 = np.interp(0,z_D,D)
-    D_at_zval = np.interp(z,z_D,D)
 
     if quantity == 'G':
         factor *= 1
