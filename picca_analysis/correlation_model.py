@@ -33,10 +33,11 @@ def visual_fit(filename,b_values,beta_values,model,data_parameters,z):
             for b2 in b_values[quantity2]:
                 for beta2 in beta_values[quantity2]:
 
-                    r_model,xi_model = get_model_xi(model,[b1,b2],[beta1,beta2],data_parameters,z,b_from_z=False)
+                    r_model,xi_model_values = get_model_xi(model,[b1,b2],[beta1,beta2],data_parameters,z,b_from_z=False)
 
-                    model_label = 'b_{}={}, beta_{}={}, b_{}={}, beta_{}={}'.format(quantity1,b1,quantity1,beta1,quantity2,b2,quantity2,beta2)
-                    plt.plot(r_model,xi_model*(r_model**2),label=model_label)
+                    for key in xi_model_values.keys:
+                        model_label = 'b_{}={}, beta_{}={}, b_{}={}, beta_{}={}, mu={}'.format(quantity1,b1,quantity1,beta1,quantity2,b2,quantity2,beta2,key)
+                        plt.plot(r_model,xi_model_values[key]*(r_model**2),label=model_label)
 
     plt.axhline(y=0,color='gray',ls=':')
     plt.xlabel('r [Mpc/h]')
@@ -84,14 +85,13 @@ def get_model_xi(model,bs,betas,data_parameters,z,b_from_z=True):
         k_old = Pk_CAMB[:,0]
         P_old = Pk_CAMB[:,1]
 
-        mu_values = [1.0]
+        mu_values = [0.0,0.5,0.8,0.95,1.0]
 
         k_min = -4
         k_max = 3
         k_num = 5
 
         xi_values = {}
-        r_values = {}
 
         for mu in mu_values:
 
@@ -111,15 +111,13 @@ def get_model_xi(model,bs,betas,data_parameters,z,b_from_z=True):
             C2 = get_C2(beta1,beta2)
             C4 = get_C4(beta1,beta2)
 
-            xi = (b1*b2)*(scale_quantity(z,quantity1,ignore_b=True))*(scale_quantity(z,quantity2,ignore_b=True))(C0*xi0*P_mu_0 + C2*xi2*P_mu_2 + C4*xi4*P_mu_4)
+            growth_factor_scaling = scale_quantity(z,quantity1,ignore_b=True)*scale_quantity(z,quantity2,ignore_b=True)
+            xi = (b1*b2)*growth_factor_scaling*(C0*xi0*P_mu_0 + C2*xi2*P_mu_2 + C4*xi4*P_mu_4)
 
-            new_xi_value = {(k_min,k_max,k_num): xi}
+            new_xi_value = {mu: xi}
             xi_values = {**xi_values,**new_xi_value}
 
-            new_r_value = {(k_min,k_max,k_num): r}
-            r_values = {**r_values,**new_r_value}
-
-    return r, xi
+    return r, xi_values
 
 def get_C0(B1,B2):
     return 1 + (1/3)*(B1+B2) + (1/5)*B1*B2
