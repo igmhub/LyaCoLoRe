@@ -22,7 +22,7 @@ def get_parameters_from_filename(file_path):
 
     for parameter in parameters.keys():
         if parameter in filename:
-            i_pvs = int(filename.find(parameter)+len(parameter))
+            i_pvs = int(filename.find('_'+parameter)+len(parameter)+1)
             i_pve = int(i_pvs + filename[i_pvs:].find('_'))
             if i_pve < i_pvs:
                 i_pve = int(i_pvs + filename[i_pvs:].find('.fits'))
