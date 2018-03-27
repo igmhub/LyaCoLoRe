@@ -109,7 +109,7 @@ def add_CAMB_Pk(location,filename,z,mu,RSDOPTION='NO_RSD',CAMB_input='xi'):
     Pk = data[:,1]
     return
 
-def plot_per_bin(mubins,filenames,CAMB_sr,plot_label_parameters):
+def plot_per_bin(mubins,filenames,add_CAMB,plot_label_parameters,CAMB_sr=None):
 
     for mubin in mubins:
 
@@ -146,7 +146,7 @@ def plot_per_bin(mubins,filenames,CAMB_sr,plot_label_parameters):
         #plt.xlim(70,120)
         #plt.savefig('xi_wedge_{}_{}_BAO_zoom.pdf'.format(mumin,mumax))
 
-def plot_per_file(mubins,filenames,CAMB_sr,plot_label_parameters):
+def plot_per_file(mubins,filenames,add_CAMB,plot_label_parameters,CAMB_sr=None):
 
     for filename in filenames:
 

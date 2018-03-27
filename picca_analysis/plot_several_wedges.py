@@ -52,9 +52,9 @@ for i in range(len(mubin_boundaries)-1):
 N_bins = len(mubins)
 
 if mode == 'plot_per_bin':
-    plot_functions.plot_per_bin(mubins,filenames,CAMB_sr,plot_label_parameters)
+    plot_functions.plot_per_bin(mubins,filenames,add_CAMB,plot_label_parameters,CAMB_sr=CAMB_sr)
 elif mode == 'plot_per_file':
-    plot_functions.plot_per_file(mubins,filenames,CAMB_sr,plot_label_parameters)
+    plot_functions.plot_per_file(mubins,filenames,add_CAMB,plot_label_parameters,CAMB_sr=CAMB_sr)
 else:
     error('Mode not recognised.')
 
