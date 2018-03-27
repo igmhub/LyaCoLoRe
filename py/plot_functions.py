@@ -6,17 +6,17 @@ import sys
 from numpy import linalg
 import mcfit
 
-def get_parameters_from_filename(filename):
+def get_parameters_from_filename(file_path):
 
     default_cf_parameters = {'correlation': 'cf', 'nside': 8, 'sr': 2.0, 'rpmax': 200.0, 'rpmin': 0.0, 'rtmax': 200.0, 'np': 50, 'nt': 50, 'nr': 100, 'rmax': 200.0, 'zmin': 0.0, 'zmax': 4.0, 'quantity': 'GG'}
     default_xcf_parameters = {'correlation': 'xcf', 'nside': 8, 'sr': 2.0, 'rpmax': 200.0, 'rpmin': -200.0, 'rtmax': 200.0, 'np': 100, 'nt': 50, 'nr': 100, 'rmax': 200.0, 'zmin': 0.0, 'zmax': 4.0, 'quantity': 'Gq'}
 
-    last_slash = filename[::-1].find('/')
-    filename = filename[len(filename)-last_slash:]
-    
-    if filename[first_underscore-3:first_underscore] == 'xcf':
+    last_slash = file_path[::-1].find('/')
+    filename = file_path[len(file_path)-last_slash:]
+
+    if filename[:3] == 'xcf':
         parameters = default_xcf_parameters
-    elif filename[first_underscore-2:first_underscore] == 'cf':
+    elif filename[:2] == 'cf':
         parameters = default_cf_parameters
 
     for parameter in parameters.keys():
@@ -31,15 +31,15 @@ def get_parameters_from_filename(filename):
 
     return parameters
 
-def get_plot_data(mumin,mumax,filename):
+def get_plot_data(mumin,mumax,file_path):
 
     #Read data from the filename to know how to wedgize etc
     #filename format: ${CORRELTYPE}_${NPIXELS}_${BRANCH}_${OPTION}_${RSDOPTION}_rpmin${RPMIN}_rpmax${RPMAX}_rtmax${RTMAX}_np${NP}_nt${NT}_zmin${ZQSOMIN}_zmax${ZQSOMAX}.fits.gz
-    parameters = get_parameters_from_filename(filename)
+    parameters = get_parameters_from_filename(file_path)
 
     #file_parameters = {**file_parameters,**{filename:parameters}}
 
-    h = fits.open(filename)
+    h = fits.open(file_path)
     data = h[1].data
 
     b = wedgize.wedge(mumin=mumin,mumax=mumax,rtmax=parameters['rtmax'],
