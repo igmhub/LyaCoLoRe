@@ -11,7 +11,9 @@ def get_parameters_from_filename(filename):
     default_cf_parameters = {'correlation': 'cf', 'nside': 8, 'sr': 2.0, 'rpmax': 200.0, 'rpmin': 0.0, 'rtmax': 200.0, 'np': 50, 'nt': 50, 'nr': 100, 'rmax': 200.0, 'zmin': 0.0, 'zmax': 4.0, 'quantity': 'GG'}
     default_xcf_parameters = {'correlation': 'xcf', 'nside': 8, 'sr': 2.0, 'rpmax': 200.0, 'rpmin': -200.0, 'rtmax': 200.0, 'np': 100, 'nt': 50, 'nr': 100, 'rmax': 200.0, 'zmin': 0.0, 'zmax': 4.0, 'quantity': 'Gq'}
 
-    first_underscore = filename.find('_')
+    last_slash = filename[::-1].find('/')
+    filename = filename[len(filename)-last_slash:]
+    
     if filename[first_underscore-3:first_underscore] == 'xcf':
         parameters = default_xcf_parameters
     elif filename[first_underscore-2:first_underscore] == 'cf':
