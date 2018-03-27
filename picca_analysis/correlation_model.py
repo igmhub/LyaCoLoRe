@@ -7,7 +7,7 @@ import plot_functions
 
 def visual_fit(filename,b_values,beta_values,model,data_parameters,z):
 
-    mubin_boundaries = [0.0,0.5,0.8,0.95,1.0]
+    mubin_boundaries = [0.0,1.0]
     mubins = []
     for i in range(len(mubin_boundaries)-1):
         mubins += [(mubin_boundaries[i],mubin_boundaries[i+1])]
@@ -38,6 +38,7 @@ def visual_fit(filename,b_values,beta_values,model,data_parameters,z):
                     for key in xi_model_values.keys():
                         model_label = 'b_{}={}, beta_{}={}, b_{}={}, beta_{}={}, mu={}'.format(quantity1,b1,quantity1,beta1,quantity2,b2,quantity2,beta2,key)
                         plt.plot(r_model,xi_model_values[key]*(r_model**2),label=model_label)
+                        #plt.plot(r[cut],(xi_wed[cut])/(np.interp(r[cut],r_model,xi_model_values[key])),label='(RATIO): '+model_label)
 
     plt.axhline(y=0,color='gray',ls=':')
     plt.xlabel('r [Mpc/h]')
@@ -86,7 +87,7 @@ def get_model_xi(model,bs,betas,data_parameters,z,b_from_z=True):
         k_old = Pk_CAMB[:,0]
         P_old = Pk_CAMB[:,1]
 
-        mu_values = [0.0,0.5,0.8,0.95,1.0]
+        mu_values = [0.0]
 
         k_min = -4
         k_max = 3
@@ -112,8 +113,8 @@ def get_model_xi(model,bs,betas,data_parameters,z,b_from_z=True):
             C2 = get_C2(beta1,beta2)
             C4 = get_C4(beta1,beta2)
 
-            print(C0,C2,C4)
             scaling = get_growth_factor_scaling(z,quantity1)*get_growth_factor_scaling(z,quantity2)
+
             if b_from_z:
                 scaling *= get_bias(z,quantity1)*get_bias(z,quantity2)
             else:
@@ -149,11 +150,11 @@ def get_growth_factor_scaling(z,quantity):
     else:
         print('quantity not recognised')
 
-    return D_at_z0, D_at_zval
+    return D_at_zval/D_at_z0
 
 def get_bias(z,quantity):
 
-    if quantity = 'q':
+    if quantity == 'q':
         bias_data = np.loadtxt('/global/homes/j/jfarr/Projects/run_CoLoRe/input_files/Bz_qso.txt')
         z_bq = bias_data[0,:]
         bq = bias_data[1,:]
