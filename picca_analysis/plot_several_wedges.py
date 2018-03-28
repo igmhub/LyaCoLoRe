@@ -19,13 +19,8 @@ print('The cf_exp_out file(s) to wedgize are:')
 for filename in filenames:
     print(filename)
 
-#Set the default parameter values for wedgizing. These match picca's defaults
-default_cf_parameters = {'nside': 8, 'sr': 2.0, 'rpmax': 200.0, 'rpmin': 0.0, 'rtmax': 200.0, 'np': 50, 'nt': 50, 'nr': 100, 'rmax': 200.0, 'zmin': 0.0, 'zmax': 4.0}
-default_xcf_parameters = {'nside': 8, 'sr': 2.0, 'rpmax': 200.0, 'rpmin': -200.0, 'rtmax': 200.0, 'np': 100, 'nt': 50, 'nr': 100, 'rmax': 200.0, 'zmin': 0.0, 'zmax': 4.0}
-file_parameters = {}
-
 #Set the parameters to label plots by
-plot_label_parameters = ['zmin','zmax']
+plot_label_parameters = ['correlation','quantity']
 
 #Either plot_per_file (i.e. each file gets its own plot, showing all mu bins)
 #Or plot_per_bin (i.e. each mu bin has its own plot, but all files are grouped)
@@ -44,7 +39,7 @@ CAMB_filename = 'camb_xi_{}.txt'
 
 #Set up the bins of mu.
 #ith bin is the range mubins[i]:mubins[i+1]
-mubin_boundaries = [0.0,0.5,0.8,0.95,1.0]
+mubin_boundaries = [0.0,1.0]
 
 mubins = []
 for i in range(len(mubin_boundaries)-1):

@@ -139,7 +139,10 @@ def plot_per_bin(mubins,filenames,add_CAMB,plot_label_parameters,CAMB_sr=None):
             plt.ylabel('r^2 xi(r)')
             plt.grid(True, which='both')
             plt.title('correlation function, {} < mu < {}'.format(mumin,mumax))
-
+            #try:
+            #    plt.plot(rplotold,xiplotold/xi_wed[cut])
+            #except:
+            #    rplotold=r[cut];xiplotold=xi_wed[cut]
         if add_CAMB == True:
             for i,sr in enumerate(CAMB_sr):
                 print(scale_CAMB[i]);add_CAMB_to_plot(CAMB_location,CAMB_filename.format(sr),scale_CAMB[i])
