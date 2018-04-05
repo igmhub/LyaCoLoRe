@@ -21,8 +21,8 @@ assessment_method = 'visual' #'visual', 'chi2'
 parameter_sampling_method = 'grid' #'grid', 'MC'
 
 from numpy import linspace as ls
-b_values =      {'G': ls(1.0,1.0,1), 'D': ls(1.0,2.0,2), 'F': ls(1.0,2.0,2), 'q': ls(2.95,2.95,1)}
-beta_values =   {'G': ls(0.0,0.0,1), 'D': ls(0.0,2.0,2), 'F': ls(0.0,2.0,2), 'q': ls(0.0,0.0,1)}
+b_values =      {'G': ls(1.0,1.0,1), 'D': ls(1.0,1.0,1), 'F': ls(1.0,2.0,2), 'q': ls(2.95,2.95,1)}
+beta_values =   {'G': ls(0.0,0.0,1), 'D': ls(0.0,0.0,1), 'F': ls(0.0,2.0,2), 'q': ls(0.0,0.0,1)}
 
 zmin = data_parameters['zmin']
 zmax = data_parameters['zmax']
