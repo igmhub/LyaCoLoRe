@@ -53,7 +53,7 @@ def visual_fit(filename,b_values,beta_values,model,data_parameters,z):
     return
 
 
-def get_model_xi(model,bs,betas,data_parameters,z,b_from_z=True):
+def get_model_xi(model,bs,betas,data_parameters,z,b_from_z=False):
 
     b1 = bs[0]
     b2 = bs[1]
