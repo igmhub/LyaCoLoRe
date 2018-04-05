@@ -310,7 +310,8 @@ def join_ID_data(results,N_side):
         ID_result = result[1]
         master_results += [ID_result[ID_result['PIXNUM']>=0]]
         bad_coordinates_results += [ID_result[ID_result['PIXNUM']<0]]
-        cosmology_results += [result[2]]
+        # TODO: Something to check that all cosmology results are the same
+        cosmology_results = [result[2]]
         file_pixel_map_results += [result[3]]
         MOCKID_lookup = {**MOCKID_lookup,**result[4]}
 
