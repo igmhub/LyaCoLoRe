@@ -46,6 +46,8 @@ def visual_fit(filename,b_values,beta_values,model,data_parameters,z):
     plt.grid(True, which='both')
     plt.legend()
     plt.xlim(0,200)
+    #Make this more sensible filename
+    plt.savefig('fit_picca_visual.pdf')
     plt.show()
 
     return
