@@ -115,7 +115,7 @@ def add_CAMB_Pk(location,filename,z,mu,RSDOPTION='NO_RSD',CAMB_input='xi'):
     Pk = data[:,1]
     return
 
-def plot_per_bin(mubins,filenames,add_CAMB,plot_label_parameters,CAMB_sr=None):
+def plot_per_bin(mubins,filenames,add_CAMB,plot_label_parameters,CAMB_sr=None,scale_CAMB=None):
 
     for mubin in mubins:
 
@@ -130,8 +130,9 @@ def plot_per_bin(mubins,filenames,add_CAMB,plot_label_parameters,CAMB_sr=None):
             plot_label = ''
             for parameter in plot_label_parameters:
                 plot_label += '{}: {}, '.format(parameter,parameters[parameter])
+            #plot_label += filename[filename.find('zmax2.2')+8:filename.find('.fits')]
             plot_label = plot_label[:-2]
-
+            
             plt.errorbar(r[cut],xi_wed[cut]*(r[cut]**2),yerr=err_wed[cut]*(r[cut]**2),fmt='o',label=plot_label)
 
             plt.axhline(y=0,color='gray',ls=':')
@@ -145,7 +146,7 @@ def plot_per_bin(mubins,filenames,add_CAMB,plot_label_parameters,CAMB_sr=None):
             #    rplotold=r[cut];xiplotold=xi_wed[cut]
         if add_CAMB == True:
             for i,sr in enumerate(CAMB_sr):
-                print(scale_CAMB[i]);add_CAMB_to_plot(CAMB_location,CAMB_filename.format(sr),scale_CAMB[i])
+                print(scale_CAMB[i]);add_CAMB_xi(CAMB_location,CAMB_filename.format(sr),scale_CAMB[i])
 
         #save figure
         plt.legend(loc=3)
@@ -155,7 +156,7 @@ def plot_per_bin(mubins,filenames,add_CAMB,plot_label_parameters,CAMB_sr=None):
         #plt.xlim(70,120)
         #plt.savefig('xi_wedge_{}_{}_BAO_zoom.pdf'.format(mumin,mumax))
 
-def plot_per_file(mubins,filenames,add_CAMB,plot_label_parameters,CAMB_sr=None):
+def plot_per_file(mubins,filenames,add_CAMB,plot_label_parameters,CAMB_sr=None,scale_CAMB=None):
 
     for filename in filenames:
 
@@ -177,7 +178,7 @@ def plot_per_file(mubins,filenames,add_CAMB,plot_label_parameters,CAMB_sr=None):
 
         if add_CAMB == True:
             for i,sr in enumerate(CAMB_sr):
-                add_CAMB_to_plot(CAMB_location,CAMB_filename.format(sr),scale_CAMB[i])
+                add_CAMB_xi(CAMB_location,CAMB_filename.format(sr),scale_CAMB[i])
 
         #save figure
         plt.legend(loc=3)
