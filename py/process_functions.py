@@ -9,39 +9,35 @@ import time
 lya = 1215.67
 
 #Function to create a 'simulation_data' object given a specific pixel, information about the complete simulation, and the location/filenames of data files.
-def make_pixel_object(pixel,original_file_location,original_filename_structure,input_format,MOCKID_lookup,lambda_min=0,IVAR_cutoff=lya,gaussian_only=False):
-    start_mpo = time.time()
-    times = []
+def make_gaussian_pixel_object(pixel,original_file_location,original_filename_structure,input_format,MOCKID_lookup,lambda_min=0,IVAR_cutoff=lya):
+
     #Determine which file numbers we need to look at for the current pixel.
     relevant_keys = [key for key in MOCKID_lookup.keys() if key[1]==pixel]
-    #relevant_file_numbers = list(set([int(number_to_string(qso['MOCKID'],12)[:-7]) for qso in master_data if qso['PIXNUM'] == pixel]))
     files_included = 0
-    times+=[time.time()-start_mpo-sum(times)]
+
     #For each relevant file, extract the data and aggregate over all files into a 'combined' object.
     for key in relevant_keys:
-    #for file_number in relevant_file_numbers:
         #Get the MOCKIDs of the relevant quasars: those that are located in the current pixel, stored in the current file.
         file_number = key[0]
-        #relevant_MOCKIDs = [qso['MOCKID'] for qso in master_data if qso['PIXNUM']==pixel and int(number_to_string(qso['MOCKID'],12)[:-7])==file_number]
         relevant_MOCKIDs = MOCKID_lookup[key]
         N_relevant_qso = len(relevant_MOCKIDs)
-        times+=[time.time()-start_mpo-sum(times)]
+
         #If there are some relevant quasars, open the data file and make it into a simulation_data object.
         #We use simulation_data.get_reduced_data to avoid loading all of the file's data into the object.
         if N_relevant_qso > 0:
             filename = original_file_location + '/' + original_filename_structure.format(file_number)
-            working = simulation_data.get_reduced_data(filename,file_number,input_format,relevant_MOCKIDs,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff,gaussian_only=gaussian_only)
-        times+=[time.time()-start_mpo-sum(times)]
+            working = simulation_data.get_gaussian_skewers(filename,file_number,input_format,relevant_MOCKIDs,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff)
+
         #Combine the data from the working file with that from the files already looked at.
         if files_included > 0:
-            combined = simulation_data.combine_files(combined,working,gaussian_only=gaussian_only)
+            combined = simulation_data.combine_files(combined,working,gaussian_only=True)
             files_included += 1
         else:
             combined = working
             files_included += 1
-        times+=[time.time()-start_mpo-sum(times)]
+
     pixel_object = combined
-    #print([round(time,3) for time in times],[round(time/sum(times),3) for time in times])
+
     return pixel_object
 
 #Function to create a file structure based on a set of numbers, of the form "x//100"/"x".
@@ -384,16 +380,14 @@ def write_DRQ(filename,RSD_option,ID_data,N_side):
     return
 
 #From lya_mock_p1d.py
-def get_tau(z,density):
+def get_tau(z,density,A,alpha=1.0):
     """transform lognormal density to optical depth, at each z"""
     # add redshift evolution to mean optical depth
-    alpha = 1.0
     A = 0.374*pow((1+z)/4.0,5.10)
 
     TAU_rows = A*(density**alpha)
-    #F = np.exp(-TAU_rows)
 
-    return A, alpha, TAU_rows
+    return TAU_rows
 
 #Function to make ivar mask
 def make_IVAR_rows(lya,Z_QSO,LOGLAM_MAP):
@@ -523,7 +517,6 @@ def return_means(DELTA_rows,weights,sample_pc=1.0):
 
     return N, mean_DELTA, mean_DELTA_SQUARED
 
-
 #Function to take a list of sets of statistics (as produced by 'get_statistics'), and calculate means and variances.
 def combine_means(means_list):
 
@@ -620,178 +613,9 @@ class simulation_data:
 
         return
 
-    #Method to extract all data from an input file of a given format.
-    @classmethod
-    def get_all_data(cls,filename,file_number,input_format,lambda_min=0,IVAR_cutoff=lya,SIGMA_G=None,gaussian_only=False):
-
-        lya = 1215.67
-        h = fits.open(filename)
-
-        h_R, h_Z, h_D, h_V = get_COSMO(h,input_format)
-        h_lya_lambdas = get_lya_lambdas(h,input_format)
-
-        #Calculate the first_relevant_cell.
-        first_relevant_cell = np.argmax(h_lya_lambdas >= lambda_min)
-
-        if input_format == 'physical_colore':
-
-            #Extract data from the HDUlist.
-            TYPE = h[1].data['TYPE']
-            RA = h[1].data['RA']
-            DEC = h[1].data['DEC']
-            Z_QSO = h[1].data['Z_COSMO']
-            DZ_RSD = h[1].data['DZ_RSD']
-            DENSITY_DELTA_rows = h[2].data[:,first_relevant_cell:]
-            VEL_rows = h[3].data[:,first_relevant_cell:]
-            Z = h[4].data['Z'][first_relevant_cell:]
-            R = h[4].data['R'][first_relevant_cell:]
-            D = h[4].data['D'][first_relevant_cell:]
-            V = h[4].data['V'][first_relevant_cell:]
-
-            #Derive the number of quasars and cells in the file.
-            N_qso = RA.shape[0]
-            N_cells = Z.shape[0]
-            if SIGMA_G == None:
-                SIGMA_G = h[4].header['SIGMA_G']
-
-            #Derive the MOCKID and LOGLAM_MAP.
-            MOCKID = get_MOCKID(h,input_format,file_number)
-            LOGLAM_MAP = np.log10(lya*(1+Z))
-
-            #Calculate the Gaussian skewers.
-            GAUSSIAN_DELTA_rows = lognormal_to_gaussian(DENSITY_DELTA_rows,SIGMA_G,D)
-
-            if not gaussian_only:
-                #Calculate the transmitted flux.
-                A,ALPHA,TAU_rows = get_tau(Z,DENSITY_DELTA_rows+1)
-                F_rows = np.exp(-TAU_rows)
-            else:
-                A = None
-                ALPHA = None
-                TAU_rows = None
-                F_rows = None
-                DENSITY_DELTA_rows = None
-
-            #Insert placeholder values for remaining variables.
-            PLATE = MOCKID
-            MJD = np.zeros(N_qso)
-            FIBER = np.zeros(N_qso)
-
-            IVAR_rows = make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP)
-
-            # TODO: Think about how to do this. Also make sure to implement everwhere!
-            #Construct grouping variables for appearance.
-            #I =
-            #II =
-            #III =
-            #IV =
-
-        elif input_format == 'gaussian_colore':
-
-            #Extract data from the HDUlist.
-            TYPE = h[1].data['TYPE']
-            RA = h[1].data['RA']
-            DEC = h[1].data['DEC']
-            Z_QSO = h[1].data['Z_COSMO']
-            DZ_RSD = h[1].data['DZ_RSD']
-            GAUSSIAN_DELTA_rows = h[2].data[:,first_relevant_cell:]
-            VEL_rows = h[3].data[:,first_relevant_cell:]
-            Z = h[4].data['Z'][first_relevant_cell:]
-            R = h[4].data['R'][first_relevant_cell:]
-            D = h[4].data['D'][first_relevant_cell:]
-            V = h[4].data['V'][first_relevant_cell:]
-
-            #Derive the number of quasars and cells in the file.
-            N_qso = RA.shape[0]
-            N_cells = Z.shape[0]
-            if SIGMA_G == None:
-                SIGMA_G = h[4].header['SIGMA_G']
-
-            #Derive the MOCKID and LOGLAM_MAP.
-            MOCKID = get_MOCKID(h,input_format,file_number)
-            LOGLAM_MAP = np.log10(lya*(1+Z))
-
-            if not gaussian_only:
-                #Calculate the Gaussian skewers.
-                DENSITY_DELTA_rows = gaussian_to_lognormal(GAUSSIAN_DELTA_rows,SIGMA_G,D)
-
-                #Calculate the transmitted flux.
-                A,ALPHA,TAU_rows = get_tau(Z,DENSITY_DELTA_rows+1)
-                F_rows = np.exp(-TAU_rows)
-            else:
-                A = None
-                ALPHA = None
-                TAU_rows = None
-                F_rows = None
-                DENSITY_DELTA_rows = None
-
-            #Insert placeholder values for remaining variables.
-            PLATE = MOCKID
-            MJD = np.zeros(N_qso)
-            FIBER = np.zeros(N_qso)
-
-            IVAR_rows = make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP)
-
-        elif input_format == 'picca':
-
-            #Extract data from the HDUlist.
-            DENSITY_DELTA_rows = h[0].data.T[:,first_relevant_cell:]
-            IVAR_rows = h[1].data.T[:,first_relevant_cell:]
-            LOGLAM_MAP = h[2].data[first_relevant_cell:]
-            RA = h[3].data['RA']
-            DEC = h[3].data['DEC']
-            Z_QSO = h[3].data['Z']
-            PLATE = h[3].data['PLATE']
-            MJD = h[3].data['MJD']
-            FIBER = h[3].data['FIBER']
-            MOCKID = h[3].data['THING_ID']
-
-            #Derive the number of quasars and cells in the file.
-            N_qso = RA.shape[0]
-            N_cells = LOGLAM_MAP.shape[0]
-            if SIGMA_G == None:
-                SIGMA_G = h[4].header['SIGMA_G']
-
-            #Derive Z.
-            Z = (10**LOGLAM_MAP)/lya - 1
-
-            #Calculate the Gaussian skewers.
-            GAUSSIAN_DELTA_rows = lognormal_to_gaussian(DENSITY_DELTA_rows,SIGMA_G,D)
-
-            if not gaussian_only:
-                #Calculate the transmitted flux.
-                A,ALPHA,TAU_rows = get_tau(Z,DENSITY_DELTA_rows+1)
-                F_rows = np.exp(-TAU_rows)
-            else:
-                A = None
-                ALPHA = None
-                TAU_rows = None
-                F_rows = None
-                DENSITY_DELTA_rows = None
-
-            """
-            Can we calculate R,D,V?
-            """
-
-            #Insert placeholder variables for remaining variables.
-            TYPE = np.zeros(N_qso)
-            DZ_RSD = np.zeros(N_qso)
-            R = np.zeros(N_cells)
-            D = np.zeros(N_cells)
-            V = np.zeros(N_cells)
-            VEL_rows = np.zeros((N_qso,N_cells))
-
-        else:
-            print('Input format not recognised: current options are "colore" and "picca".')
-            print('Please choose one of these options and try again.')
-
-        h.close()
-
-        return cls(N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,F_rows,R,Z,D,V,LOGLAM_MAP,A)
-
     #Method to extract reduced data from an input file of a given format, with a given list of MOCKIDs.
     @classmethod
-    def get_reduced_data(cls,filename,file_number,input_format,MOCKIDs,lambda_min=0,IVAR_cutoff=lya,SIGMA_G=None,gaussian_only=False):
+    def get_gaussian_skewers(cls,filename,file_number,input_format,MOCKIDs=None,lambda_min=0,IVAR_cutoff=lya,SIGMA_G=None):
 
         lya = 1215.67
 
@@ -801,14 +625,17 @@ class simulation_data:
         h_R, h_Z, h_D, h_V = get_COSMO(h,input_format)
         h_lya_lambdas = get_lya_lambdas(h,input_format)
 
-        #Work out which rows in the hdulist we are interested in.
-        rows = ['']*len(MOCKIDs)
-        s = set(MOCKIDs)
-        j = 0
-        for i, qso in enumerate(h_MOCKID):
-            if qso in s:
-                rows[j] = i
-                j = j+1
+        if MOCKIDs != None:
+            #Work out which rows in the hdulist we are interested in.
+            rows = ['']*len(MOCKIDs)
+            s = set(MOCKIDs)
+            j = 0
+            for i, qso in enumerate(h_MOCKID):
+                if qso in s:
+                    rows[j] = i
+                    j = j+1
+        else:
+            rows = list(range(h_MOCKID.shape[0]))
 
         #Calculate the first_relevant_cell.
         first_relevant_cell = np.argmax(h_lya_lambdas >= lambda_min)
@@ -845,16 +672,12 @@ class simulation_data:
             #Calculate the Gaussian skewers.
             GAUSSIAN_DELTA_rows = lognormal_to_gaussian(DENSITY_DELTA_rows,SIGMA_G,D)
 
-            if not gaussian_only:
-                #Calculate the transmitted flux.
-                A,ALPHA,TAU_rows = get_tau(Z,DENSITY_DELTA_rows+1)
-                F_rows = np.exp(-TAU_rows)
-            else:
-                A = None
-                ALPHA = None
-                TAU_rows = None
-                F_rows = None
-                DENSITY_DELTA_rows = None
+            #Set the remaining variables to None
+            A = None
+            ALPHA = None
+            TAU_rows = None
+            F_rows = None
+            DENSITY_DELTA_rows = None
 
             #Insert placeholder values for remaining variables.
             PLATE = MOCKID
@@ -891,19 +714,12 @@ class simulation_data:
             MOCKID = get_MOCKID(h,input_format,file_number)
             LOGLAM_MAP = np.log10(lya*(1+Z))
 
-            if not gaussian_only:
-                #Calculate the Gaussian skewers.
-                DENSITY_DELTA_rows = gaussian_to_lognormal(GAUSSIAN_DELTA_rows,SIGMA_G,D)
-
-                #Calculate the transmitted flux.
-                A,ALPHA,TAU_rows = get_tau(Z,DENSITY_DELTA_rows+1)
-                F_rows = np.exp(-TAU_rows)
-            else:
-                A = None
-                ALPHA = None
-                TAU_rows = None
-                F_rows = None
-                DENSITY_DELTA_rows = None
+            #Set the remaining variables to None
+            A = None
+            ALPHA = None
+            TAU_rows = None
+            F_rows = None
+            DENSITY_DELTA_rows = None
 
             #Insert placeholder values for remaining variables.
             PLATE = MOCKID
@@ -941,16 +757,12 @@ class simulation_data:
             #Calculate the Gaussian skewers.
             GAUSSIAN_DELTA_rows = lognormal_to_gaussian(DENSITY_DELTA_rows,SIGMA_G,D)
 
-            if not gaussian_only:
-                #Calculate the transmitted flux.
-                A,ALPHA,TAU_rows = get_tau(Z,DENSITY_DELTA_rows+1)
-                F_rows = np.exp(-TAU_rows)
-            else:
-                A = None
-                ALPHA = None
-                TAU_rows = None
-                F_rows = None
-                DENSITY_DELTA_rows = None
+            #Set the remaining variables to None
+            A = None
+            ALPHA = None
+            TAU_rows = None
+            F_rows = None
+            DENSITY_DELTA_rows = None
 
             """
             Can we calculate DZ_RSD,R,D,V?
@@ -971,6 +783,32 @@ class simulation_data:
         h.close()
 
         return cls(N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,F_rows,R,Z,D,V,LOGLAM_MAP,A)
+
+    def add_small_scale_gaussian_fluctuations(self,dl,amplitude,white_noise=False):
+
+        #Add small scale fluctuations
+        #Redefine the necessary variables (N_cells, Z, D etc)
+        #Warning if there are already physical/flux skewers
+
+        return
+
+    #Function to add physical skewers to the object via a lognormal transformation.
+    def compute_physical_skewers(self,density_type='lognormal'):
+
+        self.DENSITY_DELTA_rows = gaussian_to_lognormal(self.GAUSSIAN_DELTA_rows,self.SIGMA_G,self.D)
+
+        return
+
+    #Function to add flux skewers to the object.
+    def compute_flux_skewers(self,A=None,alpha=1.0):
+
+        if not A:
+            A = 0.374*pow((1+self.Z)/4.0,5.10)
+
+        self.TAU_rows = get_tau(self.Z,self.DENSITY_DELTA_rows+1,A,alpha=1.0)
+        self.F_rows = np.exp(-self.TAU_rows)
+
+        return
 
     #Method to combine data from two objects into one.
     # TODO: add something to check that we can just take values from 1 of the objects
@@ -1378,6 +1216,178 @@ class simulation_data:
 
         return statistics
 
+
+    """
+    THE FUNCTIONS BELOW THIS POINT ARE CURRENTLY UNUSED, AND ARE NOT EXPECTED TO BE USED IN FUTURE.
+
+    # TODO: get rid of this function as the one below now covers it
+    #Method to extract all data from an input file of a given format.
+    @classmethod
+    def get_all_data(cls,filename,file_number,input_format,lambda_min=0,IVAR_cutoff=lya,SIGMA_G=None,gaussian_only=False):
+
+        lya = 1215.67
+        h = fits.open(filename)
+
+        h_R, h_Z, h_D, h_V = get_COSMO(h,input_format)
+        h_lya_lambdas = get_lya_lambdas(h,input_format)
+
+        #Calculate the first_relevant_cell.
+        first_relevant_cell = np.argmax(h_lya_lambdas >= lambda_min)
+
+        if input_format == 'physical_colore':
+
+            #Extract data from the HDUlist.
+            TYPE = h[1].data['TYPE']
+            RA = h[1].data['RA']
+            DEC = h[1].data['DEC']
+            Z_QSO = h[1].data['Z_COSMO']
+            DZ_RSD = h[1].data['DZ_RSD']
+            DENSITY_DELTA_rows = h[2].data[:,first_relevant_cell:]
+            VEL_rows = h[3].data[:,first_relevant_cell:]
+            Z = h[4].data['Z'][first_relevant_cell:]
+            R = h[4].data['R'][first_relevant_cell:]
+            D = h[4].data['D'][first_relevant_cell:]
+            V = h[4].data['V'][first_relevant_cell:]
+
+            #Derive the number of quasars and cells in the file.
+            N_qso = RA.shape[0]
+            N_cells = Z.shape[0]
+            if SIGMA_G == None:
+                SIGMA_G = h[4].header['SIGMA_G']
+
+            #Derive the MOCKID and LOGLAM_MAP.
+            MOCKID = get_MOCKID(h,input_format,file_number)
+            LOGLAM_MAP = np.log10(lya*(1+Z))
+
+            #Calculate the Gaussian skewers.
+            GAUSSIAN_DELTA_rows = lognormal_to_gaussian(DENSITY_DELTA_rows,SIGMA_G,D)
+
+            if not gaussian_only:
+                #Calculate the transmitted flux.
+                A,ALPHA,TAU_rows = get_tau(Z,DENSITY_DELTA_rows+1)
+                F_rows = np.exp(-TAU_rows)
+            else:
+                A = None
+                ALPHA = None
+                TAU_rows = None
+                F_rows = None
+                DENSITY_DELTA_rows = None
+
+            #Insert placeholder values for remaining variables.
+            PLATE = MOCKID
+            MJD = np.zeros(N_qso)
+            FIBER = np.zeros(N_qso)
+
+            IVAR_rows = make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP)
+
+            # TODO: Think about how to do this. Also make sure to implement everwhere!
+            #Construct grouping variables for appearance.
+            #I =
+            #II =
+            #III =
+            #IV =
+
+        elif input_format == 'gaussian_colore':
+
+            #Extract data from the HDUlist.
+            TYPE = h[1].data['TYPE']
+            RA = h[1].data['RA']
+            DEC = h[1].data['DEC']
+            Z_QSO = h[1].data['Z_COSMO']
+            DZ_RSD = h[1].data['DZ_RSD']
+            GAUSSIAN_DELTA_rows = h[2].data[:,first_relevant_cell:]
+            VEL_rows = h[3].data[:,first_relevant_cell:]
+            Z = h[4].data['Z'][first_relevant_cell:]
+            R = h[4].data['R'][first_relevant_cell:]
+            D = h[4].data['D'][first_relevant_cell:]
+            V = h[4].data['V'][first_relevant_cell:]
+
+            #Derive the number of quasars and cells in the file.
+            N_qso = RA.shape[0]
+            N_cells = Z.shape[0]
+            if SIGMA_G == None:
+                SIGMA_G = h[4].header['SIGMA_G']
+
+            #Derive the MOCKID and LOGLAM_MAP.
+            MOCKID = get_MOCKID(h,input_format,file_number)
+            LOGLAM_MAP = np.log10(lya*(1+Z))
+
+            if not gaussian_only:
+                #Calculate the Gaussian skewers.
+                DENSITY_DELTA_rows = gaussian_to_lognormal(GAUSSIAN_DELTA_rows,SIGMA_G,D)
+
+                #Calculate the transmitted flux.
+                A,ALPHA,TAU_rows = get_tau(Z,DENSITY_DELTA_rows+1)
+                F_rows = np.exp(-TAU_rows)
+            else:
+                A = None
+                ALPHA = None
+                TAU_rows = None
+                F_rows = None
+                DENSITY_DELTA_rows = None
+
+            #Insert placeholder values for remaining variables.
+            PLATE = MOCKID
+            MJD = np.zeros(N_qso)
+            FIBER = np.zeros(N_qso)
+
+            IVAR_rows = make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP)
+
+        elif input_format == 'picca':
+
+            #Extract data from the HDUlist.
+            DENSITY_DELTA_rows = h[0].data.T[:,first_relevant_cell:]
+            IVAR_rows = h[1].data.T[:,first_relevant_cell:]
+            LOGLAM_MAP = h[2].data[first_relevant_cell:]
+            RA = h[3].data['RA']
+            DEC = h[3].data['DEC']
+            Z_QSO = h[3].data['Z']
+            PLATE = h[3].data['PLATE']
+            MJD = h[3].data['MJD']
+            FIBER = h[3].data['FIBER']
+            MOCKID = h[3].data['THING_ID']
+
+            #Derive the number of quasars and cells in the file.
+            N_qso = RA.shape[0]
+            N_cells = LOGLAM_MAP.shape[0]
+            if SIGMA_G == None:
+                SIGMA_G = h[4].header['SIGMA_G']
+
+            #Derive Z.
+            Z = (10**LOGLAM_MAP)/lya - 1
+
+            #Calculate the Gaussian skewers.
+            GAUSSIAN_DELTA_rows = lognormal_to_gaussian(DENSITY_DELTA_rows,SIGMA_G,D)
+
+            if not gaussian_only:
+                #Calculate the transmitted flux.
+                A,ALPHA,TAU_rows = get_tau(Z,DENSITY_DELTA_rows+1)
+                F_rows = np.exp(-TAU_rows)
+            else:
+                A = None
+                ALPHA = None
+                TAU_rows = None
+                F_rows = None
+                DENSITY_DELTA_rows = None
+
+            #Insert placeholder variables for remaining variables.
+            TYPE = np.zeros(N_qso)
+            DZ_RSD = np.zeros(N_qso)
+            R = np.zeros(N_cells)
+            D = np.zeros(N_cells)
+            V = np.zeros(N_cells)
+            VEL_rows = np.zeros((N_qso,N_cells))
+
+        else:
+            print('Input format not recognised: current options are "colore" and "picca".')
+            print('Please choose one of these options and try again.')
+
+        h.close()
+
+        return cls(N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,F_rows,R,Z,D,V,LOGLAM_MAP,A)
+
+
+
     #Method to create a new object from an existing one, having specified which MOCKIDs we want to include.
     # TODO: add something to check that we can just take values from 1 of the objects
     @classmethod
@@ -1455,9 +1465,6 @@ class simulation_data:
 
         return cls(N_qso,N_cells,SIGMA_G,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,R,Z,D,V,LOGLAM_MAP)
 
-
-    """
-    THE FUNCTIONS BELOW THIS POINT ARE CURRENTLY UNUSED, AND ARE NOT EXPECTED TO BE USED IN FUTURE.
 
     def save(self,filename,header,output_format):
 
