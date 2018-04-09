@@ -28,22 +28,22 @@ Also define option preferences.
 lya = 1215.67
 
 #Define the desired power of 2 for Nside for the output. This should be larger than that of the input.
-N_side_pow2 = 5
+N_side_pow2 = 3
 N_side = 2**N_side_pow2
 N_pix = 12*N_side**2
 
 #Define the original file structure
 original_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/output_G_hZ_4096_32_sr2.0/'
 #original_file_location = '/Users/jfarr/Projects/repixelise/test_input/'
-#original_file_location = '/Users/James/Projects/test_data/output_G_hZ_4096_32_sr2.0/'
+original_file_location = '/Users/James/Projects/test_data/output_G_hZ_4096_32_sr2.0/'
 original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
-file_numbers = list(range(0,32))
+file_numbers = list(range(16,17))
 input_format = 'gaussian_colore'
 
 #Set file structure
 new_base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZ_4096_32_sr2.0_nside{}/'.format(N_side)
 #new_base_file_location = '/Users/jfarr/Projects/repixelise/test_output/test_multi/'
-#new_base_file_location = '/Users/James/Projects/test_data/process_output_G_hZ_4096_32_sr2.0/'
+new_base_file_location = '/Users/James/Projects/test_data/process_output_G_hZ_4096_32_sr2.0/'
 new_file_structure = '{}/{}/'               #pixel number//100, pixel number
 new_filename_structure = '{}-{}-{}.fits'    #file type, nside, pixel number
 
@@ -173,7 +173,7 @@ def pixelise_gaussian_skewers(pixel,original_file_location,original_filename_str
     location = new_base_file_location + new_file_structure.format(pixel//100,pixel)
 
     #Make file into an object
-    pixel_object = functions.make_pixel_object(pixel,original_file_location,original_filename_structure,input_format,shared_MOCKID_lookup,IVAR_cutoff=IVAR_cutoff,gaussian_only=True)
+    pixel_object = functions.make_gaussian_pixel_object(pixel,original_file_location,original_filename_structure,input_format,shared_MOCKID_lookup,IVAR_cutoff=IVAR_cutoff)
 
     # TODO: These could be made beforehand and passed to the function? Or is there already enough being passed?
     #Make some useful headers
@@ -276,7 +276,7 @@ def produce_physical_skewers(new_base_file_location,new_file_structure,new_filen
     gaussian_filename = new_filename_structure.format('gaussian-colore',N_side,pixel)
 
     #Make a pixel object from it
-    pixel_object = functions.simulation_data.get_all_data(location+gaussian_filename,None,input_format,SIGMA_G=measured_SIGMA_G)
+    pixel_object = functions.simulation_data.get_gaussian_skewers(location+gaussian_filename,None,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
 
     # TODO: These could be made beforehand and passed to the function? Or is there already enough being passed?
     #Make some useful headers
@@ -285,6 +285,10 @@ def produce_physical_skewers(new_base_file_location,new_file_structure,new_filen
     header['PIXNUM'] = pixel
     header['LYA'] = lya
     header['NQSO'] = pixel_object.N_qso
+
+    #Add the physical density and flux skewers to the object.
+    pixel_object.compute_physical_skewers() #Opportunity to change density type here
+    pixel_object.compute_flux_skewers() #Opportunity to vary A and alpha here
 
     #lognorm CoLoRe
     filename = new_filename_structure.format('physical-colore',N_side,pixel)
