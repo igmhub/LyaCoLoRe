@@ -15,7 +15,7 @@ if N_files > 0:
 else:
     filenames = default_filenames
 
-print('The cf_exp_out file(s) to wedgize are:')
+print('The _exp_out file(s) to plot are:')
 for filename in filenames:
     print(filename)
 
@@ -32,6 +32,8 @@ add_CAMB = True
 #CAMB_sr = ['10']
 CAMB_sr = ['10','20','40']
 scale_CAMB = [1.0,1.0,1.0]
+scale_CAMB = get_scales(filepaths)
+
 #scale_CAMB = [2.9488*0.4084/0.9998, 3.4069*0.3534/0.9998 , 3.8682*0.3110/0.9998]
 #CAMB_location = '/Users/James/Projects/LyaCoLoRe/camb_scripts/'
 CAMB_location = '/global/homes/j/jfarr/Projects/LyaCoLoRe/camb_scripts/'
@@ -40,11 +42,7 @@ CAMB_filename = 'camb_xi_{}.txt'
 #Set up the bins of mu.
 #ith bin is the range mubins[i]:mubins[i+1]
 mubin_boundaries = [-1.0,1.0]
-
-mubins = []
-for i in range(len(mubin_boundaries)-1):
-    mubins += [(mubin_boundaries[i],mubin_boundaries[i+1])]
-N_bins = len(mubins)
+mubins = plot_functions.bins_from_boundaries(mubin_boundaries)
 
 if mode == 'plot_per_bin':
     plot_functions.plot_per_bin(mubins,filenames,add_CAMB,plot_label_parameters,CAMB_sr=CAMB_sr,scale_CAMB=scale_CAMB)
