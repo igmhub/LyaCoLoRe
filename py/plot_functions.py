@@ -5,6 +5,7 @@ from picca import wedgize
 import sys
 from numpy import linalg
 import mcfit
+import correlation_model
 
 def bins_from_boundaries(boundaries):
 
@@ -20,12 +21,12 @@ def get_scales(filepaths):
     for filepath in filepaths:
         scale = 1.0
         parameters = get_parameters_from_filename(filepath)
-        z = (zmax+zmin)/2
-        for quantity in parameters[quantities]:
+        z = (parameters['zmax']+parameters['zmin'])/2
+        for quantity in parameters['quantities']:
             scale *= correlation_model.get_bias(z,quantity)
             scale *= correlation_model.get_growth_factor_scaling(z,quantity)
         scales += [scale]
-
+        
     return scales
 
 
@@ -99,14 +100,14 @@ def get_plot_data(mumin,mumax,file_path):
 
     return r, xi_wed, err_wed, cut, parameters
 
-def add_CAMB_xi(filepath,scale_CAMB):
+def add_CAMB_xi(filepath,scale_CAMB,CAMB_sr):
 
     data = np.loadtxt(filepath)
     xi = data[:,1]
     r = data[:,0]
     xir2 = xi*r**2
     xir2 = xir2*scale_CAMB
-    plt.plot(r,xir2,label='CAMB')
+    plt.plot(r,xir2,label='CAMB, scaling: {:2.2f}, sr: {}'.format(scale_CAMB,CAMB_sr))
 
     return
 
@@ -134,9 +135,12 @@ def plot_xi(mubin,filename,plot_label_parameters):
 
     return parameters
 
-def plot_per_bin(mubins,filenames,add_CAMB,plot_label_parameters,CAMB_sr=None,scale_CAMB=None,CAMB_filepath=None):
+def plot_per_bin(mubins,filenames,add_CAMB,plot_label_parameters,CAMB_sr=None,scale_CAMB=None,CAMB_location=None,CAMB_filename_format=None):
 
     for mubin in mubins:
+        
+        mumin = mubin[0]
+        mumax = mubin[1]
 
         plt.figure()
         plt.axhline(y=0,color='gray',ls=':')
@@ -150,7 +154,7 @@ def plot_per_bin(mubins,filenames,add_CAMB,plot_label_parameters,CAMB_sr=None,sc
 
         if add_CAMB == True:
             for i,sr in enumerate(CAMB_sr):
-                add_CAMB_xi(CAMB_location+CAMB_filename.format(sr),scale_CAMB[i])
+                add_CAMB_xi(CAMB_location+CAMB_filename_format.format(sr),scale_CAMB[i],sr)
 
         #save figure
         plt.legend(loc=3)
@@ -172,7 +176,7 @@ def plot_per_file(mubins,filenames,add_CAMB,plot_label_parameters,CAMB_sr=None,s
 
         if add_CAMB == True:
             for i,sr in enumerate(CAMB_sr):
-                add_CAMB_xi(CAMB_location+CAMB_filename.format(sr),scale_CAMB[i])
+                add_CAMB_xi(CAMB_location+CAMB_filename.format(sr),scale_CAMB[i],sr)
 
         #save figure
         plt.legend(loc=3)

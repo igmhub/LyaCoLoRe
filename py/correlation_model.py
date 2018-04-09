@@ -157,11 +157,11 @@ def get_bias(z,quantity):
 
     if quantity == 'q':
         bias_data = np.loadtxt('/global/homes/j/jfarr/Projects/run_CoLoRe/input_files/Bz_qso.txt')
-        z_bq = bias_data[0,:]
-        bq = bias_data[1,:]
+        z_bq = bias_data[:,0]
+        bq = bias_data[:,1]
         bq_at_zval = np.interp(z,z_bq,bq)
     elif quantity in ['G','D']:
-        bq_at_zval == 1
+        bq_at_zval = 1
     else:
         print('quantity not recognised')
 
