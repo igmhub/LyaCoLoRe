@@ -6,10 +6,33 @@ import sys
 from numpy import linalg
 import mcfit
 
+def bins_from_boundaries(boundaries):
+
+    bins = []
+    for i in range(len(boundaries)-1):
+        bins += [(boundaries[i],boundaries[i+1])]
+
+    return bins
+
+def get_scales(filepaths):
+
+    scales = []
+    for filepath in filepaths:
+        scale = 1.0
+        parameters = get_parameters_from_filename(filepath)
+        z = (zmax+zmin)/2
+        for quantity in parameters[quantities]:
+            scale *= correlation_model.get_bias(z,quantity)
+            scale *= correlation_model.get_growth_factor_scaling(z,quantity)
+        scales += [scale]
+
+    return scales
+
+
 def get_parameters_from_filename(file_path):
 
-    default_cf_parameters = {'correlation': 'cf', 'nside': 8, 'sr': 2.0, 'rpmax': 200.0, 'rpmin': 0.0, 'rtmax': 200.0, 'np': 50, 'nt': 50, 'nr': 100, 'rmax': 200.0, 'zmin': 0.0, 'zmax':4.0, 'quantity': 'GG'}
-    default_xcf_parameters = {'correlation': 'xcf', 'nside': 8, 'sr': 2.0, 'rpmax': 200.0, 'rpmin': -200.0, 'rtmax': 200.0, 'np': 100, 'nt': 50, 'nr': 100, 'rmax': 200.0, 'zmin': 0.0, 'zmax': 4.0, 'quantity': 'Gq'}
+    default_cf_parameters = {'correlation': 'cf', 'nside': 8, 'sr': 2.0, 'rpmax': 200.0, 'rpmin': 0.0, 'rtmax': 200.0, 'np': 50, 'nt': 50, 'nr': 100, 'rmax': 200.0, 'zmin': 0.0, 'zmax':4.0, 'quantities': 'GG'}
+    default_xcf_parameters = {'correlation': 'xcf', 'nside': 8, 'sr': 2.0, 'rpmax': 200.0, 'rpmin': -200.0, 'rtmax': 200.0, 'np': 100, 'nt': 50, 'nr': 100, 'rmax': 200.0, 'zmin': 0.0, 'zmax': 4.0, 'quantities': 'Gq'}
     parameter_dtypes = {'correlation': 'str', 'nside': 'int', 'sr': 'float', 'rpmax': 'float', 'rpmin': 'float', 'rtmax': 'float', 'np': 'int', 'nt': 'int', 'nr': 'int', 'rmax': 'float', 'zmin': 'float', 'zmax': 'float', 'quantity': 'str'}
 
     last_slash = file_path[::-1].find('/')
@@ -76,31 +99,9 @@ def get_plot_data(mumin,mumax,file_path):
 
     return r, xi_wed, err_wed, cut, parameters
 
-def add_CAMB_xi(location,filename,scale_CAMB=1,z=0.0,quantities='GG'):
-    data = np.loadtxt(location+filename)
+def add_CAMB_xi(filepath,scale_CAMB):
 
-    #Get from input files
-    bias_data = np.loadtxt()
-    z_b = bias_data[0,:]
-    b = bias_data[1,:]
-    #Get from master file
-    growth_data = np.loadtxt()
-    z_D = growth_data[0,:]
-    D = growth_data[1,:]
-
-    b_at_zval = np.interp(z,z_b,b)
-    D_at_zval = np.interp(z,z_D,D)
-    D_at_z0 = np.interp(0,z_D,D)
-
-    if quantities == 'GG':
-        scale_CAMB = 1
-    elif quantities == 'Gq':
-        scale_CAMB = b_at_zval*D_at_zval/D_at_z0
-    elif quantities == 'Dq':
-        scale_CAMB = b_at_zval*(D_at_zval/D_at_z0)**2
-    else:
-        error('quantities not recognised')
-
+    data = np.loadtxt(filepath)
     xi = data[:,1]
     r = data[:,0]
     xir2 = xi*r**2
@@ -109,77 +110,70 @@ def add_CAMB_xi(location,filename,scale_CAMB=1,z=0.0,quantities='GG'):
 
     return
 
+## TODO: Do I need this?
 def add_CAMB_Pk(location,filename,z,mu,RSDOPTION='NO_RSD',CAMB_input='xi'):
     data = np.loadtxt(location+filename)
     k = data[:,0]
     Pk = data[:,1]
     return
 
-def plot_per_bin(mubins,filenames,add_CAMB,plot_label_parameters,CAMB_sr=None,scale_CAMB=None):
+def plot_xi(mubin,filename,plot_label_parameters):
+
+    mumin = mubin[0]
+    mumax = mubin[1]
+
+    r,xi_wed,err_wed,cut,parameters = get_plot_data(mumin,mumax,filename)
+
+    plot_label = ''
+    for parameter in plot_label_parameters:
+        plot_label += '{}: {}, '.format(parameter,parameters[parameter])
+    #plot_label += filename[filename.find('zmax2.2')+8:filename.find('.fits')]
+    plot_label = plot_label[:-2]
+
+    plt.errorbar(r[cut],xi_wed[cut]*(r[cut]**2),yerr=err_wed[cut]*(r[cut]**2),fmt='o',label=plot_label)
+
+    return parameters
+
+def plot_per_bin(mubins,filenames,add_CAMB,plot_label_parameters,CAMB_sr=None,scale_CAMB=None,CAMB_filepath=None):
 
     for mubin in mubins:
 
         plt.figure()
-        mumin = mubin[0]
-        mumax = mubin[1]
+        plt.axhline(y=0,color='gray',ls=':')
+        plt.xlabel('r [Mpc/h]')
+        plt.ylabel('r^2 xi(r)')
+        plt.grid(True, which='both')
+        plt.title('correlation function, {} < mu < {}'.format(mumin,mumax))
 
         for filename in filenames:
+            plot_xi(mubin,filename,plot_label_parameters)
 
-            r,xi_wed,err_wed,cut,parameters = get_plot_data(mumin,mumax,filename)
-
-            plot_label = ''
-            for parameter in plot_label_parameters:
-                plot_label += '{}: {}, '.format(parameter,parameters[parameter])
-            #plot_label += filename[filename.find('zmax2.2')+8:filename.find('.fits')]
-            plot_label = plot_label[:-2]
-            
-            plt.errorbar(r[cut],xi_wed[cut]*(r[cut]**2),yerr=err_wed[cut]*(r[cut]**2),fmt='o',label=plot_label)
-
-            plt.axhline(y=0,color='gray',ls=':')
-            plt.xlabel('r [Mpc/h]')
-            plt.ylabel('r^2 xi(r)')
-            plt.grid(True, which='both')
-            plt.title('correlation function, {} < mu < {}'.format(mumin,mumax))
-            #try:
-            #    plt.plot(rplotold,xiplotold/xi_wed[cut])
-            #except:
-            #    rplotold=r[cut];xiplotold=xi_wed[cut]
         if add_CAMB == True:
             for i,sr in enumerate(CAMB_sr):
-                print(scale_CAMB[i]);add_CAMB_xi(CAMB_location,CAMB_filename.format(sr),scale_CAMB[i])
+                add_CAMB_xi(CAMB_location+CAMB_filename.format(sr),scale_CAMB[i])
 
         #save figure
         plt.legend(loc=3)
         plt.savefig('xi_wedge_{}_{}.pdf'.format(mumin,mumax))
-
-        #plt.ylim(2,20)
-        #plt.xlim(70,120)
-        #plt.savefig('xi_wedge_{}_{}_BAO_zoom.pdf'.format(mumin,mumax))
 
 def plot_per_file(mubins,filenames,add_CAMB,plot_label_parameters,CAMB_sr=None,scale_CAMB=None):
 
     for filename in filenames:
 
         plt.figure()
+        plt.axhline(y=0,color='gray',ls=':')
+        plt.xlabel('r [Mpc/h]')
+        plt.ylabel('r^2 xi(r)')
+        plt.grid(True, which='both')
+        plt.title('correlation function, {} < mu < {}'.format(mumin,mumax))
 
         for mubin in mubins:
-
-            mumin = mubin[0]
-            mumax = mubin[1]
-            r,xi_wed,err_wed,cut,parameters = get_plot_data(mumin,mumax,filename)
-
-            plt.errorbar(r[cut],xi_wed[cut]*(r[cut]**2),yerr=err_wed[cut]*(r[cut]**2),fmt='o',label='{} < mu < {}'.format(mumin,mumax))
-
-            plt.axhline(y=0,color='gray',ls=':')
-            plt.xlabel('r [Mpc/h]')
-            plt.ylabel('r^2 xi(r)')
-            plt.grid(True, which='both')
-            plt.title(filename[11:-8])
+            plot_xi(mubin,filename,plot_label_parameters)
 
         if add_CAMB == True:
             for i,sr in enumerate(CAMB_sr):
-                add_CAMB_xi(CAMB_location,CAMB_filename.format(sr),scale_CAMB[i])
+                add_CAMB_xi(CAMB_location+CAMB_filename.format(sr),scale_CAMB[i])
 
         #save figure
         plt.legend(loc=3)
-        plt.savefig('plot_{}.pdf'.format(filename[11:-8]))
+        plt.savefig('xi_wedge_{}_{}.pdf'.format(mumin,mumax))
