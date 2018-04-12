@@ -2,13 +2,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 from astropy.io import fits
 import sys
+import plot_functions
 
 N_bins = 50
 r_min = 0.0 #Mpc/h
 r_max = 200.0 #Mpc/h
 bin_size = (r_max-r_min)/N_bins
 
-master_filepath = ''
+master_filepath = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZ_4096_32_sr4.0_bm1_nside8/nside_8_master.fits'
 
 filename = sys.argv[1]
 h = fits.open(filename)
@@ -21,7 +22,7 @@ N_cf1d = h[2].data['NB']
 LLMIN_cf1d = h[1].header['LLMIN']
 LLMAX_cf1d = h[1].header['LLMAX']
 DLL_cf1d = h[1].header['DLL']
-LL_cf1d = np.arange(LLMIN,LLMAX,DLL)
+LL_cf1d = np.arange(LLMIN_cf1d,LLMAX_cf1d,DLL_cf1d)
 N_cells_cf1d = LL_cf1d.shape[0]
 
 #Get LL and R from master file
@@ -29,7 +30,7 @@ master = fits.open(master_filepath)
 Z_colore = master[2].data['Z']
 R_colore = master[2].data['R']
 lya = 1215.67
-LL_colore = np.log10(lya*(1+Z))
+LL_colore = np.log10(lya*(1+Z_colore))
 
 R_cf1d = np.interp(LL_cf1d,LL_colore,R_colore)
 
@@ -44,5 +45,16 @@ for n in range(N_bins):
     N_contributions = np.sum(N_cf1d*bin_entries)
     xi_binned[n] = np.sum(bin_entries*DA*N_cf1d)/N_contributions
 
-plt.plot(R_binned,xi_binned)
+plt.plot(R_binned,(R_binned**2)*xi_binned)
+plt.axhline(y=0,color='gray',ls=':')
+plt.xlabel('r [Mpc/h]')
+plt.ylabel('r^2 xi(r)')
+plt.grid(True, which='both')
+
+CAMB_filepath = '/global/homes/j/jfarr/Projects/LyaCoLoRe/camb_scripts/camb_xi_4.0.txt'
+scale_CAMB = 1.0
+CAMB_sr = '4.0'
+plot_functions.add_CAMB_xi(CAMB_filepath,scale_CAMB,CAMB_sr)
+
+plt.savefig('cf1d_xir2.pdf')
 plt.show()
