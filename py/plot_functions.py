@@ -100,16 +100,15 @@ def get_plot_data(mumin,mumax,file_path):
 
     return r, xi_wed, err_wed, cut, parameters
 
-def add_CAMB_xi(filepath,scale_CAMB,CAMB_sr):
+def get_CAMB_xi(filepath,scale_CAMB,CAMB_sr):
 
     data = np.loadtxt(filepath)
     xi = data[:,1]
     r = data[:,0]
-    xir2 = xi*r**2
-    xir2 = xir2*scale_CAMB
-    plt.plot(r,xir2,label='CAMB, scaling: {:2.2f}, sr: {}'.format(scale_CAMB,CAMB_sr))
+    xi = xi*scale_CAMB
+    plot_label='CAMB, scaling: {:2.2f}, sr: {}'.format(scale_CAMB,CAMB_sr)
 
-    return
+    return r,xi,plot_label
 
 ## TODO: Do I need this?
 def add_CAMB_Pk(location,filename,z,mu,RSDOPTION='NO_RSD',CAMB_input='xi'):
@@ -154,7 +153,8 @@ def plot_per_bin(mubins,filenames,add_CAMB,plot_label_parameters,CAMB_sr=None,sc
 
         if add_CAMB == True:
             for i,sr in enumerate(CAMB_sr):
-                add_CAMB_xi(CAMB_location+CAMB_filename_format.format(sr),scale_CAMB[i],sr)
+                r_CAMB,xi_CAMB_plot_label_CAMB = get_CAMB_xi(CAMB_location+CAMB_filename_format.format(sr),scale_CAMB[i],sr)
+                plt.plot(r_CAMB,xi_CAMB*(r_CAMB**2),label=plot_label_CAMB)
 
         #save figure
         plt.legend(loc=3)
