@@ -17,6 +17,8 @@ import os
 #Gaussian and physical density files in CoLoRe format
 #Transmission files
 
+# TODO: Make 'input parameters' and 'output parameters' objects? Currently passing loads of arguments to multiprocessing functions which is messy
+
 ################################################################################
 
 """
@@ -51,6 +53,10 @@ new_filename_structure = '{}-{}-{}.fits'    #file type, nside, pixel number
 lambda_min = 3550
 zero_mean_delta = False
 IVAR_cutoff = 1150
+
+# TODO: currently this only works for TAU= (A1*((1+z)/A2)**A3) * (density**alpha). Want it to also work for any A(z). Either import from a txt file or be able to point it to any function?
+#Determine the different sets of parameters to test the density-flux conversion.
+flux_parameters = [(0.374,4.0,5.1,1.0)] #A1,A2,A3,alpha
 
 #Calculate the minimum value of z that we are interested in.
 #i.e. the z value for which lambda_min cooresponds to the lya wavelength.
@@ -195,7 +201,7 @@ def pixelise_gaussian_skewers(pixel,original_file_location,original_filename_str
     pixel_object.save_as_picca_gaussian(location,filename,header,zero_mean_delta=zero_mean_delta,lambda_min=lambda_min)
 
     #Calculate the means of the pixel's gaussian skewers.
-    #WARNING: this currently just uses all of the cells but this may be too slow?
+    #WARNING: this currently just uses all of the cells but this may be too slow once we've added small scale power?
     N, mean_DG, mean_DGS = functions.return_means(pixel_object.GAUSSIAN_DELTA_rows,pixel_object.IVAR_rows)
     means_data = [N,mean_DG,mean_DGS]
 
@@ -224,49 +230,26 @@ print(' ')
 
 ################################################################################
 
-# TODO: Do we want to do this here? Or should it be included in the "pixelise_gaussian_skewers" function?
-"""
-We would like to add small-scale power to the Gaussian field.
-We do this by ...
-"""
-
-################################################################################
-
-# TODO: Is this section worth keeping?
-"""
-Group the statistics calculated to get means and variances.
-Save these into a fits file.
-"""
-"""
-print('\nMaking statistics file...')
-start_time = time.time()
-
-#Use combine_means and means_to_statistics to calculate the mean and variance of the different quantities over all skewers.
-means = functions.combine_means(results)
-statistics = functions.means_to_statistics(means)
-
-#Save the statistics data as a new fits file.
-functions.write_statistics(new_base_file_location,N_side,statistics,cosmology_data)
-
-print('\nTime to make statistics file: {:4.0f}s.'.format(time.time()-start_time))
-print(' ')
-"""
-################################################################################
-
 """
 To correctly calculate the physical fields, we must measure sigma from the Gaussian skewers.
-We may then calculate the density and flux fields, and save the relevant files.
 """
 
-print('\nWorking on per-HEALPix pixel physical skewer files...')
-start_time = time.time()
-
-#Calculate the value of sigma needed from the statistics data produced.
 means_data_array = np.array(results)
 N_total = np.sum(means_data_array[:,0])
 gaussian_mean = (np.sum(means_data_array[:,1]*means_data_array[:,0]))/N_total
 gaussian_variance = (np.sum(means_data_array[:,2]*means_data_array[:,0]))/N_total - gaussian_mean**2
 measured_SIGMA_G = np.sqrt(gaussian_variance)
+
+print('\nGaussian skewers have mean {:2.2d}, variance {:2.2d}.'.format(gaussian_mean,measured_SIGMA_G))
+
+################################################################################
+
+"""
+We may now calculate the density and flux fields, and save the relevant files.
+"""
+
+print('\nWorking on per-HEALPix pixel physical skewer files...')
+start_time = time.time()
 
 def produce_physical_skewers(new_base_file_location,new_file_structure,new_filename_structure,pixel,N_side,input_format,zero_mean_delta,lambda_min,SIGMA_G):
 
@@ -288,7 +271,6 @@ def produce_physical_skewers(new_base_file_location,new_file_structure,new_filen
 
     #Add the physical density and flux skewers to the object.
     pixel_object.compute_physical_skewers() #Opportunity to change density type here
-    pixel_object.compute_flux_skewers() #Opportunity to vary A and alpha here
 
     #lognorm CoLoRe
     filename = new_filename_structure.format('physical-colore',N_side,pixel)
@@ -297,6 +279,10 @@ def produce_physical_skewers(new_base_file_location,new_file_structure,new_filen
     #Picca density
     filename = new_filename_structure.format('picca-density',N_side,pixel)
     pixel_object.save_as_picca_density(location,filename,header,zero_mean_delta=zero_mean_delta,lambda_min=lambda_min)
+
+    #Add the flux conversions
+    #flux_conversions = pixel_object.get_flux_conversions()
+    pixel_object.compute_flux_skewers() #Opportunity to vary A and alpha here
 
     #transmission
     filename = new_filename_structure.format('transmission',N_side,pixel)
@@ -325,6 +311,39 @@ print('\nTime to make physical pixel files: {:4.0f}s.'.format(time.time()-start_
 print(' ')
 
 ################################################################################
+
+# TODO: Update this
+"""
+Group the statistics calculated to get means and variances.
+Save these into a fits file.
+"""
+"""
+print('\nMaking statistics file...')
+start_time = time.time()
+
+#Use combine_means and means_to_statistics to calculate the mean and variance of the different quantities over all skewers.
+means = functions.combine_means(results)
+statistics = functions.means_to_statistics(means)
+
+#Save the statistics data as a new fits file.
+functions.write_statistics(new_base_file_location,N_side,statistics,cosmology_data)
+
+print('\nTime to make statistics file: {:4.0f}s.'.format(time.time()-start_time))
+print(' ')
+"""
+
+################################################################################
+
+"""
+We would like to add small scale flucatuations to the Gaussian field.
+We must work out how much variance to add.
+This is done by comparing the variance in our flux skewers to the analytical P1D variance from Palanque-Delabrouille et al. (2013).
+"""
+
+k = np.logspace(-5,5,10**6)
+pk_z2 = aP1D.P1D_z_kms_PD2013(2.0,k)
+W = np.sinc((k*0.25)/(2*np.pi))
+sigma2_trapz = np.trapz((W**2)*pk_z2,k)
 
 """
 Celebrate!
