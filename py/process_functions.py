@@ -784,10 +784,34 @@ class simulation_data:
 
         return cls(N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,F_rows,R,Z,D,V,LOGLAM_MAP,A)
 
-    def add_small_scale_gaussian_fluctuations(self,dl,amplitude,white_noise=False):
+    def add_small_scale_gaussian_fluctuations(self,dl,amplitude,white_noise=False,lambda_min=0):
 
         #Add small scale fluctuations
+        old_lambdas = 10**(self.LOGLAM_MAP)
+        lmax = np.max(old_lambdas)
+        lmin = lambda_min
+        new_lambdas = np.arange(lmin,lmax,dl)
+
+        final_GAUSSIAN_DELTA_rows = np.zeros((self.N_qso,new_lambdas.shape[0]))
+        for i in range(self.N_qso):
+            original_skewer = np.interp(new_lambdas,old_lambdas,self.GAUSSIAN_DELTA_rows[i,:])
+            new_skewer =
+            final_GAUSSIAN_DELTA_rows[i,:] = original_skewer + amplitude*new_skewer
+
+        self.GAUSSIAN_DELTA_rows = final_GAUSSIAN_DELTA_rows
+
         #Redefine the necessary variables (N_cells, Z, D etc)
+        self.N_cells = final_GAUSSIAN_DELTA_rows.shape[1]
+        self.IVAR_rows = 
+        self.R = np.interp(new_lambdas,old_lambdas,self.R)
+        self.Z = new_lambdas/lya - 1
+        self.D = np.interp(new_lambdas,old_lambdas,self.D)
+        self.V = np.interp(new_lambdas,old_lambdas,self.V)
+        self.LOGLAM_MAP = np.log10(new_lambdas)
+
+        #What to do with this?
+        self.VEL_rows = self.VEL_rows
+
         #Warning if there are already physical/flux skewers
 
         return
