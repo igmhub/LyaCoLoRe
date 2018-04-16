@@ -36,16 +36,16 @@ N_pix = 12*N_side**2
 
 #Define the original file structure
 original_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/output_G_hZ_4096_32_sr2.0_bm1/'
-#original_file_location = '/Users/jfarr/Projects/repixelise/test_input/'
-#original_file_location = '/Users/James/Projects/test_data/output_G_hZ_4096_32_sr2.0/'
+original_file_location = '/Users/jfarr/Projects/test_data/output_G_hZ_4096_32_sr2.0_bm1/'
+#original_file_location = '/Users/James/Projects/test_data/output_G_hZ_4096_32_sr2.0_bm1/'
 original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
-file_numbers = list(range(0,32))
+file_numbers = list(range(0,1))
 input_format = 'gaussian_colore'
 
 #Set file structure
 new_base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZ_4096_32_sr2.0_bm1_nside{}/'.format(N_side)
-#new_base_file_location = '/Users/jfarr/Projects/repixelise/test_output/test_multi/'
-#new_base_file_location = '/Users/James/Projects/test_data/process_output_G_hZ_4096_32_sr2.0/'
+new_base_file_location = '/Users/jfarr/Projects/test_data/process_output_G_hZ_4096_32_sr2.0_bm1_nside8/'
+#new_base_file_location = '/Users/James/Projects/test_data/process_output_G_hZ_4096_32_sr2.0_bm1_nside8/'
 new_file_structure = '{}/{}/'               #pixel number//100, pixel number
 new_filename_structure = '{}-{}-{}.fits'    #file type, nside, pixel number
 
@@ -241,7 +241,7 @@ gaussian_mean = (np.sum(means_data_array[:,1]*means_data_array[:,0]))/N_total
 gaussian_variance = (np.sum(means_data_array[:,2]*means_data_array[:,0]))/N_total - gaussian_mean**2
 measured_SIGMA_G = np.sqrt(gaussian_variance)
 
-print('\nGaussian skewers have mean {:2.2d}, variance {:2.2d}.'.format(gaussian_mean,measured_SIGMA_G))
+print('\nGaussian skewers have mean {:2.2f}, variance {:2.2f}.'.format(gaussian_mean,measured_SIGMA_G))
 
 ################################################################################
 
@@ -340,12 +340,12 @@ We would like to add small scale flucatuations to the Gaussian field.
 We must work out how much variance to add.
 This is done by comparing the variance in our flux skewers to the analytical P1D variance from Palanque-Delabrouille et al. (2013).
 """
-
+"""
 k = np.logspace(-5,5,10**6)
 pk_z2 = aP1D.P1D_z_kms_PD2013(2.0,k)
 W = np.sinc((k*0.25)/(2*np.pi))
 sigma2_trapz = np.trapz((W**2)*pk_z2,k)
-
+"""
 """
 Celebrate!
 """

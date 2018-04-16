@@ -283,7 +283,7 @@ def get_ID_data(original_file_location,original_filename_structure,file_number,i
     #Also filter out the objects with Z_QSO<minimum_z
     dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z_QSO_NO_RSD', '>f4'), ('Z_QSO_RSD', '>f4'), ('MOCKID', int), ('PIXNUM', int)]
     ID = np.array(ID_data, dtype=dtype)
-    ID = ID[ID['Z']>minimum_z]
+    ID = ID[ID['Z_QSO_NO_RSD']>minimum_z]
     ID_sort = np.sort(ID, order=['PIXNUM','MOCKID'])
 
     #Construct the cosmology array.
@@ -785,7 +785,7 @@ class simulation_data:
         h.close()
 
         return cls(N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,F_rows,R,Z,D,V,LOGLAM_MAP,A)
-
+    """
     def add_small_scale_gaussian_fluctuations(self,dl,amplitude,white_noise=False,lambda_min=0):
 
         #Add small scale fluctuations
@@ -817,7 +817,7 @@ class simulation_data:
         #Warning if there are already physical/flux skewers
 
         return
-
+    """
     #Function to add physical skewers to the object via a lognormal transformation.
     def compute_physical_skewers(self,density_type='lognormal'):
 
