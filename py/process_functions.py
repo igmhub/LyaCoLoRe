@@ -241,7 +241,7 @@ def make_pixel_ID(N_side,RA,DEC):
     return pixel_ID
 
 #Function to extract data suitable for making ID files from a set of colore or picca format files.
-def get_ID_data(original_file_location,original_filename_structure,file_number,input_format,N_side):
+def get_ID_data(original_file_location,original_filename_structure,file_number,input_format,N_side,minimum_z=0.0):
 
     ID_data = []
     cosmology = []
@@ -280,8 +280,10 @@ def get_ID_data(original_file_location,original_filename_structure,file_number,i
         MOCKID_lookup_element = {**MOCKID_lookup_element,**{(file_number,pixel):MOCKID_pixel_list}}
 
     #Sort the MOCKIDs and pixel_IDs into the right order: first by pixel number, and then by MOCKID.
+    #Also filter out the objects with Z_QSO<minimum_z
     dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z_QSO_NO_RSD', '>f4'), ('Z_QSO_RSD', '>f4'), ('MOCKID', int), ('PIXNUM', int)]
     ID = np.array(ID_data, dtype=dtype)
+    ID = ID[ID['Z']>minimum_z]
     ID_sort = np.sort(ID, order=['PIXNUM','MOCKID'])
 
     #Construct the cosmology array.
@@ -802,7 +804,7 @@ class simulation_data:
 
         #Redefine the necessary variables (N_cells, Z, D etc)
         self.N_cells = final_GAUSSIAN_DELTA_rows.shape[1]
-        self.IVAR_rows = 
+        self.IVAR_rows =
         self.R = np.interp(new_lambdas,old_lambdas,self.R)
         self.Z = new_lambdas/lya - 1
         self.D = np.interp(new_lambdas,old_lambdas,self.D)

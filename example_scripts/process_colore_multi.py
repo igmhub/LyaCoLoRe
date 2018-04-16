@@ -50,6 +50,7 @@ new_file_structure = '{}/{}/'               #pixel number//100, pixel number
 new_filename_structure = '{}-{}-{}.fits'    #file type, nside, pixel number
 
 #Choose options
+minimum_catalog_z = 1.8
 lambda_min = 3550
 zero_mean_delta = False
 IVAR_cutoff = 1150
@@ -113,9 +114,9 @@ print('\nWorking on master data...')
 start = time.time()
 
 #Define the process to make the master data.
-def make_master_data(original_file_location,original_filename_structure,file_number,input_format,N_side):
+def make_master_data(original_file_location,original_filename_structure,file_number,input_format,N_side,minimum_z=minimum_catalog_z):
 
-    file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element = functions.get_ID_data(original_file_location,original_filename_structure,file_number,input_format,N_side)
+    file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element = functions.get_ID_data(original_file_location,original_filename_structure,file_number,input_format,N_side,minimum_z=minimum_catalog_z)
 
     return [file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element]
 
