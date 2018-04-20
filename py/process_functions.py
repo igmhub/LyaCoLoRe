@@ -738,11 +738,10 @@ class simulation_data:
             GAUSSIAN_DELTA_rows = lognormal_to_gaussian(DENSITY_DELTA_rows,SIGMA_G,D)
 
             #Set the remaining variables to None
+            DENSITY_DELTA_rows = None
             A = None
             ALPHA = None
-            TAU_rows = None
             F_rows = None
-            DENSITY_DELTA_rows = None
 
             #Insert placeholder values for remaining variables.
             PLATE = MOCKID
@@ -780,11 +779,10 @@ class simulation_data:
             LOGLAM_MAP = np.log10(lya*(1+Z))
 
             #Set the remaining variables to None
+            DENSITY_DELTA_rows = None
             A = None
             ALPHA = None
-            TAU_rows = None
             F_rows = None
-            DENSITY_DELTA_rows = None
 
             #Insert placeholder values for remaining variables.
             PLATE = MOCKID
@@ -793,7 +791,7 @@ class simulation_data:
 
             IVAR_rows = make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP)
 
-        elif input_format == 'picca':
+        elif input_format == 'picca_density':
 
             #Extract data from the HDUlist.
             DENSITY_DELTA_rows = h[0].data.T[rows,first_relevant_cell:]
@@ -823,11 +821,10 @@ class simulation_data:
             GAUSSIAN_DELTA_rows = lognormal_to_gaussian(DENSITY_DELTA_rows,SIGMA_G,D)
 
             #Set the remaining variables to None
+            DENSITY_DELTA_rows = None
             A = None
             ALPHA = None
-            TAU_rows = None
             F_rows = None
-            DENSITY_DELTA_rows = None
 
             """
             Can we calculate DZ_RSD,R,D,V?
@@ -901,14 +898,14 @@ class simulation_data:
         self.GAUSSIAN_DELTA_rows = final_GAUSSIAN_DELTA_rows
 
         # TODO: this, currently just goes into the if each time
-        """
         #Warning if there are already physical/flux skewers
-        if hasattr(self,'DENSITY_DELTA_rows') or hasattr(self,'F_rows'):
-            #Overwrite or just warn?
-            print('hasattr')
-            compute_physical_skewers()
-            compute_flux_skewers()
-        """
+        if self.DENSITY_DELTA_rows is not None:
+            print('recomputing physical skewers')
+            self.compute_physical_skewers()
+        if self.F_rows is not None:
+            print('recomputing flux skewers')
+            self.compute_flux_skewers()
+
         return
 
     #Function to add physical skewers to the object via a lognormal transformation.

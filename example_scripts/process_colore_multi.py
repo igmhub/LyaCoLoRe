@@ -37,7 +37,7 @@ N_pix = 12*N_side**2
 #Define the original file structure
 original_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/output_G_hZ_4096_32_sr2.0_bm1/'
 #original_file_location = '/Users/jfarr/Projects/test_data/output_G_hZ_4096_32_sr2.0_bm1/'
-#original_file_location = '/Users/James/Projects/test_data/output_G_hZ_4096_32_sr2.0_bm1/'
+original_file_location = '/Users/James/Projects/test_data/output_G_hZ_4096_32_sr2.0_bm1/'
 original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
 file_numbers = list(range(0,1))
 input_format = 'gaussian_colore'
@@ -45,7 +45,7 @@ input_format = 'gaussian_colore'
 #Set file structure
 new_base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZ_4096_32_sr2.0_bm1_nside{}_TEST/'.format(N_side)
 #new_base_file_location = '/Users/jfarr/Projects/test_data/process_output_G_hZ_4096_32_sr2.0_bm1_nside8/'
-#new_base_file_location = '/Users/James/Projects/test_data/test_adding_ssp/'
+new_base_file_location = '/Users/James/Projects/test_data/test_adding_ssp/'
 new_file_structure = '{}/{}/'               #pixel number//100, pixel number
 new_filename_structure = '{}-{}-{}.fits'    #file type, nside, pixel number
 
@@ -313,7 +313,7 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
 
     #Add small scale power to the gaussian skewers:
     pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,extra_sigma_G,white_noise=True,lambda_min=lambda_min)
-    
+
     #Picca Gaussian
     filename = new_filename_structure.format('picca-gaussian',N_side,pixel)
     pixel_object.save_as_picca_gaussian(location,filename,header,zero_mean_delta=zero_mean_delta,lambda_min=lambda_min,overwrite=True)
@@ -325,7 +325,7 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     #picca flux
     filename = new_filename_structure.format('picca-flux',N_side,pixel)
     pixel_object.save_as_picca_flux(location,filename,header,lambda_min=lambda_min)
-    print('picca flux')
+
     return pixel
 
 #define the tasks
