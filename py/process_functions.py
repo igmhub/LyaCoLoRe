@@ -886,17 +886,18 @@ class simulation_data:
         #How to deal with z
         z=2.0
         #Set dv
+
+        """
         #1 by 1? Or just N_skewers=N_qso?
         extra_variance = get_gaussian_fields(z,self.N_cells,sigma_G=extra_sigma_G,dv_kms=10.0,N_skewers=self.N_qso,white_noise=white_noise)
-
         final_GAUSSIAN_DELTA_rows = expanded_GAUSSIAN_DELTA_rows + amplitude*extra_variance
-
         """
+
         final_GAUSSIAN_DELTA_rows = np.zeros((self.N_qso,new_R.shape[0]))
         for i in range(self.N_qso):
-            extra_variance = get_gaussian_fields(z,self.N_cells,sigma_G=extra_sigma_G,dv_kms=10.0,N_skewers=1)
+            extra_variance = get_gaussian_fields(z,self.N_cells,sigma_G=extra_sigma_G,dv_kms=10.0,N_skewers=1,white_noise=white_noise)
             final_GAUSSIAN_DELTA_rows[i,:] = expanded_GAUSSIAN_DELTA_rows[i,:] + amplitude*extra_variance
-        """
+
         self.GAUSSIAN_DELTA_rows = final_GAUSSIAN_DELTA_rows
 
         # TODO: this, currently just goes into the if each time
