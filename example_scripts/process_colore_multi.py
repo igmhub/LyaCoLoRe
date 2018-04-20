@@ -198,9 +198,12 @@ def pixelise_gaussian_skewers(pixel,original_file_location,original_filename_str
     filename = new_filename_structure.format('gaussian-colore',N_side,pixel)
     pixel_object.save_as_gaussian_colore(location,filename,header)
 
+    #Don't need this here?
+    """
     #Picca Gaussian
     filename = new_filename_structure.format('picca-gaussian',N_side,pixel)
     pixel_object.save_as_picca_gaussian(location,filename,header,zero_mean_delta=zero_mean_delta,lambda_min=lambda_min)
+    """
 
     #Calculate the means of the pixel's gaussian skewers.
     #WARNING: this currently just uses all of the cells but this may be too slow once we've added small scale power?
@@ -322,6 +325,8 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     #picca flux
     filename = new_filename_structure.format('picca-flux',N_side,pixel)
     pixel_object.save_as_picca_flux(location,filename,header,lambda_min=lambda_min)
+
+    return pixel
 
 #define the tasks
 tasks = [(new_base_file_location,new_file_structure,new_filename_structure,pixel,N_side,input_format,zero_mean_delta,lambda_min,measured_SIGMA_G) for pixel in pixel_list]
