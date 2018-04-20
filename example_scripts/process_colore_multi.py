@@ -37,7 +37,7 @@ N_pix = 12*N_side**2
 #Define the original file structure
 original_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/output_G_hZ_4096_32_sr2.0_bm1/'
 original_file_location = '/Users/jfarr/Projects/test_data/output_G_hZ_4096_32_sr2.0_bm1/'
-#original_file_location = '/Users/James/Projects/test_data/output_G_hZ_4096_32_sr2.0_bm1/'
+original_file_location = '/Users/James/Projects/test_data/output_G_hZ_4096_32_sr2.0_bm1/'
 original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
 file_numbers = list(range(0,1))
 input_format = 'gaussian_colore'
@@ -45,15 +45,16 @@ input_format = 'gaussian_colore'
 #Set file structure
 new_base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZ_4096_32_sr2.0_bm1_nside{}/'.format(N_side)
 new_base_file_location = '/Users/jfarr/Projects/test_data/process_output_G_hZ_4096_32_sr2.0_bm1_nside8/'
-#new_base_file_location = '/Users/James/Projects/test_data/process_output_G_hZ_4096_32_sr2.0_bm1_nside8/'
+new_base_file_location = '/Users/James/Projects/test_data/test_adding_ssp/'
 new_file_structure = '{}/{}/'               #pixel number//100, pixel number
 new_filename_structure = '{}-{}-{}.fits'    #file type, nside, pixel number
 
 #Choose options
 minimum_catalog_z = 1.8
-lambda_min = 3550
+lambda_min = 3550 #A
 zero_mean_delta = False
-IVAR_cutoff = 1150
+IVAR_cutoff = 1150 #A
+final_cell_size = 2.0 #Mpc/h
 
 # TODO: currently this only works for TAU= (A1*((1+z)/A2)**A3) * (density**alpha). Want it to also work for any A(z). Either import from a txt file or be able to point it to any function?
 #Determine the different sets of parameters to test the density-flux conversion.
@@ -171,7 +172,7 @@ Done using a multiprocessing pool, with one task per pixel.
 #Make the new file structure
 functions.make_file_structure(new_base_file_location,pixel_list)
 
-print('\nWorking on per-HEALPix pixel Gaussian skewer files...')
+print('\nWorking on per-HEALPix pixel initial Gaussian skewer files...')
 start_time = time.time()
 
 #Define the pixelisation process.
@@ -246,13 +247,38 @@ print('\nGaussian skewers have mean {:2.2f}, variance {:2.2f}.'.format(gaussian_
 ################################################################################
 
 """
+We would like to add small scale flucatuations to the Gaussian field.
+We must work out how much variance to add.
+This is done by
+ - computing the analytical P1D flux variance from Palanque-Delabrouille et al. (2013),
+ - computing the Gaussian variance required to achieve this flux variance using Font-Ribera et al. (2012), and thus the extra variance our Gaussian skewers require
+ - stretching the current skewers to achieve smaller cell sizes (NGP)
+ - adding a random number to each cell with the appropriate statistics
+"""
+"""
+#Calculate P1D variance
+k = np.logspace(-5,5,10**6)
+pk_z2 = aP1D.P1D_z_kms_PD2013(2.0,k)
+W = np.sinc((k*0.25)/(2*np.pi))
+sigma2_P1D = np.trapz((W**2)*pk_z2,k)
+"""
+#Work out sigma_G desired to achive the P1D sigma_F
+# TODO: implement this from tune_flux.ipynb
+desired_sigma_G = 4.0
+
+#Determine the desired sigma_G by sampling
+extra_sigma_G = np.sqrt(desired_sigma_G**2 - measured_SIGMA_G**2)
+
+################################################################################
+
+"""
 We may now calculate the density and flux fields, and save the relevant files.
 """
 
-print('\nWorking on per-HEALPix pixel physical skewer files...')
+print('\nWorking on per-HEALPix pixel final skewer files...')
 start_time = time.time()
 
-def produce_physical_skewers(new_base_file_location,new_file_structure,new_filename_structure,pixel,N_side,input_format,zero_mean_delta,lambda_min,SIGMA_G):
+def produce_final_skewers(new_base_file_location,new_file_structure,new_filename_structure,pixel,N_side,input_format,zero_mean_delta,lambda_min,SIGMA_G):
 
     location = new_base_file_location + new_file_structure.format(pixel//100,pixel)
 
@@ -269,6 +295,17 @@ def produce_physical_skewers(new_base_file_location,new_file_structure,new_filen
     header['PIXNUM'] = pixel
     header['LYA'] = lya
     header['NQSO'] = pixel_object.N_qso
+
+    #Add small scale power to the gaussian skewers:
+    pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,extra_sigma_G,white_noise=True,lambda_min=0)
+
+    #Gaussian CoLoRe
+    filename = new_filename_structure.format('gaussian-colore',N_side,pixel)
+    pixel_object.save_as_gaussian_colore(location,filename,header,overwrite=True)
+
+    #Picca Gaussian
+    filename = new_filename_structure.format('picca-gaussian',N_side,pixel)
+    pixel_object.save_as_picca_gaussian(location,filename,header,zero_mean_delta=zero_mean_delta,lambda_min=lambda_min,overwrite=True)
 
     #Add the physical density and flux skewers to the object.
     pixel_object.compute_physical_skewers() #Opportunity to change density type here
@@ -303,7 +340,7 @@ if __name__ == '__main__':
     start_time = time.time()
 
     for task in tasks:
-        pool.apply_async(produce_physical_skewers,task,callback=log_result,error_callback=log_error)
+        pool.apply_async(produce_final_skewers,task,callback=log_result,error_callback=log_error)
 
     pool.close()
     pool.join()
@@ -335,17 +372,6 @@ print(' ')
 
 ################################################################################
 
-"""
-We would like to add small scale flucatuations to the Gaussian field.
-We must work out how much variance to add.
-This is done by comparing the variance in our flux skewers to the analytical P1D variance from Palanque-Delabrouille et al. (2013).
-"""
-"""
-k = np.logspace(-5,5,10**6)
-pk_z2 = aP1D.P1D_z_kms_PD2013(2.0,k)
-W = np.sinc((k*0.25)/(2*np.pi))
-sigma2_trapz = np.trapz((W**2)*pk_z2,k)
-"""
 """
 Celebrate!
 """

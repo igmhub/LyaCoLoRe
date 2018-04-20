@@ -6,9 +6,9 @@ import sys
 #Reduces the number of objects in a CoLoRe output file.
 
 #Input the original filename and location.
-file_location = '/Users/jfarr/Projects/repixelise/test_input'
+file_location = '/Users/James/Projects/test_data/output_G_hZ_4096_32_sr2.0_bm1/'
 file_prefix = 'out_srcs_s1_'
-file_suffices = [16]
+file_suffices = [0]
 
 #Specify the structure of the original file:
 #0 = CoLoRe output format
