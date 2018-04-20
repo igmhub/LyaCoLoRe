@@ -12,8 +12,9 @@ parser.add_option("--dla_bias", dest="dla_bias", type=float, default=2.0,
 parser.add_option("--input-file", dest="input_file", type=str, default=None,
     help = "Input path")
 parser.add_option("--output-file", dest="output_file", type=str, default=None,
+    help = "Output path, if not passed it will overwrite the input file")
 
-(o, args) = parser.parse_arguments()
+(o, args) = parser.parse_args()
 
 def nu_of_b(b):
     """ Compute the Gaussian field threshold for a given bias"""
