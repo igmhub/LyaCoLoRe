@@ -580,6 +580,69 @@ def write_statistics(location,N_side,statistics,cosmology_data):
 
     return
 
+#Function to interpolate via the NGP method.
+def get_NGPs(x,x_new):
+    NGPs = np.zeros(x_new.shape)
+    for i,x_new_value in enumerate(x_new):
+        distances2 = (x-x_new_value)**2
+        NGPs[i] = np.argmin(distances2)
+    return NGPs
+
+#Function to generate random Gaussian fields at a given redshift.
+#From lya_mock_functions
+def get_gaussian_fields(z,N_cells,sigma_G=1.0,dv_kms=10.0,N_skewers=1,new_seed=None,white_noise=True):
+    """Generate N_skewers Gaussian fields at redshift z_c.
+
+      If new_seed is set, it will reset random generator with it."""
+
+    random_state = np.random.RandomState(new_seed)
+
+    # number of Fourier modes
+    NF = int(N_cells/2+1)
+
+    # get frequencies (wavenumbers in units of s/km)
+    k_kms = np.fft.rfftfreq(N_cells)*2*np.pi/dv_kms
+
+    # get power evaluated at each k
+    P_kms = power_kms(z,k_kms,dv_kms,white_noise=white_noise)
+
+    # generate random Fourier modes
+    modes = np.empty([N_skewers,NF], dtype=complex)
+    modes[:].real = np.reshape(random_state.normal(size=N_skewers*NF,scale=sigma_G),[N_skewers,NF])
+    modes[:].imag = np.reshape(random_state.normal(size=N_skewers*NF,scale=sigma_G),[N_skewers,NF])
+
+    # normalize to desired power (and enforce real for i=0, i=NF-1)
+    modes[:,0] = modes[:,0].real * np.sqrt(P_kms[0])
+    modes[:,-1] = modes[:,-1].real * np.sqrt(P_kms[-1])
+    modes[:,1:-1] *= np.sqrt(0.5*P_kms[1:-1])
+
+    # inverse FFT to get (normalized) delta field
+    delta = np.fft.irfft(modes,n=N_cells) * np.sqrt(N_cells/dv_kms)
+
+    return delta
+
+#Function to return a gaussian P1D in k.
+#From lya_mock_functions
+def power_kms(z_c,k_kms,dv_kms,white_noise):
+    """Return Gaussian P1D at different wavenumbers k_kms (in s/km), fixed z_c.
+
+      Other arguments:
+        dv_kms: if non-zero, will multiply power by top-hat kernel of this width
+        white_noise: if set to True, will use constant power of 100 km/s
+    """
+    if white_noise: return np.ones_like(k_kms)*100.0
+    # power used to make mocks in from McDonald et al. (2006)
+    A = power_amplitude(z_c)
+    k1 = 0.001
+    n = 0.7
+    R1 = 5.0
+    # compute term without smoothing
+    P = A * (1.0+pow(0.01/k1,n)) / (1.0+pow(k_kms/k1,n))
+    # smooth with Gaussian and top hat
+    kdv = np.fmax(k_kms*dv_kms,0.000001)
+    P *= np.exp(-pow(k_kms*R1,2)) * pow(np.sin(kdv/2)/(kdv/2),2)
+    return P
+
 #Definition of a generic 'simulation_data' class, from which it is easy to save in new formats.
 class simulation_data:
     #Initialisation function.
@@ -785,39 +848,68 @@ class simulation_data:
         h.close()
 
         return cls(N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,F_rows,R,Z,D,V,LOGLAM_MAP,A)
-    """
-    def add_small_scale_gaussian_fluctuations(self,dl,amplitude,white_noise=False,lambda_min=0):
+
+    #Function to add small scale gaussian fluctuations.
+    def add_small_scale_gaussian_fluctuations(self,cell_size,extra_sigma_G,amplitude=1.0,white_noise=False,lambda_min=0):
+
+        # TODO: Is NGP really the way to go?
 
         #Add small scale fluctuations
-        old_lambdas = 10**(self.LOGLAM_MAP)
-        lmax = np.max(old_lambdas)
-        lmin = lambda_min
-        new_lambdas = np.arange(lmin,lmax,dl)
+        old_R = self.R
+        Rmax = np.max(old_R)
+        """
+        z_min = lambda_min/lya - 1
+        Rmin = old_R[np.argmax(Z>z_min)]
+        """
+        Rmin = np.min(old_R)
+        new_R = np.arange(Rmin,Rmax,cell_size)
+        new_N_cells = new_R.shape[0]
 
-        final_GAUSSIAN_DELTA_rows = np.zeros((self.N_qso,new_lambdas.shape[0]))
+        NGPs = get_NGPs(old_R,new_R).astype(int)
+        expanded_GAUSSIAN_DELTA_rows = np.zeros((self.N_qso,new_N_cells))
         for i in range(self.N_qso):
-            original_skewer = np.interp(new_lambdas,old_lambdas,self.GAUSSIAN_DELTA_rows[i,:])
-            new_skewer =
-            final_GAUSSIAN_DELTA_rows[i,:] = original_skewer + amplitude*new_skewer
-
-        self.GAUSSIAN_DELTA_rows = final_GAUSSIAN_DELTA_rows
+            expanded_GAUSSIAN_DELTA_rows[i,:] = self.GAUSSIAN_DELTA_rows[i,NGPs]
 
         #Redefine the necessary variables (N_cells, Z, D etc)
-        self.N_cells = final_GAUSSIAN_DELTA_rows.shape[1]
-        self.IVAR_rows =
-        self.R = np.interp(new_lambdas,old_lambdas,self.R)
-        self.Z = new_lambdas/lya - 1
-        self.D = np.interp(new_lambdas,old_lambdas,self.D)
-        self.V = np.interp(new_lambdas,old_lambdas,self.V)
-        self.LOGLAM_MAP = np.log10(new_lambdas)
+        self.N_cells = new_N_cells
+        self.IVAR_rows = self.IVAR_rows[:,NGPs]
+        self.R = new_R
+        self.Z = np.interp(new_R,old_R,self.Z)
+        self.D = np.interp(new_R,old_R,self.D)
+        self.V = np.interp(new_R,old_R,self.V)
+        self.LOGLAM_MAP = np.interp(new_R,old_R,self.LOGLAM_MAP)
 
         #What to do with this?
-        self.VEL_rows = self.VEL_rows
+        self.VEL_rows = self.VEL_rows[:,NGPs]
 
+        # TODO:
+        #How to deal with z
+        z=2.0
+        #Set dv
+        #1 by 1? Or just N_skewers=N_qso?
+        extra_variance = get_gaussian_fields(z,self.N_cells,sigma_G=extra_sigma_G,dv_kms=10.0,N_skewers=self.N_qso,white_noise=white_noise)
+
+        final_GAUSSIAN_DELTA_rows = expanded_GAUSSIAN_DELTA_rows + amplitude*extra_variance
+
+        """
+        final_GAUSSIAN_DELTA_rows = np.zeros((self.N_qso,new_R.shape[0]))
+        for i in range(self.N_qso):
+            extra_variance = get_gaussian_fields(z,self.N_cells,sigma_G=extra_sigma_G,dv_kms=10.0,N_skewers=1)
+            final_GAUSSIAN_DELTA_rows[i,:] = expanded_GAUSSIAN_DELTA_rows[i,:] + amplitude*extra_variance
+        """
+        self.GAUSSIAN_DELTA_rows = final_GAUSSIAN_DELTA_rows
+
+        # TODO: this, currently just goes into the if each time
+        """
         #Warning if there are already physical/flux skewers
-
+        if hasattr(self,'DENSITY_DELTA_rows') or hasattr(self,'F_rows'):
+            #Overwrite or just warn?
+            print('hasattr')
+            compute_physical_skewers()
+            compute_flux_skewers()
+        """
         return
-    """
+
     #Function to add physical skewers to the object via a lognormal transformation.
     def compute_physical_skewers(self,density_type='lognormal'):
 
@@ -888,7 +980,7 @@ class simulation_data:
         return cls(N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,F_rows,R,Z,D,V,LOGLAM_MAP,A)
 
     #Function to save data as a Gaussian colore file.
-    def save_as_gaussian_colore(self,location,filename,header):
+    def save_as_gaussian_colore(self,location,filename,header,overwrite=False):
 
         #Organise the data into colore-format arrays.
         colore_1_data = []
@@ -919,13 +1011,13 @@ class simulation_data:
 
         #Combine the HDUs into an HDUlist and save as a new file. Close the HDUlist.
         hdulist = fits.HDUList([prihdu, hdu_CATALOG, hdu_GAUSSIAN, hdu_VEL, hdu_COSMO])
-        hdulist.writeto(location+filename)
+        hdulist.writeto(location+filename,overwrite=overwrite)
         hdulist.close
 
         return
 
     #Function to save data as a picca density file.
-    def save_as_picca_gaussian(self,location,filename,header,zero_mean_delta=False,lambda_min=0):
+    def save_as_picca_gaussian(self,location,filename,header,zero_mean_delta=False,lambda_min=0,overwrite=False):
 
         z_min = max(lambda_min/lya - 1, 0)
         lya_lambdas = 10**self.LOGLAM_MAP
@@ -978,7 +1070,7 @@ class simulation_data:
 
         #Combine the HDUs into and HDUlist and save as a new file. Close the HDUlist.
         hdulist = fits.HDUList([hdu_DELTA, hdu_iv, hdu_LOGLAM_MAP, hdu_CATALOG])
-        hdulist.writeto(location+filename)
+        hdulist.writeto(location+filename,overwrite=overwrite)
         hdulist.close()
 
         return
