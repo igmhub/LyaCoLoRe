@@ -36,16 +36,16 @@ N_pix = 12*N_side**2
 
 #Define the original file structure
 original_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/output_G_hZ_4096_32_sr2.0_bm1/'
-original_file_location = '/Users/jfarr/Projects/test_data/output_G_hZ_4096_32_sr2.0_bm1/'
-original_file_location = '/Users/James/Projects/test_data/output_G_hZ_4096_32_sr2.0_bm1/'
+#original_file_location = '/Users/jfarr/Projects/test_data/output_G_hZ_4096_32_sr2.0_bm1/'
+#original_file_location = '/Users/James/Projects/test_data/output_G_hZ_4096_32_sr2.0_bm1/'
 original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
 file_numbers = list(range(0,1))
 input_format = 'gaussian_colore'
 
 #Set file structure
-new_base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZ_4096_32_sr2.0_bm1_nside{}/'.format(N_side)
-new_base_file_location = '/Users/jfarr/Projects/test_data/process_output_G_hZ_4096_32_sr2.0_bm1_nside8/'
-new_base_file_location = '/Users/James/Projects/test_data/test_adding_ssp/'
+new_base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZ_4096_32_sr2.0_bm1_nside{}_TEST/'.format(N_side)
+#new_base_file_location = '/Users/jfarr/Projects/test_data/process_output_G_hZ_4096_32_sr2.0_bm1_nside8/'
+#new_base_file_location = '/Users/James/Projects/test_data/test_adding_ssp/'
 new_file_structure = '{}/{}/'               #pixel number//100, pixel number
 new_filename_structure = '{}-{}-{}.fits'    #file type, nside, pixel number
 
@@ -54,7 +54,7 @@ minimum_catalog_z = 1.8
 lambda_min = 3550 #A
 zero_mean_delta = False
 IVAR_cutoff = 1150 #A
-final_cell_size = 2.0 #Mpc/h
+final_cell_size = 0.25 #Mpc/h
 
 # TODO: currently this only works for TAU= (A1*((1+z)/A2)**A3) * (density**alpha). Want it to also work for any A(z). Either import from a txt file or be able to point it to any function?
 #Determine the different sets of parameters to test the density-flux conversion.
@@ -296,35 +296,28 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     header['LYA'] = lya
     header['NQSO'] = pixel_object.N_qso
 
-    #Add small scale power to the gaussian skewers:
-    pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,extra_sigma_G,white_noise=True,lambda_min=0)
-
-    #Gaussian CoLoRe
-    filename = new_filename_structure.format('gaussian-colore',N_side,pixel)
-    pixel_object.save_as_gaussian_colore(location,filename,header,overwrite=True)
-
-    #Picca Gaussian
-    filename = new_filename_structure.format('picca-gaussian',N_side,pixel)
-    pixel_object.save_as_picca_gaussian(location,filename,header,zero_mean_delta=zero_mean_delta,lambda_min=lambda_min,overwrite=True)
-
     #Add the physical density and flux skewers to the object.
     pixel_object.compute_physical_skewers() #Opportunity to change density type here
+    pixel_object.compute_flux_skewers() #Opportunity to vary A and alpha here
 
     #lognorm CoLoRe
     filename = new_filename_structure.format('physical-colore',N_side,pixel)
     pixel_object.save_as_physical_colore(location,filename,header)
 
-    #Picca density
-    filename = new_filename_structure.format('picca-density',N_side,pixel)
-    pixel_object.save_as_picca_density(location,filename,header,zero_mean_delta=zero_mean_delta,lambda_min=lambda_min)
-
-    #Add the flux conversions
-    #flux_conversions = pixel_object.get_flux_conversions()
-    pixel_object.compute_flux_skewers() #Opportunity to vary A and alpha here
-
     #transmission
     filename = new_filename_structure.format('transmission',N_side,pixel)
     pixel_object.save_as_transmission(location,filename,header,lambda_min=lambda_min)
+
+    #Add small scale power to the gaussian skewers:
+    pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,extra_sigma_G,white_noise=True,lambda_min=0)
+
+    #Picca Gaussian
+    filename = new_filename_structure.format('picca-gaussian',N_side,pixel)
+    pixel_object.save_as_picca_gaussian(location,filename,header,zero_mean_delta=zero_mean_delta,lambda_min=lambda_min,overwrite=True)
+
+    #Picca density
+    filename = new_filename_structure.format('picca-density',N_side,pixel)
+    pixel_object.save_as_picca_density(location,filename,header,zero_mean_delta=zero_mean_delta,lambda_min=lambda_min)
 
     #picca flux
     filename = new_filename_structure.format('picca-flux',N_side,pixel)
