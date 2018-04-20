@@ -312,8 +312,8 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     pixel_object.save_as_transmission(location,filename,header,lambda_min=lambda_min)
 
     #Add small scale power to the gaussian skewers:
-    pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,extra_sigma_G,white_noise=True,lambda_min=0)
-
+    pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,extra_sigma_G,white_noise=True,lambda_min=lambda_min)
+    
     #Picca Gaussian
     filename = new_filename_structure.format('picca-gaussian',N_side,pixel)
     pixel_object.save_as_picca_gaussian(location,filename,header,zero_mean_delta=zero_mean_delta,lambda_min=lambda_min,overwrite=True)
@@ -321,11 +321,11 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     #Picca density
     filename = new_filename_structure.format('picca-density',N_side,pixel)
     pixel_object.save_as_picca_density(location,filename,header,zero_mean_delta=zero_mean_delta,lambda_min=lambda_min)
-
+    print('IVAR_shape before',pixel_object.IVAR_rows.shape,'F_shape before',pixel_object.F_rows.shape)
     #picca flux
     filename = new_filename_structure.format('picca-flux',N_side,pixel)
     pixel_object.save_as_picca_flux(location,filename,header,lambda_min=lambda_min)
-
+    print('picca flux')
     return pixel
 
 #define the tasks
