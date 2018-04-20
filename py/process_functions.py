@@ -1247,6 +1247,7 @@ class simulation_data:
         #This is done with a 'hack' to avoid problems with weights summing to zero.
         # TODO: find a neater way to deal with this
         small = 1.0e-10
+        print('IVAR shape:',relevant_IVAR_rows.shape,'F shape:',,relevant_F_rows.shape)
         relevant_F_BAR = np.average(relevant_F_rows,weights=relevant_IVAR_rows+small,axis=0)
         relevant_F_DELTA_rows = ((relevant_F_rows)/relevant_F_BAR - 1)*relevant_IVAR_rows
 
