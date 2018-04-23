@@ -65,8 +65,7 @@ def dNdz(z, Nmin=19.5, Nmax=22.):
     return dnHD_dz_cumlgN(z,Nmax)-dnHD_dz_cumlgN(z,Nmin)
 
 def get_N(z, Nmin=19.5, Nmax=22, nsamp=100):
-    """ Assign a random column density given the 
-    redshift"""
+    """ Get the column density for a given z"""
     nn = np.linspace(Nmin,Nmax,nsamp)
     probs = dnHD_dz_cumlgN(z,nn).T
     N = np.zeros(len(probs))
