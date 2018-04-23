@@ -31,22 +31,22 @@ Also define option preferences.
 lya = 1215.67
 
 #Define the desired power of 2 for Nside for the output. This should be larger than that of the input.
-N_side_pow2 = 3
+N_side_pow2 = 4
 N_side = 2**N_side_pow2
 N_pix = 12*N_side**2
 
 #Define the original file structure
 original_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/output_G_hZ_4096_32_sr2.0_bm1/'
-#original_file_location = '/Users/jfarr/Projects/test_data/output_G_hZ_4096_32_sr2.0_bm1/'
-original_file_location = '/Users/James/Projects/test_data/output_G_hZ_4096_32_sr2.0_bm1/'
+original_file_location = '/Users/jfarr/Projects/test_data/output_G_hZ_4096_32_sr2.0_bm1/'
+#original_file_location = '/Users/James/Projects/test_data/output_G_hZ_4096_32_sr2.0_bm1/'
 original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
 file_numbers = list(range(0,1))
 input_format = 'gaussian_colore'
 
 #Set file structure
 new_base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZ_4096_32_sr2.0_bm1_nside{}_TEST/'.format(N_side)
-#new_base_file_location = '/Users/jfarr/Projects/test_data/process_output_G_hZ_4096_32_sr2.0_bm1_nside8/'
-new_base_file_location = '/Users/James/Projects/test_data/test_adding_ssp/'
+new_base_file_location = '/Users/jfarr/Projects/test_data/process_output_G_hZ_4096_32_sr2.0_bm1_nside8/'
+#new_base_file_location = '/Users/James/Projects/test_data/test_adding_ssp/'
 new_file_structure = '{}/{}/'               #pixel number//100, pixel number
 new_filename_structure = '{}-{}-{}.fits'    #file type, nside, pixel number
 
@@ -283,7 +283,8 @@ print('\nWorking on per-HEALPix pixel final skewer files...')
 start_time = time.time()
 
 def produce_final_skewers(new_base_file_location,new_file_structure,new_filename_structure,pixel,N_side,input_format,zero_mean_delta,lambda_min,SIGMA_G):
-
+    times = [0.0]
+    start_time = time.time()
     location = new_base_file_location + new_file_structure.format(pixel//100,pixel)
 
     #We work from the gaussian colore files made in 'pixelise gaussian skewers'
@@ -291,6 +292,7 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
 
     #Make a pixel object from it
     pixel_object = functions.simulation_data.get_gaussian_skewers(location+gaussian_filename,None,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
+    times += [time.time()-np.sum(times)-start_time]
 
     # TODO: These could be made beforehand and passed to the function? Or is there already enough being passed?
     #Make some useful headers
@@ -303,29 +305,45 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     #Add the physical density and flux skewers to the object.
     pixel_object.compute_physical_skewers() #Opportunity to change density type here
     pixel_object.compute_flux_skewers() #Opportunity to vary A and alpha here
+    times += [time.time()-np.sum(times)-start_time]
 
     #lognorm CoLoRe
     filename = new_filename_structure.format('physical-colore',N_side,pixel)
     pixel_object.save_as_physical_colore(location,filename,header)
 
+    #Add small scale power to the gaussian skewers:
+    pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,extra_sigma_G,white_noise=True,lambda_min=0)
+    times += [time.time()-np.sum(times)-start_time]
+
     #transmission
     filename = new_filename_structure.format('transmission',N_side,pixel)
     pixel_object.save_as_transmission(location,filename,header,lambda_min=lambda_min)
+    times += [time.time()-np.sum(times)-start_time]
 
-    #Add small scale power to the gaussian skewers:
-    pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,extra_sigma_G,white_noise=True,lambda_min=lambda_min)
+    #Trim the skewers (remove low lambda cells)
+    # TODO: potential issue to do with cropping the large cell skewers and losing some small cells that we want to kee. "extra_cells" should deal with this
+    pixel_object.trim_skewers(lambda_min,extra_cells=1)
+    times += [time.time()-np.sum(times)-start_time]
 
     #Picca Gaussian
     filename = new_filename_structure.format('picca-gaussian',N_side,pixel)
     pixel_object.save_as_picca_gaussian(location,filename,header,zero_mean_delta=zero_mean_delta,lambda_min=lambda_min,overwrite=True)
+    times += [time.time()-np.sum(times)-start_time]
 
     #Picca density
     filename = new_filename_structure.format('picca-density',N_side,pixel)
     pixel_object.save_as_picca_density(location,filename,header,zero_mean_delta=zero_mean_delta,lambda_min=lambda_min)
+    times += [time.time()-np.sum(times)-start_time]
 
     #picca flux
     filename = new_filename_structure.format('picca-flux',N_side,pixel)
     pixel_object.save_as_picca_flux(location,filename,header,lambda_min=lambda_min)
+    times += [time.time()-np.sum(times)-start_time]
+
+    #print('\n\ntotal:',np.round(np.sum(times),2))
+    #print('times:',np.round(times,2))
+    #print('%ages:',np.round(times/np.sum(times),2))
+    #print(' ')
 
     return pixel
 

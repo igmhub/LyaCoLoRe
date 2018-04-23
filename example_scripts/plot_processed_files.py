@@ -5,10 +5,10 @@ import sys
 
 # main folder where the processed files are
 basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_revamp/process_output_hZ_4096_32/'
+basedir = '/Users/jfarr/Projects/test_data/process_output_G_hZ_4096_32_sr2.0_bm1_nside8/'
 nside = 8
 
-pix = 3
-#pix = int(sys.argv[1])
+pix = int(sys.argv[1])
 pix_100 = int(pix/100)
 
 dirname = basedir+'/'+str(pix_100)+'/'+str(pix)+'/'
@@ -64,4 +64,3 @@ plt.plot(picca_zs,picca_dens_delta[:,iskewer],ls=':',label='density picca')
 plt.axvline(x=zq[iskewer])
 plt.legend()
 plt.show()
-

@@ -7,6 +7,7 @@ import sys
 
 #Input the original filename and location.
 file_location = '/Users/James/Projects/test_data/output_G_hZ_4096_32_sr2.0_bm1/'
+file_location = '/Users/jfarr/Projects/test_data/output_G_hZ_4096_32_sr2.0_bm1/'
 file_prefix = 'out_srcs_s1_'
 file_suffices = [0]
 
