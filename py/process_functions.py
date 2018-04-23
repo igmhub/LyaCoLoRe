@@ -3,6 +3,8 @@ from astropy.io import fits
 import healpy as hp
 import os
 import time
+import fast_prng
+
 
 # TODO: remove SIGMA_G from the headers of the saved files as it cannot be relied upon.
 
@@ -588,9 +590,26 @@ def get_NGPs(x,x_new):
         NGPs[i] = np.argmin(distances2)
     return NGPs
 
+#Function to generate random Gaussian skewers with a given standard deviation.
+def get_gaussian_skewers(N_cells,sigma_G=1.0,N_skewers=1,new_seed=None):
+    times = [0.0]
+    start_time = time.time()
+    gaussian_skewers = fast_prng.normal(size=(N_skewers,N_cells),scale=sigma_G)
+    times += [time.time()-np.sum(times)-start_time]
+    """
+    gaussian_skewers = np.random.normal(size=(N_skewers,N_cells),scale=sigma_G)
+    times += [time.time()-np.sum(times)-start_time]
+    """
+    """
+    random_state = np.random.RandomState(new_seed)
+    gaussian_skewers = random_state.normal(size=(N_skewers,N_cells),scale=sigma_G)
+    times += [time.time()-np.sum(times)-start_time]
+    """
+    return gaussian_skewers
+
 #Function to generate random Gaussian fields at a given redshift.
 #From lya_mock_functions
-def get_gaussian_fields(z,N_cells,sigma_G=1.0,dv_kms=10.0,N_skewers=1,new_seed=None,white_noise=True):
+def get_gaussian_fields(z,N_cells,dv_kms=10.0,N_skewers=1,new_seed=None,white_noise=True):
     """Generate N_skewers Gaussian fields at redshift z_c.
 
       If new_seed is set, it will reset random generator with it."""
@@ -608,8 +627,8 @@ def get_gaussian_fields(z,N_cells,sigma_G=1.0,dv_kms=10.0,N_skewers=1,new_seed=N
 
     # generate random Fourier modes
     modes = np.empty([N_skewers,NF], dtype=complex)
-    modes[:].real = np.reshape(random_state.normal(size=N_skewers*NF,scale=sigma_G),[N_skewers,NF])
-    modes[:].imag = np.reshape(random_state.normal(size=N_skewers*NF,scale=sigma_G),[N_skewers,NF])
+    modes[:].real = np.reshape(random_state.normal(size=N_skewers*NF),[N_skewers,NF])
+    modes[:].imag = np.reshape(random_state.normal(size=N_skewers*NF),[N_skewers,NF])
 
     # normalize to desired power (and enforce real for i=0, i=NF-1)
     modes[:,0] = modes[:,0].real * np.sqrt(P_kms[0])
@@ -846,27 +865,77 @@ class simulation_data:
 
         return cls(N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,F_rows,R,Z,D,V,LOGLAM_MAP,A)
 
+    #Function to trim skewers according to a minimum value of lambda. QSOs with no relevant cells are removed.
+    def trim_skewers(self,lambda_min,extra_cells=0):
+
+        lambdas = 10**(self.LOGLAM_MAP)
+        first_relevant_cell = np.argmax(lambdas>lambda_min)
+
+        #Determine which QSOs have any relevant cells to keep.
+        # TODO: may be better to do this with Z_QSO and lambdas?
+        relevant_QSOs = []
+        for i in range(self.N_qso):
+            lambda_QSO = lya*(1 + self.Z_QSO[i])
+            if self.IVAR_rows[i,first_relevant_cell] > 0:
+                relevant_QSOs += [i]
+
+        #If we want to keep any extra_cells, we subtract from the first_relevant_cell.
+        first_relevant_cell -= extra_cells
+
+        #Remove QSOs no longer needed.
+        self.N_qso = len(relevant_QSOs)
+
+        self.TYPE = self.TYPE[relevant_QSOs]
+        self.RA = self.RA[relevant_QSOs]
+        self.DEC = self.DEC[relevant_QSOs]
+        self.Z_QSO = self.Z_QSO[relevant_QSOs]
+        self.DZ_RSD = self.DZ_RSD[relevant_QSOs]
+        self.MOCKID = self.MOCKID[relevant_QSOs]
+        self.PLATE = self.PLATE[relevant_QSOs]
+        self.MJD = self.MJD[relevant_QSOs]
+        self.FIBER = self.FIBER[relevant_QSOs]
+
+        self.GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows[relevant_QSOs,:]
+        self.DENSITY_DELTA_rows = self.DENSITY_DELTA_rows[relevant_QSOs,:]
+        self.VEL_rows = self.VEL_rows[relevant_QSOs,:]
+        self.IVAR_rows = self.IVAR_rows[relevant_QSOs,:]
+        self.F_rows = self.F_rows[relevant_QSOs,:]
+
+        #Now trim the skewers of the remaining QSOs.
+        self.N_cells -= first_relevant_cell
+
+        self.GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows[:,first_relevant_cell:]
+        self.DENSITY_DELTA_rows = self.DENSITY_DELTA_rows[:,first_relevant_cell:]
+        self.VEL_rows = self.VEL_rows[:,first_relevant_cell:]
+        self.IVAR_rows = self.IVAR_rows[:,first_relevant_cell:]
+        self.F_rows = self.F_rows[:,first_relevant_cell:]
+
+        self.R = self.R[first_relevant_cell:]
+        self.Z = self.Z[first_relevant_cell:]
+        self.D = self.D[first_relevant_cell:]
+        self.V = self.V[first_relevant_cell:]
+        self.LOGLAM_MAP = self.LOGLAM_MAP[first_relevant_cell:]
+
+        return
+
     #Function to add small scale gaussian fluctuations.
     def add_small_scale_gaussian_fluctuations(self,cell_size,extra_sigma_G,amplitude=1.0,white_noise=False,lambda_min=0):
-
+        times = [0.0]
+        start_time = time.time()
         # TODO: Is NGP really the way to go?
 
         #Add small scale fluctuations
         old_R = self.R
         Rmax = np.max(old_R)
-        """
-        z_min = lambda_min/lya - 1
-        Rmin = old_R[np.argmax(Z>z_min)]
-        """
         Rmin = np.min(old_R)
         new_R = np.arange(Rmin,Rmax,cell_size)
         new_N_cells = new_R.shape[0]
-
+        times += [time.time()-np.sum(times)-start_time]
         NGPs = get_NGPs(old_R,new_R).astype(int)
         expanded_GAUSSIAN_DELTA_rows = np.zeros((self.N_qso,new_N_cells))
         for i in range(self.N_qso):
             expanded_GAUSSIAN_DELTA_rows[i,:] = self.GAUSSIAN_DELTA_rows[i,NGPs]
-
+        times += [time.time()-np.sum(times)-start_time]
         #Redefine the necessary variables (N_cells, Z, D etc)
         self.N_cells = new_N_cells
         self.IVAR_rows = self.IVAR_rows[:,NGPs]
@@ -875,7 +944,14 @@ class simulation_data:
         self.D = np.interp(new_R,old_R,self.D)
         self.V = np.interp(new_R,old_R,self.V)
         self.LOGLAM_MAP = np.interp(new_R,old_R,self.LOGLAM_MAP)
-
+        times += [time.time()-np.sum(times)-start_time]
+        #For each skewer, determine the last relevant cell
+        first_relevant_cells = np.zeros(self.N_qso)
+        last_relevant_cells = np.zeros(self.N_qso)
+        for i in range(self.N_qso):
+            first_relevant_cells[i] = (np.argmax(10**(self.LOGLAM_MAP)>lambda_min))
+            last_relevant_cells[i] = (np.argmax(self.Z>self.Z_QSO[i]) - 1)%self.N_cells
+        times += [time.time()-np.sum(times)-start_time]
         #What to do with this?
         self.VEL_rows = self.VEL_rows[:,NGPs]
 
@@ -889,22 +965,39 @@ class simulation_data:
         extra_variance = get_gaussian_fields(z,self.N_cells,sigma_G=extra_sigma_G,dv_kms=10.0,N_skewers=self.N_qso,white_noise=white_noise)
         final_GAUSSIAN_DELTA_rows = expanded_GAUSSIAN_DELTA_rows + amplitude*extra_variance
         """
-
-        final_GAUSSIAN_DELTA_rows = np.zeros((self.N_qso,new_R.shape[0]))
+        total_times = np.zeros(3)
         for i in range(self.N_qso):
-            extra_variance = get_gaussian_fields(z,self.N_cells,sigma_G=extra_sigma_G,dv_kms=10.0,N_skewers=1,white_noise=white_noise)
-            final_GAUSSIAN_DELTA_rows[i,:] = expanded_GAUSSIAN_DELTA_rows[i,:] + amplitude*extra_variance
+            first_relevant_cell = first_relevant_cells[i].astype('int32')
+            last_relevant_cell = last_relevant_cells[i].astype('int32')
+            N_cells_needed = (last_relevant_cell - first_relevant_cell).astype('int32')
 
-        self.GAUSSIAN_DELTA_rows = final_GAUSSIAN_DELTA_rows
+            #Generate the extra gaussian skewers. For now we use 'get_gaussian_skewers' to generate white noise.
+            #The ability to use 'get_gaussian_fields' to generate fields with a specific power spectrum will be added in the future.
+            extra_var = get_gaussian_skewers(N_cells_needed,extra_sigma_G,N_skewers=1)
+            total_times[0] += times[0]
+            total_times[1] += times[1]
+            total_times[2] += times[2]
+            extra_var = np.reshape(extra_var,extra_var.shape[1])
+            expanded_GAUSSIAN_DELTA_rows[i,first_relevant_cell:last_relevant_cell] += amplitude*extra_var
+
+        times += [time.time()-np.sum(times)-start_time]
+        self.GAUSSIAN_DELTA_rows = expanded_GAUSSIAN_DELTA_rows
 
         # TODO: this, currently just goes into the if each time
-        #Warning if there are already physical/flux skewers
+        #If there are already physical/flux skewers, recalculate them.
         if self.DENSITY_DELTA_rows is not None:
-            print('recomputing physical skewers')
             self.compute_physical_skewers()
+        times += [time.time()-np.sum(times)-start_time]
         if self.F_rows is not None:
-            print('recomputing flux skewers')
             self.compute_flux_skewers()
+        times += [time.time()-np.sum(times)-start_time]
+
+        #print(np.round(total_times,2))
+        #print(np.round(total_times/np.sum(total_times),2))
+        #print('\n\ntotal:',np.round(np.sum(times),2))
+        #print('times:',np.round(times,2))
+        #print('%ages:',np.round(times/np.sum(times),2))
+        #print(' ')
 
         return
 
@@ -1244,7 +1337,6 @@ class simulation_data:
         #This is done with a 'hack' to avoid problems with weights summing to zero.
         # TODO: find a neater way to deal with this
         small = 1.0e-10
-        print('IVAR shape:',relevant_IVAR_rows.shape,'F shape:',relevant_F_rows.shape)
         relevant_F_BAR = np.average(relevant_F_rows,weights=relevant_IVAR_rows+small,axis=0)
         relevant_F_DELTA_rows = ((relevant_F_rows)/relevant_F_BAR - 1)*relevant_IVAR_rows
 
