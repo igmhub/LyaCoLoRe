@@ -38,7 +38,7 @@ N_pix = 12*N_side**2
 original_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/output_G_hZ_4096_32_sr2.0_bm1/'
 original_file_location = '/Users/jfarr/Projects/test_data/output_G_hZ_4096_32_sr2.0_bm1/'
 original_file_location = '/Users/James/Projects/test_data/output_G_hZ_4096_32_sr2.0_bm1/'
-original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
+original_filename_structure = 'N1000_out_srcs_s1_{}.fits' #file_number
 file_numbers = list(range(0,1))
 input_format = 'gaussian_colore'
 
@@ -326,12 +326,12 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
 
     #Picca Gaussian
     filename = new_filename_structure.format('picca-gaussian',N_side,pixel)
-    pixel_object.save_as_picca_gaussian(location,filename,header,zero_mean_delta=zero_mean_delta,lambda_min=lambda_min,overwrite=True)
+    pixel_object.save_as_picca_gaussian(location,filename,header,lambda_min=lambda_min,overwrite=True)
     times += [time.time()-np.sum(times)-start_time]
 
     #Picca density
     filename = new_filename_structure.format('picca-density',N_side,pixel)
-    pixel_object.save_as_picca_density(location,filename,header,zero_mean_delta=zero_mean_delta,lambda_min=lambda_min)
+    pixel_object.save_as_picca_density(location,filename,header,lambda_min=lambda_min)
     times += [time.time()-np.sum(times)-start_time]
 
     #picca flux
