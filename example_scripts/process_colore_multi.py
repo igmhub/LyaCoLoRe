@@ -44,8 +44,8 @@ input_format = 'gaussian_colore'
 
 #Set file structure
 new_base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZ_4096_32_sr2.0_bm1_nside{}_TEST/'.format(N_side)
-new_base_file_location = '/Users/jfarr/Projects/test_data/process_output_G_hZ_4096_32_sr2.0_bm1_nside8/'
-new_base_file_location = '/Users/James/Projects/test_data/process_output_G_hZ_4096_32_sr2.0_bm1_nside8/'
+new_base_file_location = '/Users/jfarr/Projects/test_data/process_output_G_hZ_4096_32_sr2.0_bm1_nside{}/'.format(N_side)
+new_base_file_location = '/Users/James/Projects/test_data/process_output_G_hZ_4096_32_sr2.0_bm1_nside{}/'.format(N_side)
 new_file_structure = '{}/{}/'               #pixel number//100, pixel number
 new_filename_structure = '{}-{}-{}.fits'    #file type, nside, pixel number
 
