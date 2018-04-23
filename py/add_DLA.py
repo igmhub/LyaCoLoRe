@@ -60,7 +60,19 @@ def dnHD_dz_cumlgN(z,logN):
     return y(z,logN)
 
 def dNdz(z, Nmin=19.5, Nmax=22.):
+    """ Get the column density as a function of z
+    for a given range in N"""
     return dnHD_dz_cumlgN(z,Nmax)-dnHD_dz_cumlgN(z,Nmin)
+
+def get_N(z, Nmin=19.5, Nmax=22, nsamp=100):
+    """ Assign a random column density given the 
+    redshift"""
+    nn = np.linspace(Nmin,Nmax,nsamp)
+    probs = dnHD_dz_cumlgN(z,nn).T
+    N = np.zeros(len(probs))
+    for i in range(0,len(probs)):
+        N[i] = np.random.choice(nn,size=1,p=probs[i]/np.sum(probs[i]))
+    return N
 
 if o.output_name is not None:
     fileout = o.output_name
@@ -68,6 +80,7 @@ else:
     fileout = o.input_file
 
 skewers = fits.open(o.input_file)[2].data
+v_skw = fits.open(o.input_file)[3].data
 z, bias, D = get_bias_z(o.input_file,o.dla_bias)
 sigma_g = get_sigma_g(o.input_file)
 nu_arr = nu_of_bD(bias*D)
@@ -82,15 +95,18 @@ dlas = pois*flagged_pixels
 ndlas = np.sum(dlas)
 zdla = np.zeros(ndlas)
 kskw = np.zeros(ndlas)
+dz_dla = np.zeros(ndlas)
 idx = 0
 for nskw,dla in enumerate(dlas):
     ind = np.where(dla>0)[0]
     for ii in ind:
-        zdla[idx:idx+dla[ii]]=np.random.uniform(low=(zedges[ii])*0.5,high=(zedges[ii+1])*0.5,size=dla[ii])
+        zdla[idx:idx+dla[ii]]=np.random.uniform(low=(zedges[ii]),high=(zedges[ii+1]),size=dla[ii])
         kskw[idx:idx+dla[ii]]=nskw
+        dz_dla[idx:idx+dla[ii]]=v_skw[nskw,ii]
         idx = idx+dla[ii]
-taux = astropy.table.Table([kskw,zdla],names=('SKEWER_NUMBER','Z_DLA'))
+Ndla = get_N(zdla)        
+taux = astropy.table.Table([kskw,zdla,dz_dla,Ndla],names=('SKEWER_NUMBER','Z_DLA','DZ_DLA','N_HI_DLA'))
 new_hdu = fits.hdu.BinTableHDU(data=taux,name='DLA')
 hdulist = fits.open(o.input_file)
 hdulist.append(new_hdu)
-hdulist.writeto(fileout)
+hdulist.writeto(fileout, overwrite=True)
