@@ -50,7 +50,7 @@ parser.add_argument('--cell-size', type = float, default = 0.25, required=False,
 parser.add_argument('--lambda-min', type = float, default = 3550., required=False,
                     help = 'minimum lambda in picca skewers (Å)')
 
-parser.add_argument('--min-cat-z', type = float, default = 0., required=False,
+parser.add_argument('--min-cat-z', type = float, default = 1.8, required=False,
                     help = 'minimum z of objects in catalog')
 
 parser.add_argument('--param-file', type = str, default = 'out_params.cfg', required=False,
@@ -72,12 +72,10 @@ final_cell_size = args.cell_size
 N_processes = args.nproc
 parameter_filename = args.param_file
 
-N_pix = 12*N_side**2
-
-#Define the desired power of 2 for Nside for the output. This should be larger than that of the input.
-N_side_pow2 = 4
-N_side = 2**N_side_pow2
-N_pix = 12*N_side**2
+if np.log2(N_side)-int(np.log2(N_side)) != 0:
+    print('nside must be a power of 2!')
+else:
+    N_pix = 12*N_side**2
 
 #Define the original file structure
 original_filename_structure = 'N1000_out_srcs_s1_{}.fits' #file_number
