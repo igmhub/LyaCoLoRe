@@ -8,6 +8,7 @@ import multiprocessing
 import sys
 import time
 import os
+import argparse
 
 ################################################################################
 
@@ -26,8 +27,52 @@ Set up the file locations and filename structures.
 Also define option preferences.
 """
 
+parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+parser.add_argument('--in-dir', type = str, default = None, required=True,
+                    help = 'input data directory')
+
+parser.add_argument('--out-dir', type = str, default = None, required=True,
+                    help = 'output data directory')
+
+parser.add_argument('--nproc', type = int, default = 1, required=False,
+                    help = 'number of processes to use')
+
+parser.add_argument('--nside', type = int, default = 16, required=False,
+                    help = 'HEALPix nside for output files (must be 2^n)')
+
+parser.add_argument('--IVAR-cut', type = float, default = 1150., required=False,
+                    help = 'maximum rest frame lambda for IVAR=1 (Å)')
+
+parser.add_argument('--cell-size', type = float, default = 0.25, required=False,
+                    help = 'size in Mpc/h of output cells')
+
+parser.add_argument('--lambda-min', type = float, default = 3550., required=False,
+                    help = 'minimum lambda in picca skewers (Å)')
+
+parser.add_argument('--min-cat-z', type = float, default = 0., required=False,
+                    help = 'minimum z of objects in catalog')
+
+parser.add_argument('--param-file', type = str, default = 'out_params.cfg', required=False,
+                    help = 'output parameter file name')
+
+args = parser.parse_args()
+
 #Define global variables.
 lya = 1215.67
+
+original_file_location = args.in_dir
+new_base_file_location = args.out_dir
+N_side = args.nside
+minimum_catalog_z = args.min_cat_z
+lambda_min = args.lambda_min
+zero_mean_delta = False
+IVAR_cutoff = args.IVAR_cut
+final_cell_size = args.cell_size
+N_processes = args.nproc
+parameter_filename = args.param_file
+
+N_pix = 12*N_side**2
 
 #Define the desired power of 2 for Nside for the output. This should be larger than that of the input.
 N_side_pow2 = 4
@@ -35,26 +80,15 @@ N_side = 2**N_side_pow2
 N_pix = 12*N_side**2
 
 #Define the original file structure
-original_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/output_G_hZ_4096_32_sr2.0_bm1/'
-original_file_location = '/Users/jfarr/Projects/test_data/output_G_hZ_4096_32_sr2.0_bm1/'
-original_file_location = '/Users/James/Projects/test_data/output_G_hZ_4096_32_sr2.0_bm1/'
 original_filename_structure = 'N1000_out_srcs_s1_{}.fits' #file_number
 file_numbers = list(range(0,1))
 input_format = 'gaussian_colore'
 
 #Set file structure
-new_base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZ_4096_32_sr2.0_bm1_nside{}_TEST/'.format(N_side)
-new_base_file_location = '/Users/jfarr/Projects/test_data/process_output_G_hZ_4096_32_sr2.0_bm1_nside{}/'.format(N_side)
-new_base_file_location = '/Users/James/Projects/test_data/process_output_G_hZ_4096_32_sr2.0_bm1_nside{}/'.format(N_side)
 new_file_structure = '{}/{}/'               #pixel number//100, pixel number
 new_filename_structure = '{}-{}-{}.fits'    #file type, nside, pixel number
 
 #Choose options
-minimum_catalog_z = 1.8
-lambda_min = 3550 #A
-zero_mean_delta = False
-IVAR_cutoff = 1150 #A
-final_cell_size = 0.25 #Mpc/h
 
 # TODO: currently this only works for TAU= (A1*((1+z)/A2)**A3) * (density**alpha). Want it to also work for any A(z). Either import from a txt file or be able to point it to any function?
 #Determine the different sets of parameters to test the density-flux conversion.
@@ -65,7 +99,6 @@ flux_parameters = [(0.374,4.0,5.1,1.0)] #A1,A2,A3,alpha
 z_min = lambda_min/lya - 1
 
 #Get the simulation parameters from the parameter file.
-parameter_filename = 'out_params.cfg'
 simulation_parameters = functions.get_simulation_parameters(original_file_location,parameter_filename)
 
 # TODO: Modify this to accomodate other density types.
@@ -122,7 +155,7 @@ def make_master_data(original_file_location,original_filename_structure,file_num
     return [file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element]
 
 #Set up the multiprocessing pool parameters and make a list of tasks.
-N_processes = int(sys.argv[1])
+#N_processes = int(sys.argv[1])
 tasks = [(original_file_location,original_filename_structure,file_number,input_format,N_side) for file_number in file_numbers]
 
 #Run the multiprocessing pool
@@ -213,7 +246,7 @@ def pixelise_gaussian_skewers(pixel,original_file_location,original_filename_str
     return means_data
 
 #Set up the multiprocessing pool parameters and make a list of tasks.
-N_processes = int(sys.argv[1])
+#N_processes = int(sys.argv[1])
 manager = multiprocessing.Manager()
 shared_MOCKID_lookup = manager.dict(MOCKID_lookup)
 tasks = [(pixel,original_file_location,original_filename_structure,input_format,shared_MOCKID_lookup,z_min,new_base_file_location,new_file_structure,N_side) for pixel in pixel_list]
