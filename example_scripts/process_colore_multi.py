@@ -297,11 +297,20 @@ W = np.sinc((k*0.25)/(2*np.pi))
 sigma2_P1D = np.trapz((W**2)*pk_z2,k)
 """
 #Work out sigma_G desired to achive the P1D sigma_F
-# TODO: implement this from tune_flux.ipynb
-desired_sigma_G = 4.0
+# TODO: implement this from tune_flux.ipynb. Put into its own function
+sigma_G_z_values = np.linspace(0,3.79,20)
+k = np.logspace(-5,10,10**5)
+desired_sigma_F_values = np.zeros(sigma_G_z_values.shape)
+mean_F_values = np.zeros(sigma_G_z_values.shape)
+for i,z in enumerate(sigma_G_z_values):
+    desired_sigma_F_values[i] = functions.get_sigma_F_P1D(k,z,l=final_cell_size)
+    mean_F_values[i] = functions.get_mean_F_model(z)
+
+desired_sigma_G_values = np.concatenate((2.0*np.ones(10),np.linspace(2.0,25.0,10)))
+desired_sigma_G_values = 4.0*np.ones(20)
 
 #Determine the desired sigma_G by sampling
-extra_sigma_G = np.sqrt(desired_sigma_G**2 - measured_SIGMA_G**2)
+extra_sigma_G_values = np.sqrt(desired_sigma_G_values**2 - measured_SIGMA_G**2)
 
 ################################################################################
 
@@ -317,10 +326,10 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     start_time = time.time()
     location = new_base_file_location + new_file_structure.format(pixel//100,pixel)
 
-    #We work from the gaussian colore files made in 'pixelise gaussian skewers'
+    #We work from the gaussian colore files made in 'pixelise gaussian skewers'.
     gaussian_filename = new_filename_structure.format('gaussian-colore',N_side,pixel)
 
-    #Make a pixel object from it
+    #Make a pixel object from it.
     pixel_object = functions.simulation_data.get_gaussian_skewers(location+gaussian_filename,None,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
     times += [time.time()-np.sum(times)-start_time]
 
@@ -342,7 +351,7 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     pixel_object.save_as_physical_colore(location,filename,header)
 
     #Add small scale power to the gaussian skewers:
-    pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,extra_sigma_G,white_noise=True,lambda_min=0)
+    pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,sigma_G_z_values,extra_sigma_G_values,white_noise=True,lambda_min=0)
     times += [time.time()-np.sum(times)-start_time]
 
     #transmission
@@ -354,6 +363,11 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     # TODO: potential issue to do with cropping the large cell skewers and losing some small cells that we want to kee. "extra_cells" should deal with this
     pixel_object.trim_skewers(lambda_min,extra_cells=1)
     times += [time.time()-np.sum(times)-start_time]
+
+    #Exit now if no skewers are left.
+    if pixel_object.N_qso == 0:
+        print('\nwarning: no objects left in pixel {} after trimming.'.format(pixel))
+        return pixel
 
     #Picca Gaussian
     filename = new_filename_structure.format('picca-gaussian',N_side,pixel)

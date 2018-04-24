@@ -4,7 +4,7 @@ import healpy as hp
 import os
 import time
 import fast_prng
-
+import analytic_p1d_PD2013 as aP1D
 
 # TODO: remove SIGMA_G from the headers of the saved files as it cannot be relied upon.
 
@@ -28,7 +28,7 @@ def make_gaussian_pixel_object(pixel,original_file_location,original_filename_st
         #We use simulation_data.get_reduced_data to avoid loading all of the file's data into the object.
         if N_relevant_qso > 0:
             filename = original_file_location + '/' + original_filename_structure.format(file_number)
-            working = simulation_data.get_gaussian_skewers(filename,file_number,input_format,relevant_MOCKIDs,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff)
+            working = simulation_data.get_gaussian_skewers(filename,file_number,input_format,MOCKIDs=relevant_MOCKIDs,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff)
 
         #Combine the data from the working file with that from the files already looked at.
         if files_included > 0:
@@ -150,7 +150,7 @@ def get_MOCKID(h,input_format,file_number):
             row_numbers = list(range(h_N_qso))
             MOCKID = make_MOCKID(file_number,row_numbers)
     elif input_format == 'picca':
-        MOCKID = h[3].data['MOCKID']
+        MOCKID = h[3].data['THING_ID']
     elif input_format == 'ID':
         MOCKID = h[1].data['MOCKID']
 
@@ -394,12 +394,12 @@ def get_tau(z,density,A,alpha=1.0):
     return TAU_rows
 
 #Function to make ivar mask
-def make_IVAR_rows(lya,Z_QSO,LOGLAM_MAP):
+def make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP):
 
     N_cells = LOGLAM_MAP.shape[0]
     N_qso = Z_QSO.shape[0]
 
-    lya_lambdas = lya*(1+Z_QSO)
+    lya_lambdas = IVAR_cutoff*(1+Z_QSO)
     IVAR_rows = np.ones((N_qso,N_cells),dtype='float32')
     lambdas = 10**LOGLAM_MAP
 
@@ -662,6 +662,29 @@ def power_kms(z_c,k_kms,dv_kms,white_noise):
     P *= np.exp(-pow(k_kms*R1,2)) * pow(np.sin(kdv/2)/(kdv/2),2)
     return P
 
+#Function to integrate under the 1D power spectrum to return the value of sigma_F at a given redshift.
+def get_sigma_F_P1D(k,z,l=0.0):
+    pk = aP1D.P1D_z_kms_PD2013(z,k)
+    W = np.sinc((k*l)/(2*np.pi))
+    sigma_F = np.sqrt((1/np.pi)*np.trapz((W**2)*pk,k))
+    return sigma_F
+
+#Function to return the mean value of F at a given redshift.
+#Equation from F-R2012, equation 2.11
+def get_mean_F_model(z):
+    mean_F = np.exp((np.log(0.8))*(((1+z)/3.25)**3.2))
+    return mean_F
+
+#Function to return the mean value of F for a given sigma_G and density-flux conversion.
+def get_mean_F(z,sigma_G,alpha,beta):
+    # TODO: write this
+    return mean_F
+
+#Function to return sigma_F for a given sigma_G and density-flux conversion.
+def get_sigma_F(z,sigma_G,alpha,beta):
+    # TODO: write this
+    return mean_F
+
 #Definition of a generic 'simulation_data' class, from which it is easy to save in new formats.
 class simulation_data:
     #Initialisation function.
@@ -794,7 +817,10 @@ class simulation_data:
                 SIGMA_G = h[4].header['SIGMA_G']
 
             #Derive the MOCKID and LOGLAM_MAP.
-            MOCKID = get_MOCKID(h,input_format,file_number)
+            if MOCKIDs != None:
+                MOCKID = MOCKIDs
+            else:
+                MOCKID = get_MOCKID(h,input_format,file_number)
             LOGLAM_MAP = np.log10(lya*(1+Z))
 
             #Set the remaining variables to None
@@ -919,9 +945,8 @@ class simulation_data:
         return
 
     #Function to add small scale gaussian fluctuations.
-    def add_small_scale_gaussian_fluctuations(self,cell_size,extra_sigma_G,amplitude=1.0,white_noise=False,lambda_min=0):
-        times = [0.0]
-        start_time = time.time()
+    def add_small_scale_gaussian_fluctuations(self,cell_size,sigma_G_z_values,extra_sigma_G_values,amplitude=1.0,white_noise=False,lambda_min=0):
+
         # TODO: Is NGP really the way to go?
 
         #Add small scale fluctuations
@@ -930,12 +955,12 @@ class simulation_data:
         Rmin = np.min(old_R)
         new_R = np.arange(Rmin,Rmax,cell_size)
         new_N_cells = new_R.shape[0]
-        times += [time.time()-np.sum(times)-start_time]
+
         NGPs = get_NGPs(old_R,new_R).astype(int)
         expanded_GAUSSIAN_DELTA_rows = np.zeros((self.N_qso,new_N_cells))
         for i in range(self.N_qso):
             expanded_GAUSSIAN_DELTA_rows[i,:] = self.GAUSSIAN_DELTA_rows[i,NGPs]
-        times += [time.time()-np.sum(times)-start_time]
+
         #Redefine the necessary variables (N_cells, Z, D etc)
         self.N_cells = new_N_cells
         self.IVAR_rows = self.IVAR_rows[:,NGPs]
@@ -944,14 +969,14 @@ class simulation_data:
         self.D = np.interp(new_R,old_R,self.D)
         self.V = np.interp(new_R,old_R,self.V)
         self.LOGLAM_MAP = np.interp(new_R,old_R,self.LOGLAM_MAP)
-        times += [time.time()-np.sum(times)-start_time]
+
         #For each skewer, determine the last relevant cell
         first_relevant_cells = np.zeros(self.N_qso)
         last_relevant_cells = np.zeros(self.N_qso)
         for i in range(self.N_qso):
             first_relevant_cells[i] = (np.argmax(10**(self.LOGLAM_MAP)>lambda_min))
             last_relevant_cells[i] = (np.argmax(self.Z>self.Z_QSO[i]) - 1)%self.N_cells
-        times += [time.time()-np.sum(times)-start_time]
+
         #What to do with this?
         self.VEL_rows = self.VEL_rows[:,NGPs]
 
@@ -970,27 +995,27 @@ class simulation_data:
             first_relevant_cell = first_relevant_cells[i].astype('int32')
             last_relevant_cell = last_relevant_cells[i].astype('int32')
             N_cells_needed = (last_relevant_cell - first_relevant_cell).astype('int32')
+            extra_var = np.zeros(N_cells_needed)
+
+            for j in range(first_relevant_cell,last_relevant_cell):
+                extra_sigma_G_cell = np.interp(self.Z[j],sigma_G_z_values,extra_sigma_G_values)
+                extra_var[j] = get_gaussian_skewers(1,extra_sigma_G_cell)
 
             #Generate the extra gaussian skewers. For now we use 'get_gaussian_skewers' to generate white noise.
             #The ability to use 'get_gaussian_fields' to generate fields with a specific power spectrum will be added in the future.
-            extra_var = get_gaussian_skewers(N_cells_needed,extra_sigma_G,N_skewers=1)
-            total_times[0] += times[0]
-            total_times[1] += times[1]
-            total_times[2] += times[2]
-            extra_var = np.reshape(extra_var,extra_var.shape[1])
+            #extra_sigma_G = extra_sigma_G_values[-1]
+            #extra_var = get_gaussian_skewers(N_cells_needed,extra_sigma_G,N_skewers=1)
+            #extra_var = np.reshape(extra_var,extra_var.shape[1])
             expanded_GAUSSIAN_DELTA_rows[i,first_relevant_cell:last_relevant_cell] += amplitude*extra_var
 
-        times += [time.time()-np.sum(times)-start_time]
         self.GAUSSIAN_DELTA_rows = expanded_GAUSSIAN_DELTA_rows
 
         # TODO: this, currently just goes into the if each time
         #If there are already physical/flux skewers, recalculate them.
         if self.DENSITY_DELTA_rows is not None:
             self.compute_physical_skewers()
-        times += [time.time()-np.sum(times)-start_time]
         if self.F_rows is not None:
             self.compute_flux_skewers()
-        times += [time.time()-np.sum(times)-start_time]
 
         #print(np.round(total_times,2))
         #print(np.round(total_times/np.sum(total_times),2))
@@ -1315,7 +1340,7 @@ class simulation_data:
         first_relevant_cell = get_first_relevant_index(lambda_min,lya_lambdas)
 
         #Determine the furthest cell which is still relevant: i.e. the one in which at least one QSO has non-zero value of IVAR.
-        furthest_QSO_index = np.argmax(self.Z_QSO)
+        #furthest_QSO_index = np.argmax(self.Z_QSO)
         #last_relevant_cell = (np.argmax(self.IVAR_rows[furthest_QSO_index,:]==0) - 1) % self.N_cells
         last_relevant_cell = self.N_cells - 1
 
