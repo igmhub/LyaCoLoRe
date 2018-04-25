@@ -5,6 +5,7 @@ import os
 import time
 import fast_prng
 import analytic_p1d_PD2013 as aP1D
+import DLA
 
 # TODO: remove SIGMA_G from the headers of the saved files as it cannot be relied upon.
 
@@ -474,7 +475,7 @@ def get_simulation_parameters(location,filename):
 
     #Define the parameters to search for and the intricacies of the parameter file.
     divider = '\n'
-    parameters = [('dens_type','int'),('omega_M','>f4'),('omega_L','>f4'),('omega_B','>f4'),('h','>f4'),('w','>f4'),('ns','>f4'),('sigma_8','>f4')]
+    parameters = [('dens_type','int'),('r_smooth','>f4'),('n_grid','int'),('gaussian_skewers','str'),('omega_M','>f4'),('omega_L','>f4'),('omega_B','>f4'),('h','>f4'),('w','>f4'),('ns','>f4'),('sigma_8','>f4')]
     equality_format = ' = '
     N_parameters = len(parameters)
 
@@ -709,8 +710,8 @@ def get_flux_stats(sigma_G,alpha,beta,D,mean_only=False,int_lim_fac=10.0):
     return mean_F, sigma_F
 
 #Function to find the value of alpha required to match mean_F to a specified value.
-def find_alpha(sigma_G,mean_F_required,beta,D,alpha_log_low=-3.0,alpha_log_high=10.0,tolerance=0.01,max_iter=30):
-
+def find_alpha(sigma_G,mean_F_required,beta,D,alpha_log_low=-3.0,alpha_log_high=10.0,tolerance=0.0001,max_iter=30):
+    #print('---> mean_F required={:2.2f}'.format(mean_F_required))
     count = 0
     exit = 0
     while exit == 0 and count < max_iter:
@@ -719,6 +720,8 @@ def find_alpha(sigma_G,mean_F_required,beta,D,alpha_log_low=-3.0,alpha_log_high=
         mean_F_al,sigma_F_al = get_flux_stats(sigma_G,10**alpha_log_low,beta,D,mean_only=True)
         mean_F_am,sigma_F_am = get_flux_stats(sigma_G,10**alpha_log_midpoint,beta,D,mean_only=True)
         mean_F_ah,sigma_F_ah = get_flux_stats(sigma_G,10**alpha_log_high,beta,D,mean_only=True)
+
+        #print('---> alphas=({:2.2f},{:2.2f},{:2.2f}) gives mean_F=({:2.2f},{:2.2f},{:2.2f})'.format(10**alpha_log_low,10**alpha_log_midpoint,10**alpha_log_high,mean_F_al,mean_F_am,mean_F_ah))
 
         if np.sign(mean_F_al-mean_F_required) * np.sign(mean_F_am-mean_F_required) > 0:
             alpha_log_low = alpha_log_midpoint
@@ -730,22 +733,47 @@ def find_alpha(sigma_G,mean_F_required,beta,D,alpha_log_low=-3.0,alpha_log_high=
         else:
             count += 1
 
+    if exit == 0:
+        print('alpha did not converge')
+
     alpha = 10**alpha_log_midpoint
     mean_F,sigma_F = get_flux_stats(sigma_G,alpha,beta,D)
 
     return alpha,mean_F,sigma_F
 
 #Function to find the values of alpha and sigma_G required to match mean_F and sigma_F to specified values.
-def find_sigma_G(mean_F_required,sigma_F_required,beta,D,sigma_G_log_low=-2.0,sigma_G_log_high=1.0,tolerance=0.01,max_iter=30):
+def find_sigma_G(mean_F_required,sigma_F_required,beta,D,sigma_G_start=0.001,step_size=1.0,tolerance=0.001,max_steps=30):
+    print('sigma_F required={:2.2f}'.format(sigma_F_required))
 
     count = 0
     exit = 0
-    while exit == 0 and count < max_iter:
+    sigma_G = sigma_G_start
+    while exit == 0 and count < max_steps:
+        alpha,mean_F,sigma_F = find_alpha(sigma_G,mean_F_required,beta,D)
+
+        if sigma_F < sigma_F_required:
+            print('sigma_G={:2.4f} gives sigma_F={:2.4f}. Too low. Stepping forwards...'.format(sigma_G,sigma_F))
+            sigma_G += step_size
+        elif sigma_F > sigma_F_required:
+            print('sigma_G={:2.4f} gives sigma_F={:2.4f}. Too high. Stepping backwards...'.format(sigma_G,sigma_F))
+            sigma_G_too_high = sigma_G
+            sigma_G -= step_size
+            step_size = step_size/10.0
+            sigma_G += step_size
+
+        if abs(sigma_F/sigma_F_required - 1) < tolerance:
+            exit = 1
+        else:
+            count += 1
+
+        """
         sigma_G_log_midpoint = (sigma_G_log_low + sigma_G_log_high)/2.0
 
         alpha_sGl,mean_F_sGl,sigma_F_sGl = find_alpha(10**sigma_G_log_low,mean_F_required,beta,D)
         alpha_sGm,mean_F_sGm,sigma_F_sGm = find_alpha(10**sigma_G_log_midpoint,mean_F_required,beta,D)
         alpha_sGh,mean_F_sGh,sigma_F_sGh = find_alpha(10**sigma_G_log_high,mean_F_required,beta,D)
+
+        print('sigma_Gs=({:2.2f},{:2.2f},{:2.2f}) gives sigma_Fs=({:2.2f},{:2.2f},{:2.2f})'.format(10**sigma_G_log_low,10**sigma_G_log_midpoint,10**sigma_G_log_high,sigma_F_sGl,sigma_F_sGm,sigma_F_sGh))
 
         if np.sign(sigma_F_sGl-sigma_F_required) * np.sign(sigma_F_sGm-sigma_F_required) > 0:
             sigma_G_log_low = sigma_G_log_midpoint
@@ -756,12 +784,18 @@ def find_sigma_G(mean_F_required,sigma_F_required,beta,D,sigma_G_log_low=-2.0,si
             exit = 1
         else:
             count += 1
+        """
+    if exit == 0:
+        print('sigma_G did not converge')
+        sigma_G = (sigma_G+sigma_G_too_high)/2.0
+        alpha,mean_F,sigma_F = find_alpha(sigma_G,mean_F_required,beta,D)
 
+    """
     alpha = alpha_sGm
     sigma_G = 10**sigma_G_log_midpoint
     mean_F = mean_F_sGm
     sigma_F = sigma_F_sGm
-
+    """
     return alpha,sigma_G,mean_F,sigma_F
 
 #Definition of a generic 'simulation_data' class, from which it is easy to save in new formats.
@@ -1108,15 +1142,12 @@ class simulation_data:
     #Function to add physical skewers to the object via a lognormal transformation.
     def compute_physical_skewers(self,density_type='lognormal'):
 
-        self.DENSITY_DELTA_rows = gaussian_to_lognormal(self.GAUSSIAN_DELTA_rows,self.SIGMA_G,self.D)
+        self.DENSITY_DELTA_rows = gaussian_to_lognormal_delta(self.GAUSSIAN_DELTA_rows,self.SIGMA_G,self.D)
 
         return
 
     #Function to add flux skewers to the object.
     def compute_flux_skewers(self,A=None,alpha=1.0):
-
-        if not A:
-            A = 0.374*pow((1+self.Z)/4.0,5.10)
 
         self.TAU_rows = get_tau(self.Z,self.DENSITY_DELTA_rows+1,A,alpha=1.0)
         self.F_rows = np.exp(-self.TAU_rows)
@@ -1402,8 +1433,14 @@ class simulation_data:
         hdu_WAVELENGTH = fits.ImageHDU(data=transmission_2,header=header,name='WAVELENGTH')
         hdu_TRANSMISSION = fits.ImageHDU(data=transmission_3,header=header,name='TRANSMISSION')
 
-        #Combine the HDUs into and HDUlist and save as a new file. Close the HDUlist.
-        hdulist = fits.HDUList([prihdu, hdu_METADATA, hdu_WAVELENGTH, hdu_TRANSMISSION])
+        #Combine the HDUs into an HDUlist (including DLAs, if they have been computed)
+        if hasattr(self,'DLA_table') == True:
+            hdu_DLAs = fits.hdu.BinTableHDU(data=self.DLA_table,header=header,name='DLA')
+            hdulist = fits.HDUList([prihdu, hdu_METADATA, hdu_WAVELENGTH, hdu_TRANSMISSION, hdu_DLAs])
+        else:
+            hdulist = fits.HDUList([prihdu, hdu_METADATA, hdu_WAVELENGTH, hdu_TRANSMISSION])
+
+        #Save as a new file. Close the HDUlist.
         hdulist.writeto(location+filename)
         hdulist.close()
 
@@ -1528,6 +1565,56 @@ class simulation_data:
         statistics = np.array(list(zip(N_relevant_skewers,GDB,GDSB,DDB,DDSB,FB,FSB,FDB,FDSB)),dtype=dtype)
 
         return statistics
+
+    #Function to add DLAs to a set of skewers.
+    def add_DLA_table(self,dla_bias=2.0):
+
+        y = interp1d(self.Z,self.D)
+        bias = dla_bias/(self.D)*y(2.25)
+
+        #We measure sigma_G already, but it is not fed back into the files at all. This should change.
+        sigma_g = DLA.get_sigma_g(o.input_file)
+
+        nu_arr = DLA.nu_of_bD(bias*self.D)
+        flagged_pixels = DLA.flag_DLA(self.GAUSSIAN_DELTA_rows,nu_arr,sigma_g)
+
+        #Edges of the z bins
+        zedges = np.concatenate([[0],(z[1:]+z[:-1])*0.5,[z[-1]+(-z[-2]+z[-1])*0.5]]).ravel()
+        z_width = zedges[1:]-zedges[:-1]
+
+        #Average number of DLAs per pixel
+        N = z_width*DLA.dNdz(z)
+
+        #For a given z, probability of having the density higher than the threshold
+        p_nu_z = 1.0-norm.cdf(nu_arr)
+        mu = N/p_nu_z
+
+        #Should the "len(skewers)" be the number of skewers or the number of cells in each skewer here?
+        #Think it's the number of skewers but will check
+        pois = np.random.poisson(mu,size=(self.N_qso,len(mu)))
+        dlas = pois*flagged_pixels
+
+        #For each dla, assign it a redshift, a velocity and a column density.
+        ndlas = np.sum(dlas)
+        zdla = np.zeros(ndlas)
+        kskw = np.zeros(ndlas)
+        dz_dla = np.zeros(ndlas)
+        idx = 0
+        for nskw,dla in enumerate(dlas):
+            ind = np.where(dla>0)[0]
+            for ii in ind:
+                zdla[idx:idx+dla[ii]]=np.random.uniform(low=(zedges[ii]),high=(zedges[ii+1]),size=dla[ii])
+                kskw[idx:idx+dla[ii]]=nskw
+                dz_dla[idx:idx+dla[ii]]=v_skw[nskw,ii]
+                idx = idx+dla[ii]
+        Ndla = DLA.get_N(zdla)
+
+        #Make the data into a table HDU
+        taux = astropy.table.Table([kskw,zdla,dz_dla,Ndla],names=('SKEWER_NUMBER','Z_DLA','DZ_DLA','N_HI_DLA'))
+
+        self.DLA_table = taux
+
+        return
 
 
     """
