@@ -3,6 +3,7 @@
 import numpy as np
 from astropy.io import fits
 import process_functions as functions
+import matplotlib.pyplot as plt
 from multiprocessing import Pool
 import multiprocessing
 import sys
@@ -85,12 +86,6 @@ input_format = 'gaussian_colore'
 #Set file structure
 new_file_structure = '{}/{}/'               #pixel number//100, pixel number
 new_filename_structure = '{}-{}-{}.fits'    #file type, nside, pixel number
-
-#Choose options
-
-# TODO: currently this only works for TAU= (A1*((1+z)/A2)**A3) * (density**alpha). Want it to also work for any A(z). Either import from a txt file or be able to point it to any function?
-#Determine the different sets of parameters to test the density-flux conversion.
-flux_parameters = [(0.374,4.0,5.1,1.0)] #A1,A2,A3,alpha
 
 #Calculate the minimum value of z that we are interested in.
 #i.e. the z value for which lambda_min cooresponds to the lya wavelength.
@@ -296,6 +291,7 @@ print('\nCalculating how much extra power to add...')
 # TODO: implement this from tune_flux.ipynb. Put into its own function
 sigma_G_z_values = np.linspace(0,3.79,20)
 k = np.logspace(-5,10,10**5)
+D_values = np.interp(sigma_G_z_values,cosmology_data['Z'],cosmology_data['D'])
 desired_sigma_G_values = []
 
 for i,z in enumerate(sigma_G_z_values):
@@ -310,15 +306,16 @@ for i,z in enumerate(sigma_G_z_values):
     # beta: interpolation using the values in McDonald?
     # D: Make a cosmology object and store D,Z,R in it?
     beta = 1.65
-    D = 0.5
 
-    alpha,sigma_G,mean_F,sigma_F = functions.find_sigma_G(mean_F_needed,sigma_F_needed,beta,D)
-    print('z={:2.2f} // mean_F needed={:2.2f}, mean_F achieved={:2.2f} // sigma_F_needed={:2.2f}, sigma_F achieved={:2.2f} //  using alpha={:2.2f}, sigma_G={:2.2f}'.format(z,mean_F_needed,mean_F,sigma_F_needed,sigma_F,alpha,sigma_G))
+    alpha,sigma_G,mean_F,sigma_F = functions.find_sigma_G(mean_F_needed,sigma_F_needed,beta,D_values[i])
+    print('z={:2.2f} // mean_F needed={:2.4f}, mean_F achieved={:2.4f} // sigma_F_needed={:2.4f}, sigma_F achieved={:2.4f} //  using alpha={:2.4f}, sigma_G={:2.4f}'.format(z,mean_F_needed,mean_F,sigma_F_needed,sigma_F,alpha,sigma_G))
 
     desired_sigma_G_values += [sigma_G]
 
 desired_sigma_G_values = np.array(desired_sigma_G_values)
-print(desired_sigma_G_values)
+#plt.plot(sigma_G_z_values,desired_sigma_G_values)
+#plt.grid()
+#plt.show()
 #desired_sigma_G_values = np.concatenate((2.0*np.ones(10),np.linspace(2.0,25.0,10)))
 #desired_sigma_G_values = 4.0*np.ones(20)
 
@@ -337,7 +334,7 @@ start_time = time.time()
 def produce_final_skewers(new_base_file_location,new_file_structure,new_filename_structure,pixel,N_side,input_format,zero_mean_delta,lambda_min,SIGMA_G):
     times = [0.0]
     start_time = time.time()
-    location = new_base_file_location + new_file_structure.format(pixel//100,pixel)
+    location = new_base_file_location + '/' + new_file_structure.format(pixel//100,pixel)
 
     #We work from the gaussian colore files made in 'pixelise gaussian skewers'.
     gaussian_filename = new_filename_structure.format('gaussian-colore',N_side,pixel)
@@ -366,6 +363,9 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     #Add small scale power to the gaussian skewers:
     pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,sigma_G_z_values,extra_sigma_G_values,white_noise=True,lambda_min=0)
     times += [time.time()-np.sum(times)-start_time]
+
+    #create a table HDU with DLAs
+    pixel_object.add_DLA_table()
 
     #transmission
     filename = new_filename_structure.format('transmission',N_side,pixel)
