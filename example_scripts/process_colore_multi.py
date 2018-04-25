@@ -178,10 +178,10 @@ pixel_list = list(sorted(set(master_data['PIXNUM'])))
 file_number_list = list(sorted(set(file_numbers)))
 
 #Write master and bad coordinates files.
-master_filename = new_base_file_location + '/' + 'nside_{}_'.format(N_side) + 'master.fits'
+master_filename = new_base_file_location + '/nside_{}_'.format(N_side) + 'master.fits'
 functions.write_ID(master_filename,master_data,cosmology_data,N_side)
 
-bad_coordinates_filename = new_base_file_location + '/' + 'nside_{}_'.format(N_side) + 'bad_coordinates.fits'
+bad_coordinates_filename = new_base_file_location + '/nside_{}_'.format(N_side) + 'bad_coordinates.fits'
 functions.write_ID(bad_coordinates_filename,bad_coordinates_data,cosmology_data,N_side)
 
 #Write the DRQ files for picca xcf to deal with.
@@ -209,7 +209,7 @@ start_time = time.time()
 #Define the pixelisation process.
 def pixelise_gaussian_skewers(pixel,original_file_location,original_filename_structure,input_format,shared_MOCKID_lookup,z_min,new_base_file_location,new_file_structure,N_side):
     #Define the save location for the pixel, according to the new file structure.
-    location = new_base_file_location + new_file_structure.format(pixel//100,pixel)
+    location = new_base_file_location + '/' + new_file_structure.format(pixel//100,pixel)
 
     #Make file into an object
     pixel_object = functions.make_gaussian_pixel_object(pixel,original_file_location,original_filename_structure,input_format,shared_MOCKID_lookup,IVAR_cutoff=IVAR_cutoff)
@@ -289,25 +289,38 @@ This is done by
  - stretching the current skewers to achieve smaller cell sizes (NGP)
  - adding a random number to each cell with the appropriate statistics
 """
-"""
-#Calculate P1D variance
-k = np.logspace(-5,5,10**6)
-pk_z2 = aP1D.P1D_z_kms_PD2013(2.0,k)
-W = np.sinc((k*0.25)/(2*np.pi))
-sigma2_P1D = np.trapz((W**2)*pk_z2,k)
-"""
+
+print('\nCalculating how much extra power to add...')
+
 #Work out sigma_G desired to achive the P1D sigma_F
 # TODO: implement this from tune_flux.ipynb. Put into its own function
 sigma_G_z_values = np.linspace(0,3.79,20)
 k = np.logspace(-5,10,10**5)
-desired_sigma_F_values = np.zeros(sigma_G_z_values.shape)
-mean_F_values = np.zeros(sigma_G_z_values.shape)
-for i,z in enumerate(sigma_G_z_values):
-    desired_sigma_F_values[i] = functions.get_sigma_F_P1D(k,z,l=final_cell_size)
-    mean_F_values[i] = functions.get_mean_F_model(z)
+desired_sigma_G_values = []
 
-desired_sigma_G_values = np.concatenate((2.0*np.ones(10),np.linspace(2.0,25.0,10)))
-desired_sigma_G_values = 4.0*np.ones(20)
+for i,z in enumerate(sigma_G_z_values):
+
+    sigma_F_needed = functions.get_sigma_F_P1D(k,z,l=final_cell_size)
+    mean_F_needed = functions.get_mean_F_model(z)
+
+    #HACK FOR NOW AS WE CAN'T SEEM TO REACH HIGH ENOUGH sigma_F
+    sigma_F_needed = sigma_F_needed/2.0
+
+    # TODO: how to deal with beta and D
+    # beta: interpolation using the values in McDonald?
+    # D: Make a cosmology object and store D,Z,R in it?
+    beta = 1.65
+    D = 0.5
+
+    alpha,sigma_G,mean_F,sigma_F = functions.find_sigma_G(mean_F_needed,sigma_F_needed,beta,D)
+    print('z={:2.2f} // mean_F needed={:2.2f}, mean_F achieved={:2.2f} // sigma_F_needed={:2.2f}, sigma_F achieved={:2.2f} //  using alpha={:2.2f}, sigma_G={:2.2f}'.format(z,mean_F_needed,mean_F,sigma_F_needed,sigma_F,alpha,sigma_G))
+
+    desired_sigma_G_values += [sigma_G]
+
+desired_sigma_G_values = np.array(desired_sigma_G_values)
+print(desired_sigma_G_values)
+#desired_sigma_G_values = np.concatenate((2.0*np.ones(10),np.linspace(2.0,25.0,10)))
+#desired_sigma_G_values = 4.0*np.ones(20)
 
 #Determine the desired sigma_G by sampling
 extra_sigma_G_values = np.sqrt(desired_sigma_G_values**2 - measured_SIGMA_G**2)

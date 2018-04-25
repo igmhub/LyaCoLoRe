@@ -53,12 +53,12 @@ def make_file_structure(base_location,numbers):
 
     for i in first_level_set:
 
-        os.mkdir(base_location+str(i))
+        os.mkdir(base_location+'/'+str(i))
 
         for j, number in enumerate(numbers):
 
             if first_level[j] == i:
-                os.mkdir(base_location+str(i)+'/'+str(number))
+                os.mkdir(base_location+'/'+str(i)+'/'+str(number))
 
     return
 
@@ -384,10 +384,11 @@ def write_DRQ(filename,RSD_option,ID_data,N_side):
     return
 
 #From lya_mock_p1d.py
-def get_tau(z,density,A,alpha=1.0):
+def get_tau(z,density,A=None,alpha=1.0):
     """transform lognormal density to optical depth, at each z"""
     # add redshift evolution to mean optical depth
-    A = 0.374*pow((1+z)/4.0,5.10)
+    if not A:
+        A = 0.374*pow((1+z)/4.0,5.10)
 
     TAU_rows = A*(density**alpha)
 
@@ -427,7 +428,7 @@ def lognormal_to_gaussian(LN_DENSITY_DELTA_rows,SIGMA_G,D):
     return GAUSSIAN_DELTA_rows
 
 #Function to convert gaussian field skewers (in rows) to lognormal delta skewers (in rows).
-def gaussian_to_lognormal(GAUSSIAN_DELTA_rows,SIGMA_G,D):
+def gaussian_to_lognormal_delta(GAUSSIAN_DELTA_rows,SIGMA_G,D):
 
     LN_DENSITY_rows = np.zeros(GAUSSIAN_DELTA_rows.shape)
     LN_DENSITY_DELTA_rows = np.zeros(GAUSSIAN_DELTA_rows.shape)
@@ -440,6 +441,11 @@ def gaussian_to_lognormal(GAUSSIAN_DELTA_rows,SIGMA_G,D):
     LN_DENSITY_DELTA_rows = LN_DENSITY_DELTA_rows.astype('float32')
 
     return LN_DENSITY_DELTA_rows
+
+#Function to convert from density to flux using alpha*density^beta
+def density_to_flux(density,alpha,beta):
+    F = np.exp(-alpha*(density**beta))
+    return F
 
 #Function to determine the first index corresponding to a value in an array greater than a minimum value.
 def get_first_relevant_index(minimum,values):
@@ -663,7 +669,7 @@ def power_kms(z_c,k_kms,dv_kms,white_noise):
     return P
 
 #Function to integrate under the 1D power spectrum to return the value of sigma_F at a given redshift.
-def get_sigma_F_P1D(k,z,l=0.0):
+def get_sigma_F_P1D(k,z,l=0.25):
     pk = aP1D.P1D_z_kms_PD2013(z,k)
     W = np.sinc((k*l)/(2*np.pi))
     sigma_F = np.sqrt((1/np.pi)*np.trapz((W**2)*pk,k))
@@ -675,15 +681,88 @@ def get_mean_F_model(z):
     mean_F = np.exp((np.log(0.8))*(((1+z)/3.25)**3.2))
     return mean_F
 
-#Function to return the mean value of F for a given sigma_G and density-flux conversion.
-def get_mean_F(z,sigma_G,alpha,beta):
-    # TODO: write this
-    return mean_F
+#Function to calculate mean_F and sigma_F for given values of sigma_G, alpha and beta.
+def get_flux_stats(sigma_G,alpha,beta,D,mean_only=False,int_lim_fac=10.0):
 
-#Function to return sigma_F for a given sigma_G and density-flux conversion.
-def get_sigma_F(z,sigma_G,alpha,beta):
-    # TODO: write this
-    return mean_F
+    int_lim = sigma_G*int_lim_fac
+
+    delta_G_integral = np.linspace(-int_lim,int_lim,10**4)
+    delta_G_integral = np.reshape(delta_G_integral,(1,delta_G_integral.shape[0]))
+
+    D_integral = (D)*np.ones(delta_G_integral.shape[1])
+
+    prob_delta_G = (1/((np.sqrt(2*np.pi))*sigma_G))*np.exp(-(delta_G_integral**2)/(2*(sigma_G**2)))
+
+    density_integral = gaussian_to_lognormal_delta(delta_G_integral,sigma_G,D_integral) + 1
+    F_integral = density_to_flux(density_integral,alpha,beta)
+
+    mean_F = np.trapz(prob_delta_G*F_integral,delta_G_integral)[0]
+
+    delta_F_integral = F_integral/mean_F - 1
+
+    if mean_only == False:
+        integrand = prob_delta_G*(delta_F_integral**2)
+        sigma_F = np.sqrt(np.trapz(integrand,delta_G_integral)[0])
+    else:
+        sigma_F = None
+
+    return mean_F, sigma_F
+
+#Function to find the value of alpha required to match mean_F to a specified value.
+def find_alpha(sigma_G,mean_F_required,beta,D,alpha_log_low=-3.0,alpha_log_high=10.0,tolerance=0.01,max_iter=30):
+
+    count = 0
+    exit = 0
+    while exit == 0 and count < max_iter:
+        alpha_log_midpoint = (alpha_log_low + alpha_log_high)/2.0
+
+        mean_F_al,sigma_F_al = get_flux_stats(sigma_G,10**alpha_log_low,beta,D,mean_only=True)
+        mean_F_am,sigma_F_am = get_flux_stats(sigma_G,10**alpha_log_midpoint,beta,D,mean_only=True)
+        mean_F_ah,sigma_F_ah = get_flux_stats(sigma_G,10**alpha_log_high,beta,D,mean_only=True)
+
+        if np.sign(mean_F_al-mean_F_required) * np.sign(mean_F_am-mean_F_required) > 0:
+            alpha_log_low = alpha_log_midpoint
+        else:
+            alpha_log_high = alpha_log_midpoint
+
+        if abs(mean_F_am/mean_F_required - 1) < tolerance:
+            exit = 1
+        else:
+            count += 1
+
+    alpha = 10**alpha_log_midpoint
+    mean_F,sigma_F = get_flux_stats(sigma_G,alpha,beta,D)
+
+    return alpha,mean_F,sigma_F
+
+#Function to find the values of alpha and sigma_G required to match mean_F and sigma_F to specified values.
+def find_sigma_G(mean_F_required,sigma_F_required,beta,D,sigma_G_log_low=-2.0,sigma_G_log_high=1.0,tolerance=0.01,max_iter=30):
+
+    count = 0
+    exit = 0
+    while exit == 0 and count < max_iter:
+        sigma_G_log_midpoint = (sigma_G_log_low + sigma_G_log_high)/2.0
+
+        alpha_sGl,mean_F_sGl,sigma_F_sGl = find_alpha(10**sigma_G_log_low,mean_F_required,beta,D)
+        alpha_sGm,mean_F_sGm,sigma_F_sGm = find_alpha(10**sigma_G_log_midpoint,mean_F_required,beta,D)
+        alpha_sGh,mean_F_sGh,sigma_F_sGh = find_alpha(10**sigma_G_log_high,mean_F_required,beta,D)
+
+        if np.sign(sigma_F_sGl-sigma_F_required) * np.sign(sigma_F_sGm-sigma_F_required) > 0:
+            sigma_G_log_low = sigma_G_log_midpoint
+        else:
+            sigma_G_log_high = sigma_G_log_midpoint
+
+        if abs(sigma_F_sGm/sigma_F_required - 1) < tolerance:
+            exit = 1
+        else:
+            count += 1
+
+    alpha = alpha_sGm
+    sigma_G = 10**sigma_G_log_midpoint
+    mean_F = mean_F_sGm
+    sigma_F = sigma_F_sGm
+
+    return alpha,sigma_G,mean_F,sigma_F
 
 #Definition of a generic 'simulation_data' class, from which it is easy to save in new formats.
 class simulation_data:
