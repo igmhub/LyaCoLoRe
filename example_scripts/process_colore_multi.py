@@ -57,6 +57,13 @@ parser.add_argument('--min-cat-z', type = float, default = 1.8, required=False,
 parser.add_argument('--param-file', type = str, default = 'out_params.cfg', required=False,
                     help = 'output parameter file name')
 
+parser.add_argument('--add-DLAs', action="store_true", required=False,
+                    help = 'add DLAs to the transmission file')
+
+parser.add_argument('--add-RSDs', action="store_true", required=False,
+                    help = 'add RSDs to the transmission file')
+
+
 args = parser.parse_args()
 
 #Define global variables.
@@ -79,7 +86,7 @@ else:
     N_pix = 12*N_side**2
 
 #Define the original file structure
-original_filename_structure = 'N1000_out_srcs_s1_{}.fits' #file_number
+original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
 file_numbers = list(range(0,1))
 input_format = 'gaussian_colore'
 
@@ -288,11 +295,12 @@ This is done by
 print('\nCalculating how much extra power to add...')
 
 #Work out sigma_G desired to achive the P1D sigma_F
-sigma_G_z_values = np.linspace(0,3.79,40)
+sigma_G_z_values = np.linspace(0,3.79,20)
 k = np.logspace(-5,10,10**5)
 D_values = np.interp(sigma_G_z_values,cosmology_data['Z'],cosmology_data['D'])
 beta = 1.65
-
+sigma_G_tolerance = 0.0001
+"""
 def find_sigma_G(z,D,l,k,beta):
 
     sigma_F_needed = functions.get_sigma_F_P1D(k,z,l=l)
@@ -301,9 +309,9 @@ def find_sigma_G(z,D,l,k,beta):
     #HACK FOR NOW AS WE CAN'T SEEM TO REACH HIGH ENOUGH sigma_F
     sigma_F_needed = sigma_F_needed/2.0
 
-    alpha,sigma_G,mean_F,sigma_F = functions.find_sigma_G(mean_F_needed,sigma_F_needed,beta,D)
+    alpha,sigma_G,mean_F,sigma_F = functions.find_sigma_G(mean_F_needed,sigma_F_needed,beta,D,tolerance=sigma_G_tolerance)
 
-    return (z,alpha,sigma_G,mean_F,sigma_F)
+    return (z,alpha,sigma_G,mean_F,sigma_F,mean_F_needed,sigma_F_needed)
 
 tasks = [(z,np.interp(z,cosmology_data['Z'],cosmology_data['D']),final_cell_size,k,beta) for z in sigma_G_z_values]
 
@@ -318,7 +326,7 @@ if __name__ == '__main__':
     pool.close()
     pool.join()
 
-dtype = [('z', '>f4'), ('alpha', '>f4'), ('sigma_G', '>f4'), ('mean_F', '>f4'), ('sigma_F', '>f4')]
+dtype = [('z', '>f4'), ('alpha', '>f4'), ('sigma_G', '>f4'), ('mean_F', '>f4'), ('sigma_F', '>f4'), ('mean_F_needed', '>f4'), ('sigma_F_needed', '>f4')]
 results = np.array(results,dtype=dtype)
 results = np.sort(results,order=['z'])
 
@@ -328,12 +336,20 @@ plt.plot(results['z'],results['mean_F'],label='mean_F')
 plt.plot(results['z'],results['sigma_F'],label='sigma_F')
 plt.grid()
 plt.legend()
-plt.savefig('tune_flux_values_tol0.001.pdf')
+plt.savefig('tune_flux_values_tol{}_n{}.pdf'.format(sigma_G_tolerance,sigma_G_z_values.shape[0]))
 plt.show()
 
-#desired_sigma_G_values = np.concatenate((2.0*np.ones(10),np.linspace(2.0,25.0,10)))
-#desired_sigma_G_values = 4.0*np.ones(20)
+plt.plot(results['z'],results['mean_F']/results['mean_F_needed'] - 1,label='mean_F error')
+plt.plot(results['z'],results['sigma_F']/results['sigma_F_needed'] - 1,label='sigma_F error')
+plt.grid()
+plt.legend()
+plt.savefig('tune_flux_values_tol{}_n{}_Ferrors.pdf'.format(sigma_G_tolerance,sigma_G_z_values.shape[0]))
+plt.show()
+
 desired_sigma_G_values = results['sigma_G']
+"""
+#desired_sigma_G_values = np.concatenate((2.0*np.ones(10),np.linspace(2.0,25.0,10)))
+desired_sigma_G_values = 4.0*np.ones(20)
 
 #Determine the desired sigma_G by sampling
 extra_sigma_G_values = np.sqrt(desired_sigma_G_values**2 - measured_SIGMA_G**2)
@@ -356,7 +372,7 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     gaussian_filename = new_filename_structure.format('gaussian-colore',N_side,pixel)
 
     #Make a pixel object from it.
-    pixel_object = functions.simulation_data.get_gaussian_skewers(location+gaussian_filename,None,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
+    pixel_object = functions.simulation_data.get_gaussian_skewers(location+gaussian_filename,None,input_format,SIGMA_G=SIGMA_G,IVAR_cutoff=IVAR_cutoff)
     times += [time.time()-np.sum(times)-start_time]
 
     # TODO: These could be made beforehand and passed to the function? Or is there already enough being passed?
@@ -376,21 +392,22 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     filename = new_filename_structure.format('physical-colore',N_side,pixel)
     pixel_object.save_as_physical_colore(location,filename,header)
 
+    #Trim the skewers (remove low lambda cells)
+    # TODO: potential issue to do with cropping the large cell skewers and losing some small cells that we want to kee. "extra_cells" should deal with this
+    pixel_object.trim_skewers(lambda_min,extra_cells=1)
+    times += [time.time()-np.sum(times)-start_time]
+
     #Add small scale power to the gaussian skewers:
     pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,sigma_G_z_values,extra_sigma_G_values,white_noise=True,lambda_min=0)
     times += [time.time()-np.sum(times)-start_time]
 
     #create a table HDU with DLAs
     pixel_object.add_DLA_table()
+    times += [time.time()-np.sum(times)-start_time]
 
     #transmission
     filename = new_filename_structure.format('transmission',N_side,pixel)
     pixel_object.save_as_transmission(location,filename,header,lambda_min=lambda_min)
-    times += [time.time()-np.sum(times)-start_time]
-
-    #Trim the skewers (remove low lambda cells)
-    # TODO: potential issue to do with cropping the large cell skewers and losing some small cells that we want to kee. "extra_cells" should deal with this
-    pixel_object.trim_skewers(lambda_min,extra_cells=1)
     times += [time.time()-np.sum(times)-start_time]
 
     #Exit now if no skewers are left.
@@ -413,10 +430,10 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     pixel_object.save_as_picca_flux(location,filename,header,lambda_min=lambda_min)
     times += [time.time()-np.sum(times)-start_time]
 
-    #print('\n\ntotal:',np.round(np.sum(times),2))
-    #print('times:',np.round(times,2))
-    #print('%ages:',np.round(times/np.sum(times),2))
-    #print(' ')
+    print('\n\ntotal:',np.round(np.sum(times),2))
+    print('times:',np.round(times,2))
+    print('%ages:',np.round(times/np.sum(times),2))
+    print(' ')
 
     return pixel
 
