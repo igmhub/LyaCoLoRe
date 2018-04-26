@@ -293,7 +293,7 @@ sigma_G_z_values = np.linspace(0,3.79,20)
 k = np.logspace(-5,10,10**5)
 D_values = np.interp(sigma_G_z_values,cosmology_data['Z'],cosmology_data['D'])
 desired_sigma_G_values = []
-
+"""
 for i,z in enumerate(sigma_G_z_values):
 
     sigma_F_needed = functions.get_sigma_F_P1D(k,z,l=final_cell_size)
@@ -316,8 +316,9 @@ desired_sigma_G_values = np.array(desired_sigma_G_values)
 #plt.plot(sigma_G_z_values,desired_sigma_G_values)
 #plt.grid()
 #plt.show()
+"""
 #desired_sigma_G_values = np.concatenate((2.0*np.ones(10),np.linspace(2.0,25.0,10)))
-#desired_sigma_G_values = 4.0*np.ones(20)
+desired_sigma_G_values = 4.0*np.ones(20)
 
 #Determine the desired sigma_G by sampling
 extra_sigma_G_values = np.sqrt(desired_sigma_G_values**2 - measured_SIGMA_G**2)

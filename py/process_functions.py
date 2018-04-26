@@ -7,6 +7,11 @@ import fast_prng
 import analytic_p1d_PD2013 as aP1D
 import DLA
 
+#DLA imports:
+from scipy.stats import norm
+from scipy.interpolate import interp1d, interp2d
+import astropy.table
+
 # TODO: remove SIGMA_G from the headers of the saved files as it cannot be relied upon.
 
 lya = 1215.67
@@ -475,7 +480,8 @@ def get_simulation_parameters(location,filename):
 
     #Define the parameters to search for and the intricacies of the parameter file.
     divider = '\n'
-    parameters = [('dens_type','int'),('r_smooth','>f4'),('n_grid','int'),('gaussian_skewers','str'),('omega_M','>f4'),('omega_L','>f4'),('omega_B','>f4'),('h','>f4'),('w','>f4'),('ns','>f4'),('sigma_8','>f4')]
+    #parameters = [('dens_type','int'),('r_smooth','>f4'),('n_grid','int'),('gaussian_skewers','str'),('omega_M','>f4'),('omega_L','>f4'),('omega_B','>f4'),('h','>f4'),('w','>f4'),('ns','>f4'),('sigma_8','>f4')]
+    parameters = [('dens_type','int'),('r_smooth','>f4'),('n_grid','int'),('omega_M','>f4'),('omega_L','>f4'),('omega_B','>f4'),('h','>f4'),('w','>f4'),('ns','>f4'),('sigma_8','>f4')]
     equality_format = ' = '
     N_parameters = len(parameters)
 
@@ -1094,8 +1100,6 @@ class simulation_data:
         self.VEL_rows = self.VEL_rows[:,NGPs]
 
         # TODO:
-        #How to deal with z
-        z=2.0
         #Set dv
 
         """
@@ -1573,17 +1577,19 @@ class simulation_data:
         bias = dla_bias/(self.D)*y(2.25)
 
         #We measure sigma_G already, but it is not fed back into the files at all. This should change.
-        sigma_g = DLA.get_sigma_g(o.input_file)
+        sigma_g = self.SIGMA_G
+        #sigma_g = DLA.get_sigma_g(o.input_file)
 
         nu_arr = DLA.nu_of_bD(bias*self.D)
         flagged_pixels = DLA.flag_DLA(self.GAUSSIAN_DELTA_rows,nu_arr,sigma_g)
 
         #Edges of the z bins
-        zedges = np.concatenate([[0],(z[1:]+z[:-1])*0.5,[z[-1]+(-z[-2]+z[-1])*0.5]]).ravel()
+        # TODO: neater way to do this?
+        zedges = np.concatenate([[0],(self.Z[1:]+self.Z[:-1])*0.5,[self.Z[-1]+(-self.Z[-2]+self.Z[-1])*0.5]]).ravel()
         z_width = zedges[1:]-zedges[:-1]
 
         #Average number of DLAs per pixel
-        N = z_width*DLA.dNdz(z)
+        N = z_width*DLA.dNdz(self.Z)
 
         #For a given z, probability of having the density higher than the threshold
         p_nu_z = 1.0-norm.cdf(nu_arr)
@@ -1605,7 +1611,7 @@ class simulation_data:
             for ii in ind:
                 zdla[idx:idx+dla[ii]]=np.random.uniform(low=(zedges[ii]),high=(zedges[ii+1]),size=dla[ii])
                 kskw[idx:idx+dla[ii]]=nskw
-                dz_dla[idx:idx+dla[ii]]=v_skw[nskw,ii]
+                dz_dla[idx:idx+dla[ii]]=self.VEL_rows[nskw,ii]
                 idx = idx+dla[ii]
         Ndla = DLA.get_N(zdla)
 
