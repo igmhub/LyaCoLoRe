@@ -6,6 +6,7 @@ import time
 import fast_prng
 import analytic_p1d_PD2013 as aP1D
 import DLA
+import matplotlib.pyplot as plt
 
 #DLA imports:
 from scipy.stats import norm
@@ -705,9 +706,8 @@ def get_flux_stats(sigma_G,alpha,beta,D,mean_only=False,int_lim_fac=10.0):
 
     mean_F = np.trapz(prob_delta_G*F_integral,delta_G_integral)[0]
 
-    delta_F_integral = F_integral/mean_F - 1
-
     if mean_only == False:
+        delta_F_integral = F_integral/mean_F - 1
         integrand = prob_delta_G*(delta_F_integral**2)
         sigma_F = np.sqrt(np.trapz(integrand,delta_G_integral)[0])
     else:
@@ -740,7 +740,8 @@ def find_alpha(sigma_G,mean_F_required,beta,D,alpha_log_low=-3.0,alpha_log_high=
             count += 1
 
     if exit == 0:
-        print('alpha did not converge')
+        # TODO: something other than print here. Maybe make a log of some kind?
+        print('\nalpha did not converge to within tolerance: error is {:3.0%}'.format(mean_F_am/mean_F_required - 1))
 
     alpha = 10**alpha_log_midpoint
     mean_F,sigma_F = get_flux_stats(sigma_G,alpha,beta,D)
@@ -792,7 +793,8 @@ def find_sigma_G(mean_F_required,sigma_F_required,beta,D,sigma_G_start=0.001,ste
             count += 1
         """
     if exit == 0:
-        print('sigma_G did not converge')
+        # TODO: something other than print here. Maybe make a log of some kind?
+        print('\nsigma_G did not converge to within tolerance: error is {:3.0%}'.format(sigma_F/sigma_F_required - 1))
         sigma_G = (sigma_G+sigma_G_too_high)/2.0
         alpha,mean_F,sigma_F = find_alpha(sigma_G,mean_F_required,beta,D)
 
@@ -1584,7 +1586,6 @@ class simulation_data:
         flagged_pixels = DLA.flag_DLA(self.GAUSSIAN_DELTA_rows,nu_arr,sigma_g)
 
         #Edges of the z bins
-        # TODO: neater way to do this?
         zedges = np.concatenate([[0],(self.Z[1:]+self.Z[:-1])*0.5,[self.Z[-1]+(-self.Z[-2]+self.Z[-1])*0.5]]).ravel()
         z_width = zedges[1:]-zedges[:-1]
 
@@ -1614,7 +1615,7 @@ class simulation_data:
                 dz_dla[idx:idx+dla[ii]]=self.VEL_rows[nskw,ii]
                 idx = idx+dla[ii]
         Ndla = DLA.get_N(zdla)
-        MOCKIDs = self.MOCKID[kskw]
+        MOCKIDs = self.MOCKID[kskw.astype('int32')]
 
         #Make the data into a table HDU
         taux = astropy.table.Table([MOCKIDs,zdla,dz_dla,Ndla],names=('MOCKID','Z_DLA','DZ_DLA','N_HI_DLA'))

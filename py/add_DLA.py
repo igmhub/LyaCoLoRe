@@ -25,8 +25,12 @@ def nu_of_bD(b):
     p_nu = norm.pdf(nu)
     galaxy_mean = 1.0-norm.cdf(nu)
     b_nu = np.zeros(nu.shape)
-    b_nu[galaxy_mean!=0] = p_nu[galaxy_mean!=0]/galaxy_mean[galaxy_mean!=0]
-    y = interp1d(b_nu,nu)
+    indices = galaxy_mean!=0
+    b_nu[indices] = p_nu[indices]/galaxy_mean[indices]
+    #plt.plot(b_nu[indices],nu[indices]);plt.grid();plt.show()
+
+    y = interp1d(b_nu[indices],nu[indices])
+    #y = np.interp(b,b_nu[indices],nu[indices])
     return y(b)
 
 def get_bias_z(fname,dla_bias):
