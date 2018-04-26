@@ -20,6 +20,7 @@ import argparse
 #Transmission files
 
 # TODO: Make 'input parameters' and 'output parameters' objects? Currently passing loads of arguments to multiprocessing functions which is messy
+# TODO: option to reduce the number of skewers for test purposes? 
 
 ################################################################################
 
@@ -79,6 +80,8 @@ IVAR_cutoff = args.IVAR_cut
 final_cell_size = args.cell_size
 N_processes = args.nproc
 parameter_filename = args.param_file
+add_DLAs = args.add_DLAs
+add_RSDs = args.add_RSDs
 
 if np.log2(N_side)-int(np.log2(N_side)) != 0:
     print('nside must be a power of 2!')
@@ -86,7 +89,7 @@ else:
     N_pix = 12*N_side**2
 
 #Define the original file structure
-original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
+original_filename_structure = 'N1000_out_srcs_s1_{}.fits' #file_number
 file_numbers = list(range(0,1))
 input_format = 'gaussian_colore'
 
@@ -300,7 +303,7 @@ k = np.logspace(-5,10,10**5)
 D_values = np.interp(sigma_G_z_values,cosmology_data['Z'],cosmology_data['D'])
 beta = 1.65
 sigma_G_tolerance = 0.0001
-"""
+
 def find_sigma_G(z,D,l,k,beta):
 
     sigma_F_needed = functions.get_sigma_F_P1D(k,z,l=l)
@@ -347,9 +350,9 @@ plt.savefig('tune_flux_values_tol{}_n{}_Ferrors.pdf'.format(sigma_G_tolerance,si
 plt.show()
 
 desired_sigma_G_values = results['sigma_G']
-"""
+
 #desired_sigma_G_values = np.concatenate((2.0*np.ones(10),np.linspace(2.0,25.0,10)))
-desired_sigma_G_values = 4.0*np.ones(20)
+#desired_sigma_G_values = 4.0*np.ones(20)
 
 #Determine the desired sigma_G by sampling
 extra_sigma_G_values = np.sqrt(desired_sigma_G_values**2 - measured_SIGMA_G**2)
@@ -401,9 +404,10 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,sigma_G_z_values,extra_sigma_G_values,white_noise=True,lambda_min=0)
     times += [time.time()-np.sum(times)-start_time]
 
-    #create a table HDU with DLAs
-    pixel_object.add_DLA_table()
-    times += [time.time()-np.sum(times)-start_time]
+    #create a table with DLAs
+    if add_DLAs:
+        pixel_object.add_DLA_table()
+        times += [time.time()-np.sum(times)-start_time]
 
     #transmission
     filename = new_filename_structure.format('transmission',N_side,pixel)

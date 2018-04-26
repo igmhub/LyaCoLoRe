@@ -741,7 +741,7 @@ def find_alpha(sigma_G,mean_F_required,beta,D,alpha_log_low=-3.0,alpha_log_high=
 
     if exit == 0:
         # TODO: something other than print here. Maybe make a log of some kind?
-        print('\nalpha did not converge to within tolerance: error is {:3.0%}'.format(mean_F_am/mean_F_required - 1))
+        print('\nvalue of mean_F did not converge to within tolerance: error is {:3.2%}'.format(mean_F_am/mean_F_required - 1))
 
     alpha = 10**alpha_log_midpoint
     mean_F,sigma_F = get_flux_stats(sigma_G,alpha,beta,D)
@@ -794,7 +794,7 @@ def find_sigma_G(mean_F_required,sigma_F_required,beta,D,sigma_G_start=0.001,ste
         """
     if exit == 0:
         # TODO: something other than print here. Maybe make a log of some kind?
-        print('\nsigma_G did not converge to within tolerance: error is {:3.0%}'.format(sigma_F/sigma_F_required - 1))
+        print('\nvalue of sigma_F did not converge to within tolerance: error is {:3.2%}'.format(sigma_F/sigma_F_required - 1))
         sigma_G = (sigma_G+sigma_G_too_high)/2.0
         alpha,mean_F,sigma_F = find_alpha(sigma_G,mean_F_required,beta,D)
 
