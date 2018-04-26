@@ -288,37 +288,52 @@ This is done by
 print('\nCalculating how much extra power to add...')
 
 #Work out sigma_G desired to achive the P1D sigma_F
-# TODO: implement this from tune_flux.ipynb. Put into its own function
-sigma_G_z_values = np.linspace(0,3.79,20)
+sigma_G_z_values = np.linspace(0,3.79,40)
 k = np.logspace(-5,10,10**5)
 D_values = np.interp(sigma_G_z_values,cosmology_data['Z'],cosmology_data['D'])
-desired_sigma_G_values = []
-"""
-for i,z in enumerate(sigma_G_z_values):
+beta = 1.65
 
-    sigma_F_needed = functions.get_sigma_F_P1D(k,z,l=final_cell_size)
+def find_sigma_G(z,D,l,k,beta):
+
+    sigma_F_needed = functions.get_sigma_F_P1D(k,z,l=l)
     mean_F_needed = functions.get_mean_F_model(z)
 
     #HACK FOR NOW AS WE CAN'T SEEM TO REACH HIGH ENOUGH sigma_F
     sigma_F_needed = sigma_F_needed/2.0
 
-    # TODO: how to deal with beta and D
-    # beta: interpolation using the values in McDonald?
-    # D: Make a cosmology object and store D,Z,R in it?
-    beta = 1.65
+    alpha,sigma_G,mean_F,sigma_F = functions.find_sigma_G(mean_F_needed,sigma_F_needed,beta,D)
 
-    alpha,sigma_G,mean_F,sigma_F = functions.find_sigma_G(mean_F_needed,sigma_F_needed,beta,D_values[i])
-    print('z={:2.2f} // mean_F needed={:2.4f}, mean_F achieved={:2.4f} // sigma_F_needed={:2.4f}, sigma_F achieved={:2.4f} //  using alpha={:2.4f}, sigma_G={:2.4f}'.format(z,mean_F_needed,mean_F,sigma_F_needed,sigma_F,alpha,sigma_G))
+    return (z,alpha,sigma_G,mean_F,sigma_F)
 
-    desired_sigma_G_values += [sigma_G]
+tasks = [(z,np.interp(z,cosmology_data['Z'],cosmology_data['D']),final_cell_size,k,beta) for z in sigma_G_z_values]
 
-desired_sigma_G_values = np.array(desired_sigma_G_values)
-#plt.plot(sigma_G_z_values,desired_sigma_G_values)
-#plt.grid()
-#plt.show()
-"""
+if __name__ == '__main__':
+    pool = Pool(processes = N_processes)
+    results = []
+    start_time = time.time()
+
+    for task in tasks:
+        pool.apply_async(find_sigma_G,task,callback=log_result,error_callback=log_error)
+
+    pool.close()
+    pool.join()
+
+dtype = [('z', '>f4'), ('alpha', '>f4'), ('sigma_G', '>f4'), ('mean_F', '>f4'), ('sigma_F', '>f4')]
+results = np.array(results,dtype=dtype)
+results = np.sort(results,order=['z'])
+
+plt.plot(results['z'],results['alpha'],label='alpha')
+plt.plot(results['z'],results['sigma_G'],label='sigma_G')
+plt.plot(results['z'],results['mean_F'],label='mean_F')
+plt.plot(results['z'],results['sigma_F'],label='sigma_F')
+plt.grid()
+plt.legend()
+plt.savefig('tune_flux_values_tol0.001.pdf')
+plt.show()
+
 #desired_sigma_G_values = np.concatenate((2.0*np.ones(10),np.linspace(2.0,25.0,10)))
-desired_sigma_G_values = 4.0*np.ones(20)
+#desired_sigma_G_values = 4.0*np.ones(20)
+desired_sigma_G_values = results['sigma_G']
 
 #Determine the desired sigma_G by sampling
 extra_sigma_G_values = np.sqrt(desired_sigma_G_values**2 - measured_SIGMA_G**2)

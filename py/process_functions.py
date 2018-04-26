@@ -749,7 +749,7 @@ def find_alpha(sigma_G,mean_F_required,beta,D,alpha_log_low=-3.0,alpha_log_high=
 
 #Function to find the values of alpha and sigma_G required to match mean_F and sigma_F to specified values.
 def find_sigma_G(mean_F_required,sigma_F_required,beta,D,sigma_G_start=0.001,step_size=1.0,tolerance=0.001,max_steps=30):
-    print('sigma_F required={:2.2f}'.format(sigma_F_required))
+    #print('sigma_F required={:2.2f}'.format(sigma_F_required))
 
     count = 0
     exit = 0
@@ -758,10 +758,10 @@ def find_sigma_G(mean_F_required,sigma_F_required,beta,D,sigma_G_start=0.001,ste
         alpha,mean_F,sigma_F = find_alpha(sigma_G,mean_F_required,beta,D)
 
         if sigma_F < sigma_F_required:
-            print('sigma_G={:2.4f} gives sigma_F={:2.4f}. Too low. Stepping forwards...'.format(sigma_G,sigma_F))
+            #print('sigma_G={:2.4f} gives sigma_F={:2.4f}. Too low. Stepping forwards...'.format(sigma_G,sigma_F))
             sigma_G += step_size
         elif sigma_F > sigma_F_required:
-            print('sigma_G={:2.4f} gives sigma_F={:2.4f}. Too high. Stepping backwards...'.format(sigma_G,sigma_F))
+            #print('sigma_G={:2.4f} gives sigma_F={:2.4f}. Too high. Stepping backwards...'.format(sigma_G,sigma_F))
             sigma_G_too_high = sigma_G
             sigma_G -= step_size
             step_size = step_size/10.0
@@ -1614,9 +1614,10 @@ class simulation_data:
                 dz_dla[idx:idx+dla[ii]]=self.VEL_rows[nskw,ii]
                 idx = idx+dla[ii]
         Ndla = DLA.get_N(zdla)
+        MOCKIDs = self.MOCKID[kskw]
 
         #Make the data into a table HDU
-        taux = astropy.table.Table([kskw,zdla,dz_dla,Ndla],names=('SKEWER_NUMBER','Z_DLA','DZ_DLA','N_HI_DLA'))
+        taux = astropy.table.Table([MOCKIDs,zdla,dz_dla,Ndla],names=('MOCKID','Z_DLA','DZ_DLA','N_HI_DLA'))
 
         self.DLA_table = taux
 
