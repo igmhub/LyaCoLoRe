@@ -755,7 +755,9 @@ def find_sigma_G(mean_F_required,sigma_F_required,beta,D,sigma_G_start=0.001,ste
     count = 0
     exit = 0
     sigma_G = sigma_G_start
+
     while exit == 0 and count < max_steps:
+
         alpha,mean_F,sigma_F = find_alpha(sigma_G,mean_F_required,beta,D)
 
         if sigma_F < sigma_F_required:
@@ -774,6 +776,9 @@ def find_sigma_G(mean_F_required,sigma_F_required,beta,D,sigma_G_start=0.001,ste
             count += 1
 
         """
+        sigma_G_log_low = -3.0
+        sigma_G_log_high = 1.0
+
         sigma_G_log_midpoint = (sigma_G_log_low + sigma_G_log_high)/2.0
 
         alpha_sGl,mean_F_sGl,sigma_F_sGl = find_alpha(10**sigma_G_log_low,mean_F_required,beta,D)
@@ -792,6 +797,7 @@ def find_sigma_G(mean_F_required,sigma_F_required,beta,D,sigma_G_start=0.001,ste
         else:
             count += 1
         """
+
     if exit == 0:
         # TODO: something other than print here. Maybe make a log of some kind?
         print('\nvalue of sigma_F did not converge to within tolerance: error is {:3.2%}'.format(sigma_F/sigma_F_required - 1))

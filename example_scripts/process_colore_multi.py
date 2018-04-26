@@ -20,7 +20,7 @@ import argparse
 #Transmission files
 
 # TODO: Make 'input parameters' and 'output parameters' objects? Currently passing loads of arguments to multiprocessing functions which is messy
-# TODO: option to reduce the number of skewers for test purposes? 
+# TODO: option to reduce the number of skewers for test purposes?
 
 ################################################################################
 
@@ -333,6 +333,7 @@ dtype = [('z', '>f4'), ('alpha', '>f4'), ('sigma_G', '>f4'), ('mean_F', '>f4'), 
 results = np.array(results,dtype=dtype)
 results = np.sort(results,order=['z'])
 
+"""
 plt.plot(results['z'],results['alpha'],label='alpha')
 plt.plot(results['z'],results['sigma_G'],label='sigma_G')
 plt.plot(results['z'],results['mean_F'],label='mean_F')
@@ -348,6 +349,7 @@ plt.grid()
 plt.legend()
 plt.savefig('tune_flux_values_tol{}_n{}_Ferrors.pdf'.format(sigma_G_tolerance,sigma_G_z_values.shape[0]))
 plt.show()
+"""
 
 desired_sigma_G_values = results['sigma_G']
 
@@ -434,10 +436,10 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     pixel_object.save_as_picca_flux(location,filename,header,lambda_min=lambda_min)
     times += [time.time()-np.sum(times)-start_time]
 
-    print('\n\ntotal:',np.round(np.sum(times),2))
-    print('times:',np.round(times,2))
-    print('%ages:',np.round(times/np.sum(times),2))
-    print(' ')
+    #print('\n\ntotal:',np.round(np.sum(times),2))
+    #print('times:',np.round(times,2))
+    #print('%ages:',np.round(times/np.sum(times),2))
+    #print(' ')
 
     return pixel
 
