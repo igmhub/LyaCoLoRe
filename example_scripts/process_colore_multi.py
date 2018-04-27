@@ -70,6 +70,9 @@ parser.add_argument('--add-RSDs', action="store_true", default = True, required=
 parser.add_argument('--retune-small-scale-fluctuations', action="store_true", default = False, required=False,
                     help = 'recalculate the values of sigma_G and alpha needed')
 
+parser.add_argument('--transmission-only', action="store_true", default = False, required=False,
+                    help = 'save only the transmission file')
+
 
 
 args = parser.parse_args()
@@ -91,6 +94,7 @@ add_DLAs = args.add_DLAs
 add_RSDs = args.add_RSDs
 retune_small_scale_fluctuations = args.retune_small_scale_fluctuations
 sigma_G_file = args.sigma_G_file
+transmission_only = args.transmission_only
 
 if np.log2(N_side)-int(np.log2(N_side)) != 0:
     print('nside must be a power of 2!')
@@ -304,12 +308,13 @@ This is done by
  - adding a random number to each cell with the appropriate statistics
 """
 
-print('\nCalculating how much extra power to add...')
-
 #Work out sigma_G desired to achive the P1D sigma_F
 tuning_z_values = np.linspace(0,4.0,1024)
 
 if retune_small_scale_fluctuations == True:
+
+    print('\nCalculating how much extra power to add...')
+
     k = np.logspace(-5,10,10**5)
     D_values = np.interp(tuning_z_values,cosmology_data['Z'],cosmology_data['D'])
     beta = 1.65
@@ -344,7 +349,7 @@ if retune_small_scale_fluctuations == True:
     tune_small_scale_fluctuations = np.array(results,dtype=dtype)
     tune_small_scale_fluctuations = np.sort(tune_small_scale_fluctuations,order=['z'])
 
-    
+
     plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['alpha'],label='alpha')
     plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['sigma_G'],label='sigma_G')
     plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['mean_F'],label='mean_F')
@@ -360,10 +365,12 @@ if retune_small_scale_fluctuations == True:
     plt.legend()
     plt.savefig('tune_flux_values_tol{}_n{}_Ferrors.pdf'.format(sigma_G_tolerance,tuning_z_values.shape[0]))
     plt.show()
-    
 
+    # TODO: add some kind of unique identifier?
     np.savetxt('input_files/tune_small_scale_fluctuations.txt',tune_small_scale_fluctuations)
 else:
+
+    print('\nLoading how much extra power to add from file...')
     tune_small_scale_fluctuations = np.loadtxt(sigma_G_file)
 
 tuning_z_values = tune_small_scale_fluctuations['z']
@@ -410,14 +417,20 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     pixel_object.compute_flux_skewers() #Opportunity to vary A and alpha here
     times += [time.time()-np.sum(times)-start_time]
 
-    #lognorm CoLoRe
-    filename = new_filename_structure.format('physical-colore',N_side,pixel)
-    pixel_object.save_as_physical_colore(location,filename,header)
+    if transmission_only == False:
+        #lognorm CoLoRe
+        filename = new_filename_structure.format('physical-colore',N_side,pixel)
+        pixel_object.save_as_physical_colore(location,filename,header)
 
     #Trim the skewers (remove low lambda cells)
     # TODO: potential issue to do with cropping the large cell skewers and losing some small cells that we want to kee. "extra_cells" should deal with this
     pixel_object.trim_skewers(lambda_min,extra_cells=1)
     times += [time.time()-np.sum(times)-start_time]
+
+    #Exit now if no skewers are left.
+    if pixel_object.N_qso == 0:
+        print('\nwarning: no objects left in pixel {} after trimming.'.format(pixel))
+        return pixel
 
     #Add small scale power to the gaussian skewers:
     pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,tuning_z_values,extra_sigma_G_values,white_noise=True,lambda_min=0)
@@ -433,25 +446,21 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     pixel_object.save_as_transmission(location,filename,header,lambda_min=lambda_min)
     times += [time.time()-np.sum(times)-start_time]
 
-    #Exit now if no skewers are left.
-    if pixel_object.N_qso == 0:
-        print('\nwarning: no objects left in pixel {} after trimming.'.format(pixel))
-        return pixel
+    if transmission_only == False:
+        #Picca Gaussian
+        filename = new_filename_structure.format('picca-gaussian',N_side,pixel)
+        pixel_object.save_as_picca_gaussian(location,filename,header,lambda_min=lambda_min,overwrite=True)
+        times += [time.time()-np.sum(times)-start_time]
 
-    #Picca Gaussian
-    filename = new_filename_structure.format('picca-gaussian',N_side,pixel)
-    pixel_object.save_as_picca_gaussian(location,filename,header,lambda_min=lambda_min,overwrite=True)
-    times += [time.time()-np.sum(times)-start_time]
+        #Picca density
+        filename = new_filename_structure.format('picca-density',N_side,pixel)
+        pixel_object.save_as_picca_density(location,filename,header,lambda_min=lambda_min)
+        times += [time.time()-np.sum(times)-start_time]
 
-    #Picca density
-    filename = new_filename_structure.format('picca-density',N_side,pixel)
-    pixel_object.save_as_picca_density(location,filename,header,lambda_min=lambda_min)
-    times += [time.time()-np.sum(times)-start_time]
-
-    #picca flux
-    filename = new_filename_structure.format('picca-flux',N_side,pixel)
-    pixel_object.save_as_picca_flux(location,filename,header,lambda_min=lambda_min,mean_F_z_values=tuning_z_values,mean_F=desired_mean_F)
-    times += [time.time()-np.sum(times)-start_time]
+        #picca flux
+        filename = new_filename_structure.format('picca-flux',N_side,pixel)
+        pixel_object.save_as_picca_flux(location,filename,header,lambda_min=lambda_min,mean_F_z_values=tuning_z_values,mean_F=desired_mean_F)
+        times += [time.time()-np.sum(times)-start_time]
 
     #print('\n\ntotal:',np.round(np.sum(times),2))
     #print('times:',np.round(times,2))
