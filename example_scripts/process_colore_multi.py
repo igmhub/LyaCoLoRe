@@ -58,7 +58,7 @@ parser.add_argument('--min-cat-z', type = float, default = 1.8, required=False,
 parser.add_argument('--param-file', type = str, default = 'out_params.cfg', required=False,
                     help = 'output parameter file name')
 
-parser.add_argument('--sigma-G-file', type = str, default = 'input_files/tune_small_scale_fluctuations.txt', required=False,
+parser.add_argument('--sigma-G-file', type = str, default = 'input_files/tune_small_scale_fluctuations.fits', required=False,
                     help = 'sigma_G required file name')
 
 parser.add_argument('--add-DLAs', action="store_true", default = True, required=False,
@@ -146,7 +146,7 @@ def log_result(retval):
     print(' -> current progress: {} {:4d} of {:4d} complete ({:3.0%}), {:4.0f}s elapsed, ~{:4.0f}s remaining'.format(progress_bar,N_complete,N_tasks,N_complete/N_tasks,time_elapsed,estimated_time_remaining),end="\r")
 
     if len(results) == len(tasks):
-        print('\n\nProcess complete!')
+        print('\nProcess complete!')
 
 #Define an error-tracking function.
 def log_error(retval):
@@ -309,7 +309,7 @@ This is done by
 """
 
 #Work out sigma_G desired to achive the P1D sigma_F
-tuning_z_values = np.linspace(0,4.0,1024)
+tuning_z_values = np.linspace(0,4.0,64)
 
 if retune_small_scale_fluctuations == True:
 
@@ -349,7 +349,7 @@ if retune_small_scale_fluctuations == True:
     tune_small_scale_fluctuations = np.array(results,dtype=dtype)
     tune_small_scale_fluctuations = np.sort(tune_small_scale_fluctuations,order=['z'])
 
-
+    """
     plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['alpha'],label='alpha')
     plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['sigma_G'],label='sigma_G')
     plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['mean_F'],label='mean_F')
@@ -365,13 +365,26 @@ if retune_small_scale_fluctuations == True:
     plt.legend()
     plt.savefig('tune_flux_values_tol{}_n{}_Ferrors.pdf'.format(sigma_G_tolerance,tuning_z_values.shape[0]))
     plt.show()
-
+    """
     # TODO: add some kind of unique identifier?
-    np.savetxt('input_files/tune_small_scale_fluctuations.txt',tune_small_scale_fluctuations)
-else:
+    #np.savetxt('input_files/tune_small_scale_fluctuations.txt',tune_small_scale_fluctuations)
 
+    prihdr = fits.Header()
+    prihdu = fits.PrimaryHDU(header=prihdr)
+    cols_DATA = fits.ColDefs(tune_small_scale_fluctuations)
+    hdu_DATA = fits.BinTableHDU.from_columns(cols_DATA,name='DATA')
+    
+    hdulist = fits.HDUList([prihdu, hdu_DATA])
+    hdulist.writeto('input_files/tune_small_scale_fluctuations.fits')
+    hdulist.close()
+
+else:
+    #Otherwise, load the data from the fits file that has been pre-computed.
     print('\nLoading how much extra power to add from file...')
-    tune_small_scale_fluctuations = np.loadtxt(sigma_G_file)
+    h = fits.open(sigma_G_file)
+    tune_small_scale_fluctuations = h['DATA'].data
+    h.close()
+    print('Process complete!')
 
 tuning_z_values = tune_small_scale_fluctuations['z']
 desired_sigma_G_values = tune_small_scale_fluctuations['sigma_G']
@@ -421,6 +434,7 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
         #lognorm CoLoRe
         filename = new_filename_structure.format('physical-colore',N_side,pixel)
         pixel_object.save_as_physical_colore(location,filename,header)
+        times += [time.time()-np.sum(times)-start_time]
 
     #Trim the skewers (remove low lambda cells)
     # TODO: potential issue to do with cropping the large cell skewers and losing some small cells that we want to kee. "extra_cells" should deal with this
@@ -462,10 +476,12 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
         pixel_object.save_as_picca_flux(location,filename,header,lambda_min=lambda_min,mean_F_z_values=tuning_z_values,mean_F=desired_mean_F)
         times += [time.time()-np.sum(times)-start_time]
 
-    #print('\n\ntotal:',np.round(np.sum(times),2))
-    #print('times:',np.round(times,2))
-    #print('%ages:',np.round(times/np.sum(times),2))
-    #print(' ')
+    """
+    print('\n\ntotal:',np.round(np.sum(times),2))
+    print('times:',np.round(times,2))
+    print('%ages:',np.round(times/np.sum(times),2))
+    print(' ')
+    """
 
     return pixel
 
