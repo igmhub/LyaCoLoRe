@@ -3,7 +3,6 @@ import numpy as np
 import astropy.io.fits as fits
 from scipy.stats import norm
 from scipy.interpolate import interp1d, interp2d
-from optparse import OptionParser
 import astropy.table
 import os
 
