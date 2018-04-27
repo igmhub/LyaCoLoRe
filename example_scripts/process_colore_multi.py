@@ -98,7 +98,7 @@ else:
     N_pix = 12*N_side**2
 
 #Define the original file structure
-original_filename_structure = 'N1000_out_srcs_s1_{}.fits' #file_number
+original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
 file_numbers = list(range(0,1))
 input_format = 'gaussian_colore'
 
@@ -307,7 +307,7 @@ This is done by
 print('\nCalculating how much extra power to add...')
 
 #Work out sigma_G desired to achive the P1D sigma_F
-tuning_z_values = np.linspace(0,3.79,40)
+tuning_z_values = np.linspace(0,4.0,1024)
 
 if retune_small_scale_fluctuations == True:
     k = np.logspace(-5,10,10**5)
@@ -344,30 +344,31 @@ if retune_small_scale_fluctuations == True:
     tune_small_scale_fluctuations = np.array(results,dtype=dtype)
     tune_small_scale_fluctuations = np.sort(tune_small_scale_fluctuations,order=['z'])
 
-    """
-    plt.plot(results['z'],results['alpha'],label='alpha')
-    plt.plot(results['z'],results['sigma_G'],label='sigma_G')
-    plt.plot(results['z'],results['mean_F'],label='mean_F')
-    plt.plot(results['z'],results['sigma_F'],label='sigma_F')
+    
+    plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['alpha'],label='alpha')
+    plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['sigma_G'],label='sigma_G')
+    plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['mean_F'],label='mean_F')
+    plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['sigma_F'],label='sigma_F')
     plt.grid()
     plt.legend()
-    plt.savefig('tune_flux_values_tol{}_n{}.pdf'.format(sigma_G_tolerance,sigma_G_z_values.shape[0]))
+    plt.savefig('tune_flux_values_tol{}_n{}.pdf'.format(sigma_G_tolerance,tuning_z_values.shape[0]))
     plt.show()
 
-    plt.plot(results['z'],results['mean_F']/results['mean_F_needed'] - 1,label='mean_F error')
-    plt.plot(results['z'],results['sigma_F']/results['sigma_F_needed'] - 1,label='sigma_F error')
+    plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['mean_F']/tune_small_scale_fluctuations['mean_F_needed'] - 1,label='mean_F error')
+    plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['sigma_F']/tune_small_scale_fluctuations['sigma_F_needed'] - 1,label='sigma_F error')
     plt.grid()
     plt.legend()
-    plt.savefig('tune_flux_values_tol{}_n{}_Ferrors.pdf'.format(sigma_G_tolerance,sigma_G_z_values.shape[0]))
+    plt.savefig('tune_flux_values_tol{}_n{}_Ferrors.pdf'.format(sigma_G_tolerance,tuning_z_values.shape[0]))
     plt.show()
-    """
+    
 
-    np.savetxt('tune_small_scale_fluctuations.txt',tune_small_scale_fluctuations)
+    np.savetxt('input_files/tune_small_scale_fluctuations.txt',tune_small_scale_fluctuations)
 else:
     tune_small_scale_fluctuations = np.loadtxt(sigma_G_file)
-    tuning_z_values = tune_small_scale_fluctuations['z']
-    desired_sigma_G_values = tune_small_scale_fluctuations['sigma_G']
-    desired_mean_F = tune_small_scale_fluctuations['mean_F']
+
+tuning_z_values = tune_small_scale_fluctuations['z']
+desired_sigma_G_values = tune_small_scale_fluctuations['sigma_G']
+desired_mean_F = tune_small_scale_fluctuations['mean_F']
 
 #desired_sigma_G_values = np.concatenate((2.0*np.ones(10),np.linspace(2.0,25.0,10)))
 #desired_sigma_G_values = 4.0*np.ones(20)
@@ -393,7 +394,7 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     gaussian_filename = new_filename_structure.format('gaussian-colore',N_side,pixel)
 
     #Make a pixel object from it.
-    pixel_object = functions.simulation_data.get_gaussian_skewers(location+gaussian_filename,None,input_format,SIGMA_G=SIGMA_G,IVAR_cutoff=IVAR_cutoff)
+    pixel_object = functions.simulation_data.get_gaussian_skewers(location+gaussian_filename,None,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
     times += [time.time()-np.sum(times)-start_time]
 
     # TODO: These could be made beforehand and passed to the function? Or is there already enough being passed?
