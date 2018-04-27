@@ -1488,13 +1488,13 @@ class simulation_data:
         relevant_Z = self.Z[first_relevant_cell:last_relevant_cell+1]
 
         #Calculate mean F as a function of z for the relevant cells, then F_DELTA_rows.
-        #This is done with a 'hack' to avoid problems with weights summing to zero.
-        if mean_F == None or mean_F_z_values==None:
+        try:
+            relevant_F_BAR = np.interp(relevant_Z,mean_F_z_values,mean_F)
+        except ValueError:
+            #This is done with a 'hack' to avoid problems with weights summing to zero.
             small = 1.0e-10
-            relevant_F_BAR = np.average(relevant_F_rows,weights=relevant_IVAR_rows+small,axis=0)
-            relevant_F_DELTA_rows = ((relevant_F_rows)/relevant_F_BAR - 1)*relevant_IVAR_rows
-        else:
-            relevant_F_BAR = np.interp(relevant_Z,mean_F_z_values,desired_mean_F)
+            relevant_F_BAR = np.average(relevant_F_rows,weights=relevant_IVAR_rows+small,axis=0)    
+        relevant_F_DELTA_rows = ((relevant_F_rows)/relevant_F_BAR - 1)*relevant_IVAR_rows
 
         #Organise the data into picca-format arrays.
         picca_0 = relevant_F_DELTA_rows.T
