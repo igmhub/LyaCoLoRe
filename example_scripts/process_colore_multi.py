@@ -58,11 +58,18 @@ parser.add_argument('--min-cat-z', type = float, default = 1.8, required=False,
 parser.add_argument('--param-file', type = str, default = 'out_params.cfg', required=False,
                     help = 'output parameter file name')
 
+parser.add_argument('--sigma-G-file', type = str, default = 'sigma_G_required.txt', required=False,
+                    help = 'sigma_G required file name')
+
 parser.add_argument('--add-DLAs', action="store_true", default = True, required=False,
                     help = 'add DLAs to the transmission file')
 
 parser.add_argument('--add-RSDs', action="store_true", default = True, required=False,
                     help = 'add RSDs to the transmission file')
+
+parser.add_argument('--retune-small-scale-fluctuations', action="store_true", default = False, required=False,
+                    help = 'recalculate the values of sigma_G and alpha needed')
+
 
 
 args = parser.parse_args()
@@ -82,8 +89,8 @@ N_processes = args.nproc
 parameter_filename = args.param_file
 add_DLAs = args.add_DLAs
 add_RSDs = args.add_RSDs
-
-print(add_DLAs)
+retune_small_scale_fluctuations = args.retune_small_scale_fluctuations
+sigma_G_file = args.sigma_G_file
 
 if np.log2(N_side)-int(np.log2(N_side)) != 0:
     print('nside must be a power of 2!')
@@ -300,60 +307,70 @@ This is done by
 print('\nCalculating how much extra power to add...')
 
 #Work out sigma_G desired to achive the P1D sigma_F
-sigma_G_z_values = np.linspace(0,3.79,20)
-k = np.logspace(-5,10,10**5)
-D_values = np.interp(sigma_G_z_values,cosmology_data['Z'],cosmology_data['D'])
-beta = 1.65
-sigma_G_tolerance = 0.0001
+sigma_G_z_values = np.linspace(0,3.79,40)
 
-def find_sigma_G(z,D,l,k,beta):
+if retune_small_scale_fluctuations == True:
+    k = np.logspace(-5,10,10**5)
+    D_values = np.interp(sigma_G_z_values,cosmology_data['Z'],cosmology_data['D'])
+    beta = 1.65
+    sigma_G_tolerance = 0.0001
 
-    sigma_F_needed = functions.get_sigma_F_P1D(k,z,l=l)
-    mean_F_needed = functions.get_mean_F_model(z)
+    def find_sigma_G(z,D,l,k,beta):
 
-    #HACK FOR NOW AS WE CAN'T SEEM TO REACH HIGH ENOUGH sigma_F
-    sigma_F_needed = sigma_F_needed/2.0
+        sigma_F_needed = functions.get_sigma_F_P1D(k,z,l=l)
+        mean_F_needed = functions.get_mean_F_model(z)
 
-    alpha,sigma_G,mean_F,sigma_F = functions.find_sigma_G(mean_F_needed,sigma_F_needed,beta,D,tolerance=sigma_G_tolerance)
+        #HACK FOR NOW AS WE CAN'T SEEM TO REACH HIGH ENOUGH sigma_F
+        sigma_F_needed = sigma_F_needed/2.0
 
-    return (z,alpha,sigma_G,mean_F,sigma_F,mean_F_needed,sigma_F_needed)
+        alpha,sigma_G,mean_F,sigma_F = functions.find_sigma_G(mean_F_needed,sigma_F_needed,beta,D,tolerance=sigma_G_tolerance)
 
-tasks = [(z,np.interp(z,cosmology_data['Z'],cosmology_data['D']),final_cell_size,k,beta) for z in sigma_G_z_values]
+        return (z,alpha,sigma_G,mean_F,sigma_F,mean_F_needed,sigma_F_needed)
 
-if __name__ == '__main__':
-    pool = Pool(processes = N_processes)
-    results = []
-    start_time = time.time()
+    tasks = [(z,np.interp(z,cosmology_data['Z'],cosmology_data['D']),final_cell_size,k,beta) for z in sigma_G_z_values]
 
-    for task in tasks:
-        pool.apply_async(find_sigma_G,task,callback=log_result,error_callback=log_error)
+    if __name__ == '__main__':
+        pool = Pool(processes = N_processes)
+        results = []
+        start_time = time.time()
 
-    pool.close()
-    pool.join()
+        for task in tasks:
+            pool.apply_async(find_sigma_G,task,callback=log_result,error_callback=log_error)
 
-dtype = [('z', '>f4'), ('alpha', '>f4'), ('sigma_G', '>f4'), ('mean_F', '>f4'), ('sigma_F', '>f4'), ('mean_F_needed', '>f4'), ('sigma_F_needed', '>f4')]
-results = np.array(results,dtype=dtype)
-results = np.sort(results,order=['z'])
+        pool.close()
+        pool.join()
 
-"""
-plt.plot(results['z'],results['alpha'],label='alpha')
-plt.plot(results['z'],results['sigma_G'],label='sigma_G')
-plt.plot(results['z'],results['mean_F'],label='mean_F')
-plt.plot(results['z'],results['sigma_F'],label='sigma_F')
-plt.grid()
-plt.legend()
-plt.savefig('tune_flux_values_tol{}_n{}.pdf'.format(sigma_G_tolerance,sigma_G_z_values.shape[0]))
-plt.show()
+    dtype = [('z', '>f4'), ('alpha', '>f4'), ('sigma_G', '>f4'), ('mean_F', '>f4'), ('sigma_F', '>f4'), ('mean_F_needed', '>f4'), ('sigma_F_needed', '>f4')]
+    results = np.array(results,dtype=dtype)
+    results = np.sort(results,order=['z'])
 
-plt.plot(results['z'],results['mean_F']/results['mean_F_needed'] - 1,label='mean_F error')
-plt.plot(results['z'],results['sigma_F']/results['sigma_F_needed'] - 1,label='sigma_F error')
-plt.grid()
-plt.legend()
-plt.savefig('tune_flux_values_tol{}_n{}_Ferrors.pdf'.format(sigma_G_tolerance,sigma_G_z_values.shape[0]))
-plt.show()
-"""
+    """
+    plt.plot(results['z'],results['alpha'],label='alpha')
+    plt.plot(results['z'],results['sigma_G'],label='sigma_G')
+    plt.plot(results['z'],results['mean_F'],label='mean_F')
+    plt.plot(results['z'],results['sigma_F'],label='sigma_F')
+    plt.grid()
+    plt.legend()
+    plt.savefig('tune_flux_values_tol{}_n{}.pdf'.format(sigma_G_tolerance,sigma_G_z_values.shape[0]))
+    plt.show()
 
-desired_sigma_G_values = results['sigma_G']
+    plt.plot(results['z'],results['mean_F']/results['mean_F_needed'] - 1,label='mean_F error')
+    plt.plot(results['z'],results['sigma_F']/results['sigma_F_needed'] - 1,label='sigma_F error')
+    plt.grid()
+    plt.legend()
+    plt.savefig('tune_flux_values_tol{}_n{}_Ferrors.pdf'.format(sigma_G_tolerance,sigma_G_z_values.shape[0]))
+    plt.show()
+    """
+
+    desired_sigma_G_values = results['sigma_G']
+
+    txt_data = np.array(list(zip(sigma_G_z_values,desired_sigma_G_values)))
+    np.savetxt('sigma_G_required.txt',txt_data)
+else:
+    txt_data = np.loadtxt(sigma_G_file)
+    z_txt_values = txt_data[:,0]
+    sigma_G_txt_values = txt_data[:,1]
+    desired_sigma_G_values = np.interp(sigma_G_z_values,z_txt_values,sigma_G_txt_values)
 
 #desired_sigma_G_values = np.concatenate((2.0*np.ones(10),np.linspace(2.0,25.0,10)))
 #desired_sigma_G_values = 4.0*np.ones(20)
