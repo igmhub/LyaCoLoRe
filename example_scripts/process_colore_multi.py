@@ -58,7 +58,7 @@ parser.add_argument('--min-cat-z', type = float, default = 1.8, required=False,
 parser.add_argument('--param-file', type = str, default = 'out_params.cfg', required=False,
                     help = 'output parameter file name')
 
-parser.add_argument('--sigma-G-file', type = str, default = 'sigma_G_required.txt', required=False,
+parser.add_argument('--sigma-G-file', type = str, default = 'input_files/tune_small_scale_fluctuations.txt', required=False,
                     help = 'sigma_G required file name')
 
 parser.add_argument('--add-DLAs', action="store_true", default = True, required=False,
@@ -307,11 +307,11 @@ This is done by
 print('\nCalculating how much extra power to add...')
 
 #Work out sigma_G desired to achive the P1D sigma_F
-sigma_G_z_values = np.linspace(0,3.79,40)
+tuning_z_values = np.linspace(0,3.79,40)
 
 if retune_small_scale_fluctuations == True:
     k = np.logspace(-5,10,10**5)
-    D_values = np.interp(sigma_G_z_values,cosmology_data['Z'],cosmology_data['D'])
+    D_values = np.interp(tuning_z_values,cosmology_data['Z'],cosmology_data['D'])
     beta = 1.65
     sigma_G_tolerance = 0.0001
 
@@ -327,7 +327,7 @@ if retune_small_scale_fluctuations == True:
 
         return (z,alpha,sigma_G,mean_F,sigma_F,mean_F_needed,sigma_F_needed)
 
-    tasks = [(z,np.interp(z,cosmology_data['Z'],cosmology_data['D']),final_cell_size,k,beta) for z in sigma_G_z_values]
+    tasks = [(z,np.interp(z,cosmology_data['Z'],cosmology_data['D']),final_cell_size,k,beta) for z in tuning_z_values]
 
     if __name__ == '__main__':
         pool = Pool(processes = N_processes)
@@ -341,8 +341,8 @@ if retune_small_scale_fluctuations == True:
         pool.join()
 
     dtype = [('z', '>f4'), ('alpha', '>f4'), ('sigma_G', '>f4'), ('mean_F', '>f4'), ('sigma_F', '>f4'), ('mean_F_needed', '>f4'), ('sigma_F_needed', '>f4')]
-    results = np.array(results,dtype=dtype)
-    results = np.sort(results,order=['z'])
+    tune_small_scale_fluctuations = np.array(results,dtype=dtype)
+    tune_small_scale_fluctuations = np.sort(tune_small_scale_fluctuations,order=['z'])
 
     """
     plt.plot(results['z'],results['alpha'],label='alpha')
@@ -362,15 +362,12 @@ if retune_small_scale_fluctuations == True:
     plt.show()
     """
 
-    desired_sigma_G_values = results['sigma_G']
-
-    txt_data = np.array(list(zip(sigma_G_z_values,desired_sigma_G_values)))
-    np.savetxt('sigma_G_required.txt',txt_data)
+    np.savetxt('tune_small_scale_fluctuations.txt',tune_small_scale_fluctuations)
 else:
-    txt_data = np.loadtxt(sigma_G_file)
-    z_txt_values = txt_data[:,0]
-    sigma_G_txt_values = txt_data[:,1]
-    desired_sigma_G_values = np.interp(sigma_G_z_values,z_txt_values,sigma_G_txt_values)
+    tune_small_scale_fluctuations = np.loadtxt(sigma_G_file)
+    tuning_z_values = tune_small_scale_fluctuations['z']
+    desired_sigma_G_values = tune_small_scale_fluctuations['sigma_G']
+    desired_mean_F = tune_small_scale_fluctuations['mean_F']
 
 #desired_sigma_G_values = np.concatenate((2.0*np.ones(10),np.linspace(2.0,25.0,10)))
 #desired_sigma_G_values = 4.0*np.ones(20)
@@ -387,7 +384,7 @@ We may now calculate the density and flux fields, and save the relevant files.
 print('\nWorking on per-HEALPix pixel final skewer files...')
 start_time = time.time()
 
-def produce_final_skewers(new_base_file_location,new_file_structure,new_filename_structure,pixel,N_side,input_format,zero_mean_delta,lambda_min,SIGMA_G):
+def produce_final_skewers(new_base_file_location,new_file_structure,new_filename_structure,pixel,N_side,input_format,zero_mean_delta,lambda_min,measured_SIGMA_G):
     times = [0.0]
     start_time = time.time()
     location = new_base_file_location + '/' + new_file_structure.format(pixel//100,pixel)
@@ -422,7 +419,7 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     times += [time.time()-np.sum(times)-start_time]
 
     #Add small scale power to the gaussian skewers:
-    pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,sigma_G_z_values,extra_sigma_G_values,white_noise=True,lambda_min=0)
+    pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,tuning_z_values,extra_sigma_G_values,white_noise=True,lambda_min=0)
     times += [time.time()-np.sum(times)-start_time]
 
     #create a table with DLAs
@@ -452,7 +449,7 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
 
     #picca flux
     filename = new_filename_structure.format('picca-flux',N_side,pixel)
-    pixel_object.save_as_picca_flux(location,filename,header,lambda_min=lambda_min)
+    pixel_object.save_as_picca_flux(location,filename,header,lambda_min=lambda_min,mean_F_z_values=tuning_z_values,mean_F=desired_mean_F)
     times += [time.time()-np.sum(times)-start_time]
 
     #print('\n\ntotal:',np.round(np.sum(times),2))

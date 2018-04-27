@@ -1459,7 +1459,7 @@ class simulation_data:
         return
 
     #Function to save data as a picca flux file.
-    def save_as_picca_flux(self,location,filename,header,lambda_min=0):
+    def save_as_picca_flux(self,location,filename,header,lambda_min=0,mean_F_z_values=None,mean_F=None):
 
         z_min = max(lambda_min/lya - 1, 0)
         lya_lambdas = 10**self.LOGLAM_MAP
@@ -1485,13 +1485,16 @@ class simulation_data:
         relevant_F_rows = self.F_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
         relevant_IVAR_rows = self.IVAR_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
         relevant_LOGLAM_MAP = self.LOGLAM_MAP[first_relevant_cell:last_relevant_cell+1]
+        relevant_Z = self.Z[first_relevant_cell:last_relevant_cell+1]
 
         #Calculate mean F as a function of z for the relevant cells, then F_DELTA_rows.
         #This is done with a 'hack' to avoid problems with weights summing to zero.
-        # TODO: find a neater way to deal with this
-        small = 1.0e-10
-        relevant_F_BAR = np.average(relevant_F_rows,weights=relevant_IVAR_rows+small,axis=0)
-        relevant_F_DELTA_rows = ((relevant_F_rows)/relevant_F_BAR - 1)*relevant_IVAR_rows
+        if mean_F == None or mean_F_z_values==None:
+            small = 1.0e-10
+            relevant_F_BAR = np.average(relevant_F_rows,weights=relevant_IVAR_rows+small,axis=0)
+            relevant_F_DELTA_rows = ((relevant_F_rows)/relevant_F_BAR - 1)*relevant_IVAR_rows
+        else:
+            relevant_F_BAR = np.interp(relevant_Z,mean_F_z_values,desired_mean_F)
 
         #Organise the data into picca-format arrays.
         picca_0 = relevant_F_DELTA_rows.T
