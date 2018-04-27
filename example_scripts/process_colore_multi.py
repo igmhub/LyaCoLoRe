@@ -58,10 +58,10 @@ parser.add_argument('--min-cat-z', type = float, default = 1.8, required=False,
 parser.add_argument('--param-file', type = str, default = 'out_params.cfg', required=False,
                     help = 'output parameter file name')
 
-parser.add_argument('--add-DLAs', action="store_true", required=False,
+parser.add_argument('--add-DLAs', action="store_true", default = True, required=False,
                     help = 'add DLAs to the transmission file')
 
-parser.add_argument('--add-RSDs', action="store_true", required=False,
+parser.add_argument('--add-RSDs', action="store_true", default = True, required=False,
                     help = 'add RSDs to the transmission file')
 
 
@@ -82,6 +82,8 @@ N_processes = args.nproc
 parameter_filename = args.param_file
 add_DLAs = args.add_DLAs
 add_RSDs = args.add_RSDs
+
+print(add_DLAs)
 
 if np.log2(N_side)-int(np.log2(N_side)) != 0:
     print('nside must be a power of 2!')
