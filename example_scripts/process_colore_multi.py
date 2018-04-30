@@ -310,6 +310,7 @@ This is done by
 
 #Work out sigma_G desired to achive the P1D sigma_F
 tuning_z_values = np.linspace(0,4.0,64)
+beta = 1.65
 
 if retune_small_scale_fluctuations == True:
 
@@ -317,7 +318,6 @@ if retune_small_scale_fluctuations == True:
 
     k = np.logspace(-5,10,10**5)
     D_values = np.interp(tuning_z_values,cosmology_data['Z'],cosmology_data['D'])
-    beta = 1.65
     sigma_G_tolerance = 0.0001
 
     def find_sigma_G(z,D,l,k,beta):
@@ -366,14 +366,13 @@ if retune_small_scale_fluctuations == True:
     plt.savefig('tune_flux_values_tol{}_n{}_Ferrors.pdf'.format(sigma_G_tolerance,tuning_z_values.shape[0]))
     plt.show()
     """
-    # TODO: add some kind of unique identifier?
-    #np.savetxt('input_files/tune_small_scale_fluctuations.txt',tune_small_scale_fluctuations)
+    # TODO: Add in beta in a header!
 
     prihdr = fits.Header()
     prihdu = fits.PrimaryHDU(header=prihdr)
     cols_DATA = fits.ColDefs(tune_small_scale_fluctuations)
     hdu_DATA = fits.BinTableHDU.from_columns(cols_DATA,name='DATA')
-    
+
     hdulist = fits.HDUList([prihdu, hdu_DATA])
     hdulist.writeto('input_files/tune_small_scale_fluctuations.fits')
     hdulist.close()
@@ -389,6 +388,7 @@ else:
 tuning_z_values = tune_small_scale_fluctuations['z']
 desired_sigma_G_values = tune_small_scale_fluctuations['sigma_G']
 desired_mean_F = tune_small_scale_fluctuations['mean_F']
+alphas = tune_small_scale_fluctuations['alpha']
 
 #desired_sigma_G_values = np.concatenate((2.0*np.ones(10),np.linspace(2.0,25.0,10)))
 #desired_sigma_G_values = 4.0*np.ones(20)
@@ -427,7 +427,7 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
 
     #Add the physical density and flux skewers to the object.
     pixel_object.compute_physical_skewers() #Opportunity to change density type here
-    pixel_object.compute_flux_skewers() #Opportunity to vary A and alpha here
+    pixel_object.compute_flux_skewers(np.interp(pixel_object.Z,tuning_z_values,alphas),beta) #Opportunity to vary alpha and beta here
     times += [time.time()-np.sum(times)-start_time]
 
     if transmission_only == False:
@@ -450,7 +450,13 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,tuning_z_values,extra_sigma_G_values,white_noise=True,lambda_min=0)
     times += [time.time()-np.sum(times)-start_time]
 
-    #create a table with DLAs
+    #If there are already physical/flux skewers, recalculate them.
+    if pixel_object.DENSITY_DELTA_rows is not None:
+        pixel_object.compute_physical_skewers()
+    if pixel_object.F_rows is not None:
+        pixel_object.compute_flux_skewers(np.interp(pixel_object.Z,tuning_z_values,alphas),beta)
+
+    #Add a table with DLAs in to the pixel object.
     if add_DLAs:
         pixel_object.add_DLA_table()
         times += [time.time()-np.sum(times)-start_time]
