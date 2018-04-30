@@ -8,8 +8,8 @@ def read_file(basedir,nside,pix):
     dirname = basedir+'/'+str(pix_100)+'/'+str(pix)+'/'
     suffix = str(nside)+'-'+str(pix)+'.fits'
     # file with delta gaussian for picca
-    filename = dirname+'/picca-gaussian-'+suffix
-    print('picca gaussian file',filename)
+    filename = dirname+'/picca-flux-'+suffix
+    print('picca flux file',filename)
     h = fits.open(filename)
     delta = h[0].data
     ivar = h[1].data
@@ -30,8 +30,8 @@ def get_mean_var(delta,ivar):
     return weights,mean,var
 
 # main folder where the processed files are
-basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_revamp/process_output_hZ_4096_32/'
-nside = 8
+basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZ_4096_32_sr2.0_bm1_biasG18_picos_nside16/'
+nside = 16
 pixels = [0,100,200,300,400,500,600,700]
 
 # first figure out Gaussian smoothing
@@ -39,8 +39,8 @@ filename=basedir+'0/0/physical-colore-'+str(nside)+'-0.fits'
 h = fits.open(filename)
 h.info()
 h[4].header
-sigma_g=h[4].header['SIGMA_G']
-print('sigma=',sigma_g)
+#sigma_g=h[4].header['SIGMA_G']
+#print('sigma=',sigma_g)
 
 # will combine pixel statistics
 sum_mean=None
@@ -54,8 +54,8 @@ for pix in pixels:
     # compute statistics for pixel
     weights,mean,var = get_mean_var(delta,ivar)
     err_mean=np.sqrt(var/weights)
-    plt.errorbar(zs,mean,yerr=err_mean,fmt='o')
-    plt.plot(zs,var)
+    #plt.errorbar(zs,mean,yerr=err_mean,fmt='o')
+    #plt.plot(zs,var)
 
     # accumulate stats
     if sum_mean is None:
@@ -74,9 +74,9 @@ plt.errorbar(zs,sum_mean,yerr=sum_err,fmt='o',lw=2,color='black')
 plt.plot(zs,sum_var,lw=2,color='black')
 plt.ylim(-0.2,1.5)
 plt.axhline(y=0,lw=0.5,ls='--',color='gray')
-plt.axhline(y=sigma_g**2,lw=0.5,ls='--',color='gray')
-plt.title('Gaussian delta stats: mean and variance')
+#plt.axhline(y=sigma_g**2,lw=0.5,ls='--',color='gray')
+plt.title('Flux delta stats: mean and variance')
 plt.xlabel('z')
-plt.savefig('mean_var_gauss.pdf')
+plt.savefig('mean_var_flux.pdf')
 plt.show()
 
