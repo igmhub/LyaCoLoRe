@@ -97,7 +97,7 @@ plt.plot(zs,overall_mean,label='mean')
 #plt.plot(zs,overall_var,label='variance')
 plt.plot(zs,overall_sigma,label='sigma')
 
-plt.title('{} stats: mean and variance'.format(quantity))
+plt.title('{} stats: mean and sigma'.format(quantity))
 plt.xlabel('z')
 
 predicted_data = fits.open('input_files/tune_small_scale_fluctuations.fits')
@@ -110,10 +110,12 @@ elif quantity == 'flux':
     mean_F_predicted = predicted_data[1].data['mean_F']
     sigma_F_predicted = predicted_data[1].data['sigma_F']
     plt.plot(z_predicted,mean_F_predicted,label='predicted mean')
-    plt.plot(z_predicted,sigma_F_predicted,label='predicted sigma')
+    plt.plot(z_predicted,sigma_F_predicted,label='integral')
 
     mean_F_predicted_new = np.interp(zs,z_predicted,mean_F_predicted)
-    plt.plot(zs,overall_sigma/mean_F_predicted_new,label='integral / mean')
+    sigma_F_predicted_new = np.interp(zs,z_predicted,sigma_F_predicted)
+    #plt.plot(zs,overall_sigma/mean_F_predicted_new,label='measured sigma / mean')
+    plt.plot(z_predicted,sigma_F_predicted*mean_F_predicted,label='integral * mean')
     """
     mean_F_model = predicted_data[1].data['mean_F_needed']
     sigma_F_model = predicted_data[1].data['sigma_F_needed']
