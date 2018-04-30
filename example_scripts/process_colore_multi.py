@@ -58,7 +58,7 @@ parser.add_argument('--min-cat-z', type = float, default = 1.8, required=False,
 parser.add_argument('--param-file', type = str, default = 'out_params.cfg', required=False,
                     help = 'output parameter file name')
 
-parser.add_argument('--sigma-G-file', type = str, default = 'sigma_G_required.txt', required=False,
+parser.add_argument('--sigma-G-file', type = str, default = 'input_files/tune_small_scale_fluctuations.fits', required=False,
                     help = 'sigma_G required file name')
 
 parser.add_argument('--add-DLAs', action="store_true", default = True, required=False,
@@ -69,6 +69,9 @@ parser.add_argument('--add-RSDs', action="store_true", default = True, required=
 
 parser.add_argument('--retune-small-scale-fluctuations', action="store_true", default = False, required=False,
                     help = 'recalculate the values of sigma_G and alpha needed')
+
+parser.add_argument('--transmission-only', action="store_true", default = False, required=False,
+                    help = 'save only the transmission file')
 
 
 
@@ -91,6 +94,7 @@ add_DLAs = args.add_DLAs
 add_RSDs = args.add_RSDs
 retune_small_scale_fluctuations = args.retune_small_scale_fluctuations
 sigma_G_file = args.sigma_G_file
+transmission_only = args.transmission_only
 
 if np.log2(N_side)-int(np.log2(N_side)) != 0:
     print('nside must be a power of 2!')
@@ -98,7 +102,7 @@ else:
     N_pix = 12*N_side**2
 
 #Define the original file structure
-original_filename_structure = 'N1000_out_srcs_s1_{}.fits' #file_number
+original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
 file_numbers = list(range(0,1))
 input_format = 'gaussian_colore'
 
@@ -142,7 +146,7 @@ def log_result(retval):
     print(' -> current progress: {} {:4d} of {:4d} complete ({:3.0%}), {:4.0f}s elapsed, ~{:4.0f}s remaining'.format(progress_bar,N_complete,N_tasks,N_complete/N_tasks,time_elapsed,estimated_time_remaining),end="\r")
 
     if len(results) == len(tasks):
-        print('\n\nProcess complete!')
+        print('\nProcess complete!')
 
 #Define an error-tracking function.
 def log_error(retval):
@@ -304,14 +308,15 @@ This is done by
  - adding a random number to each cell with the appropriate statistics
 """
 
-print('\nCalculating how much extra power to add...')
-
 #Work out sigma_G desired to achive the P1D sigma_F
-sigma_G_z_values = np.linspace(0,3.79,40)
+tuning_z_values = np.linspace(0,4.0,64)
 
 if retune_small_scale_fluctuations == True:
+
+    print('\nCalculating how much extra power to add...')
+
     k = np.logspace(-5,10,10**5)
-    D_values = np.interp(sigma_G_z_values,cosmology_data['Z'],cosmology_data['D'])
+    D_values = np.interp(tuning_z_values,cosmology_data['Z'],cosmology_data['D'])
     beta = 1.65
     sigma_G_tolerance = 0.0001
 
@@ -327,7 +332,7 @@ if retune_small_scale_fluctuations == True:
 
         return (z,alpha,sigma_G,mean_F,sigma_F,mean_F_needed,sigma_F_needed)
 
-    tasks = [(z,np.interp(z,cosmology_data['Z'],cosmology_data['D']),final_cell_size,k,beta) for z in sigma_G_z_values]
+    tasks = [(z,np.interp(z,cosmology_data['Z'],cosmology_data['D']),final_cell_size,k,beta) for z in tuning_z_values]
 
     if __name__ == '__main__':
         pool = Pool(processes = N_processes)
@@ -341,36 +346,49 @@ if retune_small_scale_fluctuations == True:
         pool.join()
 
     dtype = [('z', '>f4'), ('alpha', '>f4'), ('sigma_G', '>f4'), ('mean_F', '>f4'), ('sigma_F', '>f4'), ('mean_F_needed', '>f4'), ('sigma_F_needed', '>f4')]
-    results = np.array(results,dtype=dtype)
-    results = np.sort(results,order=['z'])
+    tune_small_scale_fluctuations = np.array(results,dtype=dtype)
+    tune_small_scale_fluctuations = np.sort(tune_small_scale_fluctuations,order=['z'])
 
     """
-    plt.plot(results['z'],results['alpha'],label='alpha')
-    plt.plot(results['z'],results['sigma_G'],label='sigma_G')
-    plt.plot(results['z'],results['mean_F'],label='mean_F')
-    plt.plot(results['z'],results['sigma_F'],label='sigma_F')
+    plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['alpha'],label='alpha')
+    plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['sigma_G'],label='sigma_G')
+    plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['mean_F'],label='mean_F')
+    plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['sigma_F'],label='sigma_F')
     plt.grid()
     plt.legend()
-    plt.savefig('tune_flux_values_tol{}_n{}.pdf'.format(sigma_G_tolerance,sigma_G_z_values.shape[0]))
+    plt.savefig('tune_flux_values_tol{}_n{}.pdf'.format(sigma_G_tolerance,tuning_z_values.shape[0]))
     plt.show()
 
-    plt.plot(results['z'],results['mean_F']/results['mean_F_needed'] - 1,label='mean_F error')
-    plt.plot(results['z'],results['sigma_F']/results['sigma_F_needed'] - 1,label='sigma_F error')
+    plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['mean_F']/tune_small_scale_fluctuations['mean_F_needed'] - 1,label='mean_F error')
+    plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['sigma_F']/tune_small_scale_fluctuations['sigma_F_needed'] - 1,label='sigma_F error')
     plt.grid()
     plt.legend()
-    plt.savefig('tune_flux_values_tol{}_n{}_Ferrors.pdf'.format(sigma_G_tolerance,sigma_G_z_values.shape[0]))
+    plt.savefig('tune_flux_values_tol{}_n{}_Ferrors.pdf'.format(sigma_G_tolerance,tuning_z_values.shape[0]))
     plt.show()
     """
+    # TODO: add some kind of unique identifier?
+    #np.savetxt('input_files/tune_small_scale_fluctuations.txt',tune_small_scale_fluctuations)
 
-    desired_sigma_G_values = results['sigma_G']
+    prihdr = fits.Header()
+    prihdu = fits.PrimaryHDU(header=prihdr)
+    cols_DATA = fits.ColDefs(tune_small_scale_fluctuations)
+    hdu_DATA = fits.BinTableHDU.from_columns(cols_DATA,name='DATA')
+    
+    hdulist = fits.HDUList([prihdu, hdu_DATA])
+    hdulist.writeto('input_files/tune_small_scale_fluctuations.fits')
+    hdulist.close()
 
-    txt_data = np.array(list(zip(sigma_G_z_values,desired_sigma_G_values)))
-    np.savetxt('sigma_G_required.txt',txt_data)
 else:
-    txt_data = np.loadtxt(sigma_G_file)
-    z_txt_values = txt_data[:,0]
-    sigma_G_txt_values = txt_data[:,1]
-    desired_sigma_G_values = np.interp(sigma_G_z_values,z_txt_values,sigma_G_txt_values)
+    #Otherwise, load the data from the fits file that has been pre-computed.
+    print('\nLoading how much extra power to add from file...')
+    h = fits.open(sigma_G_file)
+    tune_small_scale_fluctuations = h['DATA'].data
+    h.close()
+    print('Process complete!')
+
+tuning_z_values = tune_small_scale_fluctuations['z']
+desired_sigma_G_values = tune_small_scale_fluctuations['sigma_G']
+desired_mean_F = tune_small_scale_fluctuations['mean_F']
 
 #desired_sigma_G_values = np.concatenate((2.0*np.ones(10),np.linspace(2.0,25.0,10)))
 #desired_sigma_G_values = 4.0*np.ones(20)
@@ -387,7 +405,7 @@ We may now calculate the density and flux fields, and save the relevant files.
 print('\nWorking on per-HEALPix pixel final skewer files...')
 start_time = time.time()
 
-def produce_final_skewers(new_base_file_location,new_file_structure,new_filename_structure,pixel,N_side,input_format,zero_mean_delta,lambda_min,SIGMA_G):
+def produce_final_skewers(new_base_file_location,new_file_structure,new_filename_structure,pixel,N_side,input_format,zero_mean_delta,lambda_min,measured_SIGMA_G):
     times = [0.0]
     start_time = time.time()
     location = new_base_file_location + '/' + new_file_structure.format(pixel//100,pixel)
@@ -396,7 +414,7 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     gaussian_filename = new_filename_structure.format('gaussian-colore',N_side,pixel)
 
     #Make a pixel object from it.
-    pixel_object = functions.simulation_data.get_gaussian_skewers(location+gaussian_filename,None,input_format,SIGMA_G=SIGMA_G,IVAR_cutoff=IVAR_cutoff)
+    pixel_object = functions.simulation_data.get_gaussian_skewers(location+gaussian_filename,None,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
     times += [time.time()-np.sum(times)-start_time]
 
     # TODO: These could be made beforehand and passed to the function? Or is there already enough being passed?
@@ -412,17 +430,24 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     pixel_object.compute_flux_skewers() #Opportunity to vary A and alpha here
     times += [time.time()-np.sum(times)-start_time]
 
-    #lognorm CoLoRe
-    filename = new_filename_structure.format('physical-colore',N_side,pixel)
-    pixel_object.save_as_physical_colore(location,filename,header)
+    if transmission_only == False:
+        #lognorm CoLoRe
+        filename = new_filename_structure.format('physical-colore',N_side,pixel)
+        pixel_object.save_as_physical_colore(location,filename,header)
+        times += [time.time()-np.sum(times)-start_time]
 
     #Trim the skewers (remove low lambda cells)
     # TODO: potential issue to do with cropping the large cell skewers and losing some small cells that we want to kee. "extra_cells" should deal with this
     pixel_object.trim_skewers(lambda_min,extra_cells=1)
     times += [time.time()-np.sum(times)-start_time]
 
+    #Exit now if no skewers are left.
+    if pixel_object.N_qso == 0:
+        print('\nwarning: no objects left in pixel {} after trimming.'.format(pixel))
+        return pixel
+
     #Add small scale power to the gaussian skewers:
-    pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,sigma_G_z_values,extra_sigma_G_values,white_noise=True,lambda_min=0)
+    pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,tuning_z_values,extra_sigma_G_values,white_noise=True,lambda_min=0)
     times += [time.time()-np.sum(times)-start_time]
 
     #create a table with DLAs
@@ -435,30 +460,28 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     pixel_object.save_as_transmission(location,filename,header,lambda_min=lambda_min)
     times += [time.time()-np.sum(times)-start_time]
 
-    #Exit now if no skewers are left.
-    if pixel_object.N_qso == 0:
-        print('\nwarning: no objects left in pixel {} after trimming.'.format(pixel))
-        return pixel
+    if transmission_only == False:
+        #Picca Gaussian
+        filename = new_filename_structure.format('picca-gaussian',N_side,pixel)
+        pixel_object.save_as_picca_gaussian(location,filename,header,lambda_min=lambda_min,overwrite=True)
+        times += [time.time()-np.sum(times)-start_time]
 
-    #Picca Gaussian
-    filename = new_filename_structure.format('picca-gaussian',N_side,pixel)
-    pixel_object.save_as_picca_gaussian(location,filename,header,lambda_min=lambda_min,overwrite=True)
-    times += [time.time()-np.sum(times)-start_time]
+        #Picca density
+        filename = new_filename_structure.format('picca-density',N_side,pixel)
+        pixel_object.save_as_picca_density(location,filename,header,lambda_min=lambda_min)
+        times += [time.time()-np.sum(times)-start_time]
 
-    #Picca density
-    filename = new_filename_structure.format('picca-density',N_side,pixel)
-    pixel_object.save_as_picca_density(location,filename,header,lambda_min=lambda_min)
-    times += [time.time()-np.sum(times)-start_time]
+        #picca flux
+        filename = new_filename_structure.format('picca-flux',N_side,pixel)
+        pixel_object.save_as_picca_flux(location,filename,header,lambda_min=lambda_min,mean_F_z_values=tuning_z_values,mean_F=desired_mean_F)
+        times += [time.time()-np.sum(times)-start_time]
 
-    #picca flux
-    filename = new_filename_structure.format('picca-flux',N_side,pixel)
-    pixel_object.save_as_picca_flux(location,filename,header,lambda_min=lambda_min)
-    times += [time.time()-np.sum(times)-start_time]
-
-    #print('\n\ntotal:',np.round(np.sum(times),2))
-    #print('times:',np.round(times,2))
-    #print('%ages:',np.round(times/np.sum(times),2))
-    #print(' ')
+    """
+    print('\n\ntotal:',np.round(np.sum(times),2))
+    print('times:',np.round(times,2))
+    print('%ages:',np.round(times/np.sum(times),2))
+    print(' ')
+    """
 
     return pixel
 
