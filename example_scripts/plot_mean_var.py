@@ -11,17 +11,24 @@ def read_file(basedir,quantity,nside,pix):
     dirname = basedir+'/'+str(pix_100)+'/'+str(pix)+'/'
     suffix = str(nside)+'-'+str(pix)+'.fits'
 
-    # file with delta flux for picca
-    filename = dirname+'/picca-{}-'.format(quantity)+suffix
-    #print('picca flux file',filename)
-    h = fits.open(filename)
-    delta_rows = h[0].data.T
+    if quantity == 'flux':
+        filename = dirname+'/transmission-'+suffix
+        h = fits.open(filename)
+        data_rows = h[3].data.T
+        h.close()
+        filename = dirname+'/picca-{}-'.format(quantity)+suffix
+        h = fits.open(filename)
+    else:
+        # file with delta for picca
+        filename = dirname+'/picca-{}-'.format(quantity)+suffix
+        #print('picca flux file',filename)
+        h = fits.open(filename)
+        data_rows = h[0].data.T
+
     ivar_rows = h[1].data.T
     loglam = h[2].data
     h.close()
     zs = (10**loglam)/lya - 1.0
-
-    data_rows = delta_rows
 
     return zs,data_rows,ivar_rows
 
@@ -37,7 +44,7 @@ def get_means(data_rows,ivar_rows):
 
 # main folder where the processed files are
 basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZ_4096_32_sr2.0_bm1_biasG18_picos_nside16/'
-basedir = '/Users/jfarr/Projects/test_data/process_output_G_hZ_4096_32_sr2.0_bm1_nside16/'
+basedir = '/Users/James/Projects/test_data/process_output_G_hZ_4096_32_sr2.0_bm1_nside16/'
 if len(sys.argv)>1:
     quantity = sys.argv[1]
 else:
@@ -77,8 +84,6 @@ overall_sigma = np.sqrt(overall_var)
 err = np.sqrt(overall_var/sum_weights)
 
 plt.plot(zs,overall_mean,label='mean')
-#plt.errorbar(zs,overall_mean,yerr=err,fmt='o',lw=2,label='mean')
-#plt.plot(zs,overall_var,label='variance')
 plt.plot(zs,overall_sigma,label='sigma')
 
 plt.title('{} stats: mean and sigma'.format(quantity))
@@ -92,19 +97,24 @@ if quantity == 'gaussian':
     plt.plot(z_predicted,sigma_G_predicted,label='predicted sigma')
 elif quantity == 'flux':
     mean_F_predicted = predicted_data[1].data['mean_F']
-    sigma_F_predicted = predicted_data[1].data['sigma_F']
-    plt.plot(z_predicted,mean_F_predicted,label='predicted mean')
-    plt.plot(z_predicted,sigma_F_predicted,label='integral')
+    sigma_dF_predicted = predicted_data[1].data['sigma_dF']
 
-    mean_F_predicted_new = np.interp(zs,z_predicted,mean_F_predicted)
-    sigma_F_predicted_new = np.interp(zs,z_predicted,sigma_F_predicted)
-    #plt.plot(zs,overall_sigma/mean_F_predicted_new,label='measured sigma / mean')
-    plt.plot(z_predicted,sigma_F_predicted*mean_F_predicted,label='integral * mean')
+    sigma_F_predicted = sigma_dF_predicted*mean_F_predicted
+
+    plt.plot(z_predicted,mean_F_predicted,label='predicted mean_F')
+    plt.plot(z_predicted,sigma_dF_predicted,label='predicted sigma_dF')
+    plt.plot(z_predicted,sigma_F_predicted,label='predicted sigma_F')
+
+    #overall_sigma_dF = overall_sigma/overall_mean
+
+    #plt.plot(zs,overall_sigma_dF,label='sigma_dF')
+
+
     """
     mean_F_model = predicted_data[1].data['mean_F_needed']
-    sigma_F_model = predicted_data[1].data['sigma_F_needed']
+    sigma_dF_model = predicted_data[1].data['sigma_dF_needed']
     plt.plot(z_predicted,mean_F_model,label='model mean')
-    plt.plot(z_predicted,sigma_F_model,label='model sigma')
+    plt.plot(z_predicted,sigma_dF_model,label='model sigma')
     """
 
 plt.legend()
