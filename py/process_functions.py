@@ -639,7 +639,7 @@ def get_gaussian_fields(z,N_cells,dv_kms=10.0,N_skewers=1,new_seed=None,white_no
     # get frequencies (wavenumbers in units of s/km)
     k_kms = np.fft.rfftfreq(N_cells)*2*np.pi/dv_kms
 
-    # get power evaluated at each k
+    # get power evaluated at each k_kms
     P_kms = power_kms(z,k_kms,dv_kms,white_noise=white_noise)
 
     # generate random Fourier modes
