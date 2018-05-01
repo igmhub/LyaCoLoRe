@@ -28,11 +28,11 @@ mode = 'plot_per_bin'
 
 #Option to add in a scaled version of a CAMB power spectrum:
 quantity = 'gaussian'
-add_CAMB = True
+add_CAMB = False
 #CAMB_sr = ['10']
 CAMB_sr = ['2.0','4.0']
 scale_CAMB = [1.0,1.0]
-scale_CAMB = plot_functions.get_scales(filenames)
+#scale_CAMB = plot_functions.get_scales(filenames)
 
 #scale_CAMB = [2.9488*0.4084/0.9998, 3.4069*0.3534/0.9998 , 3.8682*0.3110/0.9998]
 #CAMB_location = '/Users/James/Projects/LyaCoLoRe/camb_scripts/'
