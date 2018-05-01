@@ -679,15 +679,15 @@ def power_kms(z_c,k_kms,dv_kms,white_noise):
     P *= np.exp(-pow(k_kms*R1,2)) * pow(np.sin(kdv/2)/(kdv/2),2)
     return P
 
-#Function to integrate under the 1D power spectrum to return the value of sigma_F at a given redshift.
-def get_sigma_F_P1D(z,l_hMpc=0.25,Om=0.3):
+#Function to integrate under the 1D power spectrum to return the value of sigma_dF at a given redshift.
+def get_sigma_dF_P1D(z,l_hMpc=0.25,Om=0.3):
     #Choose log spaced values of k
     k_hMpc = np.logspace(-5,10,10**5)
 
     # need to go from Mpc/h to km/s, using dv / dX = H(z) / (1+z)
     # we will define H(z) = 100 h E(z)
     # with E(z) = sqrt(Omega_m(1+z)^3 + Omega_L), and assume flat universe
-    E_z = np.sqrt(Om*(1+z)**3+(1-Om))
+    E_z = np.sqrt(Om*(1+z)**3 + (1-Om))
     dkms_dhMpc = 100. * E_z / (1+z)
 
     # transform input wavenumbers to s/km
@@ -701,9 +701,9 @@ def get_sigma_F_P1D(z,l_hMpc=0.25,Om=0.3):
 
     # compute Fourier transform of Top-Hat filter of size l_hMpc
     W_hMpc = np.sinc((k_hMpc*l_hMpc)/(2*np.pi))
-    sigma_F = np.sqrt((1/np.pi)*np.trapz((W_hMpc**2)*pk_hMpc,k_hMpc))
+    sigma_dF = np.sqrt((1/np.pi)*np.trapz((W_hMpc**2)*pk_hMpc,k_hMpc))
 
-    return sigma_F
+    return sigma_dF
 
 #Function to return the mean value of F at a given redshift.
 #Equation from F-R2012, equation 2.11
@@ -711,7 +711,7 @@ def get_mean_F_model(z):
     mean_F = np.exp((np.log(0.8))*(((1+z)/3.25)**3.2))
     return mean_F
 
-#Function to calculate mean_F and sigma_F for given values of sigma_G, alpha and beta.
+#Function to calculate mean_F and sigma_dF for given values of sigma_G, alpha and beta.
 def get_flux_stats(sigma_G,alpha,beta,D,mean_only=False,int_lim_fac=10.0):
 
     int_lim = sigma_G*int_lim_fac
@@ -731,11 +731,11 @@ def get_flux_stats(sigma_G,alpha,beta,D,mean_only=False,int_lim_fac=10.0):
     if mean_only == False:
         delta_F_integral = F_integral/mean_F - 1
         integrand = prob_delta_G*(delta_F_integral**2)
-        sigma_F = mean_F*(np.sqrt(np.trapz(integrand,delta_G_integral)[0]))
+        sigma_dF = (np.sqrt(np.trapz(integrand,delta_G_integral)[0]))
     else:
-        sigma_F = None
+        sigma_dF = None
 
-    return mean_F, sigma_F
+    return mean_F, sigma_dF
 
 #Function to find the value of alpha required to match mean_F to a specified value.
 def find_alpha(sigma_G,mean_F_required,beta,D,alpha_log_low=-3.0,alpha_log_high=10.0,tolerance=0.0001,max_iter=30):
@@ -745,9 +745,9 @@ def find_alpha(sigma_G,mean_F_required,beta,D,alpha_log_low=-3.0,alpha_log_high=
     while exit == 0 and count < max_iter:
         alpha_log_midpoint = (alpha_log_low + alpha_log_high)/2.0
 
-        mean_F_al,sigma_F_al = get_flux_stats(sigma_G,10**alpha_log_low,beta,D,mean_only=True)
-        mean_F_am,sigma_F_am = get_flux_stats(sigma_G,10**alpha_log_midpoint,beta,D,mean_only=True)
-        mean_F_ah,sigma_F_ah = get_flux_stats(sigma_G,10**alpha_log_high,beta,D,mean_only=True)
+        mean_F_al,sigma_dF_al = get_flux_stats(sigma_G,10**alpha_log_low,beta,D,mean_only=True)
+        mean_F_am,sigma_dF_am = get_flux_stats(sigma_G,10**alpha_log_midpoint,beta,D,mean_only=True)
+        mean_F_ah,sigma_dF_ah = get_flux_stats(sigma_G,10**alpha_log_high,beta,D,mean_only=True)
 
         #print('---> alphas=({:2.2f},{:2.2f},{:2.2f}) gives mean_F=({:2.2f},{:2.2f},{:2.2f})'.format(10**alpha_log_low,10**alpha_log_midpoint,10**alpha_log_high,mean_F_al,mean_F_am,mean_F_ah))
 
@@ -766,13 +766,13 @@ def find_alpha(sigma_G,mean_F_required,beta,D,alpha_log_low=-3.0,alpha_log_high=
         print('\nvalue of mean_F did not converge to within tolerance: error is {:3.2%}'.format(mean_F_am/mean_F_required - 1))
 
     alpha = 10**alpha_log_midpoint
-    mean_F,sigma_F = get_flux_stats(sigma_G,alpha,beta,D)
+    mean_F,sigma_dF = get_flux_stats(sigma_G,alpha,beta,D)
 
-    return alpha,mean_F,sigma_F
+    return alpha,mean_F,sigma_dF
 
-#Function to find the values of alpha and sigma_G required to match mean_F and sigma_F to specified values.
-def find_sigma_G(mean_F_required,sigma_F_required,beta,D,sigma_G_start=0.001,step_size=1.0,tolerance=0.001,max_steps=30):
-    #print('sigma_F required={:2.2f}'.format(sigma_F_required))
+#Function to find the values of alpha and sigma_G required to match mean_F and sigma_dF to specified values.
+def find_sigma_G(mean_F_required,sigma_dF_required,beta,D,sigma_G_start=0.001,step_size=1.0,tolerance=0.001,max_steps=30):
+    #print('sigma_dF required={:2.2f}'.format(sigma_dF_required))
 
     count = 0
     exit = 0
@@ -780,19 +780,19 @@ def find_sigma_G(mean_F_required,sigma_F_required,beta,D,sigma_G_start=0.001,ste
 
     while exit == 0 and count < max_steps:
 
-        alpha,mean_F,sigma_F = find_alpha(sigma_G,mean_F_required,beta,D)
+        alpha,mean_F,sigma_dF = find_alpha(sigma_G,mean_F_required,beta,D)
 
-        if sigma_F < sigma_F_required:
-            #print('sigma_G={:2.4f} gives sigma_F={:2.4f}. Too low. Stepping forwards...'.format(sigma_G,sigma_F))
+        if sigma_dF < sigma_dF_required:
+            #print('sigma_G={:2.4f} gives sigma_dF={:2.4f}. Too low. Stepping forwards...'.format(sigma_G,sigma_dF))
             sigma_G += step_size
-        elif sigma_F > sigma_F_required:
-            #print('sigma_G={:2.4f} gives sigma_F={:2.4f}. Too high. Stepping backwards...'.format(sigma_G,sigma_F))
+        elif sigma_dF > sigma_dF_required:
+            #print('sigma_G={:2.4f} gives sigma_dF={:2.4f}. Too high. Stepping backwards...'.format(sigma_G,sigma_dF))
             sigma_G_too_high = sigma_G
             sigma_G -= step_size
             step_size = step_size/10.0
             sigma_G += step_size
 
-        if abs(sigma_F/sigma_F_required - 1) < tolerance:
+        if abs(sigma_dF/sigma_dF_required - 1) < tolerance:
             exit = 1
         else:
             count += 1
@@ -803,18 +803,18 @@ def find_sigma_G(mean_F_required,sigma_F_required,beta,D,sigma_G_start=0.001,ste
 
         sigma_G_log_midpoint = (sigma_G_log_low + sigma_G_log_high)/2.0
 
-        alpha_sGl,mean_F_sGl,sigma_F_sGl = find_alpha(10**sigma_G_log_low,mean_F_required,beta,D)
-        alpha_sGm,mean_F_sGm,sigma_F_sGm = find_alpha(10**sigma_G_log_midpoint,mean_F_required,beta,D)
-        alpha_sGh,mean_F_sGh,sigma_F_sGh = find_alpha(10**sigma_G_log_high,mean_F_required,beta,D)
+        alpha_sGl,mean_F_sGl,sigma_dF_sGl = find_alpha(10**sigma_G_log_low,mean_F_required,beta,D)
+        alpha_sGm,mean_F_sGm,sigma_dF_sGm = find_alpha(10**sigma_G_log_midpoint,mean_F_required,beta,D)
+        alpha_sGh,mean_F_sGh,sigma_dF_sGh = find_alpha(10**sigma_G_log_high,mean_F_required,beta,D)
 
-        print('sigma_Gs=({:2.2f},{:2.2f},{:2.2f}) gives sigma_Fs=({:2.2f},{:2.2f},{:2.2f})'.format(10**sigma_G_log_low,10**sigma_G_log_midpoint,10**sigma_G_log_high,sigma_F_sGl,sigma_F_sGm,sigma_F_sGh))
+        print('sigma_Gs=({:2.2f},{:2.2f},{:2.2f}) gives sigma_dFs=({:2.2f},{:2.2f},{:2.2f})'.format(10**sigma_G_log_low,10**sigma_G_log_midpoint,10**sigma_G_log_high,sigma_dF_sGl,sigma_dF_sGm,sigma_dF_sGh))
 
-        if np.sign(sigma_F_sGl-sigma_F_required) * np.sign(sigma_F_sGm-sigma_F_required) > 0:
+        if np.sign(sigma_dF_sGl-sigma_dF_required) * np.sign(sigma_dF_sGm-sigma_dF_required) > 0:
             sigma_G_log_low = sigma_G_log_midpoint
         else:
             sigma_G_log_high = sigma_G_log_midpoint
 
-        if abs(sigma_F_sGm/sigma_F_required - 1) < tolerance:
+        if abs(sigma_dF_sGm/sigma_dF_required - 1) < tolerance:
             exit = 1
         else:
             count += 1
@@ -822,17 +822,17 @@ def find_sigma_G(mean_F_required,sigma_F_required,beta,D,sigma_G_start=0.001,ste
 
     if exit == 0:
         # TODO: something other than print here. Maybe make a log of some kind?
-        print('\nvalue of sigma_F did not converge to within tolerance: error is {:3.2%}'.format(sigma_F/sigma_F_required - 1))
+        print('\nvalue of sigma_dF did not converge to within tolerance: error is {:3.2%}'.format(sigma_dF/sigma_dF_required - 1))
         sigma_G = (sigma_G+sigma_G_too_high)/2.0
-        alpha,mean_F,sigma_F = find_alpha(sigma_G,mean_F_required,beta,D)
+        alpha,mean_F,sigma_dF = find_alpha(sigma_G,mean_F_required,beta,D)
 
     """
     alpha = alpha_sGm
     sigma_G = 10**sigma_G_log_midpoint
     mean_F = mean_F_sGm
-    sigma_F = sigma_F_sGm
+    sigma_dF = sigma_dF_sGm
     """
-    return alpha,sigma_G,mean_F,sigma_F
+    return alpha,sigma_G,mean_F,sigma_dF
 
 #Definition of a generic 'simulation_data' class, from which it is easy to save in new formats.
 class simulation_data:
