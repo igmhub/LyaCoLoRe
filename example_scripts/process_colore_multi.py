@@ -326,7 +326,7 @@ if retune_small_scale_fluctuations == True:
 
     def tune_sigma_G(z,D,l_hMpc,beta,Om):
 
-        sigma_F_needed = functions.get_sigma_F_P1D(k,z,l_hMpc=l_hMpc,Om=Om)
+        sigma_F_needed = functions.get_sigma_F_P1D(z,l_hMpc=l_hMpc,Om=Om)
         mean_F_needed = functions.get_mean_F_model(z)
 
         #HACK FOR NOW AS WE CAN'T SEEM TO REACH HIGH ENOUGH sigma_F
