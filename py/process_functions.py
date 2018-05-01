@@ -680,10 +680,29 @@ def power_kms(z_c,k_kms,dv_kms,white_noise):
     return P
 
 #Function to integrate under the 1D power spectrum to return the value of sigma_F at a given redshift.
-def get_sigma_F_P1D(k,z,l=0.25):
-    pk = aP1D.P1D_z_kms_PD2013(z,k)
-    W = np.sinc((k*l)/(2*np.pi))
-    sigma_F = np.sqrt((1/np.pi)*np.trapz((W**2)*pk,k))
+def get_sigma_F_P1D(z,l_hMpc=0.25,Om=0.3):
+    #Choose log spaced values of k
+    k_hMpc = np.logspace(-5,10,10**5)
+
+    # need to go from Mpc/h to km/s, using dv / dX = H(z) / (1+z)
+    # we will define H(z) = 100 h E(z)
+    # with E(z) = sqrt(Omega_m(1+z)^3 + Omega_L), and assume flat universe
+    E_z = np.sqrt(Om*(1+z)**3+(1-Om))
+    dkms_dhMpc = 100. * E_z / (1+z)
+
+    # transform input wavenumbers to s/km
+    k_kms = k_hMpc / dkms_dhMpc
+
+    # get power in units of km/s
+    pk_kms = aP1D.P1D_z_kms_PD2013(z,k_kms)
+
+    # transform to h/Mpc
+    pk_hMpc = pk_kms / dkms_dhMpc
+
+    # compute Fourier transform of Top-Hat filter of size l_hMpc
+    W_hMpc = np.sinc((k_hMpc*l_hMpc)/(2*np.pi))
+    sigma_F = np.sqrt((1/np.pi)*np.trapz((W_hMpc**2)*pk_hMpc,k_hMpc))
+
     return sigma_F
 
 #Function to return the mean value of F at a given redshift.

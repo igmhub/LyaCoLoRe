@@ -105,7 +105,7 @@ else:
     N_pix = 12*N_side**2
 
 #Define the original file structure
-original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
+original_filename_structure = 'N1000_out_srcs_s1_{}.fits' #file_number
 file_numbers = list(range(0,1))
 input_format = 'gaussian_colore'
 
@@ -321,23 +321,22 @@ if retune_small_scale_fluctuations == True:
 
     print('\nCalculating how much extra power to add...')
 
-    k = np.logspace(-5,10,10**5)
     D_values = np.interp(tuning_z_values,cosmology_data['Z'],cosmology_data['D'])
     sigma_G_tolerance = 0.0001
 
-    def find_sigma_G(z,D,l,k,beta):
+    def tune_sigma_G(z,D,l_hMpc,beta,Om):
 
-        sigma_F_needed = functions.get_sigma_F_P1D(k,z,l=l)
+        sigma_F_needed = functions.get_sigma_F_P1D(k,z,l_hMpc=l_hMpc,Om=Om)
         mean_F_needed = functions.get_mean_F_model(z)
 
         #HACK FOR NOW AS WE CAN'T SEEM TO REACH HIGH ENOUGH sigma_F
-        sigma_F_needed = sigma_F_needed/2.0
+        #sigma_F_needed = sigma_F_needed/2.0
 
         alpha,sigma_G,mean_F,sigma_F = functions.find_sigma_G(mean_F_needed,sigma_F_needed,beta,D,tolerance=sigma_G_tolerance)
 
         return (z,alpha,sigma_G,mean_F,sigma_F,mean_F_needed,sigma_F_needed)
 
-    tasks = [(z,np.interp(z,cosmology_data['Z'],cosmology_data['D']),final_cell_size,k,beta) for z in tuning_z_values]
+    tasks = [(z,np.interp(z,cosmology_data['Z'],cosmology_data['D']),final_cell_size,beta,simulation_parameters['omega_M']) for z in tuning_z_values]
 
     if __name__ == '__main__':
         pool = Pool(processes = N_processes)
@@ -345,7 +344,7 @@ if retune_small_scale_fluctuations == True:
         start_time = time.time()
 
         for task in tasks:
-            pool.apply_async(find_sigma_G,task,callback=log_result,error_callback=log_error)
+            pool.apply_async(tune_sigma_G,task,callback=log_result,error_callback=log_error)
 
         pool.close()
         pool.join()
@@ -385,7 +384,7 @@ if retune_small_scale_fluctuations == True:
 else:
     #Otherwise, load the data from the fits file that has been pre-computed.
     print('\nLoading how much extra power to add from file...')
-    h = fits.open(sigma_G_file)
+    h = fits.open(tuning_file)
     tune_small_scale_fluctuations = h['DATA'].data
     h.close()
     print('Process complete!')
