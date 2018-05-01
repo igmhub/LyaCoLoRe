@@ -391,13 +391,13 @@ def write_DRQ(filename,RSD_option,ID_data,N_side):
     return
 
 #From lya_mock_p1d.py
-def get_tau(z,density,A=None,alpha=1.0):
+def get_tau(z,density_rows,alpha,beta):
     """transform lognormal density to optical depth, at each z"""
     # add redshift evolution to mean optical depth
-    if not A:
-        A = 0.374*pow((1+z)/4.0,5.10)
-
-    TAU_rows = A*(density**alpha)
+    N_cells = density_rows.shape[1]
+    TAU_rows = np.zeros(density_rows.shape)
+    for j in range(N_cells):
+        TAU_rows[:,j] = alpha[j]*(density_rows[:,j]**beta)
 
     return TAU_rows
 
@@ -440,8 +440,11 @@ def gaussian_to_lognormal_delta(GAUSSIAN_DELTA_rows,SIGMA_G,D):
     LN_DENSITY_rows = np.zeros(GAUSSIAN_DELTA_rows.shape)
     LN_DENSITY_DELTA_rows = np.zeros(GAUSSIAN_DELTA_rows.shape)
 
+    if isinstance(SIGMA_G,float):
+        SIGMA_G = SIGMA_G*np.ones(D.shape)
+
     for j in range(GAUSSIAN_DELTA_rows.shape[1]):
-        LN_DENSITY_rows[:,j] = np.exp(D[j]*GAUSSIAN_DELTA_rows[:,j] - ((D[j])**2)*(SIGMA_G**2)/2.)
+        LN_DENSITY_rows[:,j] = np.exp(D[j]*GAUSSIAN_DELTA_rows[:,j] - ((D[j])**2)*(SIGMA_G[j]**2)/2.)
 
     LN_DENSITY_DELTA_rows = LN_DENSITY_rows - 1
 
@@ -709,7 +712,7 @@ def get_flux_stats(sigma_G,alpha,beta,D,mean_only=False,int_lim_fac=10.0):
     if mean_only == False:
         delta_F_integral = F_integral/mean_F - 1
         integrand = prob_delta_G*(delta_F_integral**2)
-        sigma_F = np.sqrt(np.trapz(integrand,delta_G_integral)[0])
+        sigma_F = mean_F*(np.sqrt(np.trapz(integrand,delta_G_integral)[0]))
     else:
         sigma_F = None
 
@@ -1116,6 +1119,8 @@ class simulation_data:
         final_GAUSSIAN_DELTA_rows = expanded_GAUSSIAN_DELTA_rows + amplitude*extra_variance
         """
         total_times = np.zeros(3)
+        extra_sigma_G = np.interp(self.Z,sigma_G_z_values,extra_sigma_G_values)
+
         for i in range(self.N_qso):
             first_relevant_cell = first_relevant_cells[i].astype('int32')
             last_relevant_cell = last_relevant_cells[i].astype('int32')
@@ -1123,7 +1128,7 @@ class simulation_data:
             extra_var = np.zeros(N_cells_needed)
 
             for j in range(first_relevant_cell,last_relevant_cell):
-                extra_sigma_G_cell = np.interp(self.Z[j],sigma_G_z_values,extra_sigma_G_values)
+                extra_sigma_G_cell = extra_sigma_G[j]
                 extra_var[j] = get_gaussian_skewers(1,extra_sigma_G_cell)
 
             #Generate the extra gaussian skewers. For now we use 'get_gaussian_skewers' to generate white noise.
@@ -1134,13 +1139,7 @@ class simulation_data:
             expanded_GAUSSIAN_DELTA_rows[i,first_relevant_cell:last_relevant_cell] += amplitude*extra_var
 
         self.GAUSSIAN_DELTA_rows = expanded_GAUSSIAN_DELTA_rows
-
-        # TODO: this, currently just goes into the if each time
-        #If there are already physical/flux skewers, recalculate them.
-        if self.DENSITY_DELTA_rows is not None:
-            self.compute_physical_skewers()
-        if self.F_rows is not None:
-            self.compute_flux_skewers()
+        self.SIGMA_G = np.sqrt(extra_sigma_G**2 + (self.SIGMA_G)**2)
 
         #print(np.round(total_times,2))
         #print(np.round(total_times/np.sum(total_times),2))
@@ -1159,10 +1158,12 @@ class simulation_data:
         return
 
     #Function to add flux skewers to the object.
-    def compute_flux_skewers(self,A=None,alpha=1.0):
+    def compute_flux_skewers(self,alpha,beta):
 
-        self.TAU_rows = get_tau(self.Z,self.DENSITY_DELTA_rows+1,A,alpha=1.0)
-        self.F_rows = np.exp(-self.TAU_rows)
+        #self.TAU_rows = get_tau(self.Z,self.DENSITY_DELTA_rows+1,alpha,beta)
+        #self.F_rows = np.exp(-self.TAU_rows)
+
+        self.F_rows = density_to_flux(self.DENSITY_DELTA_rows+1,alpha,beta)
 
         return
 
@@ -1493,7 +1494,7 @@ class simulation_data:
         except ValueError:
             #This is done with a 'hack' to avoid problems with weights summing to zero.
             small = 1.0e-10
-            relevant_F_BAR = np.average(relevant_F_rows,weights=relevant_IVAR_rows+small,axis=0)    
+            relevant_F_BAR = np.average(relevant_F_rows,weights=relevant_IVAR_rows+small,axis=0)
         relevant_F_DELTA_rows = ((relevant_F_rows)/relevant_F_BAR - 1)*relevant_IVAR_rows
 
         #Organise the data into picca-format arrays.
