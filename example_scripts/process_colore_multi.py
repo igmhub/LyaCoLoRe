@@ -21,6 +21,10 @@ import argparse
 
 # TODO: Make 'input parameters' and 'output parameters' objects? Currently passing loads of arguments to multiprocessing functions which is messy
 # TODO: option to reduce the number of skewers for test purposes?
+# TODO: update the master file's cosmology once ssgf have been added
+# TODO: update handling of sigma_G as it's a bit misleading atm
+# TODO: use args to pass things like file structures around neatly?
+# TODO: Get rid of the need to specify file numbers?
 
 ################################################################################
 
@@ -58,8 +62,8 @@ parser.add_argument('--min-cat-z', type = float, default = 1.8, required=False,
 parser.add_argument('--param-file', type = str, default = 'out_params.cfg', required=False,
                     help = 'output parameter file name')
 
-parser.add_argument('--sigma-G-file', type = str, default = 'input_files/tune_small_scale_fluctuations.fits', required=False,
-                    help = 'sigma_G required file name')
+parser.add_argument('--tuning-file', type = str, default = 'input_files/tune_small_scale_fluctuations.fits', required=False,
+                    help = 'file name for data about tuning sigma_G/alpha')
 
 parser.add_argument('--add-DLAs', action="store_true", default = True, required=False,
                     help = 'add DLAs to the transmission file')
@@ -72,7 +76,6 @@ parser.add_argument('--retune-small-scale-fluctuations', action="store_true", de
 
 parser.add_argument('--transmission-only', action="store_true", default = False, required=False,
                     help = 'save only the transmission file')
-
 
 
 args = parser.parse_args()
@@ -93,7 +96,7 @@ parameter_filename = args.param_file
 add_DLAs = args.add_DLAs
 add_RSDs = args.add_RSDs
 retune_small_scale_fluctuations = args.retune_small_scale_fluctuations
-sigma_G_file = args.sigma_G_file
+tuning_file = args.tuning_file
 transmission_only = args.transmission_only
 
 if np.log2(N_side)-int(np.log2(N_side)) != 0:
@@ -198,16 +201,18 @@ file_number_list = list(sorted(set(file_numbers)))
 #Write master and bad coordinates files.
 master_filename = new_base_file_location + '/nside_{}_'.format(N_side) + 'master.fits'
 functions.write_ID(master_filename,master_data,cosmology_data,N_side)
+print('\nMaster file contains {} objects.'.format(master_data.shape[0]))
 
-bad_coordinates_filename = new_base_file_location + '/nside_{}_'.format(N_side) + 'bad_coordinates.fits'
-functions.write_ID(bad_coordinates_filename,bad_coordinates_data,cosmology_data,N_side)
+if bad_coordinates_data.shape[0] > 0:
+    bad_coordinates_filename = new_base_file_location + '/nside_{}_'.format(N_side) + 'bad_coordinates.fits'
+    functions.write_ID(bad_coordinates_filename,bad_coordinates_data,cosmology_data,N_side)
+    print('"bad coordinates" file contains {} objects.'.format(bad_coordinates_data.shape[0]))
 
 #Write the DRQ files for picca xcf to deal with.
 for RSD_option in ['RSD','NO_RSD']:
     DRQ_filename = new_base_file_location + '/nside_{}_master_picca_{}.fits'.format(N_side,RSD_option)
     functions.write_DRQ(DRQ_filename,RSD_option,master_data,N_side)
 
-print('\nMaster file contains {} objects.\n"bad coordinates" file contains {} objects.'.format(master_data.shape[0],bad_coordinates_data.shape[0]))
 print('Time to make master file: {:4.0f}s.'.format(time.time()-start))
 
 ################################################################################
@@ -373,7 +378,7 @@ if retune_small_scale_fluctuations == True:
     prihdu = fits.PrimaryHDU(header=prihdr)
     cols_DATA = fits.ColDefs(tune_small_scale_fluctuations)
     hdu_DATA = fits.BinTableHDU.from_columns(cols_DATA,name='DATA')
-    
+
     hdulist = fits.HDUList([prihdu, hdu_DATA])
     hdulist.writeto('input_files/tune_small_scale_fluctuations.fits')
     hdulist.close()
