@@ -682,7 +682,8 @@ def power_kms(z_c,k_kms,dv_kms,white_noise):
 #Function to integrate under the 1D power spectrum to return the value of sigma_dF at a given redshift.
 def get_sigma_dF_P1D(z,l_hMpc=0.25,Om=0.3):
     #Choose log spaced values of k
-    k_hMpc = np.logspace(-5,10,10**5)
+    k_hMpc_max = 100.0/l_hMpc
+    k_hMpc = np.logspace(-5,np.log10(k_hMpc_max),10**5)
 
     # need to go from Mpc/h to km/s, using dv / dX = H(z) / (1+z)
     # we will define H(z) = 100 h E(z)
