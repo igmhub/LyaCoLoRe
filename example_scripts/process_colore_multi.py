@@ -313,7 +313,7 @@ This is done by
  - adding a random number to each cell with the appropriate statistics
 """
 
-#Work out sigma_G desired to achive the P1D sigma_F
+#Work out sigma_G desired to achive the P1D sigma_dF
 tuning_z_values = np.linspace(0,4.0,64)
 beta = 1.65
 
@@ -326,15 +326,15 @@ if retune_small_scale_fluctuations == True:
 
     def tune_sigma_G(z,D,l_hMpc,beta,Om):
 
-        sigma_F_needed = functions.get_sigma_F_P1D(z,l_hMpc=l_hMpc,Om=Om)
+        sigma_dF_needed = functions.get_sigma_dF_P1D(z,l_hMpc=l_hMpc,Om=Om)
         mean_F_needed = functions.get_mean_F_model(z)
 
-        #HACK FOR NOW AS WE CAN'T SEEM TO REACH HIGH ENOUGH sigma_F
-        #sigma_F_needed = sigma_F_needed/2.0
+        #HACK FOR NOW AS WE CAN'T SEEM TO REACH HIGH ENOUGH sigma_dF
+        #sigma_dF_needed = sigma_dF_needed/2.0
 
-        alpha,sigma_G,mean_F,sigma_F = functions.find_sigma_G(mean_F_needed,sigma_F_needed,beta,D,tolerance=sigma_G_tolerance)
+        alpha,sigma_G,mean_F,sigma_dF = functions.find_sigma_G(mean_F_needed,sigma_dF_needed,beta,D,tolerance=sigma_G_tolerance)
 
-        return (z,alpha,sigma_G,mean_F,sigma_F,mean_F_needed,sigma_F_needed)
+        return (z,alpha,sigma_G,mean_F,sigma_dF,mean_F_needed,sigma_dF_needed)
 
     tasks = [(z,np.interp(z,cosmology_data['Z'],cosmology_data['D']),final_cell_size,beta,simulation_parameters['omega_M']) for z in tuning_z_values]
 
@@ -349,7 +349,7 @@ if retune_small_scale_fluctuations == True:
         pool.close()
         pool.join()
 
-    dtype = [('z', '>f4'), ('alpha', '>f4'), ('sigma_G', '>f4'), ('mean_F', '>f4'), ('sigma_F', '>f4'), ('mean_F_needed', '>f4'), ('sigma_F_needed', '>f4')]
+    dtype = [('z', '>f4'), ('alpha', '>f4'), ('sigma_G', '>f4'), ('mean_F', '>f4'), ('sigma_dF', '>f4'), ('mean_F_needed', '>f4'), ('sigma_dF_needed', '>f4')]
     tune_small_scale_fluctuations = np.array(results,dtype=dtype)
     tune_small_scale_fluctuations = np.sort(tune_small_scale_fluctuations,order=['z'])
 
@@ -357,14 +357,14 @@ if retune_small_scale_fluctuations == True:
     plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['alpha'],label='alpha')
     plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['sigma_G'],label='sigma_G')
     plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['mean_F'],label='mean_F')
-    plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['sigma_F'],label='sigma_F')
+    plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['sigma_dF'],label='sigma_dF')
     plt.grid()
     plt.legend()
     plt.savefig('tune_flux_values_tol{}_n{}.pdf'.format(sigma_G_tolerance,tuning_z_values.shape[0]))
     plt.show()
 
     plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['mean_F']/tune_small_scale_fluctuations['mean_F_needed'] - 1,label='mean_F error')
-    plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['sigma_F']/tune_small_scale_fluctuations['sigma_F_needed'] - 1,label='sigma_F error')
+    plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['sigma_dF']/tune_small_scale_fluctuations['sigma_dF_needed'] - 1,label='sigma_dF error')
     plt.grid()
     plt.legend()
     plt.savefig('tune_flux_values_tol{}_n{}_Ferrors.pdf'.format(sigma_G_tolerance,tuning_z_values.shape[0]))

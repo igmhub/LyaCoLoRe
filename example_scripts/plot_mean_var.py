@@ -11,33 +11,17 @@ def read_file(basedir,quantity,nside,pix):
     dirname = basedir+'/'+str(pix_100)+'/'+str(pix)+'/'
     suffix = str(nside)+'-'+str(pix)+'.fits'
 
-    if quantity == 'flux':
-        filename = dirname+'/transmission-'+suffix
-        h = fits.open(filename)
-        flux_rows = h[3].data.T
-        data_rows = flux_rows
-        lambdas = h[2].data
-        zs = lambdas/lya - 1.0
-        h.close()
+    # file with delta flux for picca
+    filename = dirname+'/picca-{}-'.format(quantity)+suffix
+    #print('picca flux file',filename)
+    h = fits.open(filename)
+    delta_rows = h[0].data.T
+    ivar_rows = h[1].data.T
+    loglam = h[2].data
+    h.close()
+    zs = (10**loglam)/lya - 1.0
 
-        filename = dirname+'/picca-{}-'.format(quantity)+suffix
-        #print('picca flux file',filename)
-        h = fits.open(filename)
-        ivar_rows = h[1].data.T
-        h.close()
-
-    else:
-        # file with delta flux for picca
-        filename = dirname+'/picca-{}-'.format(quantity)+suffix
-        #print('picca flux file',filename)
-        h = fits.open(filename)
-        delta_rows = h[0].data.T
-        ivar_rows = h[1].data.T
-        loglam = h[2].data
-        h.close()
-        zs = (10**loglam)/lya - 1.0
-
-        data_rows = delta_rows
+    data_rows = delta_rows
 
     return zs,data_rows,ivar_rows
 
