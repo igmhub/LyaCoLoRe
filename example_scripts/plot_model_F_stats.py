@@ -19,6 +19,8 @@ results = np.array(results,dtype=dtype)
 
 plt.plot(results['z'],results['mean_F'],label='mean_F')
 plt.plot(results['z'],results['sigma_dF'],label='sigma_dF')
+plt.plot(results['z'],results['sigma_dF']/2,label='sigma_dF/2')
 plt.legend()
 plt.grid()
+plt.savefig('model_F_stats.pdf')
 plt.show()
