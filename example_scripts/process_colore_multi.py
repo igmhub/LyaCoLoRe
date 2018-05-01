@@ -105,7 +105,7 @@ else:
     N_pix = 12*N_side**2
 
 #Define the original file structure
-original_filename_structure = 'N1000_out_srcs_s1_{}.fits' #file_number
+original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
 file_numbers = list(range(0,1))
 input_format = 'gaussian_colore'
 
@@ -329,8 +329,8 @@ if retune_small_scale_fluctuations == True:
         sigma_dF_needed = functions.get_sigma_dF_P1D(z,l_hMpc=l_hMpc,Om=Om)
         mean_F_needed = functions.get_mean_F_model(z)
 
-        #HACK: for now, we halve the values of sigma_dF needed as higher values are not currently achievable.
-        sigma_dF_needed = sigma_dF_needed/2.0
+        #HACK: for now, we reduce the values of sigma_dF needed as higher values are not currently achievable.
+        sigma_dF_needed = sigma_dF_needed*0.75
 
         alpha,sigma_G,mean_F,sigma_dF = functions.find_sigma_G(mean_F_needed,sigma_dF_needed,beta,D,tolerance=sigma_G_tolerance)
 
