@@ -106,7 +106,7 @@ else:
 
 #Define the original file structure
 original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
-file_numbers = list(range(0,1))
+file_numbers = list(range(0,32))
 input_format = 'gaussian_colore'
 
 #Set file structure
@@ -330,7 +330,7 @@ if retune_small_scale_fluctuations == True:
         mean_F_needed = functions.get_mean_F_model(z)
 
         #HACK: for now, we reduce the values of sigma_dF needed as higher values are not currently achievable.
-        sigma_dF_needed = sigma_dF_needed*0.75
+        sigma_dF_needed = sigma_dF_needed
 
         alpha,sigma_G,mean_F,sigma_dF = functions.find_sigma_G(mean_F_needed,sigma_dF_needed,beta,D,tolerance=sigma_G_tolerance)
 
