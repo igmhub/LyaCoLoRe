@@ -349,8 +349,7 @@ def write_ID(filename,ID_data,cosmology_data,N_side):
     prihdu = fits.PrimaryHDU(header=prihdr)
 
     #Make the .fits file.
-    #hdulist = fits.HDUList([prihdu,hdu_ID,hdu_cosmology])
-    hdulist = fits.HDUList([prihdu,hdu_ID])
+    hdulist = fits.HDUList([prihdu,hdu_ID,hdu_cosmology])
     hdulist.writeto(filename)
     hdulist.close()
 
@@ -441,8 +440,9 @@ def gaussian_to_lognormal_delta(GAUSSIAN_DELTA_rows,SIGMA_G,D):
     LN_DENSITY_rows = np.zeros(GAUSSIAN_DELTA_rows.shape)
     LN_DENSITY_DELTA_rows = np.zeros(GAUSSIAN_DELTA_rows.shape)
 
-    if isinstance(SIGMA_G,float):
-        SIGMA_G = SIGMA_G*np.ones(D.shape)
+    SIGMA_G = SIGMA_G*np.ones(GAUSSIAN_DELTA_rows.shape[1])
+
+    D = D*np.ones(GAUSSIAN_DELTA_rows.shape[1])
 
     for j in range(GAUSSIAN_DELTA_rows.shape[1]):
         LN_DENSITY_rows[:,j] = np.exp(D[j]*GAUSSIAN_DELTA_rows[:,j] - ((D[j])**2)*(SIGMA_G[j]**2)/2.)
@@ -721,11 +721,9 @@ def get_flux_stats(sigma_G,alpha,beta,D,mean_only=False,int_lim_fac=10.0):
     delta_G_integral = np.linspace(-int_lim,int_lim,10**4)
     delta_G_integral = np.reshape(delta_G_integral,(1,delta_G_integral.shape[0]))
 
-    D_integral = (D)*np.ones(delta_G_integral.shape[1])
-
     prob_delta_G = (1/((np.sqrt(2*np.pi))*sigma_G))*np.exp(-(delta_G_integral**2)/(2*(sigma_G**2)))
 
-    density_integral = gaussian_to_lognormal_delta(delta_G_integral,sigma_G,D_integral) + 1
+    density_integral = gaussian_to_lognormal_delta(delta_G_integral,sigma_G,D) + 1
     F_integral = density_to_flux(density_integral,alpha,beta)
 
     mean_F = np.trapz(prob_delta_G*F_integral,delta_G_integral)[0]
