@@ -106,7 +106,7 @@ else:
 
 #Define the original file structure
 original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
-file_numbers = list(range(0,32))
+file_numbers = list(range(0,1))
 input_format = 'gaussian_colore'
 
 #Set file structure
@@ -314,7 +314,7 @@ This is done by
 """
 
 #Work out sigma_G desired to achive the P1D sigma_dF
-tuning_z_values = np.linspace(0,4.0,64)
+tuning_z_values = np.linspace(0,4.0,128)
 beta = 1.65
 
 if retune_small_scale_fluctuations == True:
@@ -323,7 +323,7 @@ if retune_small_scale_fluctuations == True:
 
     D_values = np.interp(tuning_z_values,cosmology_data['Z'],cosmology_data['D'])
     sigma_G_tolerance = 0.0001
-
+    
     def tune_sigma_G(z,D,l_hMpc,beta,Om):
 
         sigma_dF_needed = functions.get_sigma_dF_P1D(z,l_hMpc=l_hMpc,Om=Om)
@@ -353,7 +353,7 @@ if retune_small_scale_fluctuations == True:
     tune_small_scale_fluctuations = np.array(results,dtype=dtype)
     tune_small_scale_fluctuations = np.sort(tune_small_scale_fluctuations,order=['z'])
 
-    """
+    
     plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['alpha'],label='alpha')
     plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['sigma_G'],label='sigma_G')
     plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['mean_F'],label='mean_F')
@@ -362,14 +362,14 @@ if retune_small_scale_fluctuations == True:
     plt.legend()
     plt.savefig('tune_flux_values_tol{}_n{}.pdf'.format(sigma_G_tolerance,tuning_z_values.shape[0]))
     plt.show()
-
+    """
     plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['mean_F']/tune_small_scale_fluctuations['mean_F_needed'] - 1,label='mean_F error')
     plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['sigma_dF']/tune_small_scale_fluctuations['sigma_dF_needed'] - 1,label='sigma_dF error')
     plt.grid()
     plt.legend()
     plt.savefig('tune_flux_values_tol{}_n{}_Ferrors.pdf'.format(sigma_G_tolerance,tuning_z_values.shape[0]))
-    plt.show()
-    """
+    #plt.show()
+    """ 
     # TODO: Add in beta in a header!
 
     prihdr = fits.Header()
@@ -378,7 +378,7 @@ if retune_small_scale_fluctuations == True:
     hdu_DATA = fits.BinTableHDU.from_columns(cols_DATA,name='DATA')
 
     hdulist = fits.HDUList([prihdu, hdu_DATA])
-    hdulist.writeto('input_files/tune_small_scale_fluctuations.fits')
+    hdulist.writeto('input_files/tune_small_scale_fluctuations_n{}.fits'.format(tuning_z_values.shape[0]))
     hdulist.close()
 
 else:
