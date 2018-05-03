@@ -12,12 +12,12 @@ import process_functions as functions
 
 lya = 1215.67
 
-basedir = '/Users/jfarr/Projects/repixelise/test_output/test_multi'
-#basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_revamp/process_output_4096_32'
-basedir = '/Users/James/Projects/test_data/pixel_0'
+#basedir = '/Users/jfarr/Projects/repixelise/test_output/test_multi'
+basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZ_4096_32_sr2.0_bm1_nside16_TEST/'
+#basedir = '/Users/James/Projects/test_data/pixel_0'
 
-N_side = 8
-pixels = list(range(0,1))
+N_side = 16
+pixels = list(range(0,10))
 
 N_bins = 1000
 lambda_lower = 800.0
@@ -51,13 +51,13 @@ def compute_pixel_contribution(pixel):
 
     pixel_100 = pixel//100
 
-    colore_filename = '{}/{}/{}/gaussian-colore-{}-{}.fits'.format(basedir,pixel_100,pixel,N_side,pixel)
+    #filename = '{}/{}/{}/gaussian-colore-{}-{}.fits'.format(basedir,pixel_100,pixel,N_side,pixel)
+    filename = '{}/{}/{}/picca-flux-{}-{}.fits'.format(basedir,pixel_100,pixel,N_side,pixel)
+    h = fits.open(filename)
 
-    h = fits.open(colore_filename)
-
-    DELTA_rows = h[2].data
-    Z_QSO = h[1].data['Z_COSMO']
-    Z = h[4].data['Z']
+    DELTA_rows = h[0].data.T
+    Z_QSO = h[3].data['Z']
+    Z = (10**(h[2].data))/lya - 1
     LOGLAM_MAP = np.log10(lya*(1+Z))
     N_qso = DELTA_rows.shape[0]
 
@@ -157,7 +157,7 @@ for n in range(N_bins):
 
 print(' ')
 
-
+"""
 plt.figure()
 #plt.errorbar(R_binned,xi,yerr=err_1,fmt='o')
 plt.plot(binned_lambdas,binned_mean_delta)
@@ -166,15 +166,16 @@ plt.plot(binned_lambdas,binned_mean_delta*(((binned_lambdas-IVAR_cutoff)/(np.one
 plt.grid(True, which='both')
 plt.axhline(y=0, color='k')
 plt.savefig('xcf1d_{}_{}_with_squared.pdf'.format(pixels[0],pixels[-1]))
-
+"""
 plt.figure()
 #plt.errorbar(R_binned,xi,yerr=err_1,fmt='o')
 plt.plot(binned_lambdas,binned_mean_delta)
 plt.plot(binned_lambdas,binned_var_delta)
 plt.grid(True, which='both')
-plt.axhline(y=0, color='k')
+plt.axhline(y=0, color=(0.5,0.5,0.5))
+plt.axhline(y=np.average(binned_var_delta[binned_lambdas<1150]),color=(0.5,0.5,0.5))
 plt.savefig('xcf1d_{}_{}.pdf'.format(pixels[0],pixels[-1]))
-
+"""
 plt.figure()
 #plt.errorbar(R_binned,xi,yerr=err_1,fmt='o')
 plt.plot(binned_lambdas,binned_mean_delta)
@@ -183,7 +184,7 @@ plt.ylim(-limit,limit)
 plt.grid(True, which='both')
 plt.axhline(y=0, color='k')
 plt.savefig('xcf1d_{}_{}_zoom.pdf'.format(pixels[0],pixels[-1]))
-
+"""
 plt.show()
 
 """
