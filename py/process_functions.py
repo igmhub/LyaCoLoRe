@@ -1163,24 +1163,15 @@ class simulation_data:
                 extra_sigma_G_cell = extra_sigma_G[j]
                 extra_var[j] = get_gaussian_skewers(1,extra_sigma_G_cell)
 
-            #Generate the extra gaussian skewers. For now we use 'get_gaussian_skewers' to generate white noise.
-            #The ability to use 'get_gaussian_fields' to generate fields with a specific power spectrum will be added in the future.
-            #extra_sigma_G = extra_sigma_G_values[-1]
-            #extra_var = get_gaussian_skewers(N_cells_needed,extra_sigma_G,N_skewers=1)
-            #extra_var = np.reshape(extra_var,extra_var.shape[1])
             expanded_GAUSSIAN_DELTA_rows[i,first_relevant_cell:last_relevant_cell] += amplitude*extra_var
 
         self.GAUSSIAN_DELTA_rows = expanded_GAUSSIAN_DELTA_rows
         self.SIGMA_G = np.sqrt(extra_sigma_G**2 + (self.SIGMA_G)**2)
 
-        #print(np.round(total_times,2))
-        #print(np.round(total_times/np.sum(total_times),2))
-        #print('\n\ntotal:',np.round(np.sum(times),2))
-        #print('times:',np.round(times,2))
-        #print('%ages:',np.round(times/np.sum(times),2))
-        #print(' ')
+        dtype = [('R', '>f4'), ('Z', '>f4'), ('D', '>f4'), ('V', '>f4')]
+        new_cosmology = np.array(list(zip(self.R,self.Z,self.D,self.V)),dtype=dtype)
 
-        return
+        return new_cosmology
 
     #Function to add physical skewers to the object via a lognormal transformation.
     def compute_physical_skewers(self,density_type='lognormal'):
