@@ -322,7 +322,7 @@ if retune_small_scale_fluctuations == True:
 
     D_values = np.interp(tuning_z_values,cosmology_data['Z'],cosmology_data['D'])
     sigma_G_tolerance = 0.0001
-    
+
     def tune_sigma_G(z,D,l_hMpc,beta,Om):
 
         sigma_dF_needed = functions.get_sigma_dF_P1D(z,l_hMpc=l_hMpc,Om=Om)
@@ -351,7 +351,7 @@ if retune_small_scale_fluctuations == True:
     dtype = [('z', '>f4'), ('alpha', '>f4'), ('sigma_G', '>f4'), ('mean_F', '>f4'), ('sigma_dF', '>f4'), ('mean_F_needed', '>f4'), ('sigma_dF_needed', '>f4')]
     tune_small_scale_fluctuations = np.array(results,dtype=dtype)
     tune_small_scale_fluctuations = np.sort(tune_small_scale_fluctuations,order=['z'])
-    
+
     plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['alpha'],label='alpha')
     plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['sigma_G'],label='sigma_G')
     plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['mean_F'],label='mean_F')
@@ -367,7 +367,7 @@ if retune_small_scale_fluctuations == True:
     plt.legend()
     plt.savefig('tune_flux_values_tol{}_n{}_Ferrors.pdf'.format(sigma_G_tolerance,tuning_z_values.shape[0]))
     #plt.show()
-    """ 
+    """
     # TODO: Add in beta in a header!
     header = fits.Header()
     header['beta'] = beta
@@ -426,7 +426,8 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     header['PIXNUM'] = pixel
     header['LYA'] = lya
     header['NQSO'] = pixel_object.N_qso
-
+    header['NESTED'] = True
+    
     #Add the physical density and flux skewers to the object.
     pixel_object.compute_physical_skewers() #Opportunity to change density type here
     pixel_object.compute_flux_skewers(np.interp(pixel_object.Z,tuning_z_values,alphas),beta) #Opportunity to vary alpha and beta here
