@@ -349,7 +349,8 @@ def write_ID(filename,ID_data,cosmology_data,N_side):
     prihdu = fits.PrimaryHDU(header=prihdr)
 
     #Make the .fits file.
-    hdulist = fits.HDUList([prihdu,hdu_ID,hdu_cosmology])
+    #hdulist = fits.HDUList([prihdu,hdu_ID,hdu_cosmology])
+    hdulist = fits.HDUList([prihdu,hdu_ID])
     hdulist.writeto(filename)
     hdulist.close()
 
@@ -774,7 +775,8 @@ def find_alpha(sigma_G,mean_F_required,beta,D,alpha_log_low=-3.0,alpha_log_high=
 #Function to find the values of alpha and sigma_G required to match mean_F and sigma_dF to specified values.
 def find_sigma_G(mean_F_required,sigma_dF_required,beta,D,sigma_G_start=0.001,step_size=1.0,tolerance=0.001,max_steps=30):
     #print('sigma_dF required={:2.2f}'.format(sigma_dF_required))
-
+    #print(' ')
+    #print(' ')
     count = 0
     exit = 0
     sigma_G = sigma_G_start
@@ -783,20 +785,22 @@ def find_sigma_G(mean_F_required,sigma_dF_required,beta,D,sigma_G_start=0.001,st
 
         alpha,mean_F,sigma_dF = find_alpha(sigma_G,mean_F_required,beta,D)
 
-        if sigma_dF < sigma_dF_required:
+        if abs(sigma_dF/sigma_dF_required - 1) < tolerance:
+            exit = 1
+            #print('sigma_G={:2.4f} gives sigma_dF={:2.4f}. Satisfied. Exiting...'.format(sigma_G,sigma_dF))
+        elif sigma_dF < sigma_dF_required:
             #print('sigma_G={:2.4f} gives sigma_dF={:2.4f}. Too low. Stepping forwards...'.format(sigma_G,sigma_dF))
             sigma_G += step_size
+            count += 1
         elif sigma_dF > sigma_dF_required:
             #print('sigma_G={:2.4f} gives sigma_dF={:2.4f}. Too high. Stepping backwards...'.format(sigma_G,sigma_dF))
             sigma_G_too_high = sigma_G
             sigma_G -= step_size
             step_size = step_size/10.0
             sigma_G += step_size
-
-        if abs(sigma_dF/sigma_dF_required - 1) < tolerance:
-            exit = 1
-        else:
             count += 1
+
+        #print('error: ',(sigma_dF/sigma_dF_required - 1))
 
         """
         sigma_G_log_low = -3.0
@@ -821,12 +825,20 @@ def find_sigma_G(mean_F_required,sigma_dF_required,beta,D,sigma_G_start=0.001,st
             count += 1
         """
 
+    #print('Testing finished. Final values are:')
+    #print('sigma_G={:2.4f} gives sigma_dF={:2.4f}.'.format(sigma_G,sigma_dF))
+    #print('error: ',(sigma_dF/sigma_dF_required - 1))
+
     if exit == 0:
         # TODO: something other than print here. Maybe make a log of some kind?
         print('\nvalue of sigma_dF did not converge to within tolerance: error is {:3.2%}'.format(sigma_dF/sigma_dF_required - 1))
         sigma_G = (sigma_G+sigma_G_too_high)/2.0
         alpha,mean_F,sigma_dF = find_alpha(sigma_G,mean_F_required,beta,D)
-
+    
+    #print('Final check finished. Final values are:')
+    #print('sigma_G={:2.4f} gives sigma_dF={:2.4f}.'.format(sigma_G,sigma_dF))
+    #print('error: ',(sigma_dF/sigma_dF_required - 1))
+    #print(' ')
     """
     alpha = alpha_sGm
     sigma_G = 10**sigma_G_log_midpoint
