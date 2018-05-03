@@ -105,7 +105,7 @@ else:
     N_pix = 12*N_side**2
 
 #Define the original file structure
-original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
+original_filename_structure = 'N1000_out_srcs_s1_{}.fits' #file_number
 file_numbers = list(range(0,1))
 input_format = 'gaussian_colore'
 
@@ -146,7 +146,7 @@ def log_result(retval):
     current_time = time.time()
     time_elapsed = current_time - start_time
     estimated_time_remaining = (time_elapsed)*((N_tasks-N_complete)/N_complete)
-    print(' -> current progress: {} {:4d} of {:4d} complete ({:3.0%}), {:4.0f}s elapsed, ~{:4.0f}s remaining'.format(progress_bar,N_complete,N_tasks,N_complete/N_tasks,time_elapsed,estimated_time_remaining),end="\r")
+    print(' -> current progress: {} {:4d} of {:4d} complete ({:3.0%}), {:4.0f}s elapsed, ~{:5.0f}s remaining'.format(progress_bar,N_complete,N_tasks,N_complete/N_tasks,time_elapsed,estimated_time_remaining),end="\r")
 
     if len(results) == len(tasks):
         print('\nProcess complete!')
@@ -284,8 +284,7 @@ if __name__ == '__main__':
     pool.close()
     pool.join()
 
-print('\nTime to make Gaussian pixel files: {:4.0f}s.'.format(time.time()-start_time))
-print(' ')
+print('\nTime to make Gaussian pixel files: {:4.0f}s.\n'.format(time.time()-start_time))
 
 ################################################################################
 
@@ -330,7 +329,7 @@ if retune_small_scale_fluctuations == True:
         mean_F_needed = functions.get_mean_F_model(z)
 
         #HACK: for now, we reduce the values of sigma_dF needed as higher values are not currently achievable.
-        sigma_dF_needed = sigma_dF_needed*0.75
+        sigma_dF_needed = sigma_dF_needed
 
         alpha,sigma_G,mean_F,sigma_dF = functions.find_sigma_G(mean_F_needed,sigma_dF_needed,beta,D,tolerance=sigma_G_tolerance)
 
@@ -353,29 +352,14 @@ if retune_small_scale_fluctuations == True:
     tune_small_scale_fluctuations = np.array(results,dtype=dtype)
     tune_small_scale_fluctuations = np.sort(tune_small_scale_fluctuations,order=['z'])
 
-    """
-    plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['alpha'],label='alpha')
-    plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['sigma_G'],label='sigma_G')
-    plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['mean_F'],label='mean_F')
-    plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['sigma_dF'],label='sigma_dF')
-    plt.grid()
-    plt.legend()
-    plt.savefig('tune_flux_values_tol{}_n{}.pdf'.format(sigma_G_tolerance,tuning_z_values.shape[0]))
-    plt.show()
-
-    plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['mean_F']/tune_small_scale_fluctuations['mean_F_needed'] - 1,label='mean_F error')
-    plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['sigma_dF']/tune_small_scale_fluctuations['sigma_dF_needed'] - 1,label='sigma_dF error')
-    plt.grid()
-    plt.legend()
-    plt.savefig('tune_flux_values_tol{}_n{}_Ferrors.pdf'.format(sigma_G_tolerance,tuning_z_values.shape[0]))
-    plt.show()
-    """
-    # TODO: Add in beta in a header!
+    header = fits.Header()
+    header['beta'] = beta
+    header['l_hMpc'] = l_hMpc
 
     prihdr = fits.Header()
     prihdu = fits.PrimaryHDU(header=prihdr)
     cols_DATA = fits.ColDefs(tune_small_scale_fluctuations)
-    hdu_DATA = fits.BinTableHDU.from_columns(cols_DATA,name='DATA')
+    hdu_DATA = fits.BinTableHDU.from_columns(cols_DATA,header=header,name='DATA')
 
     hdulist = fits.HDUList([prihdu, hdu_DATA])
     hdulist.writeto('input_files/tune_small_scale_fluctuations.fits')
@@ -393,9 +377,6 @@ tuning_z_values = tune_small_scale_fluctuations['z']
 desired_sigma_G_values = tune_small_scale_fluctuations['sigma_G']
 desired_mean_F = tune_small_scale_fluctuations['mean_F']
 alphas = tune_small_scale_fluctuations['alpha']
-
-#desired_sigma_G_values = np.concatenate((2.0*np.ones(10),np.linspace(2.0,25.0,10)))
-#desired_sigma_G_values = 4.0*np.ones(20)
 
 #Determine the desired sigma_G by sampling
 extra_sigma_G_values = np.sqrt(desired_sigma_G_values**2 - measured_SIGMA_G**2)
@@ -451,8 +432,10 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
         return pixel
 
     #Add small scale power to the gaussian skewers:
-    pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,tuning_z_values,extra_sigma_G_values,white_noise=True,lambda_min=0)
+    new_cosmology = pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,tuning_z_values,extra_sigma_G_values,white_noise=True,lambda_min=0)
     times += [time.time()-np.sum(times)-start_time]
+
+    # TODO: update the master cosmology data
 
     #If there are already physical/flux skewers, recalculate them.
     if pixel_object.DENSITY_DELTA_rows is not None:
@@ -485,15 +468,11 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
         filename = new_filename_structure.format('picca-flux',N_side,pixel)
         pixel_object.save_as_picca_flux(location,filename,header,lambda_min=lambda_min,mean_F_z_values=tuning_z_values,mean_F=desired_mean_F)
         times += [time.time()-np.sum(times)-start_time]
+    else:
+        #If transmission_only is not False, remove the gaussian-colore file
+        os.remove(location+gaussian_filename)
 
-    """
-    print('\n\ntotal:',np.round(np.sum(times),2))
-    print('times:',np.round(times,2))
-    print('%ages:',np.round(times/np.sum(times),2))
-    print(' ')
-    """
-
-    return pixel
+    return new_cosmology
 
 #define the tasks
 tasks = [(new_base_file_location,new_file_structure,new_filename_structure,pixel,N_side,input_format,zero_mean_delta,lambda_min,measured_SIGMA_G) for pixel in pixel_list]
@@ -510,8 +489,43 @@ if __name__ == '__main__':
     pool.close()
     pool.join()
 
-print('\nTime to make physical pixel files: {:4.0f}s.'.format(time.time()-start_time))
-print(' ')
+print('\nTime to make physical pixel files: {:4.0f}s.\n'.format(time.time()-start_time))
+
+################################################################################
+"""
+Having added small scale power, we must add a new HDU to the master file's cosmology.
+"""
+
+print('Updating master file\'s cosmology...')
+#First check that the new cosmologies are all the same.
+# TODO: some kind of system to check consistency here?
+new_cosmology = results[0]
+
+#Reorganise the data.
+master = fits.open(master_filename)
+master_catalog = master[1].data
+master_colore_cosmology = master[2].data
+master_new_cosmology = new_cosmology
+
+#Make an appropriate header.
+header = fits.Header()
+header['NSIDE'] = N_side
+
+#Make the data into tables.
+hdu_ID = fits.BinTableHDU.from_columns(master_catalog,header=header,name='CATALOG')
+hdu_cosmology_colore = fits.BinTableHDU.from_columns(master_colore_cosmology,header=header,name='COSMO_COL')
+hdu_cosmology_expanded = fits.BinTableHDU.from_columns(master_new_cosmology,header=header,name='COSMO_EXP')
+
+#Make a primary HDU.
+prihdr = fits.Header()
+prihdu = fits.PrimaryHDU(header=prihdr)
+
+#Make the .fits file.
+hdulist = fits.HDUList([prihdu,hdu_ID,hdu_cosmology_colore,hdu_cosmology_expanded])
+hdulist.writeto(master_filename,overwrite=True)
+hdulist.close()
+
+print('Process complete!\n')
 
 ################################################################################
 
@@ -531,8 +545,7 @@ statistics = functions.means_to_statistics(means)
 #Save the statistics data as a new fits file.
 functions.write_statistics(new_base_file_location,N_side,statistics,cosmology_data)
 
-print('\nTime to make statistics file: {:4.0f}s.'.format(time.time()-start_time))
-print(' ')
+print('\nTime to make statistics file: {:4.0f}s\n.'.format(time.time()-start_time))
 """
 
 ################################################################################

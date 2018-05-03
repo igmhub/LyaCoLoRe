@@ -43,8 +43,8 @@ def get_means(data_rows,ivar_rows):
     return weights,mean,mean2
 
 # main folder where the processed files are
-basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZ_4096_32_sr2.0_bm1_biasG18_picos_nside16/'
-basedir = '/Users/James/Projects/test_data/process_output_G_hZ_4096_32_sr2.0_bm1_nside16/'
+basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test/'
+#basedir = '/Users/James/Projects/test_data/process_output_G_hZ_4096_32_sr2.0_bm1_nside16/'
 if len(sys.argv)>1:
     quantity = sys.argv[1]
 else:
@@ -105,9 +105,9 @@ elif quantity == 'flux':
     plt.plot(z_predicted,sigma_dF_predicted,label='predicted sigma_dF')
     plt.plot(z_predicted,sigma_F_predicted,label='predicted sigma_F')
 
-    #overall_sigma_dF = overall_sigma/overall_mean
+    overall_sigma_dF = overall_sigma/overall_mean
 
-    #plt.plot(zs,overall_sigma_dF,label='sigma_dF')
+    plt.plot(zs,overall_sigma_dF,label='sigma_dF')
 
 
     """
