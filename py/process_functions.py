@@ -834,7 +834,7 @@ def find_sigma_G(mean_F_required,sigma_dF_required,beta,D,sigma_G_start=0.001,st
         print('\nvalue of sigma_dF did not converge to within tolerance: error is {:3.2%}'.format(sigma_dF/sigma_dF_required - 1))
         sigma_G = (sigma_G+sigma_G_too_high)/2.0
         alpha,mean_F,sigma_dF = find_alpha(sigma_G,mean_F_required,beta,D)
-    
+
     #print('Final check finished. Final values are:')
     #print('sigma_G={:2.4f} gives sigma_dF={:2.4f}.'.format(sigma_G,sigma_dF))
     #print('error: ',(sigma_dF/sigma_dF_required - 1))
@@ -1453,9 +1453,11 @@ class simulation_data:
         #for i in relevant_QSOs:
         #    transmission_1_data += [(self.RA[i],self.DEC[i],self.Z_QSO[i],self.MOCKID[i])]
 
-        transmission_1_data = list(zip(self.RA[relevant_QSOs],self.DEC[relevant_QSOs],self.Z_QSO[relevant_QSOs],self.MOCKID[relevant_QSOs]))
+        Z_RSD = self.Z_QSO[relevant_QSOs] + self.DZ_RSD[relevant_QSOs]
 
-        dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z', '>f4'), ('MOCKID', int)]
+        transmission_1_data = list(zip(self.RA[relevant_QSOs],self.DEC[relevant_QSOs],Z_RSD,self.Z_QSO[relevant_QSOs],self.MOCKID[relevant_QSOs]))
+
+        dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z', '>f4'), ('Z_noRSD', '>f4'), ('MOCKID', int)]
         transmission_1 = np.array(transmission_1_data,dtype=dtype)
 
         transmission_2 = 10**(self.LOGLAM_MAP)[first_relevant_cell:]
