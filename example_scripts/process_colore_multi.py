@@ -105,11 +105,7 @@ else:
     N_pix = 12*N_side**2
 
 #Define the original file structure
-<<<<<<< HEAD
 original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
-=======
-original_filename_structure = 'N1000_out_srcs_s1_{}.fits' #file_number
->>>>>>> f088aec0ea3d3f7dd6cebb4c5f848e0f66011d69
 file_numbers = list(range(0,1))
 input_format = 'gaussian_colore'
 
@@ -355,8 +351,6 @@ if retune_small_scale_fluctuations == True:
     dtype = [('z', '>f4'), ('alpha', '>f4'), ('sigma_G', '>f4'), ('mean_F', '>f4'), ('sigma_dF', '>f4'), ('mean_F_needed', '>f4'), ('sigma_dF_needed', '>f4')]
     tune_small_scale_fluctuations = np.array(results,dtype=dtype)
     tune_small_scale_fluctuations = np.sort(tune_small_scale_fluctuations,order=['z'])
-
-<<<<<<< HEAD
     
     plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['alpha'],label='alpha')
     plt.plot(tune_small_scale_fluctuations['z'],tune_small_scale_fluctuations['sigma_G'],label='sigma_G')
@@ -375,11 +369,9 @@ if retune_small_scale_fluctuations == True:
     #plt.show()
     """ 
     # TODO: Add in beta in a header!
-=======
     header = fits.Header()
     header['beta'] = beta
     header['l_hMpc'] = l_hMpc
->>>>>>> f088aec0ea3d3f7dd6cebb4c5f848e0f66011d69
 
     prihdr = fits.Header()
     prihdu = fits.PrimaryHDU(header=prihdr)
