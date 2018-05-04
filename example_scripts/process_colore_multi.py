@@ -105,8 +105,8 @@ else:
     N_pix = 12*N_side**2
 
 #Define the original file structure
-original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
-file_numbers = list(range(0,32))
+original_filename_structure = 'N1000_out_srcs_s1_{}.fits' #file_number
+file_numbers = list(range(0,1))
 input_format = 'gaussian_colore'
 
 #Set file structure
@@ -199,18 +199,18 @@ pixel_list = list(sorted(set(master_data['PIXNUM'])))
 file_number_list = list(sorted(set(file_numbers)))
 
 #Write master and bad coordinates files.
-master_filename = new_base_file_location + '/nside_{}_'.format(N_side) + 'master.fits'
+master_filename = new_base_file_location + '/master.fits'
 functions.write_ID(master_filename,master_data,cosmology_data,N_side)
 print('\nMaster file contains {} objects.'.format(master_data.shape[0]))
 
 if bad_coordinates_data.shape[0] > 0:
-    bad_coordinates_filename = new_base_file_location + '/nside_{}_'.format(N_side) + 'bad_coordinates.fits'
+    bad_coordinates_filename = new_base_file_location + '/bad_coordinates.fits'
     functions.write_ID(bad_coordinates_filename,bad_coordinates_data,cosmology_data,N_side)
     print('"bad coordinates" file contains {} objects.'.format(bad_coordinates_data.shape[0]))
 
 #Write the DRQ files for picca xcf to deal with.
 for RSD_option in ['RSD','NO_RSD']:
-    DRQ_filename = new_base_file_location + '/nside_{}_master_picca_{}.fits'.format(N_side,RSD_option)
+    DRQ_filename = new_base_file_location + '/master_picca_{}.fits'.format(RSD_option)
     functions.write_DRQ(DRQ_filename,RSD_option,master_data,N_side)
 
 print('Time to make master file: {:4.0f}s.'.format(time.time()-start))
@@ -427,7 +427,7 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     header['LYA'] = lya
     header['NQSO'] = pixel_object.N_qso
     header['NESTED'] = True
-    
+
     #Add the physical density and flux skewers to the object.
     pixel_object.compute_physical_skewers() #Opportunity to change density type here
     pixel_object.compute_flux_skewers(np.interp(pixel_object.Z,tuning_z_values,alphas),beta) #Opportunity to vary alpha and beta here
