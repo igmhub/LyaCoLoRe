@@ -106,7 +106,7 @@ else:
 
 #Define the original file structure
 original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
-file_numbers = list(range(0,1))
+file_numbers = list(range(0,32))
 input_format = 'gaussian_colore'
 
 #Set file structure
@@ -371,7 +371,7 @@ if retune_small_scale_fluctuations == True:
     # TODO: Add in beta in a header!
     header = fits.Header()
     header['beta'] = beta
-    header['l_hMpc'] = l_hMpc
+    header['l_hMpc'] = final_cell_size
 
     prihdr = fits.Header()
     prihdu = fits.PrimaryHDU(header=prihdr)

@@ -23,11 +23,11 @@ R_SMOOTH=2.0
 PROCESS_PATH="/global/homes/j/jfarr/Projects/LyaCoLoRe/example_scripts/"
 
 # full path to folder where output will be written
-INPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/output_G_${NGRID}_${NODES}_sr${R_SMOOTH}_bm1_biasG18_picos/"
+INPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/output_G_hZsmooth_${NGRID}_${NODES}_sr${R_SMOOTH}_bm1_biasG18_picos/"
 echo "input will be taken from "$INPUT_PATH
 
 # full path to folder where output will be written
-OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_${NGRID}_${NODES}_sr${R_SMOOTH}_bm1_biasG18_picos_nside${NSIDE}/"
+OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_${NGRID}_${NODES}_sr${R_SMOOTH}_bm1_biasG18_picos_nside${NSIDE}/"
 echo "output will written to "$OUTPUT_PATH
 mkdir $OUTPUT_PATH
 
@@ -35,7 +35,7 @@ mkdir $OUTPUT_PATH
 TUNING_PATH="/global/homes/j/jfarr/Projects/LyaCoLoRe/input_files/tune_small_scale_fluctuations.fits"
 
 # we will create this script
-RUN_FILE="/global/homes/j/jfarr/Projects/LyaCoLoRe/run_files/process_colore_output_${NGRID}_${NODES}_sr${R_SMOOTH}_bm1_biasG18_picos.sh"
+RUN_FILE="/global/homes/j/jfarr/Projects/LyaCoLoRe/run_files/process_colore_output_G_hZsmooth_${NGRID}_${NODES}_sr${R_SMOOTH}_bm1_biasG18_picos.sh"
 echo "run file "$RUN_FILE
 
 cat > $RUN_FILE <<EOF
