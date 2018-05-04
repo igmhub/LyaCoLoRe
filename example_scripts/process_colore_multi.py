@@ -86,7 +86,7 @@ lya = 1215.67
 original_file_location = args.in_dir
 new_base_file_location = args.out_dir
 N_side = args.nside
-minimum_catalog_z = args.min_cat_z
+min_catalog_z = args.min_cat_z
 lambda_min = args.lambda_min
 zero_mean_delta = False
 IVAR_cutoff = args.IVAR_cut
@@ -167,9 +167,9 @@ print('\nWorking on master data...')
 start = time.time()
 
 #Define the process to make the master data.
-def make_master_data(original_file_location,original_filename_structure,file_number,input_format,N_side,minimum_z=minimum_catalog_z):
+def make_master_data(original_file_location,original_filename_structure,file_number,input_format,N_side,minimum_z=min_catalog_z):
 
-    file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element = functions.get_ID_data(original_file_location,original_filename_structure,file_number,input_format,N_side,minimum_z=minimum_catalog_z)
+    file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element = functions.get_ID_data(original_file_location,original_filename_structure,file_number,input_format,N_side,minimum_z=min_catalog_z)
 
     return [file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element]
 
@@ -251,13 +251,6 @@ def pixelise_gaussian_skewers(pixel,original_file_location,original_filename_str
     #Gaussian CoLoRe
     filename = new_filename_structure.format('gaussian-colore',N_side,pixel)
     pixel_object.save_as_gaussian_colore(location,filename,header)
-
-    #Don't need this here?
-    """
-    #Picca Gaussian
-    filename = new_filename_structure.format('picca-gaussian',N_side,pixel)
-    pixel_object.save_as_picca_gaussian(location,filename,header,zero_mean_delta=zero_mean_delta,lambda_min=lambda_min)
-    """
 
     #Calculate the means of the pixel's gaussian skewers.
     #WARNING: this currently just uses all of the cells but this may be too slow once we've added small scale power?
@@ -416,7 +409,7 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     gaussian_filename = new_filename_structure.format('gaussian-colore',N_side,pixel)
 
     #Make a pixel object from it.
-    pixel_object = functions.simulation_data.get_gaussian_skewers(location+gaussian_filename,None,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
+    pixel_object = functions.simulation_data.get_gaussian_skewers_object(location+gaussian_filename,None,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
     times += [time.time()-np.sum(times)-start_time]
 
     # TODO: These could be made beforehand and passed to the function? Or is there already enough being passed?
@@ -441,7 +434,7 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
 
     #Trim the skewers (remove low lambda cells)
     # TODO: potential issue to do with cropping the large cell skewers and losing some small cells that we want to kee. "extra_cells" should deal with this
-    pixel_object.trim_skewers(lambda_min,extra_cells=1)
+    pixel_object.trim_skewers(lambda_min,min_catalog_z,extra_cells=1)
     times += [time.time()-np.sum(times)-start_time]
 
     #Exit now if no skewers are left.
@@ -452,8 +445,6 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     #Add small scale power to the gaussian skewers:
     new_cosmology = pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,tuning_z_values,extra_sigma_G_values,white_noise=True,lambda_min=0)
     times += [time.time()-np.sum(times)-start_time]
-
-    # TODO: update the master cosmology data
 
     #If there are already physical/flux skewers, recalculate them.
     if pixel_object.DENSITY_DELTA_rows is not None:
@@ -468,23 +459,24 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
 
     #transmission
     filename = new_filename_structure.format('transmission',N_side,pixel)
-    pixel_object.save_as_transmission(location,filename,header,lambda_min=lambda_min)
+    pixel_object.save_as_transmission(location,filename,header)
     times += [time.time()-np.sum(times)-start_time]
 
     if transmission_only == False:
         #Picca Gaussian
         filename = new_filename_structure.format('picca-gaussian',N_side,pixel)
-        pixel_object.save_as_picca_gaussian(location,filename,header,lambda_min=lambda_min,overwrite=True)
+        pixel_object.save_as_picca_gaussian(location,filename,header,overwrite=True)
         times += [time.time()-np.sum(times)-start_time]
 
         #Picca density
         filename = new_filename_structure.format('picca-density',N_side,pixel)
-        pixel_object.save_as_picca_density(location,filename,header,lambda_min=lambda_min)
+        pixel_object.save_as_picca_density(location,filename,header)
         times += [time.time()-np.sum(times)-start_time]
 
         #picca flux
         filename = new_filename_structure.format('picca-flux',N_side,pixel)
-        pixel_object.save_as_picca_flux(location,filename,header,lambda_min=lambda_min,mean_F_z_values=tuning_z_values,mean_F=desired_mean_F)
+        mean_F_data=np.array(list(zip(tuning_z_values,desired_mean_F)))
+        pixel_object.save_as_picca_flux(location,filename,header,mean_F_data=mean_F_data)
         times += [time.time()-np.sum(times)-start_time]
     else:
         #If transmission_only is not False, remove the gaussian-colore file
