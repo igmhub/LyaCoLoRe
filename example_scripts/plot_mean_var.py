@@ -5,6 +5,7 @@ import sys
 import process_functions as pf
 
 lya = 1215.67
+IVAR_cutoff = lya
 
 def read_file(basedir,quantity,nside,pix):
     pix_100 = int(pix/100)
@@ -13,21 +14,25 @@ def read_file(basedir,quantity,nside,pix):
 
     if quantity == 'flux':
         filename = dirname+'/transmission-'+suffix
-        h = fits.open(filename)
-        data_rows = h[3].data.T
+        transmission = fits.open(filename)
+        data_rows = transmission[3].data.T
         h.close()
         filename = dirname+'/picca-{}-'.format(quantity)+suffix
-        h = fits.open(filename)
+        picca = fits.open(filename)
     else:
         # file with delta for picca
         filename = dirname+'/picca-{}-'.format(quantity)+suffix
         #print('picca flux file',filename)
-        h = fits.open(filename)
-        data_rows = h[0].data.T
+        picca = fits.open(filename)
+        data_rows = picca[0].data.T
 
-    ivar_rows = h[1].data.T
-    loglam = h[2].data
+    #ivar_rows = picca[1].data.T
+    loglam = picca[2].data
+    z_qso = picca[3].data['Z']
     h.close()
+
+    ivar_rows = pf.make_IVAR_rows(IVAR_cutoff,z_qso,loglam)
+
     zs = (10**loglam)/lya - 1.0
 
     return zs,data_rows,ivar_rows
@@ -86,7 +91,7 @@ err = np.sqrt(overall_var/sum_weights)
 plt.plot(zs,overall_mean,label='mean')
 plt.plot(zs,overall_sigma,label='sigma')
 
-plt.title('{} stats: mean and sigma'.format(quantity))
+plt.title('{} stats: mean and sigma, rest frame cut at {}A'.format(quantity,IVAR_cutoff))
 plt.xlabel('z')
 
 predicted_data = fits.open('input_files/tune_small_scale_fluctuations.fits')
@@ -119,5 +124,5 @@ elif quantity == 'flux':
 
 plt.legend()
 plt.grid()
-plt.savefig('mean_var_{}.pdf'.format(quantity))
+plt.savefig('mean_var_{}_cut{}.pdf'.format(quantity,IVAR_cutoff))
 plt.show()
