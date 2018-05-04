@@ -16,7 +16,7 @@ def read_file(basedir,quantity,nside,pix):
         filename = dirname+'/transmission-'+suffix
         transmission = fits.open(filename)
         data_rows = transmission[3].data.T
-        h.close()
+        transmission.close()
         filename = dirname+'/picca-{}-'.format(quantity)+suffix
         picca = fits.open(filename)
     else:
@@ -29,7 +29,7 @@ def read_file(basedir,quantity,nside,pix):
     #ivar_rows = picca[1].data.T
     loglam = picca[2].data
     z_qso = picca[3].data['Z']
-    h.close()
+    picca.close()
 
     ivar_rows = pf.make_IVAR_rows(IVAR_cutoff,z_qso,loglam)
 
@@ -40,31 +40,37 @@ def read_file(basedir,quantity,nside,pix):
 def get_means(data_rows,ivar_rows):
     N_skewers=data_rows.shape[0]
     N_cells=data_rows.shape[1]
-    print('in mean_var, we have',N_skewers,'skewers and',N_cells,'cells')
+    #print('in mean_var, we have',N_skewers,'skewers and',N_cells,'cells')
     # add tiny value to not have 0/0
-    weights=np.sum(ivar_rows,axis=0)+1.e-10
-    mean=np.sum(data_rows*ivar_rows,axis=0)/weights
-    mean2=np.sum((data_rows**2)*ivar_rows,axis=0)/weights
+    if data_rows.shape[0] != ivar_rows.shape[0]:
+        weights = np.zeros(data_rows.shape[1])
+        mean = np.zeros(data_rows.shape[1])
+        mean2 = np.zeros(data_rows.shape[1])
+    else:
+        weights=np.sum(ivar_rows,axis=0)+1.e-10
+        mean=np.sum(data_rows*ivar_rows,axis=0)/weights
+        mean2=np.sum((data_rows**2)*ivar_rows,axis=0)/weights
     return weights,mean,mean2
 
 # main folder where the processed files are
-basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test/'
+basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_nside16/'
 #basedir = '/Users/James/Projects/test_data/process_output_G_hZ_4096_32_sr2.0_bm1_nside16/'
 if len(sys.argv)>1:
     quantity = sys.argv[1]
 else:
     quantity = 'flux'
 nside = 16
-N_pixels = 100
+N_pixels = 500
 pixels = np.sort(np.random.choice(list(range(12*nside**2)),size=N_pixels))
-pixels = [1064,1096,1127,1128,1159,1160,1191,1192,1193,1223,1224,1225,1254,1255,1256,1257,1286,1287,1288,1289]
+#pixels = np.array([1064,1096,1127,1128,1159,1160,1191,1192,1193,1223,1224,1225,1254,1255,1256,1257,1286,1287,1288,1289])
 
 # will combine pixel statistics
 sum_mean=None
 sum_weights=None
 sum_var=None
 
-for pix in pixels:
+for i,pix in enumerate(pixels):
+    print('Looking at pixel {}: ({} out of {})'.format(pix,i+1,pixels.shape[0]))
     # read file for particular pixel
     zs,data_rows,ivar_rows=read_file(basedir,quantity,nside,pix)
 
@@ -88,8 +94,17 @@ overall_sigma = np.sqrt(overall_var)
 
 err = np.sqrt(overall_var/sum_weights)
 
-plt.plot(zs,overall_mean,label='mean')
-plt.plot(zs,overall_sigma,label='sigma')
+if quantity == 'flux':
+    identifier = 'F'
+elif quantity == 'gaussian':
+    identifier = 'G'
+elif quantity == 'density':
+    identifier = 'D'
+else:
+    identifier = ''
+
+plt.plot(zs,overall_mean,label='mean_{}'.format(identifier))
+plt.plot(zs,overall_sigma,label='sigma_{}'.format(identifier))
 
 plt.title('{} stats: mean and sigma, rest frame cut at {}A'.format(quantity,IVAR_cutoff))
 plt.xlabel('z')
@@ -122,6 +137,7 @@ elif quantity == 'flux':
     plt.plot(z_predicted,sigma_dF_model,label='model sigma')
     """
 
+plt.xlim(2.0,4.0)
 plt.legend()
 plt.grid()
 plt.savefig('mean_var_{}_cut{}.pdf'.format(quantity,IVAR_cutoff))
