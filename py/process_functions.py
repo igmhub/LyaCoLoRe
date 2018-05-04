@@ -243,7 +243,7 @@ def make_pixel_ID(N_side,RA,DEC):
     for i in range(N_qso):
         #Check that the angular coordinates are valid. Put all objects with invalid coordinates into a non-realistic ID number (-1).
         if 0 <= theta[i] <= np.pi and 0 <= phi[i] <= 2*np.pi:
-            pixel_ID[i] = int(hp.pixelfunc.ang2pix(N_side,theta[i],phi[i]),nest=TRUE)
+            pixel_ID[i] = int(hp.pixelfunc.ang2pix(N_side,theta[i],phi[i],nest=True))
         else:
             pixel_ID[i] = -1
 
