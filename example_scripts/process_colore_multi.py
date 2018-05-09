@@ -94,7 +94,7 @@ final_cell_size = args.cell_size
 N_processes = args.nproc
 parameter_filename = args.param_file
 add_DLAs = args.add_DLAs
-add_RSDs = args.add_RSDs
+add_RSDs = False
 retune_small_scale_fluctuations = args.retune_small_scale_fluctuations
 tuning_file = args.tuning_file
 transmission_only = args.transmission_only
@@ -321,9 +321,6 @@ if retune_small_scale_fluctuations == True:
         sigma_dF_needed = functions.get_sigma_dF_P1D(z,l_hMpc=l_hMpc,Om=Om)
         mean_F_needed = functions.get_mean_F_model(z)
 
-        #HACK: for now, we reduce the values of sigma_dF needed as higher values are not currently achievable.
-        sigma_dF_needed = sigma_dF_needed
-
         alpha,sigma_G,mean_F,sigma_dF = functions.find_sigma_G(mean_F_needed,sigma_dF_needed,beta,D,tolerance=sigma_G_tolerance)
 
         return (z,alpha,sigma_G,mean_F,sigma_dF,mean_F_needed,sigma_dF_needed)
@@ -361,7 +358,6 @@ if retune_small_scale_fluctuations == True:
     plt.savefig('tune_flux_values_tol{}_n{}_Ferrors.pdf'.format(sigma_G_tolerance,tuning_z_values.shape[0]))
     #plt.show()
     """
-    # TODO: Add in beta in a header!
     header = fits.Header()
     header['beta'] = beta
     header['l_hMpc'] = final_cell_size
@@ -401,8 +397,6 @@ print('\nWorking on per-HEALPix pixel final skewer files...')
 start_time = time.time()
 
 def produce_final_skewers(new_base_file_location,new_file_structure,new_filename_structure,pixel,N_side,input_format,zero_mean_delta,lambda_min,measured_SIGMA_G):
-    times = [0.0]
-    start_time = time.time()
     location = new_base_file_location + '/' + new_file_structure.format(pixel//100,pixel)
 
     #We work from the gaussian colore files made in 'pixelise gaussian skewers'.
@@ -410,9 +404,7 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
 
     #Make a pixel object from it.
     pixel_object = functions.simulation_data.get_gaussian_skewers_object(location+gaussian_filename,None,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
-    times += [time.time()-np.sum(times)-start_time]
 
-    # TODO: These could be made beforehand and passed to the function? Or is there already enough being passed?
     #Make some useful headers
     header = fits.Header()
     header['NSIDE'] = N_side
@@ -422,29 +414,33 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     header['NESTED'] = True
 
     #Add the physical density and flux skewers to the object.
-    pixel_object.compute_physical_skewers() #Opportunity to change density type here
-    pixel_object.compute_flux_skewers(np.interp(pixel_object.Z,tuning_z_values,alphas),beta) #Opportunity to vary alpha and beta here
-    times += [time.time()-np.sum(times)-start_time]
+    pixel_object.compute_physical_skewers()
+    pixel_object.compute_flux_skewers(np.interp(pixel_object.Z,tuning_z_values,alphas),beta)
 
     if transmission_only == False:
         #lognorm CoLoRe
         filename = new_filename_structure.format('physical-colore',N_side,pixel)
         pixel_object.save_as_physical_colore(location,filename,header)
-        times += [time.time()-np.sum(times)-start_time]
 
     #Trim the skewers (remove low lambda cells)
-    # TODO: potential issue to do with cropping the large cell skewers and losing some small cells that we want to kee. "extra_cells" should deal with this
     pixel_object.trim_skewers(lambda_min,min_catalog_z,extra_cells=1)
-    times += [time.time()-np.sum(times)-start_time]
 
     #Exit now if no skewers are left.
     if pixel_object.N_qso == 0:
         print('\nwarning: no objects left in pixel {} after trimming.'.format(pixel))
         return pixel
 
+    if transmission_only == False:
+        #lognorm CoLoRe
+        filename = new_filename_structure.format('picca-gaussian-noRSD',N_side,pixel)
+        pixel_object.save_as_picca_gaussian(location,filename,header)
+
+    #Add RSDs from the velocity skewers provided by CoLoRe.
+    if add_RSDs == True:
+        pixel_object.add_linear_skewer_RSDs()
+
     #Add small scale power to the gaussian skewers:
-    new_cosmology = pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,tuning_z_values,extra_sigma_G_values,white_noise=True,lambda_min=0)
-    times += [time.time()-np.sum(times)-start_time]
+    new_cosmology = pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,tuning_z_values,extra_sigma_G_values,white_noise=True,lambda_min=0,IVAR_cutoff=IVAR_cutoff)
 
     #If there are already physical/flux skewers, recalculate them.
     if pixel_object.DENSITY_DELTA_rows is not None:
@@ -455,29 +451,24 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     #Add a table with DLAs in to the pixel object.
     if add_DLAs:
         pixel_object.add_DLA_table()
-        times += [time.time()-np.sum(times)-start_time]
 
     #transmission
     filename = new_filename_structure.format('transmission',N_side,pixel)
     pixel_object.save_as_transmission(location,filename,header)
-    times += [time.time()-np.sum(times)-start_time]
 
     if transmission_only == False:
         #Picca Gaussian
         filename = new_filename_structure.format('picca-gaussian',N_side,pixel)
-        pixel_object.save_as_picca_gaussian(location,filename,header,overwrite=True)
-        times += [time.time()-np.sum(times)-start_time]
+        pixel_object.save_as_picca_gaussian(location,filename,header)
 
         #Picca density
         filename = new_filename_structure.format('picca-density',N_side,pixel)
         pixel_object.save_as_picca_density(location,filename,header)
-        times += [time.time()-np.sum(times)-start_time]
 
         #picca flux
         filename = new_filename_structure.format('picca-flux',N_side,pixel)
         mean_F_data=np.array(list(zip(tuning_z_values,desired_mean_F)))
         pixel_object.save_as_picca_flux(location,filename,header,mean_F_data=mean_F_data)
-        times += [time.time()-np.sum(times)-start_time]
     else:
         #If transmission_only is not False, remove the gaussian-colore file
         os.remove(location+gaussian_filename)
