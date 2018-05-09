@@ -94,10 +94,12 @@ final_cell_size = args.cell_size
 N_processes = args.nproc
 parameter_filename = args.param_file
 add_DLAs = args.add_DLAs
-add_RSDs = False
+add_RSDs = args.add_RSDs
 retune_small_scale_fluctuations = args.retune_small_scale_fluctuations
 tuning_file = args.tuning_file
 transmission_only = args.transmission_only
+
+# TODO: print to confirm the arguments. e.g. "DLAs will be added"
 
 if np.log2(N_side)-int(np.log2(N_side)) != 0:
     print('nside must be a power of 2!')
