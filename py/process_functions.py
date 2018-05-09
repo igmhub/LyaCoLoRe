@@ -878,7 +878,7 @@ class simulation_data:
         self.A = A
 
         self.linear_skewer_RSDs_added = False
-        
+
         return
 
     #Method to extract reduced data from an input file of a given format, with a given list of MOCKIDs.
@@ -1674,15 +1674,20 @@ class simulation_data:
         for nskw,dla in enumerate(dlas):
             ind = np.where(dla>0)[0]
             for ii in ind:
-                zdla[idx:idx+dla[ii]]=np.random.uniform(low=(zedges[ii]),high=(zedges[ii+1]),size=dla[ii])
-                kskw[idx:idx+dla[ii]]=nskw
-                dz_dla[idx:idx+dla[ii]]=self.VEL_rows[nskw,ii]
+                zdla[idx:idx+dla[ii]] = np.random.uniform(low=(zedges[ii]),high=(zedges[ii+1]),size=dla[ii])
+                kskw[idx:idx+dla[ii]] = nskw
+                dz_dla[idx:idx+dla[ii]] = self.VEL_rows[nskw,ii]
                 idx = idx+dla[ii]
         Ndla = DLA.get_N(zdla)
-        MOCKIDs = self.MOCKID[kskw.astype('int32')]
+        kskw = kskw.astype('int32')
+        MOCKIDs = self.MOCKID[kskw]
 
         #Make the data into a table HDU
         taux = astropy.table.Table([MOCKIDs,zdla,dz_dla,Ndla],names=('MOCKID','Z_DLA','DZ_DLA','N_HI_DLA'))
+
+        #Only include DLAs where the DLA is at lower z than the QSO
+        DLA_Z_QSOs = self.Z_QSO[kskw]
+        taux = taux[taux['Z_DLA']<DLA_Z_QSOs]
 
         self.DLA_table = taux
 
