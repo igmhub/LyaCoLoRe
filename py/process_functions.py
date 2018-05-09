@@ -412,8 +412,7 @@ def make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP):
     lambdas = 10**LOGLAM_MAP
 
     for i in range(N_qso):
-
-        last_relevant_cell = (np.argmax(lambdas > lya_lambdas[i]) - 1) % N_cells
+        last_relevant_cell = np.searchsorted(lambdas,lya_lambdas[i]) - 1
 
         for j in range(last_relevant_cell+1,N_cells):
             IVAR_rows[i,j] = 0.
@@ -878,6 +877,8 @@ class simulation_data:
         self.LOGLAM_MAP = LOGLAM_MAP
         self.A = A
 
+        self.linear_skewer_RSDs_added = False
+        
         return
 
     #Method to extract reduced data from an input file of a given format, with a given list of MOCKIDs.
@@ -905,7 +906,7 @@ class simulation_data:
             rows = list(range(h_MOCKID.shape[0]))
 
         #Calculate the first_relevant_cell.
-        first_relevant_cell = np.argmax(h_lya_lambdas >= lambda_min)
+        first_relevant_cell = np.searchsorted(h_lya_lambdas,lambda_min)
         actual_lambda_min = h_lya_lambdas[first_relevant_cell]
 
         if input_format == 'physical_colore':
@@ -1055,7 +1056,7 @@ class simulation_data:
     def trim_skewers(self,lambda_min,min_catalog_z,extra_cells=0):
 
         lambdas = 10**(self.LOGLAM_MAP)
-        first_relevant_cell = np.argmax(lambdas>lambda_min)
+        first_relevant_cell = np.searchsorted(lambdas,lambda_min)
 
         #Determine which QSOs have any relevant cells to keep.
         """
@@ -1107,7 +1108,7 @@ class simulation_data:
         return
 
     #Function to add small scale gaussian fluctuations.
-    def add_small_scale_gaussian_fluctuations(self,cell_size,sigma_G_z_values,extra_sigma_G_values,amplitude=1.0,white_noise=False,lambda_min=0):
+    def add_small_scale_gaussian_fluctuations(self,cell_size,sigma_G_z_values,extra_sigma_G_values,amplitude=1.0,white_noise=False,lambda_min=0,IVAR_cutoff=lya):
 
         # TODO: Is NGP really the way to go?
 
@@ -1126,45 +1127,63 @@ class simulation_data:
 
         #Redefine the necessary variables (N_cells, Z, D etc)
         self.N_cells = new_N_cells
-        self.IVAR_rows = self.IVAR_rows[:,NGPs]
         self.R = new_R
+
+        # TODO: Ideally would want to recompute these rather than interpolating?
         self.Z = np.interp(new_R,old_R,self.Z)
         self.D = np.interp(new_R,old_R,self.D)
         self.V = np.interp(new_R,old_R,self.V)
-        self.LOGLAM_MAP = np.interp(new_R,old_R,self.LOGLAM_MAP)
+        self.LOGLAM_MAP = np.log10(lya*(1+self.Z))
+
+        # TODO: What to do with this?
+        self.VEL_rows = self.VEL_rows[:,NGPs]
+
+        #Make new IVAR rows.
+        self.IVAR_rows = make_IVAR_rows(IVAR_cutoff,self.Z_QSO,self.LOGLAM_MAP)
 
         #For each skewer, determine the last relevant cell
         first_relevant_cells = np.zeros(self.N_qso)
         last_relevant_cells = np.zeros(self.N_qso)
         for i in range(self.N_qso):
-            first_relevant_cells[i] = (np.argmax(10**(self.LOGLAM_MAP)>lambda_min))
-            last_relevant_cells[i] = (np.argmax(self.Z>self.Z_QSO[i]) - 1)%self.N_cells
+            first_relevant_cell = np.searchsorted(10**(self.LOGLAM_MAP),lambda_min)
+            if self.linear_skewer_RSDs_added == True:
+                last_relevant_cell = np.searchsorted(self.Z,self.Z_QSO[i]+self.DZ_RSD[i]) - 1
+            else:
+                last_relevant_cell = np.searchsorted(self.Z,self.Z_QSO[i]) - 1
 
-        #What to do with this?
-        self.VEL_rows = self.VEL_rows[:,NGPs]
+            #Clip the gaussian skewers so that they are zero after the quasar.
+            #This avoids effects from NGP interpolation).
+            expanded_GAUSSIAN_DELTA_rows[i,last_relevant_cell + 1:] = 0
 
-        # TODO:
-        #Set dv
+            first_relevant_cells[i] = first_relevant_cell
+            last_relevant_cells[i] = last_relevant_cell
 
         """
+        # TODO: Improve this
         #1 by 1? Or just N_skewers=N_qso?
         extra_variance = get_gaussian_fields(z,self.N_cells,sigma_G=extra_sigma_G,dv_kms=10.0,N_skewers=self.N_qso,white_noise=white_noise)
         final_GAUSSIAN_DELTA_rows = expanded_GAUSSIAN_DELTA_rows + amplitude*extra_variance
         """
+
         total_times = np.zeros(3)
         extra_sigma_G = np.interp(self.Z,sigma_G_z_values,extra_sigma_G_values)
 
         for i in range(self.N_qso):
             first_relevant_cell = first_relevant_cells[i].astype('int32')
             last_relevant_cell = last_relevant_cells[i].astype('int32')
-            N_cells_needed = (last_relevant_cell - first_relevant_cell).astype('int32')
+
+            #Number of cells needed is either the dist between the first and last relevant cells, or 0
+            N_cells_needed = np.max([(last_relevant_cell - first_relevant_cell).astype('int32'),0])
+
             extra_var = np.zeros(N_cells_needed)
 
             for j in range(first_relevant_cell,last_relevant_cell):
                 extra_sigma_G_cell = extra_sigma_G[j]
                 extra_var[j] = get_gaussian_skewers(1,extra_sigma_G_cell)
 
-            expanded_GAUSSIAN_DELTA_rows[i,first_relevant_cell:last_relevant_cell] += amplitude*extra_var
+            if last_relevant_cell >= 0:
+
+                expanded_GAUSSIAN_DELTA_rows[i,first_relevant_cell:last_relevant_cell] += amplitude*extra_var
 
         self.GAUSSIAN_DELTA_rows = expanded_GAUSSIAN_DELTA_rows
         self.SIGMA_G = np.sqrt(extra_sigma_G**2 + (self.SIGMA_G)**2)
@@ -1188,6 +1207,60 @@ class simulation_data:
         #self.F_rows = np.exp(-self.TAU_rows)
 
         self.F_rows = density_to_flux(self.DENSITY_DELTA_rows+1,alpha,beta)
+
+        #Set the skewers to 1 beyond the quasars.
+        for i in range(self.N_qso):
+            if self.linear_skewer_RSDs_added == True:
+                last_relevant_cell = np.searchsorted(self.Z,self.Z_QSO[i]+self.DZ_RSD[i]) - 1
+            else:
+                last_relevant_cell = np.searchsorted(self.Z,self.Z_QSO[i]) - 1
+            self.F_rows[i,last_relevant_cell+1:] = 1
+
+        return
+
+    #Function to add linear RSDs from the velocity skewers.
+    def add_linear_skewer_RSDs(self):
+
+        new_DELTA_rows = np.zeros(self.GAUSSIAN_DELTA_rows.shape)
+
+        for i in range(self.N_qso):
+            for j in range(self.N_cells):
+                #Add the dz from the velocity skewers to get a 'new_z' for each cell
+                z_cell = self.Z[j]
+                dz_cell = self.VEL_rows[i,j]
+                new_z_cell = z_cell + dz_cell
+
+                #Work out where in the skewer the cell 'moves' to.
+                #i.e. what are the new neighbouring cells.
+                j_upper = np.searchsorted(self.Z,new_z_cell)
+                j_lower = j_upper - 1
+
+                #If it has moved off the z=0 end of the skewer, push it back.
+                if j_lower < 0:
+                    w_upper = 1.0
+                    w_lower = 0.0
+                    j_lower += 1
+
+                #If it has moved off the max z end of the skewer, push it back.
+                elif j_upper >= self.N_cells:
+                    w_lower = 1.0
+                    w_upper = 0.0
+                    j_upper -= 1
+
+                #Otherwise, split the contribution between the new neighbours, distance weighted.
+                else:
+                    z_upper = self.Z[j_upper]
+                    z_lower = self.Z[j_lower]
+
+                    w_upper = abs(new_z_cell - z_upper)/(z_upper - z_lower)
+                    w_lower = abs(new_z_cell - z_lower)/(z_upper - z_lower)
+
+                new_DELTA_rows[i,j_upper] += w_upper*self.GAUSSIAN_DELTA_rows[i,j]
+                new_DELTA_rows[i,j_lower] += w_lower*self.GAUSSIAN_DELTA_rows[i,j]
+
+        #Overwrite the Gaussian skewers and set a flag to True.
+        self.GAUSSIAN_DELTA_rows = new_DELTA_rows
+        self.linear_skewer_RSDs_added = True
 
         return
 
