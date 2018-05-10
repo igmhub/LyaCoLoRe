@@ -107,8 +107,8 @@ else:
     N_pix = 12*N_side**2
 
 #Define the original file structure
-original_filename_structure = 'N1000_out_srcs_s1_{}.fits' #file_number
-file_numbers = list(range(0,1))
+original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
+file_numbers = list(range(0,32))
 input_format = 'gaussian_colore'
 
 #Set file structure
@@ -400,6 +400,7 @@ start_time = time.time()
 
 def produce_final_skewers(new_base_file_location,new_file_structure,new_filename_structure,pixel,N_side,input_format,zero_mean_delta,lambda_min,measured_SIGMA_G):
     location = new_base_file_location + '/' + new_file_structure.format(pixel//100,pixel)
+    mean_F_data=np.array(list(zip(tuning_z_values,desired_mean_F)))
 
     #We work from the gaussian colore files made in 'pixelise gaussian skewers'.
     gaussian_filename = new_filename_structure.format('gaussian-colore',N_side,pixel)
@@ -432,14 +433,29 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
         print('\nwarning: no objects left in pixel {} after trimming.'.format(pixel))
         return pixel
 
-    if transmission_only == False:
-        #lognorm CoLoRe
-        filename = new_filename_structure.format('picca-gaussian-noRSD',N_side,pixel)
-        pixel_object.save_as_picca_gaussian(location,filename,header)
+    """
+    filename = new_filename_structure.format('picca-gaussian-noRSD',N_side,pixel)
+    pixel_object.save_as_picca_gaussian(location,filename,header)
+    filename = new_filename_structure.format('picca-flux-noRSD',N_side,pixel)
+    pixel_object.save_as_picca_flux(location,filename,header,mean_F_data=mean_F_data)
+    """
 
     #Add RSDs from the velocity skewers provided by CoLoRe.
     if add_RSDs == True:
         pixel_object.add_linear_skewer_RSDs()
+
+    #If there are already physical/flux skewers, recalculate them.
+    if pixel_object.DENSITY_DELTA_rows is not None:
+        pixel_object.compute_physical_skewers()
+    if pixel_object.F_rows is not None:
+        pixel_object.compute_flux_skewers(np.interp(pixel_object.Z,tuning_z_values,alphas),beta)
+
+    """
+    filename = new_filename_structure.format('picca-gaussian-RSD',N_side,pixel)
+    pixel_object.save_as_picca_gaussian(location,filename,header)
+    filename = new_filename_structure.format('picca-flux-RSD',N_side,pixel)
+    pixel_object.save_as_picca_flux(location,filename,header,mean_F_data=mean_F_data)
+    """
 
     #Add small scale power to the gaussian skewers:
     new_cosmology = pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,tuning_z_values,extra_sigma_G_values,white_noise=True,lambda_min=0,IVAR_cutoff=IVAR_cutoff)
@@ -469,7 +485,6 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
 
         #picca flux
         filename = new_filename_structure.format('picca-flux',N_side,pixel)
-        mean_F_data=np.array(list(zip(tuning_z_values,desired_mean_F)))
         pixel_object.save_as_picca_flux(location,filename,header,mean_F_data=mean_F_data)
     else:
         #If transmission_only is not False, remove the gaussian-colore file
