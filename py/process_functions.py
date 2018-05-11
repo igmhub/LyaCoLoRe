@@ -4,7 +4,6 @@ import healpy as hp
 import os
 import time
 import fast_prng
-import analytic_p1d_PD2013 as aP1D
 import DLA
 import matplotlib.pyplot as plt
 
@@ -609,18 +608,16 @@ def get_NGPs(x,x_new):
 
 #Function to generate random Gaussian skewers with a given standard deviation.
 def get_gaussian_skewers(N_cells,sigma_G=1.0,N_skewers=1,new_seed=None):
-    times = [0.0]
-    start_time = time.time()
-    gaussian_skewers = fast_prng.normal(size=(N_skewers,N_cells),scale=sigma_G)
-    times += [time.time()-np.sum(times)-start_time]
+
+    if N_cells*N_skewers == 1:
+        size = 1
+    else:
+        size=(N_skewers,N_cells)
+
+    gaussian_skewers = fast_prng.normal(size=size,scale=sigma_G)
+
     """
     gaussian_skewers = np.random.normal(size=(N_skewers,N_cells),scale=sigma_G)
-    times += [time.time()-np.sum(times)-start_time]
-    """
-    """
-    random_state = np.random.RandomState(new_seed)
-    gaussian_skewers = random_state.normal(size=(N_skewers,N_cells),scale=sigma_G)
-    times += [time.time()-np.sum(times)-start_time]
     """
     return gaussian_skewers
 
@@ -685,6 +682,7 @@ def get_sigma_dF_P1D(z,l_hMpc=0.25,Om=0.3):
     k_hMpc_max = 100.0/l_hMpc
     k_hMpc = np.logspace(-5,np.log10(k_hMpc_max),10**5)
 
+    # TODO: generalise the conversion in here
     # need to go from Mpc/h to km/s, using dv / dX = H(z) / (1+z)
     # we will define H(z) = 100 h E(z)
     # with E(z) = sqrt(Omega_m(1+z)^3 + Omega_L), and assume flat universe
@@ -695,7 +693,7 @@ def get_sigma_dF_P1D(z,l_hMpc=0.25,Om=0.3):
     k_kms = k_hMpc / dkms_dhMpc
 
     # get power in units of km/s
-    pk_kms = aP1D.P1D_z_kms_PD2013(z,k_kms)
+    pk_kms = P1D_z_kms_PD2013(z,k_kms)
 
     # transform to h/Mpc
     pk_hMpc = pk_kms / dkms_dhMpc
@@ -705,6 +703,27 @@ def get_sigma_dF_P1D(z,l_hMpc=0.25,Om=0.3):
     sigma_dF = np.sqrt((1/np.pi)*np.trapz((W_hMpc**2)*pk_hMpc,k_hMpc))
 
     return sigma_dF
+
+#Function to return the P1D from Palanque-Delabrouille et al. (2013)
+#copied from lyaforecast
+def P1D_z_kms_PD2013(z,k_kms):
+    """Fitting formula for 1D P(z,k) from Palanque-Delabrouille et al. (2013).
+        Wavenumbers and power in units of km/s. Corrected to be flat at low-k"""
+    # numbers from Palanque-Delabrouille (2013)
+    A_F = 0.064
+    n_F = -2.55
+    alpha_F = -0.1
+    B_F = 3.55
+    beta_F = -0.28
+    k0 = 0.009
+    z0 = 3.0
+    n_F_z = n_F + beta_F * np.log((1+z)/(1+z0))
+    # this function would go to 0 at low k, instead of flat power
+    k_min=k0*np.exp((-0.5*n_F_z-1)/alpha_F)
+    k_kms = np.fmax(k_kms,k_min)
+    exp1 = 3 + n_F_z + alpha_F * np.log(k_kms/k0)
+    toret = np.pi * A_F / k0 * pow(k_kms/k0, exp1-1) * pow((1+z)/(1+z0), B_F)
+    return toret
 
 #Function to return the mean value of F at a given redshift.
 #Equation from F-R2012, equation 2.11

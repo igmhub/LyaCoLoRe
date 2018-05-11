@@ -77,6 +77,10 @@ parser.add_argument('--retune-small-scale-fluctuations', action="store_true", de
 parser.add_argument('--transmission-only', action="store_true", default = False, required=False,
                     help = 'save only the transmission file')
 
+parser.add_argument('--nskewers', type = int, default = None, required=False,
+                    help = 'number of skewers to process')
+
+
 
 args = parser.parse_args()
 
@@ -98,6 +102,7 @@ add_RSDs = args.add_RSDs
 retune_small_scale_fluctuations = args.retune_small_scale_fluctuations
 tuning_file = args.tuning_file
 transmission_only = args.transmission_only
+N_skewers = args.nskewers
 
 # TODO: print to confirm the arguments. e.g. "DLAs will be added"
 
@@ -108,7 +113,7 @@ else:
 
 #Define the original file structure
 original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
-file_numbers = list(range(0,32))
+file_numbers = list(range(0,1))
 input_format = 'gaussian_colore'
 
 #Set file structure
