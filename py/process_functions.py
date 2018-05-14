@@ -1271,8 +1271,8 @@ class simulation_data:
                     z_upper = self.Z[j_upper]
                     z_lower = self.Z[j_lower]
 
-                    w_upper = abs(new_z_cell - z_upper)/(z_upper - z_lower)
-                    w_lower = abs(new_z_cell - z_lower)/(z_upper - z_lower)
+                    w_upper = abs(new_z_cell - z_lower)/(z_upper - z_lower)
+                    w_lower = abs(new_z_cell - z_upper)/(z_upper - z_lower)
 
                 new_DELTA_rows[i,j_upper] += w_upper*self.GAUSSIAN_DELTA_rows[i,j]
                 new_DELTA_rows[i,j_lower] += w_lower*self.GAUSSIAN_DELTA_rows[i,j]
