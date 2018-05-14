@@ -113,7 +113,7 @@ else:
 
 #Define the original file structure
 original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
-file_numbers = list(range(0,1))
+file_numbers = list(range(0,32))
 input_format = 'gaussian_colore'
 
 #Set file structure
@@ -438,12 +438,13 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
         print('\nwarning: no objects left in pixel {} after trimming.'.format(pixel))
         return pixel
 
-    """
+    
+    #Save picca files for testing RSDs
     filename = new_filename_structure.format('picca-gaussian-noRSD',N_side,pixel)
     pixel_object.save_as_picca_gaussian(location,filename,header)
     filename = new_filename_structure.format('picca-flux-noRSD',N_side,pixel)
     pixel_object.save_as_picca_flux(location,filename,header,mean_F_data=mean_F_data)
-    """
+    
 
     #Add RSDs from the velocity skewers provided by CoLoRe.
     if add_RSDs == True:
@@ -455,15 +456,16 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     if pixel_object.F_rows is not None:
         pixel_object.compute_flux_skewers(np.interp(pixel_object.Z,tuning_z_values,alphas),beta)
 
-    """
+    
+    #Save picca files for testing RSDs
     filename = new_filename_structure.format('picca-gaussian-RSD',N_side,pixel)
     pixel_object.save_as_picca_gaussian(location,filename,header)
     filename = new_filename_structure.format('picca-flux-RSD',N_side,pixel)
     pixel_object.save_as_picca_flux(location,filename,header,mean_F_data=mean_F_data)
-    """
+    
 
     #Add small scale power to the gaussian skewers:
-    new_cosmology = pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,tuning_z_values,extra_sigma_G_values,white_noise=True,lambda_min=0,IVAR_cutoff=IVAR_cutoff)
+    #new_cosmology = pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,tuning_z_values,extra_sigma_G_values,white_noise=True,lambda_min=0,IVAR_cutoff=IVAR_cutoff)
 
     #If there are already physical/flux skewers, recalculate them.
     if pixel_object.DENSITY_DELTA_rows is not None:
