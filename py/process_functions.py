@@ -7,6 +7,9 @@ import fast_prng
 import DLA
 import matplotlib.pyplot as plt
 
+#My modules
+import RSD
+
 #DLA imports:
 from scipy.stats import norm
 from scipy.interpolate import interp1d, interp2d
@@ -1238,44 +1241,9 @@ class simulation_data:
         return
 
     #Function to add linear RSDs from the velocity skewers.
-    def add_linear_skewer_RSDs(self):
+    def add_linear_RSDs(self):
 
-        new_DELTA_rows = np.zeros(self.GAUSSIAN_DELTA_rows.shape)
-
-        for i in range(self.N_qso):
-            for j in range(self.N_cells):
-                #Add the dz from the velocity skewers to get a 'new_z' for each cell
-                z_cell = self.Z[j]
-                dz_cell = self.VEL_rows[i,j]
-                new_z_cell = z_cell + dz_cell
-
-                #Work out where in the skewer the cell 'moves' to.
-                #i.e. what are the new neighbouring cells.
-                j_upper = np.searchsorted(self.Z,new_z_cell)
-                j_lower = j_upper - 1
-
-                #If it has moved off the z=0 end of the skewer, push it back.
-                if j_lower < 0:
-                    w_upper = 1.0
-                    w_lower = 0.0
-                    j_lower += 1
-
-                #If it has moved off the max z end of the skewer, push it back.
-                elif j_upper >= self.N_cells:
-                    w_lower = 1.0
-                    w_upper = 0.0
-                    j_upper -= 1
-
-                #Otherwise, split the contribution between the new neighbours, distance weighted.
-                else:
-                    z_upper = self.Z[j_upper]
-                    z_lower = self.Z[j_lower]
-
-                    w_upper = abs(new_z_cell - z_lower)/(z_upper - z_lower)
-                    w_lower = abs(new_z_cell - z_upper)/(z_upper - z_lower)
-
-                new_DELTA_rows[i,j_upper] += w_upper*self.GAUSSIAN_DELTA_rows[i,j]
-                new_DELTA_rows[i,j_lower] += w_lower*self.GAUSSIAN_DELTA_rows[i,j]
+        new_DELTA_rows = RSD.add_linear_skewer_RSDs(self.GAUSSIAN_DELTA_rows,self.VEL_rows,self.Z)
 
         #Overwrite the Gaussian skewers and set a flag to True.
         self.GAUSSIAN_DELTA_rows = new_DELTA_rows
