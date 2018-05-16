@@ -5,7 +5,7 @@ import glob
 
 basedir = 'example_data/update_160518/'
 basedir = '/Users/jfarr/Projects/test_data/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_nside16/'
-#basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test/'
+basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test/'
 
 files = glob.glob(basedir + '/*/*/gaussian-colore-16*.fits')
 
