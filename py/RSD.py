@@ -8,8 +8,6 @@ def add_linear_skewer_RSDs(initial_skewer_rows,velocity_skewer_rows_dz,z):
 
     final_skewer_rows = np.zeros(initial_skewer_rows.shape)
 
-    print(N_cells,N_qso)
-
     for i in range(N_qso):
         for j in range(N_cells):
             #Add the dz from the velocity skewers to get a 'new_z' for each cell
