@@ -445,7 +445,6 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     filename = new_filename_structure.format('picca-flux-noRSD',N_side,pixel)
     pixel_object.save_as_picca_flux(location,filename,header,mean_F_data=mean_F_data)
 
-
     #Add RSDs from the velocity skewers provided by CoLoRe.
     if add_RSDs == True:
         pixel_object.add_linear_RSDs()
