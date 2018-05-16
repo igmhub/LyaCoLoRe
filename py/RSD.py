@@ -3,10 +3,12 @@ import numpy as np
 #Function to add linear RSDs from the velocity skewers.
 def add_linear_skewer_RSDs(initial_skewer_rows,velocity_skewer_rows_dz,z):
 
-    N_cells = initial_skewer_rows.shape[0]
-    N_qso = initial_skewer_rows.shape[1]
+    N_qso = initial_skewer_rows.shape[0]
+    N_cells = initial_skewer_rows.shape[1]
 
-    final_skewer_rows = np.zeros(initial_skewer_rows)
+    final_skewer_rows = np.zeros(initial_skewer_rows.shape)
+
+    print(N_cells,N_qso)
 
     for i in range(N_qso):
         for j in range(N_cells):
@@ -90,7 +92,7 @@ def get_tau_real(vel_real_kms,tau_redshift,vel_redshift_kms,v_parallel_kms,T_K):
 
     W_integrand = np.zeros(tau_redshift.shape)
 
-    for i in range(tau_redshift.shape[0])
+    for i in range(tau_redshift.shape[0]):
         W_integrand[i] = get_W(vel_real_kms-vel_redshift_kms[i]-v_parallel_kms[i],T_K[i])
 
     tau_real = np.trapz(tau_redshift*W_integrand,vel_redshift_kms)
@@ -108,7 +110,7 @@ def add_thermal_RSDs(initial_tau_rows,initial_density_rows,velocity_skewer_rows_
     dkms_dhMpc = get_dkms_dhMpc(z)
 
     for i in range(N_qso):
-        
+
         T_K = get_T_K(z,initial_density_rows[i,:])
 
         for j in range(N_cells):
@@ -117,7 +119,7 @@ def add_thermal_RSDs(initial_tau_rows,initial_density_rows,velocity_skewer_rows_
             x_kms = x_hMpc[j]*dkms_dhMpc[j]
 
             if neighbours == True:
-                js = [max(0,j-1):min(j+1,N_cells)]
+                js = list(range(max(0,j-1),min(j+1,N_cells)))
                 final_tau_rows[i,j] = get_tau_real(x_kms,initial_tau_rows[i,js],x_hMpc[js]*dkms_dhMpc[js],velocity_skewer_rows_kms[js],T_K)
             else:
                 final_tau_rows[i,j] = get_tau_real(x_kms,initial_tau_rows[i,:],x_hMpc[:]*dkms_dhMpc[:],velocity_skewer_rows_kms[:],T_K)
