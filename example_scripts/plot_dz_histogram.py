@@ -9,7 +9,7 @@ basedir = '/Users/jfarr/Projects/test_data/process_output_G_hZsmooth_4096_32_sr2
 
 files = glob.glob(basedir + '/*/*/gaussian-colore-16*.fits')
 
-N_files = 100
+N_files = 5
 
 if N_files < len(files):
     files = files[:N_files]
@@ -29,20 +29,22 @@ N_QSO = 0
 N_cells = 0
 
 for file in files:
-    print(file)
+    print('\nlooking at:',file)
     h = fits.open(file)
 
     relevant_QSOs = [i for i in range(h[1].data.shape[0]) if h[1].data['Z_COSMO'][i] > z_min and h[1].data['Z_COSMO'][i] < z_max]
     file_QSO_hist,bins = np.histogram(h[1].data['DZ_RSD'][relevant_QSOs],bins=N_bins,range=dz_range)
     N_QSO += len(relevant_QSOs)
+    QSO_hist += file_QSO_hist
+    print('done with QSOs')
 
-    for relevant_QSO in relevant_QSOs:
+    for i,relevant_QSO in enumerate(relevant_QSOs):
+        print('{}/{} skewers'.format(i,len(relevant_QSOs)),end='\r')
         relevant_cells = [i for i in range(h[4].data.shape[0]) if h[4].data['Z'][i] > z_min and h[4].data['Z'][i] < min(h[1].data['Z_COSMO'][relevant_QSO],z_max)]
         file_vel_skw_hist,bins = np.histogram(h[3].data[relevant_QSO,relevant_cells],bins=N_bins,range=dz_range)
         N_cells += len(relevant_cells)
-
-    QSO_hist += file_QSO_hist
-    vel_skw_hist += file_vel_skw_hist
+        vel_skw_hist += file_vel_skw_hist
+    print('done with vel skewers')
 
     h.close()
 
@@ -56,8 +58,9 @@ for i in range(len(bins)-1):
 QSO_hist /= sum(QSO_hist)
 vel_skw_hist /= sum(vel_skw_hist)
 
-plt.plot(np.linspace(dz_lower,dz_upper,N_bins),QSO_hist,label='QSO dz values')
-plt.plot(np.linspace(dz_lower,dz_upper,N_bins),vel_skw_hist,label='vel skw values')
+plt.plot(bin_centres,QSO_hist,label='QSO dz values')
+plt.plot(bin_centres,vel_skw_hist,label='vel skw values')
 plt.legend()
 plt.grid()
+plt.savefig('dz_histogram.pdf')
 plt.show()
