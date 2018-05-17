@@ -7,15 +7,16 @@ import multiprocessing
 import sys
 import time
 
+lya = 1215.67
 N_processes = int(sys.argv[1])
 
 basedir = 'example_data/update_160518/'
 basedir = '/Users/James/Projects/test_data/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_nside16/'
-#basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test/'
+basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test/'
 
 files = glob.glob(basedir + '/*/*/gaussian-colore-16*.fits')
 
-N_files = 250
+N_files = 1000
 
 if N_files < len(files):
     files = files[:N_files]
@@ -23,6 +24,8 @@ if N_files < len(files):
 N_bins = 100
 z_min = 2.0
 z_max = 2.2
+
+rest_frame_cutoff = 1150.0 #Å
 
 dz_upper = 0.01
 dz_lower = -0.01
@@ -81,7 +84,13 @@ def make_file_histogram(file):
 
     for i,relevant_QSO in enumerate(relevant_QSOs):
         #print('{}/{} skewers'.format(i,len(relevant_QSOs)),end='\r')
-        relevant_cells = [i for i in range(h[4].data.shape[0]) if h[4].data['Z'][i] > z_min and h[4].data['Z'][i] < min(h[1].data['Z_COSMO'][relevant_QSO],z_max)]
+
+        Z_QSO = h[1].data['Z_COSMO'][relevant_QSO]
+        Z = h[4].data['Z']
+
+        last_cell = np.searchsorted(lya*(1+Z),rest_frame_cutoff*(1+Z_QSO))
+
+        relevant_cells = [i for i in range(last_cell) if Z[i] > z_min and Z[i] < min(Z_QSO,z_max)]
 
         skewer_file_vel_skw_hist,bins = np.histogram(h[3].data[relevant_QSO,relevant_cells],bins=N_bins,range=dz_range)
         #N_cells += len(relevant_cells)
