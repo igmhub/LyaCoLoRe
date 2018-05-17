@@ -5,11 +5,11 @@ import glob
 
 basedir = 'example_data/update_160518/'
 basedir = '/Users/jfarr/Projects/test_data/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_nside16/'
-#basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test/'
+basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test/'
 
 files = glob.glob(basedir + '/*/*/gaussian-colore-16*.fits')
 
-N_files = 5
+N_files = 250
 
 if N_files < len(files):
     files = files[:N_files]
@@ -28,8 +28,8 @@ vel_skw_hist = np.zeros(N_bins)
 N_QSO = 0
 N_cells = 0
 
-for file in files:
-    print('\nlooking at:',file)
+for k,file in enumerate(files):
+    print('\nlooking at {} ({}/{})'.format(file,k+1,len(files)))
     h = fits.open(file)
 
     relevant_QSOs = [i for i in range(h[1].data.shape[0]) if h[1].data['Z_COSMO'][i] > z_min and h[1].data['Z_COSMO'][i] < z_max]
