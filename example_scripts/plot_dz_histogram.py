@@ -16,7 +16,7 @@ basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test/'
 
 files = glob.glob(basedir + '/*/*/gaussian-colore-16*.fits')
 
-N_files = 1000
+N_files = 10
 
 if N_files < len(files):
     files = files[:N_files]
@@ -115,6 +115,15 @@ if __name__ == '__main__':
     pool.close()
     pool.join()
 
+
+print('looking at master file to make QSO DZ_RSD histogram...')
+master = fits.open(basedir + 'master.fits')
+Z_QSO = master[1].data['Z_QSO_NO_RSD']
+DZ_RSD = master[1].data['Z_QSO_RSD'] - master[1].data['Z_QSO_NO_RSD']
+
+relevant_QSOs = [i for i in range(Z_QSO.shape[0]) if Z_QSO[i] > z_min and Z_QSO[i] < z_max]
+QSO_hist,bins = np.histogram(DZ_RSD[relevant_QSOs],bins=N_bins,range=dz_range)
+
 for result in results:
     bins = result[0]
     QSO_hist += result[1]
@@ -124,6 +133,7 @@ for result in results:
 
 N_QSO = N_QSO.astype('int')
 N_cells = N_cells.astype('int')
+
 """
 for k,file in enumerate(files):
     print('\nlooking at {} ({}/{})'.format(file,k+1,len(files)))
