@@ -1565,6 +1565,54 @@ class simulation_data:
 
         return
 
+    #Function to save data as a picca velocity file.
+    def save_as_picca_velocity(self,location,filename,header,zero_mean_delta=False,min_number_cells=2,overwrite=False):
+
+        lya_lambdas = 10**self.LOGLAM_MAP
+
+        #Determine the relevant QSOs: those that have relevant cells (IVAR > 0) beyond the first_relevant_cell.
+        #We impose a minimum number of cells per skewer here to avoid problems with picca.
+        relevant_QSOs = []
+        for i in range(self.N_qso):
+            if np.sum(self.IVAR_rows[i,:]) >= min_number_cells:
+                relevant_QSOs += [i]
+
+        #Trim data according to the relevant cells and QSOs.
+        relevant_VEL_rows = self.VEL_rows[relevant_QSOs,:]
+        relevant_IVAR_rows = self.IVAR_rows[relevant_QSOs,:]
+        relevant_LOGLAM_MAP = self.LOGLAM_MAP[:]
+
+        #If desired, enforce that the Delta rows have zero mean.
+        if zero_mean_delta == True:
+            relevant_VEL_rows = normalise_deltas(relevant_VEL_rows,relevant_IVAR_rows)
+
+        #Organise the data into picca-format arrays.
+        picca_0 = relevant_VEL_rows.T
+        picca_1 = relevant_IVAR_rows.T
+        picca_2 = relevant_LOGLAM_MAP
+
+        picca_3_data = []
+        for i in range(self.N_qso):
+            if i in relevant_QSOs:
+                picca_3_data += [(self.RA[i],self.DEC[i],self.Z_QSO[i],self.PLATE[i],self.MJD[i],self.FIBER[i],self.MOCKID[i])]
+
+        dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z', '>f4'), ('PLATE', int), ('MJD', '>f4'), ('FIBER', int), ('THING_ID', int)]
+        picca_3 = np.array(picca_3_data,dtype=dtype)
+
+        #Make the data into suitable HDUs.
+        hdu_VEL = fits.PrimaryHDU(data=picca_0,header=header)
+        hdu_iv = fits.ImageHDU(data=picca_1,header=header,name='IV')
+        hdu_LOGLAM_MAP = fits.ImageHDU(data=picca_2,header=header,name='LOGLAM_MAP')
+        cols_CATALOG = fits.ColDefs(picca_3)
+        hdu_CATALOG = fits.BinTableHDU.from_columns(cols_CATALOG,header=header,name='CATALOG')
+
+        #Combine the HDUs into and HDUlist and save as a new file. Close the HDUlist.
+        hdulist = fits.HDUList([hdu_VEL, hdu_iv, hdu_LOGLAM_MAP, hdu_CATALOG])
+        hdulist.writeto(location+filename,overwrite=overwrite)
+        hdulist.close()
+
+        return
+
     #Function to save the mean and variance of the different quantities as a function of Z.
     def get_means(self,lambda_min=0):
 

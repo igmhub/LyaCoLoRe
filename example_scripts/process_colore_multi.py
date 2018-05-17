@@ -438,7 +438,6 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
         print('\nwarning: no objects left in pixel {} after trimming.'.format(pixel))
         return pixel
 
-
     #Save picca files for testing RSDs
     filename = new_filename_structure.format('picca-gaussian-noRSD',N_side,pixel)
     pixel_object.save_as_picca_gaussian(location,filename,header)
@@ -448,7 +447,6 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     #Add RSDs from the velocity skewers provided by CoLoRe.
     if add_RSDs == True:
         pixel_object.add_linear_RSDs()
-        print('RSDs added')
 
     #If there are already physical/flux skewers, recalculate them.
     if pixel_object.DENSITY_DELTA_rows is not None:
@@ -456,13 +454,11 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     if pixel_object.F_rows is not None:
         pixel_object.compute_flux_skewers(np.interp(pixel_object.Z,tuning_z_values,alphas),beta)
 
-
     #Save picca files for testing RSDs
     filename = new_filename_structure.format('picca-gaussian-RSD',N_side,pixel)
     pixel_object.save_as_picca_gaussian(location,filename,header)
     filename = new_filename_structure.format('picca-flux-RSD',N_side,pixel)
     pixel_object.save_as_picca_flux(location,filename,header,mean_F_data=mean_F_data)
-
 
     #Add small scale power to the gaussian skewers:
     new_cosmology = pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,tuning_z_values,extra_sigma_G_values,white_noise=True,lambda_min=0,IVAR_cutoff=IVAR_cutoff)
@@ -493,6 +489,10 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
         #picca flux
         filename = new_filename_structure.format('picca-flux',N_side,pixel)
         pixel_object.save_as_picca_flux(location,filename,header,mean_F_data=mean_F_data)
+
+        #picca velocity
+        filename = new_filename_structure.format('picca-velocity',N_side,pixel)
+        pixel_object.save_as_picca_velocity(location,filename,header)
     else:
         #If transmission_only is not False, remove the gaussian-colore file
         os.remove(location+gaussian_filename)
