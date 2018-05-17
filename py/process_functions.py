@@ -1485,7 +1485,7 @@ class simulation_data:
         transmission_1 = np.array(transmission_1_data,dtype=dtype)
 
         transmission_2 = 10**(self.LOGLAM_MAP)
-        transmission_3 = self.F_rows.T
+        transmission_3 = self.F_rows
 
         #Construct HDUs from the data arrays.
         prihdr = fits.Header()
