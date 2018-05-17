@@ -82,17 +82,17 @@ def make_file_histogram(file):
 
     file_vel_skw_hist = np.zeros(N_bins)
 
-    for i,relevant_QSO in enumerate(relevant_QSOs):
+    for i in range(h[1].data.shape[0]):
         #print('{}/{} skewers'.format(i,len(relevant_QSOs)),end='\r')
 
-        Z_QSO = h[1].data['Z_COSMO'][relevant_QSO]
+        Z_QSO = h[1].data['Z_COSMO'][i]
         Z = h[4].data['Z']
 
         last_cell = np.searchsorted(lya*(1+Z),rest_frame_cutoff*(1+Z_QSO))
 
         relevant_cells = [i for i in range(last_cell) if Z[i] > z_min and Z[i] < min(Z_QSO,z_max)]
 
-        skewer_file_vel_skw_hist,bins = np.histogram(h[3].data[relevant_QSO,relevant_cells],bins=N_bins,range=dz_range)
+        skewer_file_vel_skw_hist,bins = np.histogram(h[3].data[i,relevant_cells],bins=N_bins,range=dz_range)
         #N_cells += len(relevant_cells)
         file_vel_skw_hist += skewer_file_vel_skw_hist
     #print('done with vel skewers')
@@ -161,5 +161,5 @@ plt.plot(bin_centres,QSO_hist,label='QSO dz values')
 plt.plot(bin_centres,vel_skw_hist,label='vel skw values')
 plt.legend()
 plt.grid()
-plt.savefig('dz_histogram_{}_{}.pdf'.format(N_QSO,N_cells))
+plt.savefig('dz_histogram_{}_{}.pdf'.format(N_files,rest_frame_cutoff))
 plt.show()
