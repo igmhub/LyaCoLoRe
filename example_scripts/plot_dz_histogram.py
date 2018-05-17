@@ -12,7 +12,7 @@ N_processes = int(sys.argv[1])
 
 basedir = 'example_data/update_160518/'
 basedir = '/Users/James/Projects/test_data/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_nside16/'
-basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test/'
+#basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test/'
 
 files = glob.glob(basedir + '/*/*/gaussian-colore-16*.fits')
 
@@ -73,9 +73,8 @@ def make_file_histogram(file):
 
     h = fits.open(file)
 
-    relevant_QSOs = [i for i in range(h[1].data.shape[0]) if h[1].data['Z_COSMO'][i] > z_min and h[1].data['Z_COSMO'][i] < z_max]
-
-    file_QSO_hist,bins = np.histogram(h[1].data['DZ_RSD'][relevant_QSOs],bins=N_bins,range=dz_range)
+    #relevant_QSOs = [i for i in range(h[1].data.shape[0]) if h[1].data['Z_COSMO'][i] > z_min and h[1].data['Z_COSMO'][i] < z_max]
+    #file_QSO_hist,bins = np.histogram(h[1].data['DZ_RSD'][relevant_QSOs],bins=N_bins,range=dz_range)
     #N_QSO += len(relevant_QSOs)
     #QSO_hist += file_QSO_hist
     #print('done with QSOs')
@@ -99,7 +98,7 @@ def make_file_histogram(file):
 
     h.close()
 
-    return [bins,file_QSO_hist,file_vel_skw_hist]
+    return [bins,file_vel_skw_hist]
 
 tasks = files
 
@@ -124,15 +123,37 @@ DZ_RSD = master[1].data['Z_QSO_RSD'] - master[1].data['Z_QSO_NO_RSD']
 relevant_QSOs = [i for i in range(Z_QSO.shape[0]) if Z_QSO[i] > z_min and Z_QSO[i] < z_max]
 QSO_hist,bins = np.histogram(DZ_RSD[relevant_QSOs],bins=N_bins,range=dz_range)
 
+QSO_hist = np.array(QSO_hist,dtype='float')
+N_QSO = len(relevant_QSOs)
+
 for result in results:
     bins = result[0]
-    QSO_hist += result[1]
-    vel_skw_hist += result[2]
-    N_QSO += sum(result[1])
-    N_cells += sum(result[2])
+    #QSO_hist += result[1]
+    vel_skw_hist += result[1]
+    #N_QSO += sum(result[1])
+    N_cells += sum(result[1])
 
-N_QSO = N_QSO.astype('int')
+#N_QSO = N_QSO.astype('int')
 N_cells = N_cells.astype('int')
+
+print('looked at {} QSO dz values'.format(N_QSO))
+print('looked at {} vel skewer cells'.format(N_cells))
+
+bin_centres = []
+for i in range(len(bins)-1):
+    bin_centres += [(bins[i]+bins[i+1])/2]
+
+QSO_hist /= sum(QSO_hist)
+vel_skw_hist /= sum(vel_skw_hist)
+
+plt.plot(bin_centres,QSO_hist,label='QSO dz values')
+plt.plot(bin_centres,vel_skw_hist,label='vel skw values')
+plt.legend()
+plt.grid()
+plt.savefig('dz_histogram_{}_{}.pdf'.format(N_files,rest_frame_cutoff))
+plt.show()
+
+
 
 """
 for k,file in enumerate(files):
@@ -156,20 +177,3 @@ for k,file in enumerate(files):
     h.close()
 
 """
-
-print('looked at {} QSO dz values'.format(N_QSO))
-print('looked at {} vel skewer cells'.format(N_cells))
-
-bin_centres = []
-for i in range(len(bins)-1):
-    bin_centres += [(bins[i]+bins[i+1])/2]
-
-QSO_hist /= sum(QSO_hist)
-vel_skw_hist /= sum(vel_skw_hist)
-
-plt.plot(bin_centres,QSO_hist,label='QSO dz values')
-plt.plot(bin_centres,vel_skw_hist,label='vel skw values')
-plt.legend()
-plt.grid()
-plt.savefig('dz_histogram_{}_{}.pdf'.format(N_files,rest_frame_cutoff))
-plt.show()
