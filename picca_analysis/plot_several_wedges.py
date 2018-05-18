@@ -24,7 +24,7 @@ plot_label_parameters = ['quantities','sr','bm']
 
 #Either plot_per_file (i.e. each file gets its own plot, showing all mu bins)
 #Or plot_per_bin (i.e. each mu bin has its own plot, but all files are grouped)
-mode = 'plot_per_bin'
+mode = 'plot_per_file'
 
 #Option to add in a scaled version of a CAMB power spectrum:
 quantity = 'gaussian'
@@ -41,7 +41,7 @@ CAMB_filename = 'camb_xi_{}.txt'
 
 #Set up the bins of mu.
 #ith bin is the range mubins[i]:mubins[i+1]
-mubin_boundaries = [-1.0,1.0]
+mubin_boundaries = [0.0,0.5,0.8,0.95,1.0]
 mubins = plot_functions.bins_from_boundaries(mubin_boundaries)
 
 if mode == 'plot_per_bin':
