@@ -129,8 +129,9 @@ def plot_xi(mubin,filename,plot_label_parameters):
         plot_label += '{}: {}, '.format(parameter,parameters[parameter])
     #plot_label += filename[filename.find('zmax2.2')+8:filename.find('.fits')]
     plot_label = plot_label[:-2]
-
-    plt.errorbar(r[cut],xi_wed[cut]*(r[cut]**2),yerr=err_wed[cut]*(r[cut]**2),fmt='o',label=plot_label)
+    #plot_label = filename[70:-91]
+    plot_label = '{} < mu < {}'.format(mumin,mumax)
+    plt.errorbar(r[cut],xi_wed[cut],yerr=err_wed[cut],fmt='o',label=plot_label)
 
     return parameters
 
@@ -160,16 +161,16 @@ def plot_per_bin(mubins,filenames,add_CAMB,plot_label_parameters,CAMB_sr=None,sc
         plt.legend(loc=3)
         plt.savefig('xi_wedge_{}_{}.pdf'.format(mumin,mumax))
 
-def plot_per_file(mubins,filenames,add_CAMB,plot_label_parameters,CAMB_sr=None,scale_CAMB=None):
+def plot_per_file(mubins,filenames,add_CAMB,plot_label_parameters,CAMB_sr=None,scale_CAMB=None,CAMB_location=None,CAMB_filename_format=None):
 
     for filename in filenames:
 
         plt.figure()
         plt.axhline(y=0,color='gray',ls=':')
         plt.xlabel('r [Mpc/h]')
-        plt.ylabel('r^2 xi(r)')
+        plt.ylabel('xi(r)')
         plt.grid(True, which='both')
-        plt.title('correlation function, {} < mu < {}'.format(mumin,mumax))
+        plt.title('correlation function, {}'.format(filename[70:-91]))
 
         for mubin in mubins:
             plot_xi(mubin,filename,plot_label_parameters)
@@ -180,4 +181,4 @@ def plot_per_file(mubins,filenames,add_CAMB,plot_label_parameters,CAMB_sr=None,s
 
         #save figure
         plt.legend(loc=3)
-        plt.savefig('xi_wedge_{}_{}.pdf'.format(mumin,mumax))
+        plt.savefig('xi_wedges_{}.pdf'.format(filename[70:-91]))
