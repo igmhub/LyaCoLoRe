@@ -7,6 +7,100 @@ from numpy import linalg
 import mcfit
 import correlation_model
 
+
+# TODO: write this
+class picca_correlation:
+    def __init__(parameters,correlation_data):
+
+        #picca parameters
+        self.correl_type = correl_type
+        self.N_side = N_side
+        self.N_pixels = N_pixels
+        self.quantity_1 = quantity_1
+        self.quantity_2 = quantity_2
+        self.rpmax = rpmax
+        self.rpmin = rpmin
+        self.rtmax = rtmax
+        self.np = np
+        self.nt = nt
+        self.rmax = rmax
+        self.nr = nr
+        self.zmin = zmin
+        self.zmax = zmax
+
+        #input skewer parameters
+        self.sr = sr
+        self.bm = bm
+
+        #correlation data
+        self.rp = rp
+        self.rt = rt
+        self.z = z
+        self.xi_grid = xi_grid
+        self.cov_grid = cov_grid
+
+        #cosmology data
+        self.Z_cosmology = Z_cosmology
+        self.D_cosmology = D_cosmology
+
+        #xcf_exp_1000_GAUSS_sr2.0_quantityGq_RN_nside16_rpmin-60.0_rpmax60.0_rtmax60.0_np40_nt20_zmin2.0_zmax2.2_bm1_biasG18_picos.fits.gz
+        return
+
+    @classmethod
+    def make_correlation_object(cls,location,filename):
+
+        #get parameters
+        #replace with get_parameters_from_param_file when written
+        parameters = get_parameters_from_filename(location+filename)
+
+        #get correlation data
+        h = fits.open(file_path)
+        correlation_data = h[1].data
+
+        #get cosmology data
+        
+
+        return cls(parameters,correlation_data)
+
+    def plot_xir2(self,mubin,plot_label):
+
+        mumin = mubin[0]
+        mumax = mubin[1]
+
+        b = wedgize.wedge(mumin=mumin,mumax=mumax,rtmax=self.rtmax,nrt=self.nt,
+            rpmin=self.rpmin,rpmax=self.rpmax,nrp=self.np,nr=self.nr,
+            rmax=self.rmax)
+
+        #REMOVE NON_DIAGONALS FROM COV MATRIX
+        for i in range(self.cov_grid.shape[0]):
+            for j in range(self.cov_grid.shape[1]):
+                if i!=j:
+                    self.cov_grid[i,j]=0
+
+        r, xi_wed, cov_wed = b.wedge(self.xi_grid,self.cov_grid)
+
+        Nr = len(r)
+        err_wed = np.zeros(Nr)
+        for i in range(Nr):
+            err_wed[i] = np.sqrt(cov_wed[i][i])
+
+        cut = err_wed>0
+
+        plt.errorbar(r[cut],xi_wed[cut],yerr=err_wed[cut],fmt='o',label=plot_label)
+
+        return
+
+
+
+def get_parameters_from_param_file(location,filename):
+
+    # TODO: write this
+    # TODO: in the picca function, make a param file too (use colore method for inspiration)
+
+    return
+
+
+
 def bins_from_boundaries(boundaries):
 
     bins = []
@@ -26,7 +120,7 @@ def get_scales(filepaths):
             scale *= correlation_model.get_bias(z,quantity)
             scale *= correlation_model.get_growth_factor_scaling(z,quantity)
         scales += [scale]
-        
+
     return scales
 
 
@@ -117,20 +211,13 @@ def add_CAMB_Pk(location,filename,z,mu,RSDOPTION='NO_RSD',CAMB_input='xi'):
     Pk = data[:,1]
     return
 
-def plot_xi(mubin,filename,plot_label_parameters):
+def plot_xir2(mubin,filename,plot_label):
 
     mumin = mubin[0]
     mumax = mubin[1]
 
     r,xi_wed,err_wed,cut,parameters = get_plot_data(mumin,mumax,filename)
 
-    plot_label = ''
-    for parameter in plot_label_parameters:
-        plot_label += '{}: {}, '.format(parameter,parameters[parameter])
-    #plot_label += filename[filename.find('zmax2.2')+8:filename.find('.fits')]
-    plot_label = plot_label[:-2]
-    #plot_label = filename[70:-91]
-    plot_label = '{} < mu < {}'.format(mumin,mumax)
     plt.errorbar(r[cut],xi_wed[cut],yerr=err_wed[cut],fmt='o',label=plot_label)
 
     return parameters
@@ -138,7 +225,7 @@ def plot_xi(mubin,filename,plot_label_parameters):
 def plot_per_bin(mubins,filenames,add_CAMB,plot_label_parameters,CAMB_sr=None,scale_CAMB=None,CAMB_location=None,CAMB_filename_format=None):
 
     for mubin in mubins:
-        
+
         mumin = mubin[0]
         mumax = mubin[1]
 
@@ -150,7 +237,11 @@ def plot_per_bin(mubins,filenames,add_CAMB,plot_label_parameters,CAMB_sr=None,sc
         plt.title('correlation function, {} < mu < {}'.format(mumin,mumax))
 
         for filename in filenames:
-            plot_xi(mubin,filename,plot_label_parameters)
+            plot_label = ''
+            for parameter in plot_label_parameters:
+                plot_label += '{}: {}, '.format(parameter,parameters[parameter])
+                plot_label = plot_label[:-2]
+            plot_xir2(mubin,filename,plot_label)
 
         if add_CAMB == True:
             for i,sr in enumerate(CAMB_sr):
@@ -170,10 +261,16 @@ def plot_per_file(mubins,filenames,add_CAMB,plot_label_parameters,CAMB_sr=None,s
         plt.xlabel('r [Mpc/h]')
         plt.ylabel('xi(r)')
         plt.grid(True, which='both')
-        plt.title('correlation function, {}'.format(filename[70:-91]))
+
+        plot_title = ''
+        for parameter in plot_label_parameters:
+            plot_title += '{}: {}, '.format(parameter,parameters[parameter])
+            plot_title = plot_title[:-2]
+        plt.title('correlation function, {}'.format(plot_title))
 
         for mubin in mubins:
-            plot_xi(mubin,filename,plot_label_parameters)
+            plot_label = '{} < mu < {}'.format(mumin,mumax)
+            plot_xir2(mubin,filename,plot_label)
 
         if add_CAMB == True:
             for i,sr in enumerate(CAMB_sr):
@@ -181,4 +278,4 @@ def plot_per_file(mubins,filenames,add_CAMB,plot_label_parameters,CAMB_sr=None,s
 
         #save figure
         plt.legend(loc=3)
-        plt.savefig('xi_wedges_{}.pdf'.format(filename[70:-91]))
+        plt.savefig('xi_wedges_{}.pdf'.format(plot_title))
