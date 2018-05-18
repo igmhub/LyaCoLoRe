@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 from astropy.io import fits
 from picca import wedgize
 import sys
-from numpy import linalg
 import plot_functions
 
 default_filenames = ['cf_exp.fits.gz']

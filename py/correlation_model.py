@@ -137,8 +137,10 @@ def get_C2(B1,B2):
 def get_C4(B1,B2):
     return (8/35)*B1*B2
 
-def get_growth_factor_scaling(z,quantity):
+def get_growth_factor_scaling(z,quantity,location=None):
 
+    if location == None:
+        location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_nside16/'
     if quantity == 'G':
         D_at_z0 = 1
         D_at_zval = 1
@@ -156,7 +158,7 @@ def get_growth_factor_scaling(z,quantity):
 def get_bias(z,quantity):
 
     if quantity == 'q':
-        bias_data = np.loadtxt('/global/homes/j/jfarr/Projects/run_CoLoRe/input_files/Bz_qso.txt')
+        bias_data = np.loadtxt('/global/homes/j/jfarr/Projects/run_CoLoRe/input_files/Bz_qso_G18.txt')
         z_bq = bias_data[:,0]
         bq = bias_data[:,1]
         bq_at_zval = np.interp(z,z_bq,bq)
