@@ -16,6 +16,7 @@ def read_file(basedir,quantity,nside,pix):
         filename = dirname+'/transmission-'+suffix
         transmission = fits.open(filename)
         data_rows = transmission[3].data.T
+        z_qso = transmission[1].data['Z_noRSD']
         transmission.close()
         filename = dirname+'/picca-{}-'.format(quantity)+suffix
         picca = fits.open(filename)
@@ -25,12 +26,11 @@ def read_file(basedir,quantity,nside,pix):
         #print('picca flux file',filename)
         picca = fits.open(filename)
         data_rows = picca[0].data.T
+        z_qso = picca[3].data['Z']
 
     #ivar_rows = picca[1].data.T
     loglam = picca[2].data
-    z_qso = picca[3].data['Z']
     picca.close()
-
     ivar_rows = pf.make_IVAR_rows(IVAR_cutoff,z_qso,loglam)
 
     zs = (10**loglam)/lya - 1.0
@@ -38,9 +38,9 @@ def read_file(basedir,quantity,nside,pix):
     return zs,data_rows,ivar_rows
 
 def get_means(data_rows,ivar_rows):
+    print(data_rows.shape,ivar_rows.shape)
     N_skewers=data_rows.shape[0]
     N_cells=data_rows.shape[1]
-    #print('in mean_var, we have',N_skewers,'skewers and',N_cells,'cells')
     # add tiny value to not have 0/0
     if data_rows.shape[0] != ivar_rows.shape[0]:
         weights = np.zeros(data_rows.shape[1])
@@ -54,7 +54,9 @@ def get_means(data_rows,ivar_rows):
 
 # main folder where the processed files are
 basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_nside16/'
+#basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test/'
 #basedir = '/Users/James/Projects/test_data/process_output_G_hZ_4096_32_sr2.0_bm1_nside16/'
+
 if len(sys.argv)>1:
     quantity = sys.argv[1]
 else:
@@ -103,6 +105,7 @@ elif quantity == 'density':
 else:
     identifier = ''
 
+plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
 plt.plot(zs,overall_mean,label='mean_{}'.format(identifier))
 plt.plot(zs,overall_sigma,label='sigma_{}'.format(identifier))
 
@@ -122,13 +125,12 @@ elif quantity == 'flux':
     sigma_F_predicted = sigma_dF_predicted*mean_F_predicted
 
     plt.plot(z_predicted,mean_F_predicted,label='predicted mean_F')
-    plt.plot(z_predicted,sigma_dF_predicted,label='predicted sigma_dF')
     plt.plot(z_predicted,sigma_F_predicted,label='predicted sigma_F')
 
     overall_sigma_dF = overall_sigma/overall_mean
 
     plt.plot(zs,overall_sigma_dF,label='sigma_dF')
-
+    plt.plot(z_predicted,sigma_dF_predicted,label='predicted sigma_dF')
 
     """
     mean_F_model = predicted_data[1].data['mean_F_needed']

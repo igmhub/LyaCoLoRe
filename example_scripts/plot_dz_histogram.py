@@ -12,11 +12,11 @@ N_processes = int(sys.argv[1])
 
 basedir = 'example_data/update_160518/'
 basedir = '/Users/James/Projects/test_data/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_nside16/'
-#basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test/'
+basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test/'
 
 files = glob.glob(basedir + '/*/*/gaussian-colore-16*.fits')
 
-N_files = 10
+N_files = 3072
 
 if N_files < len(files):
     files = files[:N_files]
@@ -25,7 +25,7 @@ N_bins = 100
 z_min = 2.0
 z_max = 2.2
 
-rest_frame_cutoff = 1150.0 #Å
+rest_frame_cutoff = 1100. #Å
 
 dz_upper = 0.01
 dz_lower = -0.01
