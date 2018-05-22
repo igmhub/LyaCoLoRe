@@ -5,45 +5,51 @@ import matplotlib.pyplot as plt
 import sys
 import plot_functions
 
-def visual_fit(filename,b_values,beta_values,model,data_parameters,z):
+def visual_fit(filename,b_values,beta_values,model,data_parameters,z,compute_b_beta=False):
 
     mubin_boundaries = [0.0,1.0]
     mubins = []
     for i in range(len(mubin_boundaries)-1):
         mubins += [(mubin_boundaries[i],mubin_boundaries[i+1])]
+    mubins = [(0.0,0.1),(0.5,0.6),(0.9,1.0)]
+    #find a more sophisticated way to do this
+    colours = ['r',(0.5,0.5,0.5),'b']
+
     N_bins = len(mubins)
 
-    plt.figure()
+    plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
 
-    for bin in mubins:
+    for i,bin in enumerate(mubins):
         mumin = bin[0]
         mumax = bin[1]
 
         #Wedgize the data
         r,xi_wed,err_wed,cut,_ = plot_functions.get_plot_data(mumin,mumax,filename)
 
-        data_label = 'data, {}<mu<{}'.format(mumin,mumax)
-        plt.errorbar(r[cut],xi_wed[cut]*(r[cut]**2),yerr=err_wed[cut]*(r[cut]**2),fmt='o',label=data_label)
+        data_label = 'data, {}<$\mu$<{}'.format(mumin,mumax)
+        plt.errorbar(r[cut],xi_wed[cut]*(r[cut]**2),yerr=err_wed[cut]*(r[cut]**2),fmt='o',label=data_label,c=colours[i])
 
-    quantity1 = data_parameters['quantity'][0]
-    quantity2 = data_parameters['quantity'][1]
+    quantity1 = data_parameters['quantities'][0]
+    quantity2 = data_parameters['quantities'][1]
 
+    #TODO: implement compute_b_beta. Need to have different flags for each quantity?
     for b1 in b_values[quantity1]:
         for beta1 in beta_values[quantity1]:
             for b2 in b_values[quantity2]:
                 for beta2 in beta_values[quantity2]:
 
-                    r_model,xi_model_values = get_model_xi(model,[b1,b2],[beta1,beta2],data_parameters,z,b_from_z=False)
+                    r_model,xi_model_values = get_model_xi(model,[b1,b2],[beta1,beta2],data_parameters,z,mubins,b_from_z=False)
 
-                    for key in xi_model_values.keys():
-                        model_label = 'b_{}={}, beta_{}={}, b_{}={}, beta_{}={}, mu={}'.format(quantity1,b1,quantity1,beta1,quantity2,b2,quantity2,beta2,key)
-                        plt.plot(r_model,xi_model_values[key]*(r_model**2),label=model_label)
+                    for i,key in enumerate(xi_model_values.keys()):
+                        #model_label = 'b_{}={}, beta_{}={}, b_{}={}, beta_{}={}, mu={}'.format(quantity1,b1,quantity1,beta1,quantity2,b2,quantity2,beta2,key)
+                        model_label = 'model, $\mu$={}'.format(key)
+                        plt.plot(r_model,xi_model_values[key]*(r_model**2),label=model_label,c=colours[i])
                         #plt.plot(r[cut],(xi_wed[cut])/(np.interp(r[cut],r_model,xi_model_values[key])),label='(RATIO): '+model_label)
 
     plt.axhline(y=0,color='gray',ls=':')
-    plt.xlabel('r [Mpc/h]')
-    plt.ylabel('r^2 xi(r)')
-    plt.grid(True, which='both')
+    plt.xlabel(r'$r / Mpc h^{-1}$')
+    plt.ylabel(r'$r^2 \xi(r)$')
+    plt.grid()
     plt.legend()
     plt.xlim(0,200)
     #Make this more sensible filename
@@ -52,15 +58,15 @@ def visual_fit(filename,b_values,beta_values,model,data_parameters,z):
 
     return
 
-def get_model_xi(model,bs,betas,data_parameters,z,b_from_z=False):
+def get_model_xi(model,bs,betas,data_parameters,z,mubins,b_from_z=False):
 
     b1 = bs[0]
     b2 = bs[1]
     beta1 = betas[0]
     beta2 = betas[1]
 
-    quantity1 = data_parameters['quantity'][0]
-    quantity2 = data_parameters['quantity'][1]
+    quantity1 = data_parameters['quantities'][0]
+    quantity2 = data_parameters['quantities'][1]
 
     if model == 'no_beta':
         sr = data_parameters['sr']
@@ -88,7 +94,10 @@ def get_model_xi(model,bs,betas,data_parameters,z,b_from_z=False):
         k_old = Pk_CAMB[:,0]
         P_old = Pk_CAMB[:,1]
 
-        mu_values = [0.0]
+        #Pick the mu values from the centre of each bin
+        mu_values = []
+        for mubin in mubins:
+            mu_values += [(mubin[0]+mubin[1])/2.]
 
         k_min = -4
         k_max = 3
@@ -140,12 +149,12 @@ def get_C4(B1,B2):
 def get_growth_factor_scaling(z,quantity,location=None):
 
     if location == None:
-        location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_nside16/'
+        location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test/'
     if quantity == 'G':
         D_at_z0 = 1
         D_at_zval = 1
     elif quantity in ['D','q']:
-        h = fits.open('/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZ_4096_32_sr1.0_nside8/nside_8_master.fits')
+        h = fits.open('/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test/master.fits')
         D = h[2].data['D']
         z_D = h[2].data['Z']
         D_at_z0 = np.interp(0,z_D,D)
