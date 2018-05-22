@@ -53,8 +53,9 @@ def dNdz(z, Nmin=19.5, Nmax=22.):
     for a given range in N"""
     return dnHD_dz_cumlgN(z,Nmax)-dnHD_dz_cumlgN(z,Nmin)
 
-def get_N(z, Nmin=19.5, Nmax=22, nsamp=100):
-    """ Get the column density for a given z"""
+def get_N(z, Nmin=19.5, Nmax=22.0, nsamp=100):
+    """ Get the column density for a given z
+    This always returns recurring decimals of a kind, could just expand nsamp to deal with it"""
     nn = np.linspace(Nmin,Nmax,nsamp)
     probs = dnHD_dz_cumlgN(z,nn).T
     N = np.zeros(len(probs))
