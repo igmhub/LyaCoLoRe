@@ -422,7 +422,7 @@ def make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP):
     return IVAR_rows
 
 #Function to convert lognormal delta skewers (in rows) to gaussian field skewers (in rows).
-def lognormal_to_gaussian(LN_DENSITY_DELTA_rows,SIGMA_G,D):
+def lognormal_delta_to_gaussian(LN_DENSITY_DELTA_rows,SIGMA_G,D):
 
     LN_DENSITY_rows = 1.0 + LN_DENSITY_DELTA_rows
 
@@ -960,7 +960,7 @@ class simulation_data:
             LOGLAM_MAP = np.log10(lya*(1+Z))
 
             #Calculate the Gaussian skewers.
-            GAUSSIAN_DELTA_rows = lognormal_to_gaussian(DENSITY_DELTA_rows,SIGMA_G,D)
+            GAUSSIAN_DELTA_rows = lognormal_delta_to_gaussian(DENSITY_DELTA_rows,SIGMA_G,D)
 
             #Set the remaining variables to None
             DENSITY_DELTA_rows = None
@@ -1046,7 +1046,7 @@ class simulation_data:
             Z = (10**LOGLAM_MAP)/lya - 1
 
             #Calculate the Gaussian skewers.
-            GAUSSIAN_DELTA_rows = lognormal_to_gaussian(DENSITY_DELTA_rows,SIGMA_G,D)
+            GAUSSIAN_DELTA_rows = lognormal_delta_to_gaussian(DENSITY_DELTA_rows,SIGMA_G,D)
 
             #Set the remaining variables to None
             DENSITY_DELTA_rows = None
@@ -1243,10 +1243,17 @@ class simulation_data:
     #Function to add linear RSDs from the velocity skewers.
     def add_linear_RSDs(self):
 
-        new_DELTA_rows = RSD.add_linear_skewer_RSDs(self.GAUSSIAN_DELTA_rows,self.VEL_rows,self.Z)
+        #convert the gaussian rows to temporary physical density rows
+        initial_density_rows = 1 + gaussian_to_lognormal_delta(self.GAUSSIAN_DELTA_rows,self.SIGMA_G,self.D)
+
+        #add RSDs to these physical density rows
+        new_density_rows = RSD.add_linear_skewer_RSDs(initial_density_rows,self.VEL_rows,self.Z)
+
+        #convert the new physical density rows back to gaussian
+        new_gaussian_rows = lognormal_delta_to_gaussian(new_density_rows - 1,self.SIGMA_G,self.D)
 
         #Overwrite the Gaussian skewers and set a flag to True.
-        self.GAUSSIAN_DELTA_rows = new_DELTA_rows
+        self.GAUSSIAN_DELTA_rows = new_gaussian_rows
         self.linear_skewer_RSDs_added = True
 
         return
@@ -1772,7 +1779,7 @@ class simulation_data:
             LOGLAM_MAP = np.log10(lya*(1+Z))
 
             #Calculate the Gaussian skewers.
-            GAUSSIAN_DELTA_rows = lognormal_to_gaussian(DENSITY_DELTA_rows,SIGMA_G,D)
+            GAUSSIAN_DELTA_rows = lognormal_delta_to_gaussian(DENSITY_DELTA_rows,SIGMA_G,D)
 
             if not gaussian_only:
                 #Calculate the transmitted flux.
@@ -1869,7 +1876,7 @@ class simulation_data:
             Z = (10**LOGLAM_MAP)/lya - 1
 
             #Calculate the Gaussian skewers.
-            GAUSSIAN_DELTA_rows = lognormal_to_gaussian(DENSITY_DELTA_rows,SIGMA_G,D)
+            GAUSSIAN_DELTA_rows = lognormal_delta_to_gaussian(DENSITY_DELTA_rows,SIGMA_G,D)
 
             if not gaussian_only:
                 #Calculate the transmitted flux.

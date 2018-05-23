@@ -90,7 +90,7 @@ def dz_to_kms(dz):
 
 
     return kms
-    
+
 def get_tau_real(vel_real_kms,tau_redshift,vel_redshift_kms,v_parallel_kms,T_K):
 
     W_integrand = np.zeros(tau_redshift.shape)
