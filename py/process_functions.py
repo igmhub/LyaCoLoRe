@@ -1249,6 +1249,10 @@ class simulation_data:
         #add RSDs to these physical density rows
         new_density_rows = RSD.add_linear_skewer_RSDs(initial_density_rows,self.VEL_rows,self.Z)
 
+        ## TODO: find a neater way to do this
+        #For the moment, we add a very small value onto the density skewers, to avoid problems in the inverse lognormal transformation
+        new_density_rows += 1.0e-10
+
         #convert the new physical density rows back to gaussian
         new_gaussian_rows = lognormal_delta_to_gaussian(new_density_rows - 1,self.SIGMA_G,self.D)
 
