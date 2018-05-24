@@ -218,7 +218,7 @@ def plot_xir2(mubin,filename,plot_label):
 
     r,xi_wed,err_wed,cut,parameters = get_plot_data(mumin,mumax,filename)
 
-    plt.errorbar(r[cut],xi_wed[cut],yerr=err_wed[cut],fmt='o',label=plot_label)
+    plt.errorbar(r[cut],xi_wed[cut]*(r[cut]**2),yerr=err_wed[cut]*(r[cut]**2),fmt='o',label=plot_label)
 
     return parameters
 
@@ -237,6 +237,7 @@ def plot_per_bin(mubins,filenames,add_CAMB,plot_label_parameters,CAMB_sr=None,sc
         plt.title('correlation function, {} < mu < {}'.format(mumin,mumax))
 
         for filename in filenames:
+            parameters = get_parameters_from_filename(filename)
             plot_label = ''
             for parameter in plot_label_parameters:
                 plot_label += '{}: {}, '.format(parameter,parameters[parameter])
@@ -263,12 +264,15 @@ def plot_per_file(mubins,filenames,add_CAMB,plot_label_parameters,CAMB_sr=None,s
         plt.grid(True, which='both')
 
         plot_title = ''
+        parameters = get_parameters_from_filename(filename)
         for parameter in plot_label_parameters:
             plot_title += '{}: {}, '.format(parameter,parameters[parameter])
             plot_title = plot_title[:-2]
         plt.title('correlation function, {}'.format(plot_title))
 
         for mubin in mubins:
+            mumin = mubin[0]
+            mumax = mubin[1]
             plot_label = '{} < mu < {}'.format(mumin,mumax)
             plot_xir2(mubin,filename,plot_label)
 
