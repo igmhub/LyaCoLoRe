@@ -11,7 +11,7 @@ def visual_fit(filename,b_values,beta_values,model,data_parameters,z,compute_b_b
     mubins = []
     for i in range(len(mubin_boundaries)-1):
         mubins += [(mubin_boundaries[i],mubin_boundaries[i+1])]
-    mubins = [(0.0,0.1),(0.5,0.6),(0.9,1.0)]
+    mubins = [(0.0,0.2),(0.4,0.6),(0.8,1.0)]
     #find a more sophisticated way to do this
     colours = ['r',(0.5,0.5,0.5),'b']
 
@@ -177,3 +177,13 @@ def get_bias(z,quantity):
         print('quantity not recognised')
 
     return bq_at_zval
+
+def beta_QSO_kaiser(z,b,Om_z0=0.3147):
+
+    Om = Om_z0 * ((1+z)**3) / (Om_z0 * ((1+z)**3) + 1 - Om_z0)
+    Ol = 1 - Om
+    # TODO: replace this with the analytic expression using D from file
+    f = (Om**0.6) + (Ol/70.)*(1 + Om/2.) #using review eqn 4.14
+    beta = f/b
+
+    return beta
