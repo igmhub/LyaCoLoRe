@@ -1,4 +1,4 @@
-f8import numpy as np
+import numpy as np
 from astropy.io import fits
 import healpy as hp
 import os
@@ -506,16 +506,13 @@ def get_simulation_parameters(location,filename):
 
 #Function to normalise a set of delta skewer rows to zero mean according to given weights.
 #If all weights for a given cell are zero, then the output will be zero in that cell for all skewers.
-def normalise_deltas(DELTA_rows,weights):
+def normalise_deltas(DELTA_rows,mean_DELTA):
 
     N_cells = DELTA_rows.shape[1]
-    DELTA_rows_mean = np.zeros(N_cells)
     DELTA_rows_normalised = np.zeros(DELTA_rows.shape)
 
     for j in range(N_cells):
-        if np.sum(weights[:,j]) != 0:
-            DELTA_rows_mean[j] = np.average(DELTA_rows[:,j],weights=weights[:,j])
-            DELTA_rows_normalised[:,j] = (DELTA_rows[:,j] + 1)/(DELTA_rows_mean[j] + 1) - 1
+        DELTA_rows_normalised[:,j] = (DELTA_rows[:,j] + 1)/(mean_DELTA[j] + 1) - 1
 
     return DELTA_rows_normalised
 
@@ -533,18 +530,47 @@ class simulation_parameters:
 #Function to calculate the mean of deltas, mean of deltas^2, and N.
 def return_means(DELTA_rows,weights,sample_pc=1.0):
     DELTA_SQUARED_rows = DELTA_rows**2
+    N_cells = DELTA_rows.shape[1]
 
-    N = np.sum(weights)
-    mean_DELTA = np.average(DELTA_rows,weights=weights)
-    mean_DELTA_SQUARED = np.average(DELTA_SQUARED_rows,weights=weights)
+    N = np.zeros(N_cells)
+    mean_DELTA = np.zeros(N_cells)
+    mean_DELTA_SQUARED = np.zeros(N_cells)
+
+    for j in range(N_cells):
+        N[j] = np.sum(weights[:,j],axis=0)
+        if N[j] > 0:
+            mean_DELTA[j] = np.average(DELTA_rows[:,j],weights=weights[:,j])
+            mean_DELTA_SQUARED[j] = np.average(DELTA_SQUARED_rows[:,j],weights=weights[:,j])
 
     return N, mean_DELTA, mean_DELTA_SQUARED
+
+#
+def combine_pixel_means(results):
+
+    N_cells = results[0][0].shape[0]
+    N = np.zeros(N_cells)
+    mean_DELTA = np.zeros(N_cells)
+    mean_DELTA_SQUARED = np.zeros(N_cells)
+
+    for result in results:
+        N += result[0]
+
+    for j in range(N_cells):
+        if N[j] > 0:
+            for result in results:
+                mean_DELTA[j] += result[0][j]*result[1][j]/N[j]
+                mean_DELTA_SQUARED[j] += result[0][j]*result[2][j]/N[j]
+
+    var_DELTA = mean_DELTA_SQUARED - mean_DELTA**2
+
+    return N, mean_DELTA, var_DELTA
 
 #Function to take a list of sets of statistics (as produced by 'get_statistics'), and calculate means and variances.
 def combine_means(means_list):
 
     means_shape = means_list[0].shape
     means_data_type = means_list[0].dtype
+    N_cells = means_shape[0]
 
     quantities = ['GAUSSIAN_DELTA','GAUSSIAN_DELTA_SQUARED','DENSITY_DELTA','DENSITY_DELTA_SQUARED','F','F_SQUARED','F_DELTA','F_DELTA_SQUARED']
 
@@ -552,9 +578,11 @@ def combine_means(means_list):
     for means_array in means_list:
         combined_means['N'] += means_array['N']
 
-    for quantity in quantities:
-        for means_array in means_list:
-            combined_means[quantity] += (means_array['N']*means_array[quantity])/combined_means['N']
+    for i in range(N_cells):
+        if combined_means['N'][i] > 0:
+            for quantity in quantities:
+                for means_array in means_list:
+                    combined_means[quantity][i] += (means_array['N'][i]*means_array[quantity][i])/combined_means['N'][i]
 
     return combined_means
 
@@ -594,7 +622,7 @@ def write_statistics(location,N_side,statistics,cosmology_data):
     hdu_cosmology = fits.BinTableHDU.from_columns(cols_cosmology,name='COSMO')
 
     #Put the HDU into an HDUlist and save as a new file. Close the HDUlist.
-    filename = 'nside_{}_statistics.fits'.format(N_side)
+    filename = '/statistics.fits'
     hdulist = fits.HDUList([prihdu,hdu_stats,hdu_cosmology])
     hdulist.writeto(location+filename)
     hdulist.close
@@ -1130,7 +1158,7 @@ class simulation_data:
         return
 
     #Function to add small scale gaussian fluctuations.
-    def add_small_scale_gaussian_fluctuations(self,cell_size,sigma_G_z_values,extra_sigma_G_values,amplitude=1.0,white_noise=False,lambda_min=0,IVAR_cutoff=lya):
+    def add_small_scale_gaussian_fluctuations(self,cell_size,sigma_G_z_values,extra_sigma_G_values,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya):
 
         # TODO: Is NGP really the way to go?
 
@@ -1187,7 +1215,6 @@ class simulation_data:
         final_GAUSSIAN_DELTA_rows = expanded_GAUSSIAN_DELTA_rows + amplitude*extra_variance
         """
 
-        total_times = np.zeros(3)
         extra_sigma_G = np.interp(self.Z,sigma_G_z_values,extra_sigma_G_values)
 
         for i in range(self.N_qso):
@@ -1201,7 +1228,7 @@ class simulation_data:
 
             for j in range(first_relevant_cell,last_relevant_cell):
                 extra_sigma_G_cell = extra_sigma_G[j]
-                extra_var[j] = get_gaussian_skewers(1,extra_sigma_G_cell)
+                extra_var[j-first_relevant_cell] = get_gaussian_skewers(1,extra_sigma_G_cell)
 
             if last_relevant_cell >= 0:
 
@@ -1353,7 +1380,7 @@ class simulation_data:
         return
 
     #Function to save data as a picca density file.
-    def save_as_picca_gaussian(self,location,filename,header,zero_mean_delta=False,min_number_cells=2,overwrite=False):
+    def save_as_picca_gaussian(self,location,filename,header,overwrite=False,zero_mean_delta=False,min_number_cells=2,mean_DELTA=None):
 
         lya_lambdas = 10**self.LOGLAM_MAP
 
@@ -1371,7 +1398,7 @@ class simulation_data:
 
         #If desired, enforce that the Delta rows have zero mean.
         if zero_mean_delta == True:
-            relevant_GAUSSIAN_DELTA_rows = normalise_deltas(relevant_GAUSSIAN_DELTA_rows,relevant_IVAR_rows)
+            relevant_GAUSSIAN_DELTA_rows = normalise_deltas(relevant_GAUSSIAN_DELTA_rows,mean_DELTA)
 
         #Organise the data into picca-format arrays.
         picca_0 = relevant_GAUSSIAN_DELTA_rows.T
@@ -1439,7 +1466,7 @@ class simulation_data:
         return
 
     #Function to save data as a picca density file.
-    def save_as_picca_density(self,location,filename,header,zero_mean_delta=False,min_number_cells=2):
+    def save_as_picca_density(self,location,filename,header,zero_mean_delta=False,min_number_cells=2,mean_DELTA=None):
 
         lya_lambdas = 10**self.LOGLAM_MAP
 
@@ -1457,7 +1484,7 @@ class simulation_data:
 
         #If desired, enforce that the Delta rows have zero mean.
         if zero_mean_delta == True:
-            relevant_DENSITY_DELTA_rows = normalise_deltas(relevant_DENSITY_DELTA_rows,relevant_IVAR_rows)
+            relevant_DENSITY_DELTA_rows = normalise_deltas(relevant_DENSITY_DELTA_rows,mean_DELTA)
 
         #Organise the data into picca-format arrays.
         picca_0 = relevant_DENSITY_DELTA_rows.T
@@ -1595,10 +1622,6 @@ class simulation_data:
         relevant_IVAR_rows = self.IVAR_rows[relevant_QSOs,:]
         relevant_LOGLAM_MAP = self.LOGLAM_MAP[:]
 
-        #If desired, enforce that the Delta rows have zero mean.
-        if zero_mean_delta == True:
-            relevant_VEL_rows = normalise_deltas(relevant_VEL_rows,relevant_IVAR_rows)
-
         #Organise the data into picca-format arrays.
         picca_0 = relevant_VEL_rows.T
         picca_1 = relevant_IVAR_rows.T
@@ -1627,7 +1650,7 @@ class simulation_data:
         return
 
     #Function to save the mean and variance of the different quantities as a function of Z.
-    def get_means(self,lambda_min=0):
+    def get_means(self,lambda_min=0.0):
 
         #Determine the relevant cells and QSOs.
         lya_lambdas = 10**self.LOGLAM_MAP
@@ -1680,64 +1703,15 @@ class simulation_data:
         #Stitch together the means into a binary table.
         dtype = [('N', 'f4'),('GAUSSIAN_DELTA', 'f4'), ('GAUSSIAN_DELTA_SQUARED', 'f4'), ('DENSITY_DELTA', 'f4'), ('DENSITY_DELTA_SQUARED', 'f4')
                 , ('F', 'f4'), ('F_SQUARED', 'f4'), ('F_DELTA', 'f4'), ('F_DELTA_SQUARED', 'f4')]
-        statistics = np.array(list(zip(N_relevant_skewers,GDB,GDSB,DDB,DDSB,FB,FSB,FDB,FDSB)),dtype=dtype)
+        means = np.array(list(zip(N_relevant_skewers,GDB,GDSB,DDB,DDSB,FB,FSB,FDB,FDSB)),dtype=dtype)
 
-        return statistics
+        return means
 
     #Function to add DLAs to a set of skewers.
-    def add_DLA_table(self,dla_bias=2.0):
+    def add_DLA_table(self):
 
-        y = interp1d(self.Z,self.D)
-        bias = dla_bias/(self.D)*y(2.25)
-
-        #We measure sigma_G already, but it is not fed back into the files at all. This should change.
-        sigma_g = self.SIGMA_G
-        #sigma_g = DLA.get_sigma_g(o.input_file)
-
-        nu_arr = DLA.nu_of_bD(bias*self.D)
-        flagged_pixels = DLA.flag_DLA(self.GAUSSIAN_DELTA_rows,nu_arr,sigma_g)
-
-        #Edges of the z bins
-        zedges = np.concatenate([[0],(self.Z[1:]+self.Z[:-1])*0.5,[self.Z[-1]+(-self.Z[-2]+self.Z[-1])*0.5]]).ravel()
-        z_width = zedges[1:]-zedges[:-1]
-
-        #Average number of DLAs per pixel
-        N = z_width*DLA.dNdz(self.Z)
-
-        #For a given z, probability of having the density higher than the threshold
-        p_nu_z = 1.0-norm.cdf(nu_arr)
-        mu = N/p_nu_z
-
-        #Should the "len(skewers)" be the number of skewers or the number of cells in each skewer here?
-        #Think it's the number of skewers but will check
-        pois = np.random.poisson(mu,size=(self.N_qso,len(mu)))
-        dlas = pois*flagged_pixels
-
-        #For each dla, assign it a redshift, a velocity and a column density.
-        ndlas = np.sum(dlas)
-        zdla = np.zeros(ndlas)
-        kskw = np.zeros(ndlas)
-        dz_dla = np.zeros(ndlas)
-        idx = 0
-        for nskw,dla in enumerate(dlas):
-            ind = np.where(dla>0)[0]
-            for ii in ind:
-                zdla[idx:idx+dla[ii]] = np.random.uniform(low=(zedges[ii]),high=(zedges[ii+1]),size=dla[ii])
-                kskw[idx:idx+dla[ii]] = nskw
-                dz_dla[idx:idx+dla[ii]] = self.VEL_rows[nskw,ii]
-                idx = idx+dla[ii]
-        Ndla = DLA.get_N(zdla)
-        kskw = kskw.astype('int32')
-        MOCKIDs = self.MOCKID[kskw]
-
-        #Make the data into a table HDU
-        taux = astropy.table.Table([MOCKIDs,zdla,dz_dla,Ndla],names=('MOCKID','Z_DLA','DZ_DLA','N_HI_DLA'))
-
-        #Only include DLAs where the DLA is at lower z than the QSO
-        DLA_Z_QSOs = self.Z_QSO[kskw]
-        taux = taux[taux['Z_DLA']<DLA_Z_QSOs]
-
-        self.DLA_table = taux
+        dla_bias = 2.0
+        DLA.add_DLA_table_to_object(self,dla_bias=dla_bias)
 
         return
 

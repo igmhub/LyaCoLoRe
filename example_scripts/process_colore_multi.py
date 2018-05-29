@@ -80,7 +80,7 @@ parser.add_argument('--transmission-only', action="store_true", default = False,
 parser.add_argument('--nskewers', type = int, default = None, required=False,
                     help = 'number of skewers to process')
 
-
+################################################################################
 
 args = parser.parse_args()
 
@@ -405,7 +405,7 @@ start_time = time.time()
 
 def produce_final_skewers(new_base_file_location,new_file_structure,new_filename_structure,pixel,N_side,input_format,zero_mean_delta,lambda_min,measured_SIGMA_G):
     location = new_base_file_location + '/' + new_file_structure.format(pixel//100,pixel)
-    mean_F_data=np.array(list(zip(tuning_z_values,desired_mean_F)))
+    mean_F_data = np.array(list(zip(tuning_z_values,desired_mean_F)))
 
     #We work from the gaussian colore files made in 'pixelise gaussian skewers'.
     gaussian_filename = new_filename_structure.format('gaussian-colore',N_side,pixel)
@@ -420,6 +420,7 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     header['LYA'] = lya
     header['NQSO'] = pixel_object.N_qso
     header['NESTED'] = True
+    header['SIGMA_G'] = measured_SIGMA_G
 
     #Add the physical density and flux skewers to the object.
     pixel_object.compute_physical_skewers()
@@ -461,7 +462,10 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     pixel_object.save_as_picca_flux(location,filename,header,mean_F_data=mean_F_data)
 
     #Add small scale power to the gaussian skewers:
-    new_cosmology = pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,tuning_z_values,extra_sigma_G_values,white_noise=True,lambda_min=0,IVAR_cutoff=IVAR_cutoff)
+    new_cosmology = pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,tuning_z_values,extra_sigma_G_values,white_noise=True,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff)
+
+    #Remove the 'SIGMA_G' header as SIGMA_G now varies with z.
+    del header['SIGMA_G']
 
     #If there are already physical/flux skewers, recalculate them.
     if pixel_object.DENSITY_DELTA_rows is not None:
@@ -470,6 +474,9 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
         pixel_object.compute_flux_skewers(np.interp(pixel_object.Z,tuning_z_values,alphas),beta)
 
     #Add a table with DLAs in to the pixel object.
+    # TODO: in future, we want DLAs all the way down to z=0.
+    #That means we need to store skewers all the way down to z=0.
+    #Not possible atm as we'd run out of memory, but can be done once running on >1 node.
     if add_DLAs:
         pixel_object.add_DLA_table()
 
@@ -497,7 +504,9 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
         #If transmission_only is not False, remove the gaussian-colore file
         os.remove(location+gaussian_filename)
 
-    return new_cosmology
+    means = pixel_object.get_means(lambda_min=lambda_min)
+
+    return [new_cosmology,means]
 
 #define the tasks
 tasks = [(new_base_file_location,new_file_structure,new_filename_structure,pixel,N_side,input_format,zero_mean_delta,lambda_min,measured_SIGMA_G) for pixel in pixel_list]
@@ -524,7 +533,7 @@ Having added small scale power, we must add a new HDU to the master file's cosmo
 print('Updating master file\'s cosmology...')
 #First check that the new cosmologies are all the same.
 # TODO: some kind of system to check consistency here?
-new_cosmology = results[0]
+new_cosmology = results[0][0]
 
 #Reorganise the data.
 master = fits.open(master_filename)
@@ -554,26 +563,51 @@ print('Process complete!\n')
 
 ################################################################################
 
-# TODO: Update this
 """
 Group the statistics calculated to get means and variances.
 Save these into a fits file.
 """
-"""
+
 print('\nMaking statistics file...')
 start_time = time.time()
 
 #Use combine_means and means_to_statistics to calculate the mean and variance of the different quantities over all skewers.
-means = functions.combine_means(results)
+means_list = list(np.array(results)[:,1])
+means = functions.combine_means(means_list)
 statistics = functions.means_to_statistics(means)
 
 #Save the statistics data as a new fits file.
-functions.write_statistics(new_base_file_location,N_side,statistics,cosmology_data)
+functions.write_statistics(new_base_file_location,N_side,statistics,master_new_cosmology)
 
 print('\nTime to make statistics file: {:4.0f}s\n.'.format(time.time()-start_time))
-"""
+
 
 ################################################################################
+
+"""
+We may want to renormalise some of the deltas.
+Here we do so.
+"""
+"""
+file_to_renormalise_names = ['picca-gaussian-RSD']
+file_to_renormalise_types = ['picca-gaussian']
+
+tasks = []
+for i,filename in enumerate(file_to_renormalise_names):
+    file_type = file_to_renormalise_types[i]
+    tasks += [(filename,file_type,pixel) for pixel in pixel_list]
+
+def renormalise_delta_file(filename,file_type,pixel):
+    location = new_base_file_location + '/' + new_file_structure.format(pixel//100,pixel)
+    filename
+    pixel_object = get_gaussian_skewers_object(location+filename,None,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
+"""
+
+
+
+
+################################################################################
+
 
 """
 Celebrate!
