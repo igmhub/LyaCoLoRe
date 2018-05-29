@@ -345,7 +345,7 @@ if retune_small_scale_fluctuations == True:
         pool.close()
         pool.join()
 
-    dtype = [('z', '>f4'), ('alpha', '>f4'), ('sigma_G', '>f4'), ('mean_F', '>f4'), ('sigma_dF', '>f4'), ('mean_F_needed', '>f4'), ('sigma_dF_needed', '>f4')]
+    dtype = [('z', 'f4'), ('alpha', 'f4'), ('sigma_G', 'f4'), ('mean_F', 'f4'), ('sigma_dF', 'f4'), ('mean_F_needed', 'f4'), ('sigma_dF_needed', 'f4')]
     tune_small_scale_fluctuations = np.array(results,dtype=dtype)
     tune_small_scale_fluctuations = np.sort(tune_small_scale_fluctuations,order=['z'])
 

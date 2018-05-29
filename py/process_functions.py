@@ -1,4 +1,4 @@
-import numpy as np
+f8import numpy as np
 from astropy.io import fits
 import healpy as hp
 import os
@@ -283,7 +283,7 @@ def get_ID_data(original_file_location,original_filename_structure,file_number,i
 
     #Sort the MOCKIDs and pixel_IDs into the right order: first by pixel number, and then by MOCKID.
     #Also filter out the objects with Z_QSO<minimum_z
-    dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z_QSO_NO_RSD', '>f4'), ('Z_QSO_RSD', '>f4'), ('MOCKID', int), ('PIXNUM', int)]
+    dtype = [('RA', 'f8'), ('DEC', 'f8'), ('Z_QSO_NO_RSD', 'f8'), ('Z_QSO_RSD', 'f8'), ('MOCKID', int), ('PIXNUM', int)]
     ID = np.array(ID_data, dtype=dtype)
     ID = ID[ID['Z_QSO_NO_RSD']>minimum_z]
     ID_sort = np.sort(ID, order=['PIXNUM','MOCKID'])
@@ -299,7 +299,7 @@ def get_ID_data(original_file_location,original_filename_structure,file_number,i
 
     #Construct the cosmology array.
     cosmology_data = list(zip(h_R,h_Z,h_D,h_V))
-    dtype = [('R', '>f4'), ('Z', '>f4'), ('D', '>f4'), ('V', '>f4')]
+    dtype = [('R', 'f8'), ('Z', 'f8'), ('D', 'f8'), ('V', 'f8')]
     cosmology = np.array(cosmology_data,dtype=dtype)
 
     return file_number, ID_sort, cosmology, file_pixel_map_element, MOCKID_lookup_element
@@ -374,7 +374,7 @@ def write_DRQ(filename,RSD_option,ID_data,N_side):
     PLATE = THING_ID
 
     #Make the data array.
-    dtype = [('RA','>f4'),('DEC','>f4'),('Z','>f4'),('THING_ID',int),('MJD','>f4'),('FIBERID',int),('PLATE',int),('PIXNUM',int)]
+    dtype = [('RA','f8'),('DEC','f8'),('Z','f8'),('THING_ID',int),('MJD','f8'),('FIBERID',int),('PLATE',int),('PIXNUM',int)]
     DRQ_data = np.array(list(zip(RA,DEC,Z,THING_ID,MJD,FID,PLATE,PIXNUM)),dtype=dtype)
 
     #Make an appropriate header.
@@ -486,8 +486,8 @@ def get_simulation_parameters(location,filename):
 
     #Define the parameters to search for and the intricacies of the parameter file.
     divider = '\n'
-    #parameters = [('dens_type','int'),('r_smooth','>f4'),('n_grid','int'),('gaussian_skewers','str'),('omega_M','>f4'),('omega_L','>f4'),('omega_B','>f4'),('h','>f4'),('w','>f4'),('ns','>f4'),('sigma_8','>f4')]
-    parameters = [('dens_type','int'),('r_smooth','>f4'),('n_grid','int'),('omega_M','>f4'),('omega_L','>f4'),('omega_B','>f4'),('h','>f4'),('w','>f4'),('ns','>f4'),('sigma_8','>f4')]
+    #parameters = [('dens_type','int'),('r_smooth','f4'),('n_grid','int'),('gaussian_skewers','str'),('omega_M','f4'),('omega_L','f4'),('omega_B','f4'),('h','f4'),('w','f4'),('ns','f4'),('sigma_8','f4')]
+    parameters = [('dens_type','int'),('r_smooth','f4'),('n_grid','int'),('omega_M','f4'),('omega_L','f4'),('omega_B','f4'),('h','f4'),('w','f4'),('ns','f4'),('sigma_8','f4')]
     equality_format = ' = '
     N_parameters = len(parameters)
 
@@ -561,11 +561,11 @@ def combine_means(means_list):
 #Function to convert a set of means of quantities and quantities squared (as outputted by 'combine_means') to a set of means and variances.
 def means_to_statistics(means):
 
-    statistics_dtype = [('N', '>f4')
-        , ('GAUSSIAN_DELTA_MEAN', '>f4'), ('GAUSSIAN_DELTA_VAR', '>f4')
-        , ('DENSITY_DELTA_MEAN', '>f4'), ('DENSITY_DELTA_VAR', '>f4')
-        , ('F_MEAN', '>f4'), ('F_VAR', '>f4')
-        , ('F_DELTA_MEAN', '>f4'), ('F_DELTA_VAR', '>f4')]
+    statistics_dtype = [('N', 'f4')
+        , ('GAUSSIAN_DELTA_MEAN', 'f4'), ('GAUSSIAN_DELTA_VAR', 'f4')
+        , ('DENSITY_DELTA_MEAN', 'f4'), ('DENSITY_DELTA_VAR', 'f4')
+        , ('F_MEAN', 'f4'), ('F_VAR', 'f4')
+        , ('F_DELTA_MEAN', 'f4'), ('F_DELTA_VAR', 'f4')]
 
     statistics = np.zeros(means.shape,dtype=statistics_dtype)
 
@@ -1210,7 +1210,7 @@ class simulation_data:
         self.GAUSSIAN_DELTA_rows = expanded_GAUSSIAN_DELTA_rows
         self.SIGMA_G = np.sqrt(extra_sigma_G**2 + (self.SIGMA_G)**2)
 
-        dtype = [('R', '>f4'), ('Z', '>f4'), ('D', '>f4'), ('V', '>f4')]
+        dtype = [('R', 'f8'), ('Z', 'f8'), ('D', 'f8'), ('V', 'f8')]
         new_cosmology = np.array(list(zip(self.R,self.Z,self.D,self.V)),dtype=dtype)
 
         return new_cosmology
@@ -1323,7 +1323,7 @@ class simulation_data:
         for i in range(self.N_qso):
             colore_1_data += [(self.TYPE[i],self.RA[i],self.DEC[i],self.Z_QSO[i],self.DZ_RSD[i],self.MOCKID[i])]
 
-        dtype = [('TYPE', '>f4'), ('RA', '>f4'), ('DEC', '>f4'), ('Z_COSMO', '>f4'), ('DZ_RSD', '>f4'), ('MOCKID', int)]
+        dtype = [('TYPE', 'f8'), ('RA', 'f8'), ('DEC', 'f8'), ('Z_COSMO', 'f8'), ('DZ_RSD', 'f8'), ('MOCKID', int)]
         colore_1 = np.array(colore_1_data,dtype=dtype)
         colore_2 = self.GAUSSIAN_DELTA_rows
         colore_3 = self.VEL_rows
@@ -1332,7 +1332,7 @@ class simulation_data:
         for i in range(self.N_cells):
             colore_4_data += [(self.R[i],self.Z[i],self.D[i],self.V[i])]
 
-        dtype = [('R', '>f4'), ('Z', '>f4'), ('D', '>f4'), ('V', '>f4')]
+        dtype = [('R', 'f8'), ('Z', 'f8'), ('D', 'f8'), ('V', 'f8')]
         colore_4 = np.array(colore_4_data,dtype=dtype)
 
         #Construct HDUs from the data arrays.
@@ -1383,7 +1383,7 @@ class simulation_data:
             if i in relevant_QSOs:
                 picca_3_data += [(self.RA[i],self.DEC[i],self.Z_QSO[i],self.PLATE[i],self.MJD[i],self.FIBER[i],self.MOCKID[i])]
 
-        dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z', '>f4'), ('PLATE', int), ('MJD', '>f4'), ('FIBER', int), ('THING_ID', int)]
+        dtype = [('RA', 'f8'), ('DEC', 'f8'), ('Z', 'f8'), ('PLATE', int), ('MJD', 'f8'), ('FIBER', int), ('THING_ID', int)]
         picca_3 = np.array(picca_3_data,dtype=dtype)
 
         #Make the data into suitable HDUs.
@@ -1408,7 +1408,7 @@ class simulation_data:
         for i in range(self.N_qso):
             colore_1_data += [(self.TYPE[i],self.RA[i],self.DEC[i],self.Z_QSO[i],self.DZ_RSD[i],self.MOCKID[i])]
 
-        dtype = [('TYPE', '>f4'), ('RA', '>f4'), ('DEC', '>f4'), ('Z_COSMO', '>f4'), ('DZ_RSD', '>f4'), ('MOCKID', int)]
+        dtype = [('TYPE', 'f8'), ('RA', 'f8'), ('DEC', 'f8'), ('Z_COSMO', 'f8'), ('DZ_RSD', 'f8'), ('MOCKID', int)]
         colore_1 = np.array(colore_1_data,dtype=dtype)
 
         colore_2 = self.DENSITY_DELTA_rows
@@ -1418,7 +1418,7 @@ class simulation_data:
         for i in range(self.N_cells):
             colore_4_data += [(self.R[i],self.Z[i],self.D[i],self.V[i])]
 
-        dtype = [('R', '>f4'), ('Z', '>f4'), ('D', '>f4'), ('V', '>f4')]
+        dtype = [('R', 'f8'), ('Z', 'f8'), ('D', 'f8'), ('V', 'f8')]
         colore_4 = np.array(colore_4_data,dtype=dtype)
 
         #Construct HDUs from the data arrays.
@@ -1469,7 +1469,7 @@ class simulation_data:
             if i in relevant_QSOs:
                 picca_3_data += [(self.RA[i],self.DEC[i],self.Z_QSO[i],self.PLATE[i],self.MJD[i],self.FIBER[i],self.MOCKID[i])]
 
-        dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z', '>f4'), ('PLATE', int), ('MJD', '>f4'), ('FIBER', int), ('THING_ID', int)]
+        dtype = [('RA', 'f8'), ('DEC', 'f8'), ('Z', 'f8'), ('PLATE', int), ('MJD', 'f8'), ('FIBER', int), ('THING_ID', int)]
         picca_3 = np.array(picca_3_data,dtype=dtype)
 
         #Make the data into suitable HDUs.
@@ -1494,7 +1494,7 @@ class simulation_data:
 
         transmission_1_data = list(zip(self.RA,self.DEC,Z_RSD,self.Z_QSO,self.MOCKID))
 
-        dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z', '>f4'), ('Z_noRSD', '>f4'), ('MOCKID', int)]
+        dtype = [('RA', 'f8'), ('DEC', 'f8'), ('Z', 'f8'), ('Z_noRSD', 'f8'), ('MOCKID', int)]
         transmission_1 = np.array(transmission_1_data,dtype=dtype)
 
         transmission_2 = 10**(self.LOGLAM_MAP)
@@ -1561,7 +1561,7 @@ class simulation_data:
             if i in relevant_QSOs:
                 picca_3_data += [(self.RA[i],self.DEC[i],self.Z_QSO[i],self.PLATE[i],self.MJD[i],self.FIBER[i],self.MOCKID[i])]
 
-        dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z', '>f4'), ('PLATE', int), ('MJD', '>f4'), ('FIBER', int), ('THING_ID', int)]
+        dtype = [('RA', 'f8'), ('DEC', 'f8'), ('Z', 'f8'), ('PLATE', int), ('MJD', 'f8'), ('FIBER', int), ('THING_ID', int)]
         picca_3 = np.array(picca_3_data,dtype=dtype)
 
         #Make the data into suitable HDUs.
@@ -1609,7 +1609,7 @@ class simulation_data:
             if i in relevant_QSOs:
                 picca_3_data += [(self.RA[i],self.DEC[i],self.Z_QSO[i],self.PLATE[i],self.MJD[i],self.FIBER[i],self.MOCKID[i])]
 
-        dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z', '>f4'), ('PLATE', int), ('MJD', '>f4'), ('FIBER', int), ('THING_ID', int)]
+        dtype = [('RA', 'f8'), ('DEC', 'f8'), ('Z', 'f8'), ('PLATE', int), ('MJD', 'f8'), ('FIBER', int), ('THING_ID', int)]
         picca_3 = np.array(picca_3_data,dtype=dtype)
 
         #Make the data into suitable HDUs.
@@ -1678,8 +1678,8 @@ class simulation_data:
         FDSB = np.average(relevant_F_DELTA_rows**2,weights=relevant_IVAR_rows+small,axis=0)*relevant_cells
 
         #Stitch together the means into a binary table.
-        dtype = [('N', '>f4'),('GAUSSIAN_DELTA', '>f4'), ('GAUSSIAN_DELTA_SQUARED', '>f4'), ('DENSITY_DELTA', '>f4'), ('DENSITY_DELTA_SQUARED', '>f4')
-                , ('F', '>f4'), ('F_SQUARED', '>f4'), ('F_DELTA', '>f4'), ('F_DELTA_SQUARED', '>f4')]
+        dtype = [('N', 'f4'),('GAUSSIAN_DELTA', 'f4'), ('GAUSSIAN_DELTA_SQUARED', 'f4'), ('DENSITY_DELTA', 'f4'), ('DENSITY_DELTA_SQUARED', 'f4')
+                , ('F', 'f4'), ('F_SQUARED', 'f4'), ('F_DELTA', 'f4'), ('F_DELTA_SQUARED', 'f4')]
         statistics = np.array(list(zip(N_relevant_skewers,GDB,GDSB,DDB,DDSB,FB,FSB,FDB,FDSB)),dtype=dtype)
 
         return statistics
@@ -2002,7 +2002,7 @@ class simulation_data:
                 for i in range(self.N_qso):
                     colore_1_data += [(self.TYPE[i],self.RA[i],self.DEC[i],self.Z_QSO[i],self.DZ_RSD[i],self.MOCKID[i])]
 
-                dtype = [('TYPE', '>f4'), ('RA', '>f4'), ('DEC', '>f4'), ('Z_COSMO', '>f4'), ('DZ_RSD', '>f4'), ('MOCKID', int)]
+                dtype = [('TYPE', 'f8'), ('RA', 'f8'), ('DEC', 'f8'), ('Z_COSMO', 'f8'), ('DZ_RSD', 'f8'), ('MOCKID', int)]
                 colore_1 = np.array(colore_1_data,dtype=dtype)
 
                 colore_2 = self.DENSITY_DELTA_rows
@@ -2012,7 +2012,7 @@ class simulation_data:
                 for i in range(self.N_cells):
                     colore_4_data += [(self.R[i],self.Z[i],self.D[i],self.V[i])]
 
-                dtype = [('R', '>f4'), ('Z', '>f4'), ('D', '>f4'), ('V', '>f4')]
+                dtype = [('R', 'f8'), ('Z', 'f8'), ('D', 'f8'), ('V', 'f8')]
                 colore_4 = np.array(colore_4_data,dtype=dtype)
 
                 #Construct HDUs from the data arrays.
@@ -2043,7 +2043,7 @@ class simulation_data:
                 for i in range(self.N_qso):
                     picca_3_data += [(self.RA[i],self.DEC[i],self.Z_QSO[i],self.PLATE[i],self.MJD[i],self.FIBER[i],self.MOCKID[i])]
 
-                dtype = [('RA', '>f4'), ('DEC', '>f4'), ('Z', '>f4'), ('PLATE', int), ('MJD', '>f4'), ('FIBER', int), ('MOCKID', int)]
+                dtype = [('RA', 'f8'), ('DEC', 'f8'), ('Z', 'f8'), ('PLATE', int), ('MJD', 'f8'), ('FIBER', int), ('MOCKID', int)]
                 picca_3 = np.array(picca_3_data,dtype=dtype)
 
                 #Make the data into suitable HDUs.
