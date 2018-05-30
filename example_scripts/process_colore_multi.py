@@ -247,10 +247,10 @@ def pixelise_gaussian_skewers(pixel,original_file_location,original_filename_str
     # TODO: These could be made beforehand and passed to the function? Or is there already enough being passed?
     #Make some useful headers
     header = fits.Header()
-    header['NSIDE'] = N_side
-    header['PIXNUM'] = pixel
+    header['HPXNSIDE'] = N_side
+    header['HPXPIXEL'] = pixel
+    header['HPXNEST'] = True
     header['LYA'] = lya
-    header['NQSO'] = pixel_object.N_qso
 
     # TODO: MISLEADING
     header['SIGMA_G'] = pixel_object.SIGMA_G
@@ -415,11 +415,10 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
 
     #Make some useful headers
     header = fits.Header()
-    header['NSIDE'] = N_side
-    header['PIXNUM'] = pixel
+    header['HPXNSIDE'] = N_side
+    header['HPXPIXEL'] = pixel
+    header['HPXNEST'] = True
     header['LYA'] = lya
-    header['NQSO'] = pixel_object.N_qso
-    header['NESTED'] = True
     header['SIGMA_G'] = measured_SIGMA_G
 
     #Add the physical density and flux skewers to the object.
