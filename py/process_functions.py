@@ -173,7 +173,7 @@ def make_MOCKID(file_number,row_numbers):
 
     MOCKID = ['']*N_qso
     for i in range(N_qso):
-        row_numbers[i] = str(row_numbers[i])
+        row_numbers[i] = str(row_numbers[i]+1)
         if len(row_numbers[i])<=7:
             row_numbers[i] = '0'*(7-len(row_numbers[i]))+row_numbers[i]
         else:
