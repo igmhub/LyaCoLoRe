@@ -112,8 +112,8 @@ else:
     N_pix = 12*N_side**2
 
 #Define the original file structure
-original_filename_structure = 'N1000_out_srcs_s1_{}.fits' #file_number
-file_numbers = list(range(0,1))
+original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
+file_numbers = list(range(0,32))
 input_format = 'gaussian_colore'
 
 #Set file structure
@@ -461,8 +461,8 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     pixel_object.save_as_picca_flux(location,filename,header,mean_F_data=mean_F_data)
 
     #Add small scale power to the gaussian skewers:
-    new_cosmology = pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,tuning_z_values,extra_sigma_G_values,white_noise=True,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff)
-
+    #new_cosmology = pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,tuning_z_values,extra_sigma_G_values,white_noise=True,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff)
+    new_cosmology = []
     #Remove the 'SIGMA_G' header as SIGMA_G now varies with z.
     del header['SIGMA_G']
 
@@ -503,7 +503,7 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
         #If transmission_only is not False, remove the gaussian-colore file
         os.remove(location+gaussian_filename)
 
-    means = pixel_object.get_means(lambda_min=lambda_min)
+    means = pixel_object.get_means()
 
     return [new_cosmology,means]
 
@@ -528,7 +528,7 @@ print('\nTime to make physical pixel files: {:4.0f}s.\n'.format(time.time()-star
 """
 Having added small scale power, we must add a new HDU to the master file's cosmology.
 """
-
+"""
 print('Updating master file\'s cosmology...')
 #First check that the new cosmologies are all the same.
 # TODO: some kind of system to check consistency here?
@@ -559,7 +559,7 @@ hdulist.writeto(master_filename,overwrite=True)
 hdulist.close()
 
 print('Process complete!\n')
-
+"""
 ################################################################################
 
 """
@@ -576,7 +576,7 @@ means = functions.combine_means(means_list)
 statistics = functions.means_to_statistics(means)
 
 #Save the statistics data as a new fits file.
-functions.write_statistics(new_base_file_location,N_side,statistics,master_new_cosmology)
+functions.write_statistics(new_base_file_location,N_side,statistics,cosmology_data)
 
 print('\nTime to make statistics file: {:4.0f}s\n.'.format(time.time()-start_time))
 
