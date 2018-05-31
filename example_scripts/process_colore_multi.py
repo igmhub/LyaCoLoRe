@@ -112,8 +112,8 @@ else:
     N_pix = 12*N_side**2
 
 #Define the original file structure
-original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
-file_numbers = list(range(0,32))
+original_filename_structure = 'N1000_out_srcs_s1_{}.fits' #file_number
+file_numbers = list(range(0,1))
 input_format = 'gaussian_colore'
 
 #Set file structure
@@ -423,7 +423,8 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
 
     #Add the physical density and flux skewers to the object.
     pixel_object.compute_physical_skewers()
-    pixel_object.compute_flux_skewers(np.interp(pixel_object.Z,tuning_z_values,alphas),beta)
+    pixel_object.compute_tau_skewers(np.interp(pixel_object.Z,tuning_z_values,alphas),beta)
+    pixel_object.compute_flux_skewers()
 
     if transmission_only == False:
         #lognorm CoLoRe
@@ -452,7 +453,8 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     if pixel_object.DENSITY_DELTA_rows is not None:
         pixel_object.compute_physical_skewers()
     if pixel_object.F_rows is not None:
-        pixel_object.compute_flux_skewers(np.interp(pixel_object.Z,tuning_z_values,alphas),beta)
+        pixel_object.compute_tau_skewers(np.interp(pixel_object.Z,tuning_z_values,alphas),beta)
+        pixel_object.compute_flux_skewers()
 
     #Save picca files for testing RSDs
     filename = new_filename_structure.format('picca-gaussian-RSD',N_side,pixel)
@@ -470,7 +472,8 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     if pixel_object.DENSITY_DELTA_rows is not None:
         pixel_object.compute_physical_skewers()
     if pixel_object.F_rows is not None:
-        pixel_object.compute_flux_skewers(np.interp(pixel_object.Z,tuning_z_values,alphas),beta)
+        pixel_object.compute_tau_skewers(np.interp(pixel_object.Z,tuning_z_values,alphas),beta)
+        pixel_object.compute_flux_skewers()
 
     #Add a table with DLAs in to the pixel object.
     # TODO: in future, we want DLAs all the way down to z=0.
@@ -495,12 +498,90 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
         #picca flux
         filename = new_filename_structure.format('picca-flux',N_side,pixel)
         pixel_object.save_as_picca_flux(location,filename,header,mean_F_data=mean_F_data)
-
-        #picca velocity
-        filename = new_filename_structure.format('picca-velocity',N_side,pixel)
-        pixel_object.save_as_picca_velocity(location,filename,header)
     else:
         #If transmission_only is not False, remove the gaussian-colore file
+        os.remove(location+gaussian_filename)
+
+    means = pixel_object.get_means()
+
+    return [new_cosmology,means]
+
+def produce_final_skewers_thermal(new_base_file_location,new_file_structure,new_filename_structure,pixel,N_side,input_format,zero_mean_delta,lambda_min,measured_SIGMA_G):
+    location = new_base_file_location + '/' + new_file_structure.format(pixel//100,pixel)
+    mean_F_data = np.array(list(zip(tuning_z_values,desired_mean_F)))
+
+    #We work from the gaussian colore files made in 'pixelise gaussian skewers'.
+    gaussian_filename = new_filename_structure.format('gaussian-colore',N_side,pixel)
+
+    #Make a pixel object from it.
+    pixel_object = functions.simulation_data.get_gaussian_skewers_object(location+gaussian_filename,None,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
+
+    #Make some useful headers
+    header = fits.Header()
+    header['HPXNSIDE'] = N_side
+    header['HPXPIXEL'] = pixel
+    header['HPXNEST'] = True
+    header['LYA'] = lya
+    header['SIGMA_G'] = measured_SIGMA_G
+
+    if transmission_only == False:
+        #lognorm CoLoRe
+        pixel_object.compute_physical_skewers()
+        filename = new_filename_structure.format('physical-colore',N_side,pixel)
+        pixel_object.save_as_physical_colore(location,filename,header)
+
+    #Trim the skewers (remove low lambda cells)
+    pixel_object.trim_skewers(lambda_min,min_catalog_z,extra_cells=1)
+
+    #Exit now if no skewers are left.
+    if pixel_object.N_qso == 0:
+        print('\nwarning: no objects left in pixel {} after trimming.'.format(pixel))
+        return pixel
+
+    #Add small scale power to the gaussian skewers:
+    #new_cosmology = pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,tuning_z_values,extra_sigma_G_values,white_noise=True,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff)
+    new_cosmology = []
+
+    #Remove the 'SIGMA_G' header as SIGMA_G now varies with z.
+    del header['SIGMA_G']
+
+    #Add a table with DLAs in to the pixel object.
+    # TODO: in future, we want DLAs all the way down to z=0.
+    #That means we need to store skewers all the way down to z=0.
+    #Not possible atm as we'd run out of memory, but can be done once running on >1 node.
+    if add_DLAs:
+        pixel_object.add_DLA_table()
+
+    #Add physical skewers to the object.
+    pixel_object.compute_physical_skewers()
+
+    #Add tau skewers to the object.
+    pixel_object.compute_tau_skewers(np.interp(pixel_object.Z,tuning_z_values,alphas),beta)
+
+    #Add thermal RSDs to the tau skewers.
+    pixel_object.add_thermal_RSDs(max_N_steps=100)
+
+    #Convert the tau skewers to flux skewers.
+    pixel_object.compute_flux_skewers()
+
+    #transmission
+    filename = new_filename_structure.format('transmission',N_side,pixel)
+    pixel_object.save_as_transmission(location,filename,header)
+
+    if transmission_only == False:
+        #Picca Gaussian
+        filename = new_filename_structure.format('picca-gaussian',N_side,pixel)
+        pixel_object.save_as_picca_gaussian(location,filename,header)
+
+        #Picca density
+        filename = new_filename_structure.format('picca-density',N_side,pixel)
+        pixel_object.save_as_picca_density(location,filename,header)
+
+        #picca flux
+        filename = new_filename_structure.format('picca-flux',N_side,pixel)
+        pixel_object.save_as_picca_flux(location,filename,header,mean_F_data=mean_F_data)
+    else:
+        #If transmission_only is not False, remove the gaussian-colore file.
         os.remove(location+gaussian_filename)
 
     means = pixel_object.get_means()
@@ -517,7 +598,7 @@ if __name__ == '__main__':
     start_time = time.time()
 
     for task in tasks:
-        pool.apply_async(produce_final_skewers,task,callback=log_result,error_callback=log_error)
+        pool.apply_async(produce_final_skewers_thermal,task,callback=log_result,error_callback=log_error)
 
     pool.close()
     pool.join()
@@ -566,19 +647,20 @@ print('Process complete!\n')
 Group the statistics calculated to get means and variances.
 Save these into a fits file.
 """
-
 print('\nMaking statistics file...')
 start_time = time.time()
 
 #Use combine_means and means_to_statistics to calculate the mean and variance of the different quantities over all skewers.
-means_list = list(np.array(results)[:,1])
+means_list = []
+for result in results:
+    means_list += [result[1]]
 means = functions.combine_means(means_list)
 statistics = functions.means_to_statistics(means)
 
 #Save the statistics data as a new fits file.
 functions.write_statistics(new_base_file_location,N_side,statistics,cosmology_data)
 
-print('\nTime to make statistics file: {:4.0f}s\n.'.format(time.time()-start_time))
+print('\nTime to make statistics file: {:4.0f}s.\n'.format(time.time()-start_time))
 
 
 ################################################################################
@@ -602,11 +684,7 @@ def renormalise_delta_file(filename,file_type,pixel):
     pixel_object = get_gaussian_skewers_object(location+filename,None,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
 """
 
-
-
-
 ################################################################################
-
 
 """
 Celebrate!

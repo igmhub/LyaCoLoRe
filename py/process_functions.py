@@ -454,9 +454,18 @@ def gaussian_to_lognormal_delta(GAUSSIAN_DELTA_rows,SIGMA_G,D):
 
     return LN_DENSITY_DELTA_rows
 
-#Function to convert from density to flux using alpha*density^beta
+#Function to convert from density to tau using alpha*density^beta
+def density_to_tau(density,alpha,beta):
+
+    tau = alpha*(density**beta)
+
+    return tau
+
+#Function to convert from density to flux using e^-(alpha*density^beta)
 def density_to_flux(density,alpha,beta):
+
     F = np.exp(-alpha*(density**beta))
+
     return F
 
 #Function to determine the first index corresponding to a value in an array greater than a minimum value.
@@ -928,6 +937,11 @@ class simulation_data:
         self.A = A
 
         self.linear_skewer_RSDs_added = False
+        self.thermal_skewer_RSDs_added = False
+
+        self.density_computed = False
+        self.tau_computed = False
+        self.flux_computed = False
 
         return
 
@@ -1135,19 +1149,27 @@ class simulation_data:
         self.FIBER = self.FIBER[relevant_QSOs]
 
         self.GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows[relevant_QSOs,:]
-        self.DENSITY_DELTA_rows = self.DENSITY_DELTA_rows[relevant_QSOs,:]
+        if self.density_computed == True:
+            self.DENSITY_DELTA_rows = self.DENSITY_DELTA_rows[relevant_QSOs,:]
         self.VEL_rows = self.VEL_rows[relevant_QSOs,:]
         self.IVAR_rows = self.IVAR_rows[relevant_QSOs,:]
-        self.F_rows = self.F_rows[relevant_QSOs,:]
+        if self.tau_computed == True:
+            self.TAU_rows = self.TAU_rows[relevant_QSOs,:]
+        if self.flux_computed == True:
+            self.F_rows = self.F_rows[relevant_QSOs,:]
 
         #Now trim the skewers of the remaining QSOs.
         self.N_cells -= first_relevant_cell
 
         self.GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows[:,first_relevant_cell:]
-        self.DENSITY_DELTA_rows = self.DENSITY_DELTA_rows[:,first_relevant_cell:]
+        if self.density_computed == True:
+            self.DENSITY_DELTA_rows = self.DENSITY_DELTA_rows[:,first_relevant_cell:]
         self.VEL_rows = self.VEL_rows[:,first_relevant_cell:]
         self.IVAR_rows = self.IVAR_rows[:,first_relevant_cell:]
-        self.F_rows = self.F_rows[:,first_relevant_cell:]
+        if self.tau_computed == True:
+            self.TAU_rows = self.TAU_rows[:,first_relevant_cell:]
+        if self.flux_computed == True:
+            self.F_rows = self.F_rows[:,first_relevant_cell:]
 
         self.R = self.R[first_relevant_cell:]
         self.Z = self.Z[first_relevant_cell:]
@@ -1246,16 +1268,24 @@ class simulation_data:
     def compute_physical_skewers(self,density_type='lognormal'):
 
         self.DENSITY_DELTA_rows = gaussian_to_lognormal_delta(self.GAUSSIAN_DELTA_rows,self.SIGMA_G,self.D)
+        self.density_computed = True
+
+        return
+
+    #Function to add physical skewers to the object via a lognormal transformation.
+    def compute_tau_skewers(self,alpha,beta):
+
+        self.TAU_rows = density_to_tau(self.DENSITY_DELTA_rows+1,alpha,beta)
+        self.tau_computed = True
 
         return
 
     #Function to add flux skewers to the object.
-    def compute_flux_skewers(self,alpha,beta):
+    def compute_flux_skewers(self):
 
         #self.TAU_rows = get_tau(self.Z,self.DENSITY_DELTA_rows+1,alpha,beta)
-        #self.F_rows = np.exp(-self.TAU_rows)
-
-        self.F_rows = density_to_flux(self.DENSITY_DELTA_rows+1,alpha,beta)
+        self.F_rows = np.exp(-self.TAU_rows)
+        #self.F_rows = density_to_flux(self.DENSITY_DELTA_rows+1,alpha,beta)
 
         #Set the skewers to 1 beyond the quasars.
         for i in range(self.N_qso):
@@ -1264,6 +1294,8 @@ class simulation_data:
             else:
                 last_relevant_cell = np.searchsorted(self.Z,self.Z_QSO[i]) - 1
             self.F_rows[i,last_relevant_cell+1:] = 1
+
+        self.flux_computed = True
 
         return
 
@@ -1290,6 +1322,19 @@ class simulation_data:
         self.linear_skewer_RSDs_added = True
 
         return
+
+    #Function to add thermal RSDs from the velocity skewers.
+    def add_thermal_RSDs(self,max_N_steps=None):
+
+        initial_density_rows = 1 + self.DENSITY_DELTA_rows
+        new_TAU_rows = RSD.add_thermal_RSDs(self.TAU_rows,initial_density_rows,self.VEL_rows,self.Z,self.R,max_N_steps=max_N_steps)
+
+        #Overwrite the Gaussian skewers and set a flag to True.
+        self.TAU_rows = new_TAU_rows
+        self.thermal_skewer_RSDs_added = True
+
+        return
+
 
     #Method to combine data from two objects into one.
     # TODO: add something to check that we can just take values from 1 of the objects
