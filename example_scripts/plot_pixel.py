@@ -3,56 +3,26 @@ import matplotlib.pyplot as plt
 from astropy.io import fits
 import sys
 
-default_pixel = 0
+N_side = 16
+pixels = list(range(4))
 
-if len(sys.argv) > 1:
-    pixel = int(sys.argv[1])
-else:
-    pixel = default_pixel
+base = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test/'
+base = '/Users/jfarr/Projects/LyaCoLoRe/example_data/update_230518/'
 
-pixel100 = pixel//100
+for pixel in pixels:
+    col_num = pixel/len(pixels)
 
-base = '/global/cscratch1/sd/jfarr/LyaSkewers/'
-N_RA_chunks = 10
+    pixel100 = pixel//100
+    filename = base + '/{}/{}/gaussian-colore-{}-{}.fits'.format(pixel100,pixel,N_side,pixel)
 
-filename_basis = '{}CoLoRe_{}/process_output_4096_32/{}/{}/picca-density-8-{}.fits'
-skewers_filename = filename_basis.format(base,'skewers',str(pixel100),str(pixel),str(pixel))
-revamp_filename = filename_basis.format(base,'revamp',str(pixel100),str(pixel),str(pixel))
+    h = fits.open(filename)
 
-skewers = fits.open(skewers_filename)
-revamp = fits.open(revamp_filename)
+    RA = h[1].data['RA']
+    DEC = h[1].data['DEC']
 
-skewers_RA = skewers[3].data['RA']
-skewers_DEC = skewers[3].data['DEC']
-revamp_RA = revamp[3].data['RA']
-revamp_DEC = revamp[3].data['DEC']
+    plt.scatter(RA,DEC,s=10.0,c=[col_num,0,1-col_num])
 
-min_RA = 10*((min(min(skewers_RA),min(revamp_RA)))//10)
-max_RA = 10*((max(max(skewers_RA),max(revamp_RA)))//10 + 1)
-chunk_size = (max_RA - min_RA)/10
-
-figs = ['']*(N_RA_chunks)
-
-for i in range(N_RA_chunks):
-    chunk_min_RA = min_RA + i*chunk_size
-    chunk_max_RA = min_RA + (i+1)*chunk_size
-
-    print('Plotting objects with RA between {} and {}.'.format(chunk_min_RA,chunk_max_RA))
-
-    sDEC = skewers_DEC[skewers_RA >= chunk_min_RA]
-    sRA = skewers_RA[skewers_RA >= chunk_min_RA]
-    sDEC = sDEC[sRA < chunk_max_RA]
-    sRA = sRA[sRA < chunk_max_RA]
-
-    rDEC = revamp_DEC[revamp_RA >= chunk_min_RA]
-    rRA = revamp_RA[revamp_RA >= chunk_min_RA]
-    rDEC = rDEC[rRA < chunk_max_RA]
-    rRA = rRA[rRA < chunk_max_RA]
-
-    fig = plt.figure()
-    a = fig.add_subplot(111)
-    a.scatter(sRA,sDEC)
-    a.scatter(rRA,rDEC)
-    figs[i] = fig
-
+#plt.xlim(0.,360.)
+#plt.ylim(-90.,90.)
+plt.grid()
 plt.show()
