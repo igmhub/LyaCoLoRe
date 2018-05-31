@@ -45,14 +45,14 @@ def add_linear_skewer_RSDs(initial_skewer_rows,velocity_skewer_rows_dz,z):
 
     return final_skewer_rows
 
-
+#
 def get_sigma_kms(T_K):
 
     sigma_kms = 9.1*((T_K/10000)**(0.5))
 
     return sigma_kms
 
-
+#
 def get_W(x_kms,T_K):
 
     sigma_kms = get_sigma_kms(T_K)
@@ -61,19 +61,39 @@ def get_W(x_kms,T_K):
 
     return W
 
-
-def get_T_K(z,rho):
+#
+def get_T_K(z,density_rows):
 
     #Data from McDonald et al. 2001
     #Probably more up to date versions available
     T_14_McD = [20700.,20300.,20100.]
-    gm1_McD = [0.52,0.29,0.43]
-    z_McD = [2.4,3.0,3.9]
+    T_0_McD =  [17400.,18400.,17400.]
+    gm1_McD =  [0.52  ,0.29  ,0.43  ]
+    z_McD =    [2.4   ,3.0   ,3.9   ]
 
-    T_14_values = np.interp(z,z_McD,T_14_McD)
-    gm1_values = np.interp(z,z_McD,gm1_McD)
+    #Data from Hiss et al. 2017
+    T_0_Hiss = [13530.,9580.,14272.,17454.,23130.,20608.,19172.,17348.]
+    gm1_Hiss = [0.39  ,0.59 ,0.49  ,0.37  ,0.31  ,0.13  ,0.48  ,0.42  ]
+    z_Hiss =   [2.0   ,2.2  ,2.4   ,2.6   ,2.8   ,3.0   ,3.2   ,3.4   ]
 
-    T_K = T_14_value*((rho/1.4)**gm1_values)
+    #Data from Ricotti et al. 2000
+    T_0_Ric =  [4700. ,17700.,25200.,19800.]
+    gm1_Ric =  [0.85  ,0.32  ,0.22  ,0.38  ]
+    z_Ric =    [0.06  ,1.9   ,2.75  ,3.56  ]
+
+    #Mixed data
+    T_0_values = [17700.,13530.,9580.,14272.,17454.,23130.,20608.,19172.,17348.,19800.,20100.]
+    gm1_values = [0.32  ,0.39  ,0.59 ,0.49  ,0.37  ,0.31  ,0.13  ,0.48  ,0.42  ,0.38  ,0.43  ]
+    z_values =   [1.9   ,2.0   ,2.2  ,2.4   ,2.6   ,2.8   ,3.0   ,3.2   ,3.4   ,3.56  ,3.9   ]
+
+    N_cells = density_rows.shape[1]
+    T_K = np.zeros(density_rows.shape)
+
+    for j in range(N_cells):
+        T_0_value = np.interp(z[j],z_values,T_0_values)
+        gm1_value = np.interp(z[j],z_values,gm1_values)
+
+        T_K[:,j] = T_0_value*((density_rows[:,j])**gm1_value)
 
     return T_K
 
@@ -85,12 +105,16 @@ def get_dkms_dhMpc(z,Om=0.3147):
 
     return dkms_dhMpc
 
+#Converts a peculiar redshift to a peculiar velocity in kms-1.
+def dz_to_v_kms(dz):
 
-def dz_to_kms(dz):
+    c = 299792.458 #kms-1
+    alpha = (1 + dz)**2
+    v_kms = c*((alpha-1)/(alpha+1))
 
+    return v_kms
 
-    return kms
-
+#
 def get_tau_real(vel_real_kms,tau_redshift,vel_redshift_kms,v_parallel_kms,T_K):
 
     W_integrand = np.zeros(tau_redshift.shape)
@@ -102,29 +126,41 @@ def get_tau_real(vel_real_kms,tau_redshift,vel_redshift_kms,v_parallel_kms,T_K):
 
     return tau_real
 
+#
+def add_thermal_RSDs(initial_tau_rows,initial_density_rows,velocity_skewer_rows_dz,z,r_hMpc,max_N_steps=None):
 
-def add_thermal_RSDs(initial_tau_rows,initial_density_rows,velocity_skewer_rows_dz,z,x_hMpc,neighbours=False):
+    N_qso = initial_tau_rows.shape[0]
+    N_cells = initial_tau_rows.shape[1]
 
-    N_cells = initial_tau_rows.shape[0]
-    N_qso = initial_tau_rows.shape[1]
+    if max_N_steps == None:
+        max_N_steps = N_cells
 
-    final_tau_rows = np.zeros(initial_tau_rows)
+    final_tau_rows = np.zeros(initial_tau_rows.shape)
 
     dkms_dhMpc = get_dkms_dhMpc(z)
 
+    x_kms = r_hMpc * dkms_dhMpc
+
+    velocity_skewer_rows_kms = dz_to_v_kms(velocity_skewer_rows_dz)
+
+    T_K_rows = get_T_K(z,initial_density_rows)
+
     for i in range(N_qso):
-
-        T_K = get_T_K(z,initial_density_rows[i,:])
-
         for j in range(N_cells):
 
-            #Do we alraedy have a cosmological velocity? There's a V column in colore output but not sure what it is
-            x_kms = x_hMpc[j]*dkms_dhMpc[j]
+            #Given the max number of steps to integrate over, work out which j values we will integrate over.
+            #Could also do this by specifying a range of r or x or z?
+            j_values = list(range(max(0,j-max_N_steps),min(j+max_N_steps+1,N_cells)))
+            x_kms_integration = x_kms[j_values]
 
-            if neighbours == True:
-                js = list(range(max(0,j-1),min(j+1,N_cells)))
-                final_tau_rows[i,j] = get_tau_real(x_kms,initial_tau_rows[i,js],x_hMpc[js]*dkms_dhMpc[js],velocity_skewer_rows_kms[js],T_K)
-            else:
-                final_tau_rows[i,j] = get_tau_real(x_kms,initial_tau_rows[i,:],x_hMpc[:]*dkms_dhMpc[:],velocity_skewer_rows_kms[:],T_K)
+            W_argument = x_kms[j]*np.ones(len(j_values)) - x_kms_integration - velocity_skewer_rows_kms[i,j_values]
 
-    return
+            W = get_W(W_argument,T_K_rows[i,j_values])
+
+            #I think we can just use the tau we have already here?
+            #tau_R = get_tau_R(x_kms_integration)
+            tau_R = initial_tau_rows[i,j_values]
+
+            final_tau_rows[i,j] = np.trapz(tau_R*W,x_kms_integration)
+
+    return final_tau_rows
