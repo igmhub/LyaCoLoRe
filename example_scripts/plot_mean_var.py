@@ -5,7 +5,7 @@ import sys
 import process_functions as pf
 
 lya = 1215.67
-IVAR_cutoff = lya
+IVAR_cutoff = 1150.0
 
 def read_file(basedir,quantity,nside,pix):
     pix_100 = int(pix/100)
@@ -43,6 +43,7 @@ def get_means(data_rows,ivar_rows):
     N_cells=data_rows.shape[1]
     # add tiny value to not have 0/0
     if data_rows.shape[0] != ivar_rows.shape[0]:
+        print('data and ivar not same shape')
         weights = np.zeros(data_rows.shape[1])
         mean = np.zeros(data_rows.shape[1])
         mean2 = np.zeros(data_rows.shape[1])
@@ -62,9 +63,10 @@ if len(sys.argv)>1:
 else:
     quantity = 'flux'
 nside = 16
-N_pixels = 500
+N_pixels = 3072
 pixels = np.sort(np.random.choice(list(range(12*nside**2)),size=N_pixels))
 #pixels = np.array([1064,1096,1127,1128,1159,1160,1191,1192,1193,1223,1224,1225,1254,1255,1256,1257,1286,1287,1288,1289])
+pixels = np.array(list(range(N_pixels)))
 
 # will combine pixel statistics
 sum_mean=None
@@ -106,8 +108,14 @@ else:
     identifier = ''
 
 plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
+
+max_QSO_z = 3.79
+z_max = IVAR_cutoff*(1+max_QSO_z)/lya - 1
+plt.xlim(2.0,z_max + 4 - max_QSO_z)
+
 plt.plot(zs,overall_mean,label='mean_{}'.format(identifier))
-plt.plot(zs,overall_sigma,label='sigma_{}'.format(identifier))
+if quantity != 'flux':
+    plt.plot(zs,overall_sigma,label='sigma_{}'.format(identifier))
 
 plt.title('{} stats: mean and sigma, rest frame cut at {}A'.format(quantity,IVAR_cutoff))
 plt.xlabel('z')
@@ -118,6 +126,14 @@ if quantity == 'gaussian':
     sigma_G_predicted = predicted_data[1].data['sigma_G']
     plt.plot(z_predicted,np.zeros(z_predicted.shape),label='predicted mean')
     plt.plot(z_predicted,sigma_G_predicted,label='predicted sigma')
+if quantity == 'gaussian-RSD':
+    sigma_G_predicted = predicted_data[1].data['sigma_G']
+    plt.plot(z_predicted,np.zeros(z_predicted.shape),label='predicted mean')
+    plt.plot(z_predicted,sigma_G_predicted,label='predicted sigma')
+if quantity == 'gaussian-noRSD':
+    sigma_G_predicted = predicted_data[1].data['sigma_G']
+    plt.plot(z_predicted,np.zeros(z_predicted.shape),label='predicted mean')
+    plt.plot(z_predicted,sigma_G_predicted,label='predicted sigma')
 elif quantity == 'flux':
     mean_F_predicted = predicted_data[1].data['mean_F']
     sigma_dF_predicted = predicted_data[1].data['sigma_dF']
@@ -125,7 +141,7 @@ elif quantity == 'flux':
     sigma_F_predicted = sigma_dF_predicted*mean_F_predicted
 
     plt.plot(z_predicted,mean_F_predicted,label='predicted mean_F')
-    plt.plot(z_predicted,sigma_F_predicted,label='predicted sigma_F')
+    #plt.plot(z_predicted,sigma_F_predicted,label='predicted sigma_F')
 
     overall_sigma_dF = overall_sigma/overall_mean
 
@@ -138,8 +154,7 @@ elif quantity == 'flux':
     plt.plot(z_predicted,mean_F_model,label='model mean')
     plt.plot(z_predicted,sigma_dF_model,label='model sigma')
     """
-
-plt.xlim(2.0,4.0)
+#plt.ylim(-0.05,0.05)
 plt.legend()
 plt.grid()
 plt.savefig('mean_var_{}_cut{}.pdf'.format(quantity,IVAR_cutoff))
