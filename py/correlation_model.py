@@ -11,9 +11,13 @@ def visual_fit(filename,b_values,beta_values,model,data_parameters,z,compute_b_b
     mubins = []
     for i in range(len(mubin_boundaries)-1):
         mubins += [(mubin_boundaries[i],mubin_boundaries[i+1])]
-    mubins = [(0.0,0.2),(0.4,0.6),(0.8,1.0)]
+    #mubins = [(0.0,0.33),(0.33,0.67),(0.67,1.0)]
+    mubins = [(0.0,0.1),(0.5,0.6),(0.9,1.0)]
     #find a more sophisticated way to do this
     colours = ['r',(0.5,0.5,0.5),'b']
+
+    #mubins = [(0.0,1.0)]
+    #colours = ['r']
 
     N_bins = len(mubins)
 
@@ -153,7 +157,7 @@ def get_growth_factor_scaling(z,quantity,location=None):
     if quantity == 'G':
         D_at_z0 = 1
         D_at_zval = 1
-    elif quantity in ['D','q']:
+    elif quantity in ['D','F','q']:
         h = fits.open('/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test/master.fits')
         D = h[2].data['D']
         z_D = h[2].data['Z']

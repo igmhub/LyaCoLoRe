@@ -28,7 +28,7 @@ for N in range(N_files):
     renormalised_GAUSSIAN_DELTA_rows = np.zeros(GAUSSIAN_DELTA_rows.shape)
     for j in range(N_cells):
         if mean[j] != 0.0:
-            renormalised_GAUSSIAN_DELTA_rows[:,j] = GAUSSIAN_DELTA_rows[:,j]/mean[j]
+            renormalised_GAUSSIAN_DELTA_rows[:,j] = (1 + GAUSSIAN_DELTA_rows[:,j])/(1 + mean[j]) - 1
 
     header = h[0].header
     picca_0 = renormalised_GAUSSIAN_DELTA_rows.T
@@ -42,7 +42,7 @@ for N in range(N_files):
     hdulist = fits.HDUList([hdu_DELTA, hdu_iv, hdu_LOGLAM_MAP, hdu_CATALOG])
 
     new_filepath = basedir + '/{}/{}/'.format(N//100,N) + file_prefix + '-renorm-{}-{}.fits'.format(N_side,N)
-    hdulist.writeto(new_filepath)
+    hdulist.writeto(new_filepath,overwrite=True)
     hdulist.close()
     h.close()
 
