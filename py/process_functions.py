@@ -421,6 +421,17 @@ def make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP):
 
     return IVAR_rows
 
+#Function to convert tau skewers (in rows) to density skewers (in rows).
+def tau_to_density(TAU_rows,alpha,beta):
+
+    DENSITY_rows = np.zeros(TAU_rows.shape)
+    N_cells = TAU_rows.shape[1]
+
+    for j in range(N_cells):
+        DENSITY_rows[:,j] = (TAU_rows[:,j]/alpha[j])**(1/beta)
+
+    return DENSITY_rows
+
 #Function to convert lognormal delta skewers (in rows) to gaussian field skewers (in rows).
 def lognormal_delta_to_gaussian(LN_DENSITY_DELTA_rows,SIGMA_G,D):
 
@@ -1300,24 +1311,30 @@ class simulation_data:
         return
 
     #Function to add linear RSDs from the velocity skewers.
-    def add_linear_RSDs(self):
-
-        #convert the gaussian rows to temporary physical density rows
-        initial_density_rows = 1 + gaussian_to_lognormal_delta(self.GAUSSIAN_DELTA_rows,self.SIGMA_G,self.D)
+    def add_linear_RSDs(self,alpha,beta):
 
         #add RSDs to these physical density rows
-        new_density_rows = RSD.add_linear_skewer_RSDs(initial_density_rows,self.VEL_rows,self.Z)
+        new_TAU_rows = RSD.add_linear_skewer_RSDs(self.TAU_rows,self.VEL_rows,self.Z)
 
         ## TODO: find a neater way to do this
-        #For the moment, we add a very small value onto the density skewers, to avoid problems in the inverse lognormal transformation
+        #For the moment, we add a very small value onto the tau skewers, to avoid problems in the inverse lognormal transformation
         #In future, when we don't care about the gaussian skewers, we can get rid of this
+        new_TAU_rows += (new_TAU_rows==0)*1.0e-10
 
-        new_density_rows += (new_density_rows==0)*1.0e-10
+        #convert the new tau rows back to physical density
+        new_density_rows = tau_to_density(new_TAU_rows,alpha,beta)
+        new_density_delta_rows = new_density_rows - 1
 
         #convert the new physical density rows back to gaussian
         new_gaussian_rows = lognormal_delta_to_gaussian(new_density_rows - 1,self.SIGMA_G,self.D)
 
-        #Overwrite the Gaussian skewers and set a flag to True.
+        #Make a mask where the physical skewers are zero.
+        #mask = (new_density_rows != 0)
+        #self.IVAR_rows *= mask
+
+        #Overwrite the physical and tau skewers and set a flag to True.
+        self.TAU_rows = new_TAU_rows
+        self.DENSITY_DELTA_rows = new_density_delta_rows
         self.GAUSSIAN_DELTA_rows = new_gaussian_rows
         self.linear_skewer_RSDs_added = True
 

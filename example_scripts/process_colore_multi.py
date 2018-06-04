@@ -421,7 +421,7 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     header['LYA'] = lya
     header['SIGMA_G'] = measured_SIGMA_G
 
-    #Add the physical density and flux skewers to the object.
+    #Add the physical density, tau and flux skewers to the object.
     pixel_object.compute_physical_skewers()
     pixel_object.compute_tau_skewers(np.interp(pixel_object.Z,tuning_z_values,alphas),beta)
     pixel_object.compute_flux_skewers()
@@ -447,7 +447,7 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
 
     #Add RSDs from the velocity skewers provided by CoLoRe.
     if add_RSDs == True:
-        pixel_object.add_linear_RSDs()
+        pixel_object.add_linear_RSDs(np.interp(pixel_object.Z,tuning_z_values,alphas),beta)
 
     #If there are already physical/flux skewers, recalculate them.
     if pixel_object.DENSITY_DELTA_rows is not None:
@@ -598,7 +598,7 @@ if __name__ == '__main__':
     start_time = time.time()
 
     for task in tasks:
-        pool.apply_async(produce_final_skewers_thermal,task,callback=log_result,error_callback=log_error)
+        pool.apply_async(produce_final_skewers,task,callback=log_result,error_callback=log_error)
 
     pool.close()
     pool.join()
