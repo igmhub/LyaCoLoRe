@@ -463,8 +463,8 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     pixel_object.save_as_picca_flux(location,filename,header,mean_F_data=mean_F_data)
 
     #Add small scale power to the gaussian skewers:
-    #new_cosmology = pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,tuning_z_values,extra_sigma_G_values,white_noise=True,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff)
-    new_cosmology = []
+    new_cosmology = pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,tuning_z_values,extra_sigma_G_values,white_noise=True,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff)
+    #new_cosmology = []
     #Remove the 'SIGMA_G' header as SIGMA_G now varies with z.
     del header['SIGMA_G']
 
@@ -506,7 +506,7 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
 
     return [new_cosmology,means]
 
-def produce_final_skewers_thermal(new_base_file_location,new_file_structure,new_filename_structure,pixel,N_side,input_format,zero_mean_delta,lambda_min,measured_SIGMA_G):
+def produce_final_skewers_new(new_base_file_location,new_file_structure,new_filename_structure,pixel,N_side,input_format,zero_mean_delta,lambda_min,measured_SIGMA_G):
     location = new_base_file_location + '/' + new_file_structure.format(pixel//100,pixel)
     mean_F_data = np.array(list(zip(tuning_z_values,desired_mean_F)))
 
@@ -558,8 +558,27 @@ def produce_final_skewers_thermal(new_base_file_location,new_file_structure,new_
     #Add tau skewers to the object.
     pixel_object.compute_tau_skewers(np.interp(pixel_object.Z,tuning_z_values,alphas),beta)
 
+    #Convert the tau skewers to flux skewers.
+    pixel_object.compute_flux_skewers()
+
+    if transmission_only == False:
+        #Picca Gaussian
+        filename = new_filename_structure.format('picca-gaussian-noRSD',N_side,pixel)
+        pixel_object.save_as_picca_gaussian(location,filename,header)
+
+        #Picca density
+        filename = new_filename_structure.format('picca-density-noRSD',N_side,pixel)
+        pixel_object.save_as_picca_density(location,filename,header)
+
+        #picca flux
+        filename = new_filename_structure.format('picca-flux-noRSD',N_side,pixel)
+        pixel_object.save_as_picca_flux(location,filename,header,mean_F_data=mean_F_data)
+
     #Add thermal RSDs to the tau skewers.
-    pixel_object.add_thermal_RSDs(max_N_steps=100)
+    #Add RSDs from the velocity skewers provided by CoLoRe.
+    if add_RSDs == True:
+        #pixel_object.add_linear_RSDs(np.interp(pixel_object.Z,tuning_z_values,alphas),beta)
+        pixel_object.add_thermal_RSDs(np.interp(pixel_object.Z,tuning_z_values,alphas),beta,max_N_steps=2)
 
     #Convert the tau skewers to flux skewers.
     pixel_object.compute_flux_skewers()
@@ -598,7 +617,7 @@ if __name__ == '__main__':
     start_time = time.time()
 
     for task in tasks:
-        pool.apply_async(produce_final_skewers,task,callback=log_result,error_callback=log_error)
+        pool.apply_async(produce_final_skewers_new,task,callback=log_result,error_callback=log_error)
 
     pool.close()
     pool.join()

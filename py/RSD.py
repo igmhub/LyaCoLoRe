@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib.pyplot as plt
+import scipy.interpolate as sciint
 
 #Function to add linear RSDs from the velocity skewers.
 def add_linear_skewer_RSDs(initial_skewer_rows,velocity_skewer_rows_dz,z):
@@ -43,6 +45,8 @@ def add_linear_skewer_RSDs(initial_skewer_rows,velocity_skewer_rows_dz,z):
             final_skewer_rows[i,j_upper] += w_upper*initial_skewer_rows[i,j]
             final_skewer_rows[i,j_lower] += w_lower*initial_skewer_rows[i,j]
 
+        print(np.sum(initial_skewer_rows[i,:]),np.sum(final_skewer_rows[i,:]))
+
     return final_skewer_rows
 
 #
@@ -57,7 +61,7 @@ def get_W(x_kms,T_K):
 
     sigma_kms = get_sigma_kms(T_K)
 
-    W = (np.sqrt(2*(np.pi)*(sigma_kms**2))) * np.exp(-(x_kms**2)/(2*sigma_kms**2))
+    W = ((np.sqrt(2*(np.pi)*(sigma_kms**2)))**(-1.)) * np.exp(-(x_kms**2)/(2*sigma_kms**2))
 
     return W
 
@@ -127,7 +131,12 @@ def get_tau_real(vel_real_kms,tau_redshift,vel_redshift_kms,v_parallel_kms,T_K):
     return tau_real
 
 #
-def add_thermal_RSDs(initial_tau_rows,initial_density_rows,velocity_skewer_rows_dz,z,r_hMpc,max_N_steps=None):
+def get_tau_0(z,Om=0.3147):
+
+    return tau_0_rows
+
+#
+def add_thermal_skewer_RSDs(initial_tau_rows,initial_density_rows,velocity_skewer_rows_dz,z,r_hMpc,max_N_steps=None):
 
     N_qso = initial_tau_rows.shape[0]
     N_cells = initial_tau_rows.shape[1]
@@ -145,21 +154,90 @@ def add_thermal_RSDs(initial_tau_rows,initial_density_rows,velocity_skewer_rows_
 
     T_K_rows = get_T_K(z,initial_density_rows)
 
+    contribution = np.zeros(x_kms.shape)
+
     for i in range(N_qso):
         for j in range(N_cells):
 
-            #Given the max number of steps to integrate over, work out which j values we will integrate over.
-            #Could also do this by specifying a range of r or x or z?
-            j_values = list(range(max(0,j-max_N_steps),min(j+max_N_steps+1,N_cells)))
-            x_kms_integration = x_kms[j_values]
+            #Integration range method
+            x_limit = 5000.0
+            n_int = 2500
+            x_kms_integration = np.linspace(x_kms[j]-x_limit,x_kms[j]+x_limit,n_int)
 
-            W_argument = x_kms[j]*np.ones(len(j_values)) - x_kms_integration - velocity_skewer_rows_kms[i,j_values]
+            #Linearly inpterpolate the velocity skewers
+            v_kms_integration = np.interp(x_kms_integration,x_kms,velocity_skewer_rows_kms[i,:])
 
-            W = get_W(W_argument,T_K_rows[i,j_values])
+            #Nearest neighbout interpolation on velocity skewers
+            #v_kms_integration = sciint.interp1d(x_kms,velocity_skewer_rows_kms[i,:],kind='nearest',bounds_error=False,fill_value=0)(x_kms_integration)
 
-            #I think we can just use the tau we have already here?
+            W_argument = x_kms[j]*np.ones(n_int) - x_kms_integration - v_kms_integration
+            W = get_W(W_argument,np.interp(x_kms_integration,x_kms,T_K_rows[i,:]))
+
+            """
+
+            #Replicating linear method method
+            x_limit = 5000.0
+            n_int = 2500
+            x_kms_integration = np.linspace(x_kms[j]-x_limit,x_kms[j]+x_limit,n_int)
+
+            W = np.zeros(x_kms_integration.shape)
+
+            #Linearly inpterpolate the velocity skewers
+            #v_kms_integration = np.interp(x_kms_integration,x_kms,velocity_skewer_rows_kms[i,:])
+
+            #Nearest neighbout interpolation on velocity skewers
+            #v_kms_integration = sciint.interp1d(x_kms,velocity_skewer_rows_kms[i,:],kind='nearest',bounds_error=False,fill_value=(velocity_skewer_rows_kms[i,0],velocity_skewer_rows_kms[i,-1]))(x_kms_integration)
+
+            #"delta function" velocities
+            v_kms_integration = np.zeros(x_kms_integration.shape)
+            k_values = [k for k in range(N_cells) if x_kms[k] > x_kms[j]-x_limit and x_kms[k] < x_kms[j]+x_limit]
+            for k in k_values:
+                index = np.searchsorted(x_kms_integration,x_kms[k])
+                if abs(x_kms[k] - x_kms_integration[index]) <= abs(x_kms[k] - x_kms_integration[index-1]):
+                    v_kms_integration[index] = velocity_skewer_rows_kms[i,k]
+                else:
+                    v_kms_integration[index-1] = velocity_skewer_rows_kms[i,k]
+
+            xpv_kms_integration = x_kms_integration + v_kms_integration
+
+            if j>0:
+                W += np.maximum(np.zeros(x_kms_integration.shape),(xpv_kms_integration - x_kms[j-1]*np.ones(n_int))/(x_kms[j]*np.ones(n_int) - x_kms[j-1]*np.ones(n_int))) * (xpv_kms_integration <= x_kms[j])
+            else:
+                W += np.ones(x_kms_integration.shape) * (xpv_kms_integration <= x_kms[j])
+
+            if j<N_cells-1:
+                W += np.maximum(np.zeros(x_kms_integration.shape),(x_kms[j+1]*np.ones(n_int) - xpv_kms_integration))/(x_kms[j+1]*np.ones(n_int) - x_kms[j]*np.ones(n_int)) * (xpv_kms_integration > x_kms[j])
+            else:
+                W += np.ones(x_kms_integration.shape) * (xpv_kms_integration >= x_kms[j])
+
+            if j>0:
+                if j<N_cells-1:
+                    W /= 1.#(0.5*(x_kms[j+1] - x_kms[j-1]))
+
+            """
+
+
+            #Caluclate tau_R afresh
             #tau_R = get_tau_R(x_kms_integration)
-            tau_R = initial_tau_rows[i,j_values]
+
+            #Linearly inpterpolate the old tau
+            tau_R = np.interp(x_kms_integration,x_kms,initial_tau_rows[i,:])
+
+            #Nearest neighbout interpolation on old tau
+            #tau_R = sciint.interp1d(x_kms,initial_tau_rows[i,:],kind='nearest',bounds_error=False,fill_value=0)(x_kms_integration)
+
+            #"delta function" tau
+            """
+            tau_R = np.zeros(x_kms_integration.shape)
+            dx = 2*x_limit/n_int
+            k_values = [k for k in range(N_cells) if x_kms[k] > x_kms[j]-x_limit and x_kms[k] < x_kms[j]+x_limit]
+            for k in k_values:
+                index = np.searchsorted(x_kms_integration,x_kms[k])
+                if abs(x_kms[k] - x_kms_integration[index]) <= abs(x_kms[k] - x_kms_integration[index-1]):
+                    tau_R[index] = initial_tau_rows[i,k] / dx
+                else:
+                    tau_R[index-1] = initial_tau_rows[i,k] / dx
+            """
 
             final_tau_rows[i,j] = np.trapz(tau_R*W,x_kms_integration)
 

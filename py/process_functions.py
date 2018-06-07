@@ -1326,7 +1326,7 @@ class simulation_data:
         new_density_delta_rows = new_density_rows - 1
 
         #convert the new physical density rows back to gaussian
-        new_gaussian_rows = lognormal_delta_to_gaussian(new_density_rows - 1,self.SIGMA_G,self.D)
+        new_gaussian_rows = lognormal_delta_to_gaussian(new_density_delta_rows,self.SIGMA_G,self.D)
 
         #Make a mask where the physical skewers are zero.
         #mask = (new_density_rows != 0)
@@ -1341,14 +1341,30 @@ class simulation_data:
         return
 
     #Function to add thermal RSDs from the velocity skewers.
-    def add_thermal_RSDs(self,max_N_steps=None):
+    def add_thermal_RSDs(self,alpha,beta,max_N_steps=None):
 
         initial_density_rows = 1 + self.DENSITY_DELTA_rows
-        new_TAU_rows = RSD.add_thermal_RSDs(self.TAU_rows,initial_density_rows,self.VEL_rows,self.Z,self.R,max_N_steps=max_N_steps)
+        new_TAU_rows = RSD.add_thermal_skewer_RSDs(self.TAU_rows,initial_density_rows,self.VEL_rows,self.Z,self.R,max_N_steps=max_N_steps)
 
-        #Overwrite the Gaussian skewers and set a flag to True.
+        #new_TAU_rows *= np.exp(-0.00272*beta*self.D*(10**self.LOGLAM_MAP))
+        #new_TAU_rows = new_TAU_rows**0.75
+
+        #convert the new tau rows back to physical density
+        new_density_rows = tau_to_density(new_TAU_rows,alpha,beta)
+        new_density_delta_rows = new_density_rows - 1
+
+        #convert the new physical density rows back to gaussian
+        new_gaussian_rows = lognormal_delta_to_gaussian(new_density_delta_rows,self.SIGMA_G,self.D)
+
+        #Make a mask where the physical skewers are zero.
+        #mask = (new_density_rows != 0)
+        #self.IVAR_rows *= mask
+
+        #Overwrite the physical and tau skewers and set a flag to True.
         self.TAU_rows = new_TAU_rows
-        self.thermal_skewer_RSDs_added = True
+        self.DENSITY_DELTA_rows = new_density_delta_rows
+        self.GAUSSIAN_DELTA_rows = new_gaussian_rows
+        self.linear_skewer_RSDs_added = True
 
         return
 
