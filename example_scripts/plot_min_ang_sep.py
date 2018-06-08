@@ -9,6 +9,7 @@ output_basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/output_G_hZ
 process_basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_nside16/'
 
 N_qso = 10**5
+ANG_bound = 0.1
 
 #Get the RA and DEC diffs from the output files
 N_output_files = 32
@@ -31,30 +32,13 @@ if N_qso:
 N_qso_output = RA_output.shape[0]
 print('\n{} QSOs in total output'.format(N_qso_output))
 
-RA_output_diff = np.zeros(N_qso_output-1)
-DEC_output_diff = np.zeros(N_qso_output-1)
-ANG_output_diff = np.zeros(N_qso_output-1)
+RA_output_diff = np.zeros(N_qso_output)
+DEC_output_diff = np.zeros(N_qso_output)
+ANG_output_diff = np.zeros(N_qso_output)
 
 print('calculating separations')
 
-"""
-RA_output_sorted = np.sort(RA_output)
-DEC_output_sorted = np.sort(DEC_output)
-
-RA_output_diff[0] = min(abs(RA_output_sorted[0]-RA_output_sorted[1]),abs(RA_output_sorted[0]-RA_output_sorted[-1]+360))
-RA_output_diff[-1] = min(abs(RA_output_sorted[-1]-RA_output_sorted[0]-360.),abs(RA_output_sorted[-1]-RA_output_sorted[-2]))
-DEC_output_diff[0] = min(abs(DEC_output_sorted[0]-DEC_output_sorted[1]),abs(DEC_output_sorted[0]-DEC_output_sorted[-1]+360))
-DEC_output_diff[-1] = min(abs(DEC_output_sorted[-1]-DEC_output_sorted[0]-360.),abs(DEC_output_sorted[-1]-DEC_output_sorted[-2]))
-
-for i in range(1,N_qso_output-2):
-    if i//1000 == i/1000:
-        print('output file {} of {}'.format(i+1,N_qso_output-1),end='\r')
-    RA_output_diff[i] = min(abs(RA_output_sorted[i]-RA_output_sorted[i+1]),abs(RA_output_sorted[i]-RA_output_sorted[i-1]))
-    DEC_output_diff[i] = min(abs(DEC_output_sorted[i]-DEC_output_sorted[i+1]),abs(DEC_output_sorted[i]-DEC_output_sorted[i-1]))
-print('\n')
-"""
-
-for i in range(N_qso_output - 1):
+for i in range(N_qso_output):
     if (i+1)//100 == (i+1)/100:
         print('output file {} of {}'.format(i+1,N_qso_output-1),end='\r')
     #times = []
@@ -68,6 +52,21 @@ for i in range(N_qso_output - 1):
 
     RA_output_diff[i] = np.min(RA_output_separation[indices])
     DEC_output_diff[i] = np.min(DEC_output_separation[indices])
+
+    within_bound = [j for j in range(N_qso_output - 1) if RA_output_separation[j]<ANG_bound and DEC_output_separation[j]<ANG_bound]
+
+    while len(within_bound) <= 1:
+        new_bound *= 2
+        print('\nincreasing bound from {} to {}'.format(new_bound/2.,new_bound))
+        within_bound = [j for j in range(N_qso_output - 1) if RA_output_separation[j]<new_bound and DEC_output_separation[j]<new_bound]
+
+    RA_output_separation = RA_output_separation[within_bound]
+    DEC_output_separation = DEC_output_separation[within_bound]
+
+    new_N_qso_output = RA_output_separation.shape[0]
+
+    indices = [j for j in range(new_N_qso_output - 1) if j!=i]
+
     #times += [time.time()]
     ANG_output_separation = (180./np.pi)*np.arccos((np.cos((np.pi/180.)*RA_output_separation))*(np.cos((np.pi/180.)*DEC_output_separation)))
     ANG_output_diff[i] = np.min(ANG_output_separation[indices])
@@ -94,9 +93,9 @@ if N_qso:
 N_qso_process = RA_process.shape[0]
 print('{} QSOs in total process'.format(N_qso_process))
 
-RA_process_diff = np.zeros(N_qso_process-1)
-DEC_process_diff = np.zeros(N_qso_process-1)
-ANG_process_diff = np.zeros(N_qso_process-1)
+RA_process_diff = np.zeros(N_qso_process)
+DEC_process_diff = np.zeros(N_qso_process)
+ANG_process_diff = np.zeros(N_qso_process)
 
 """
 RA_process_sorted = np.sort(RA_process)
@@ -116,7 +115,7 @@ for i in range(1,N_qso_process-2):
 print('\n')
 """
 
-for i in range(N_qso_process - 1):
+for i in range(N_qso_process):
     if (i+1)//100 == (i+1)/100:
         print('process file {} of {}'.format(i+1,N_qso_process-1),end='\r')
     RA_process_centred = RA_process - RA_process[i]
