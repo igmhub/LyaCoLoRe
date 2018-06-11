@@ -45,7 +45,7 @@ def add_linear_skewer_RSDs(initial_skewer_rows,velocity_skewer_rows_dz,z):
             final_skewer_rows[i,j_upper] += w_upper*initial_skewer_rows[i,j]
             final_skewer_rows[i,j_lower] += w_lower*initial_skewer_rows[i,j]
 
-        print(np.sum(initial_skewer_rows[i,:]),np.sum(final_skewer_rows[i,:]))
+        #print(np.sum(initial_skewer_rows[i,:]),np.sum(final_skewer_rows[i,:]))
 
     return final_skewer_rows
 

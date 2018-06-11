@@ -112,7 +112,7 @@ else:
     N_pix = 12*N_side**2
 
 #Define the original file structure
-original_filename_structure = 'N1000_out_srcs_s1_{}.fits' #file_number
+original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
 file_numbers = list(range(0,1))
 input_format = 'gaussian_colore'
 
@@ -539,8 +539,8 @@ def produce_final_skewers_new(new_base_file_location,new_file_structure,new_file
         return pixel
 
     #Add small scale power to the gaussian skewers:
-    #new_cosmology = pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,tuning_z_values,extra_sigma_G_values,white_noise=True,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff)
-    new_cosmology = []
+    new_cosmology = pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,tuning_z_values,extra_sigma_G_values,white_noise=True,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff)
+    #new_cosmology = []
 
     #Remove the 'SIGMA_G' header as SIGMA_G now varies with z.
     del header['SIGMA_G']
@@ -573,12 +573,12 @@ def produce_final_skewers_new(new_base_file_location,new_file_structure,new_file
         #picca flux
         filename = new_filename_structure.format('picca-flux-noRSD',N_side,pixel)
         pixel_object.save_as_picca_flux(location,filename,header,mean_F_data=mean_F_data)
-
+ 
     #Add thermal RSDs to the tau skewers.
     #Add RSDs from the velocity skewers provided by CoLoRe.
     if add_RSDs == True:
-        #pixel_object.add_linear_RSDs(np.interp(pixel_object.Z,tuning_z_values,alphas),beta)
-        pixel_object.add_thermal_RSDs(np.interp(pixel_object.Z,tuning_z_values,alphas),beta,max_N_steps=2)
+        pixel_object.add_linear_RSDs(np.interp(pixel_object.Z,tuning_z_values,alphas),beta)
+        #pixel_object.add_thermal_RSDs(np.interp(pixel_object.Z,tuning_z_values,alphas),beta,max_N_steps=2)
 
     #Convert the tau skewers to flux skewers.
     pixel_object.compute_flux_skewers()
