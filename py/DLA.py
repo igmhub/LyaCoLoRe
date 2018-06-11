@@ -63,7 +63,7 @@ def get_N(z, Nmin=19.5, Nmax=22.0, nsamp=100):
         N[i] = np.random.choice(nn,size=1,p=probs[i]/np.sum(probs[i]))
     return N
 
-def add_DLA_table_to_object(object,dla_bias=2.0):
+def add_DLA_table_to_object(object,dla_bias=2.0,extrapolate_z_down=None):
 
     y = interp1d(object.Z,object.D)
     bias = dla_bias/(object.D)*y(2.25)
@@ -76,7 +76,10 @@ def add_DLA_table_to_object(object,dla_bias=2.0):
     flagged_pixels = flag_DLA(object.GAUSSIAN_DELTA_rows,nu_arr,sigma_g)
 
     #Edges of the z bins
-    zedges = np.concatenate([[object.Z[0]],(object.Z[1:]+object.Z[:-1])*0.5,[object.Z[-1]+(-object.Z[-2]+object.Z[-1])*0.5]]).ravel()
+    if extrapolate_z_down and extrapolate_z_down<object.Z[0]:
+        zedges = np.concatenate([[extrapolate_z_down],(object.Z[1:]+object.Z[:-1])*0.5,[object.Z[-1]+(-object.Z[-2]+object.Z[-1])*0.5]]).ravel()
+    else:
+        zedges = np.concatenate([[object.Z[0]],(object.Z[1:]+object.Z[:-1])*0.5,[object.Z[-1]+(-object.Z[-2]+object.Z[-1])*0.5]]).ravel()
     z_width = zedges[1:]-zedges[:-1]
 
     #Average number of DLAs per pixel
