@@ -439,8 +439,14 @@ def lognormal_delta_to_gaussian(LN_DENSITY_DELTA_rows,SIGMA_G,D):
 
     GAUSSIAN_DELTA_rows = np.zeros(LN_DENSITY_DELTA_rows.shape)
 
+    if np.array(D).shape[0] == 1:
+        D = np.ones(LN_DENSITY_rows.shape[1])*D
+
+    if np.array(SIGMA_G).shape[0] == 1:
+        SIGMA_G = np.ones(LN_DENSITY_rows.shape[1])*SIGMA_G
+
     for j in range(GAUSSIAN_DELTA_rows.shape[1]):
-        GAUSSIAN_DELTA_rows[:,j] = (np.log(LN_DENSITY_rows[:,j]))/D[j] + (D[j])*(SIGMA_G**2)/2
+        GAUSSIAN_DELTA_rows[:,j] = (np.log(LN_DENSITY_rows[:,j]))/D[j] + (D[j])*(SIGMA_G[j]**2)/2
 
     GAUSSIAN_DELTA_rows = GAUSSIAN_DELTA_rows.astype('float32')
 
@@ -1319,10 +1325,10 @@ class simulation_data:
         ## TODO: find a neater way to do this
         #For the moment, we add a very small value onto the tau skewers, to avoid problems in the inverse lognormal transformation
         #In future, when we don't care about the gaussian skewers, we can get rid of this
-        new_TAU_rows += (new_TAU_rows==0)*1.0e-10
+        moodified_new_TAU_rows = new_TAU_rows + (new_TAU_rows==0)*1.0e-10
 
         #convert the new tau rows back to physical density
-        new_density_rows = tau_to_density(new_TAU_rows,alpha,beta)
+        new_density_rows = tau_to_density(moodified_new_TAU_rows,alpha,beta)
         new_density_delta_rows = new_density_rows - 1
 
         #convert the new physical density rows back to gaussian
@@ -1789,7 +1795,10 @@ class simulation_data:
     def add_DLA_table(self):
 
         dla_bias = 2.0
-        DLA.add_DLA_table_to_object(self,dla_bias=dla_bias)
+        #If extrapolate_z_down is set to a value below the skewer, then we extrapolate down to that value.
+        #Otherwise, we start placing DLAs at the start of the skewer.
+        extrapolate_z_down = None
+        DLA.add_DLA_table_to_object(self,dla_bias=dla_bias,extrapolate_z_down=extrapolate_z_down)
 
         return
 
