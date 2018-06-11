@@ -40,40 +40,53 @@ print('calculating separations')
 
 for i in range(N_qso_output):
     if (i+1)//100 == (i+1)/100:
-        print('output file {} of {}'.format(i+1,N_qso_output-1),end='\r')
-    #times = []
-    #times += [time.time()]
+        print('output file {} of {}'.format(i+1,N_qso_output),end='\r')
+
+    times = []
+    times += [time.time()]
+
     RA_output_centred = RA_output - RA_output[i]
     RA_output_separation = 180.0 - abs(180.0 - abs(RA_output_centred))
     DEC_output_centred = DEC_output - DEC_output[i]
     DEC_output_separation = abs(DEC_output_centred)
-    #times += [time.time()]
-    indices = [j for j in range(N_qso_output - 1) if j!=i]
 
-    RA_output_diff[i] = np.min(RA_output_separation[indices])
-    DEC_output_diff[i] = np.min(DEC_output_separation[indices])
+    #indices = [j for j in range(N_qso_output - 1) if j!=i]
+    RA_output_separation[i] += 180.
+    DEC_output_separation[i] += 180.
 
+    RA_output_diff[i] = np.min(RA_output_separation)
+    DEC_output_diff[i] = np.min(DEC_output_separation)
+
+    times += [time.time()]
+
+    bound = ANG_bound
     within_bound = [j for j in range(N_qso_output - 1) if RA_output_separation[j]<ANG_bound and DEC_output_separation[j]<ANG_bound]
 
     while len(within_bound) <= 1:
-        new_bound *= 2
-        print('\nincreasing bound from {} to {}'.format(new_bound/2.,new_bound))
-        within_bound = [j for j in range(N_qso_output - 1) if RA_output_separation[j]<new_bound and DEC_output_separation[j]<new_bound]
+        bound *= 2
+        print('\n  -> i={}: increasing bound from {} to {}'.format(i,bound/2.,bound))
+        within_bound = [j for j in range(N_qso_output - 1) if RA_output_separation[j]<bound and DEC_output_separation[j]<bound]
 
-    RA_output_separation = RA_output_separation[within_bound]
-    DEC_output_separation = DEC_output_separation[within_bound]
+    #RA_output_separation = RA_output_separation[within_bound]
+    #DEC_output_separation = DEC_output_separation[within_bound]
 
     new_N_qso_output = RA_output_separation.shape[0]
 
-    indices = [j for j in range(new_N_qso_output - 1) if j!=i]
-
-    #times += [time.time()]
+    #indices = [j for j in range(new_N_qso_output - 1) if j!=i]
+    
+    times += [time.time()]
+    
     ANG_output_separation = (180./np.pi)*np.arccos((np.cos((np.pi/180.)*RA_output_separation))*(np.cos((np.pi/180.)*DEC_output_separation)))
-    ANG_output_diff[i] = np.min(ANG_output_separation[indices])
-    #times += [time.time()]
-    #times = (np.array(times) - times[0])
-    #times /= np.sum(times)
-    #print(times)
+
+    times += [time.time()]
+
+    ANG_output_diff[i] = np.min(ANG_output_separation)
+
+    times += [time.time()]
+
+    times = (np.array(times) - times[0])
+    times_prop = times/np.sum(times)
+    #print(times_prop,'{:2.4f}'.format(np.sum(times)))
 
 print('\n')
 
@@ -117,7 +130,7 @@ print('\n')
 
 for i in range(N_qso_process):
     if (i+1)//100 == (i+1)/100:
-        print('process file {} of {}'.format(i+1,N_qso_process-1),end='\r')
+        print('process file {} of {}'.format(i+1,N_qso_process),end='\r')
     RA_process_centred = RA_process - RA_process[i]
     RA_process_separation = 180.0 - abs(180.0 - abs(RA_process_centred))
     DEC_process_centred = DEC_process - DEC_process[i]
@@ -136,20 +149,25 @@ print('\n')
 
 #Make some plots
 print('calculating histograms')
-hist_bins=np.linspace(0.,0.01,10001)
+hist_bins = np.linspace(0.,0.01,10001)
 ang_hist_bins = np.linspace(0.,1.0,10001)
+td_hist_bins = np.linspace(0.,0.0001,1001)
 print('working on output RA..')
-Rod_hist=np.histogram(RA_output_diff,bins=hist_bins)
+Rod_hist = np.histogram(RA_output_diff,bins=hist_bins)
 print('working on output DEC..')
-Dod_hist=np.histogram(DEC_output_diff,bins=hist_bins)
+Dod_hist = np.histogram(DEC_output_diff,bins=hist_bins)
 print('working on output ANG..')
-Aod_hist=np.histogram(ANG_output_diff,bins=ang_hist_bins)
+Aod_hist = np.histogram(ANG_output_diff,bins=ang_hist_bins)
 print('working on process RA..')
-Rpd_hist=np.histogram(RA_process_diff,bins=hist_bins)
+Rpd_hist = np.histogram(RA_process_diff,bins=hist_bins)
 print('working on process DEC..')
-Dpd_hist=np.histogram(DEC_process_diff,bins=hist_bins)
+Dpd_hist = np.histogram(DEC_process_diff,bins=hist_bins)
 print('working on process ANG..')
-Apd_hist=np.histogram(ANG_process_diff,bins=ang_hist_bins)
+Apd_hist = np.histogram(ANG_process_diff,bins=ang_hist_bins)
+print('working on output 2D..')
+tdo_hist,x_edges,y_edges = np.histogram2d(RA_output_diff,DEC_output_diff,bins=td_hist_bins)
+print('working on process 2D..')
+tdp_hist,x_edges,y_edges = np.histogram2d(RA_process_diff,DEC_process_diff,bins=td_hist_bins)
 print('making plots...')
 
 #1. Plot with everything wide
@@ -241,6 +259,24 @@ plt.xlim(-0.000005,0.0001)
 plt.grid()
 plt.legend()
 plt.savefig('min_ang_sep_RDA_p.pdf')
+plt.show()
+
+#9. Plot a 2D histogram of RA and DEC from the output data
+plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
+plt.imshow(tdo_hist,origin='low',extent=[td_hist_bins[0],td_hist_bins[-1],td_hist_bins[0],td_hist_bins[-1]])
+plt.title('output')
+plt.xlabel('min RA separation')
+plt.ylabel('min DEC separation')
+plt.savefig('min_ang_sep_2d_o.pdf')
+plt.show()
+
+#10. Plot a 2D histogram of RA and DEC from the process data
+plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
+plt.imshow(tdp_hist,origin='low',extent=[td_hist_bins[0],td_hist_bins[-1],td_hist_bins[0],td_hist_bins[-1]])
+plt.title('process')
+plt.xlabel('min RA separation')
+plt.ylabel('min DEC separation')
+plt.savefig('min_ang_sep_2d_o.pdf')
 plt.show()
 
 print('\nDone!')
