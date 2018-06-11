@@ -65,7 +65,7 @@ for i in range(N_qso_output):
     #within_bound = [j for j in range(N_qso_output - 1) if RA_output_separation[j]<ANG_bound and DEC_output_separation[j]<ANG_bound]
     within_bound = (RA_output_separation<bound)*(DEC_output_separation<bound)
 
-    while len(within_bound) <= 1:
+    while np.sum(within_bound) <= 1:
         bound *= 2
         print('\n  -> i={}: increasing bound from {} to {}'.format(i,bound/2.,bound))
         within_bound = [j for j in range(N_qso_output - 1) if RA_output_separation[j]<bound and DEC_output_separation[j]<bound]
