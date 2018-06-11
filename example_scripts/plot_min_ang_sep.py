@@ -9,7 +9,7 @@ output_basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/output_G_hZ
 process_basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_nside16/'
 
 N_qso = 10**5
-ANG_bound = 0.1
+ANG_bound = 0.2
 
 #Get the RA and DEC diffs from the output files
 N_output_files = 32
@@ -43,7 +43,7 @@ for i in range(N_qso_output):
         print('output file {} of {}'.format(i+1,N_qso_output),end='\r')
 
     times = []
-    times += [time.time()]
+    previous_time = time.time()
 
     RA_output_centred = RA_output - RA_output[i]
     RA_output_separation = 180.0 - abs(180.0 - abs(RA_output_centred))
@@ -57,34 +57,39 @@ for i in range(N_qso_output):
     RA_output_diff[i] = np.min(RA_output_separation)
     DEC_output_diff[i] = np.min(DEC_output_separation)
 
-    times += [time.time()]
-
+    times += [time.time()-previous_time]
+    previous_time = time.time()
+    
     bound = ANG_bound
-    within_bound = [j for j in range(N_qso_output - 1) if RA_output_separation[j]<ANG_bound and DEC_output_separation[j]<ANG_bound]
+
+    #within_bound = [j for j in range(N_qso_output - 1) if RA_output_separation[j]<ANG_bound and DEC_output_separation[j]<ANG_bound]
+    within_bound = (RA_output_separation<bound)*(DEC_output_separation<bound)
 
     while len(within_bound) <= 1:
         bound *= 2
         print('\n  -> i={}: increasing bound from {} to {}'.format(i,bound/2.,bound))
         within_bound = [j for j in range(N_qso_output - 1) if RA_output_separation[j]<bound and DEC_output_separation[j]<bound]
 
-    #RA_output_separation = RA_output_separation[within_bound]
-    #DEC_output_separation = DEC_output_separation[within_bound]
-
+    RA_output_separation = RA_output_separation[within_bound]
+    DEC_output_separation = DEC_output_separation[within_bound]
+    
     new_N_qso_output = RA_output_separation.shape[0]
-
+    
+    times += [time.time()-previous_time]
+    previous_time = time.time()
+    
     #indices = [j for j in range(new_N_qso_output - 1) if j!=i]
-    
-    times += [time.time()]
-    
+        
     ANG_output_separation = (180./np.pi)*np.arccos((np.cos((np.pi/180.)*RA_output_separation))*(np.cos((np.pi/180.)*DEC_output_separation)))
 
-    times += [time.time()]
+    times += [time.time()-previous_time]
+    previous_time = time.time()
 
     ANG_output_diff[i] = np.min(ANG_output_separation)
 
-    times += [time.time()]
+    times += [time.time()-previous_time]
+    previous_time = time.time()
 
-    times = (np.array(times) - times[0])
     times_prop = times/np.sum(times)
     #print(times_prop,'{:2.4f}'.format(np.sum(times)))
 
