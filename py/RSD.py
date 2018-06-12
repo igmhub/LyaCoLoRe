@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.interpolate as sciint
+lya = 1215.67
 
 #Function to add linear RSDs from the velocity skewers.
 def add_linear_skewer_RSDs(initial_skewer_rows,velocity_skewer_rows_dz,z):
@@ -156,23 +157,43 @@ def add_thermal_skewer_RSDs(initial_tau_rows,initial_density_rows,velocity_skewe
 
     contribution = np.zeros(x_kms.shape)
 
+    marker = np.searchsorted(lya*(1+z),3800.)
+
     for i in range(N_qso):
         for j in range(N_cells):
 
             #Integration range method
             x_limit = 5000.0
             n_int = 2500
-            x_kms_integration = np.linspace(x_kms[j]-x_limit,x_kms[j]+x_limit,n_int)
+            x_kms_integration = np.linspace(x_kms[j]-x_limit,x_kms[j]+x_limit,n_int+1)
 
-            #Linearly inpterpolate the velocity skewers
-            v_kms_integration = np.interp(x_kms_integration,x_kms,velocity_skewer_rows_kms[i,:])
+            x_kms_integration = x_kms_integration[x_kms_integration>0]
+            x_kms_integration = x_kms_integration[x_kms_integration<=x_kms[-1]]
+            n_int = x_kms_integration.shape[0]
+
+            #Linearly inpterpolate the velocity and temperature skewers
+            v_kms_integration = np.interp(x_kms_integration,x_kms,velocity_skewer_rows_kms[i,:],left=0.0,right=0.0)
+            T_K_integration = np.interp(x_kms_integration,x_kms,T_K_rows[i,:])
 
             #Nearest neighbout interpolation on velocity skewers
             #v_kms_integration = sciint.interp1d(x_kms,velocity_skewer_rows_kms[i,:],kind='nearest',bounds_error=False,fill_value=0)(x_kms_integration)
+            #T_K_integration = sciint.interp1d(x_kms,T_K_rows[i,:],kind='nearest',bounds_error=False,fill_value=0)(x_kms_integration)
 
             W_argument = x_kms[j]*np.ones(n_int) - x_kms_integration - v_kms_integration
-            W = get_W(W_argument,np.interp(x_kms_integration,x_kms,T_K_rows[i,:]))
+            W = get_W(W_argument,T_K_integration)
 
+            """
+            if i==6 and j in list(range(marker-2,marker+3)):
+                print(j,x_kms[0],x_kms_integration[0],'//',x_kms[j],'//',x_kms[-1],x_kms_integration[-1])
+
+                W_argument_nv = x_kms[j]*np.ones(n_int) - x_kms_integration
+                W_nv = get_W(W_argument_nv,np.interp(x_kms_integration,x_kms,T_K_rows[i,:]))
+                A = np.array(list(zip(x_kms_integration,W,W_nv,v_kms_integration)))
+                np.savetxt('/Users/jfarr/Projects/test_data/W_data/W_{}_{}.txt'.format(i,j),A)
+
+                A = np.array(list(zip(x_kms,velocity_skewer_rows_kms[i,:])))
+                np.savetxt('/Users/jfarr/Projects/test_data/W_data/vel_{}_{}.txt'.format(i,j),A)
+            """
             """
 
             #Replicating linear method method
@@ -221,7 +242,7 @@ def add_thermal_skewer_RSDs(initial_tau_rows,initial_density_rows,velocity_skewe
             #tau_R = get_tau_R(x_kms_integration)
 
             #Linearly inpterpolate the old tau
-            tau_R = np.interp(x_kms_integration,x_kms,initial_tau_rows[i,:])
+            tau_R = np.interp(x_kms_integration,x_kms,initial_tau_rows[i,:],left=0.0,right=0.0)
 
             #Nearest neighbout interpolation on old tau
             #tau_R = sciint.interp1d(x_kms,initial_tau_rows[i,:],kind='nearest',bounds_error=False,fill_value=0)(x_kms_integration)
