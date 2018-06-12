@@ -283,7 +283,7 @@ def get_ID_data(original_file_location,original_filename_structure,file_number,i
 
     #Sort the MOCKIDs and pixel_IDs into the right order: first by pixel number, and then by MOCKID.
     #Also filter out the objects with Z_QSO<minimum_z
-    dtype = [('RA', 'f8'), ('DEC', 'f8'), ('Z_QSO_NO_RSD', 'f8'), ('Z_QSO_RSD', 'f8'), ('MOCKID', int), ('PIXNUM', int)]
+    dtype = [('RA', 'd'), ('DEC', 'd'), ('Z_QSO_NO_RSD', 'd'), ('Z_QSO_RSD', 'd'), ('MOCKID', int), ('PIXNUM', int)]
     ID = np.array(ID_data, dtype=dtype)
     ID = ID[ID['Z_QSO_NO_RSD']>minimum_z]
     ID_sort = np.sort(ID, order=['PIXNUM','MOCKID'])
@@ -299,7 +299,7 @@ def get_ID_data(original_file_location,original_filename_structure,file_number,i
 
     #Construct the cosmology array.
     cosmology_data = list(zip(h_R,h_Z,h_D,h_V))
-    dtype = [('R', 'f8'), ('Z', 'f8'), ('D', 'f8'), ('V', 'f8')]
+    dtype = [('R', 'd'), ('Z', 'd'), ('D', 'd'), ('V', 'd')]
     cosmology = np.array(cosmology_data,dtype=dtype)
 
     return file_number, ID_sort, cosmology, file_pixel_map_element, MOCKID_lookup_element
@@ -327,7 +327,7 @@ def join_ID_data(results,N_side):
     file_pixel_map = np.zeros((max(file_numbers)+1,12*(N_side**2)))
     for i, file_number in enumerate(file_numbers):
         file_pixel_map[file_number,:] = file_pixel_map_results[i]
-
+    print(master_results)
     master_data = np.concatenate(master_results)
     bad_coordinates_data = np.concatenate(bad_coordinates_results)
     cosmology_data = np.concatenate(cosmology_results)
@@ -1352,11 +1352,13 @@ class simulation_data:
         initial_density_rows = 1 + self.DENSITY_DELTA_rows
         new_TAU_rows = RSD.add_thermal_skewer_RSDs(self.TAU_rows,initial_density_rows,self.VEL_rows,self.Z,self.R,max_N_steps=max_N_steps)
 
-        #new_TAU_rows *= np.exp(-0.00272*beta*self.D*(10**self.LOGLAM_MAP))
-        #new_TAU_rows = new_TAU_rows**0.75
+        ## TODO: find a neater way to do this
+        #For the moment, we add a very small value onto the tau skewers, to avoid problems in the inverse lognormal transformation
+        #In future, when we don't care about the gaussian skewers, we can get rid of this
+        moodified_new_TAU_rows = new_TAU_rows + (new_TAU_rows==0)*1.0e-10
 
         #convert the new tau rows back to physical density
-        new_density_rows = tau_to_density(new_TAU_rows,alpha,beta)
+        new_density_rows = tau_to_density(moodified_new_TAU_rows,alpha,beta)
         new_density_delta_rows = new_density_rows - 1
 
         #convert the new physical density rows back to gaussian
@@ -1370,7 +1372,7 @@ class simulation_data:
         self.TAU_rows = new_TAU_rows
         self.DENSITY_DELTA_rows = new_density_delta_rows
         self.GAUSSIAN_DELTA_rows = new_gaussian_rows
-        self.linear_skewer_RSDs_added = True
+        self.thermal_skewer_RSDs_added = True
 
         return
 
