@@ -68,8 +68,11 @@ parser.add_argument('--tuning-file', type = str, default = 'input_files/tune_sma
 parser.add_argument('--add-DLAs', action="store_true", default = True, required=False,
                     help = 'add DLAs to the transmission file')
 
-parser.add_argument('--add-RSDs', action="store_true", default = True, required=False,
-                    help = 'add RSDs to the transmission file')
+parser.add_argument('--add-RSDs', action="store_true", default = False, required=False,
+                    help = 'add linear RSDs to the transmission file')
+
+parser.add_argument('--include-thermal-effects', action="store_true", default = False, required=False,
+                    help = 'add thermal RSDs to the transmission file')
 
 parser.add_argument('--retune-small-scale-fluctuations', action="store_true", default = False, required=False,
                     help = 'recalculate the values of sigma_G and alpha needed')
@@ -99,6 +102,7 @@ N_processes = args.nproc
 parameter_filename = args.param_file
 add_DLAs = args.add_DLAs
 add_RSDs = args.add_RSDs
+include_thermal_effects = args.include_thermal_effects
 retune_small_scale_fluctuations = args.retune_small_scale_fluctuations
 tuning_file = args.tuning_file
 transmission_only = args.transmission_only
@@ -200,8 +204,8 @@ print('\nSaving the master files...')
 
 #Join the multiprocessing results into 'master' and 'bad_coordinates' arrays.
 master_data, bad_coordinates_data, cosmology_data, file_pixel_map, MOCKID_lookup = functions.join_ID_data(results,N_side)
-print(master_data[0])
-print(type(master_data[0][1]))
+#print(master_data[0])
+#print(type(master_data[0][1]))
 
 #Make a list of the pixels that the files cover.
 pixel_list = list(sorted(set(master_data['PIXNUM'])))
@@ -541,8 +545,11 @@ def produce_final_skewers_new(new_base_file_location,new_file_structure,new_file
         return pixel
 
     #Add small scale power to the gaussian skewers:
-    #new_cosmology = pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,tuning_z_values,extra_sigma_G_values,white_noise=True,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff)
-    new_cosmology = []
+    #new_seed = 10**(len(str(12*N_side**2))) + pixel
+    seed = int(str(N_side) + str(pixel))
+    generator = np.random.RandomState(seed)
+    new_cosmology = pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,tuning_z_values,extra_sigma_G_values,generator,white_noise=True,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff)
+    #new_cosmology = []
 
     #Remove the 'SIGMA_G' header as SIGMA_G now varies with z, so can't be stored in a header.
     del header['SIGMA_G']
@@ -580,8 +587,7 @@ def produce_final_skewers_new(new_base_file_location,new_file_structure,new_file
     #Add thermal RSDs to the tau skewers.
     #Add RSDs from the velocity skewers provided by CoLoRe.
     if add_RSDs == True:
-        #pixel_object.add_linear_RSDs(np.interp(pixel_object.Z,tuning_z_values,alphas),beta)
-        pixel_object.add_thermal_RSDs(np.interp(pixel_object.Z,tuning_z_values,alphas),beta,max_N_steps=2)
+        pixel_object.add_RSDs(np.interp(pixel_object.Z,tuning_z_values,alphas),beta,thermal=include_thermal_effects)
 
     #Convert the tau skewers to flux skewers.
     pixel_object.compute_flux_skewers()
