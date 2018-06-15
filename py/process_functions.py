@@ -327,7 +327,7 @@ def join_ID_data(results,N_side):
     file_pixel_map = np.zeros((max(file_numbers)+1,12*(N_side**2)))
     for i, file_number in enumerate(file_numbers):
         file_pixel_map[file_number,:] = file_pixel_map_results[i]
-    print(master_results)
+    #print(master_results)
     master_data = np.concatenate(master_results)
     bad_coordinates_data = np.concatenate(bad_coordinates_results)
     cosmology_data = np.concatenate(cosmology_results)
@@ -664,7 +664,7 @@ def get_NGPs(x,x_new):
     return NGPs
 
 #Function to generate random Gaussian skewers with a given standard deviation.
-def get_gaussian_skewers(N_cells,sigma_G=1.0,N_skewers=1,new_seed=None):
+def get_gaussian_skewers(generator,N_cells,sigma_G=1.0,N_skewers=1):
 
     if N_cells*N_skewers == 1:
         size = 1
@@ -1197,7 +1197,7 @@ class simulation_data:
         return
 
     #Function to add small scale gaussian fluctuations.
-    def add_small_scale_gaussian_fluctuations(self,cell_size,sigma_G_z_values,extra_sigma_G_values,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya):
+    def add_small_scale_gaussian_fluctuations(self,cell_size,sigma_G_z_values,extra_sigma_G_values,generator,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya):
 
         # TODO: Is NGP really the way to go?
 
@@ -1256,6 +1256,14 @@ class simulation_data:
 
         extra_sigma_G = np.interp(self.Z,sigma_G_z_values,extra_sigma_G_values)
 
+        extra_var = np.zeros(expanded_GAUSSIAN_DELTA_rows.shape)
+
+        for j in range(self.N_cells):
+            relevant_QSOs = [i for i in range(self.N_qso) if first_relevant_cells[i]<=j and last_relevant_cells[i]>=j]
+            extra_var[relevant_QSOs,j] = generator.normal(scale=extra_sigma_G[j],size=len(relevant_QSOs))
+
+        expanded_GAUSSIAN_DELTA_rows += amplitude*extra_var
+        """
         for i in range(self.N_qso):
             first_relevant_cell = first_relevant_cells[i].astype('int32')
             last_relevant_cell = last_relevant_cells[i].astype('int32')
@@ -1265,6 +1273,14 @@ class simulation_data:
 
             extra_var = np.zeros(N_cells_needed)
 
+
+            #Pass the generator to get_gaussian_skewers, along with the required sigma, and the size, and the seed
+            seed = self.MOCKID[i]
+            extra_var = get_gaussian_skewers(generator,N_cells_needed,extra_sigma_G[first_relevant_cell:last_relevant_cell],new_seed=seed)
+            #Generate a skewer of the right size with the given seed into 'extra_var'
+            #Add on extra var *amplitude
+
+
             for j in range(first_relevant_cell,last_relevant_cell):
                 extra_sigma_G_cell = extra_sigma_G[j]
                 extra_var[j-first_relevant_cell] = get_gaussian_skewers(1,extra_sigma_G_cell)
@@ -1272,7 +1288,7 @@ class simulation_data:
             if last_relevant_cell >= 0:
 
                 expanded_GAUSSIAN_DELTA_rows[i,first_relevant_cell:last_relevant_cell] += amplitude*extra_var
-
+            """
         self.GAUSSIAN_DELTA_rows = expanded_GAUSSIAN_DELTA_rows
         self.SIGMA_G = np.sqrt(extra_sigma_G**2 + (self.SIGMA_G)**2)
 
@@ -1316,6 +1332,7 @@ class simulation_data:
 
         return
 
+    ## TODO: remove this, now defunct
     #Function to add linear RSDs from the velocity skewers.
     def add_linear_RSDs(self,alpha,beta):
 
@@ -1347,10 +1364,10 @@ class simulation_data:
         return
 
     #Function to add thermal RSDs from the velocity skewers.
-    def add_thermal_RSDs(self,alpha,beta,max_N_steps=None):
+    def add_RSDs(self,alpha,beta,thermal=True):
 
         initial_density_rows = 1 + self.DENSITY_DELTA_rows
-        new_TAU_rows = RSD.add_thermal_skewer_RSDs(self.TAU_rows,initial_density_rows,self.VEL_rows,self.Z,self.R,max_N_steps=max_N_steps)
+        new_TAU_rows = RSD.add_skewer_RSDs(self.TAU_rows,initial_density_rows,self.VEL_rows,self.Z,self.R,thermal=thermal)
 
         ## TODO: find a neater way to do this
         #For the moment, we add a very small value onto the tau skewers, to avoid problems in the inverse lognormal transformation
