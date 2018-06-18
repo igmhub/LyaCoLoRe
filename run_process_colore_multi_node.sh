@@ -1,0 +1,86 @@
+# specify number of nodes and cores to use
+NODES=32
+NCORES=64
+
+# specify process parameters
+NSIDE=16
+IVAR_CUT=1150.0
+CELL_SIZE=0.25
+LAMBDA_MIN=3550.0
+MIN_CAT_Z=1.8
+
+# specify process flags
+FLAGS="--add-RSDs --add-DLAs"
+
+# specify details of colore output
+COLORE_NGRID=4096
+COLORE_NODES=32
+R_SMOOTH=2.0
+
+# full path to proces_colore executable (parallel version)
+PROCESS_PATH="/global/homes/j/jfarr/Projects/LyaCoLoRe/example_scripts/"
+
+# full path to folder where input will be taken from
+INPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/output_G_hZsmooth_${COLORE_NGRID}_${COLORE_NODES}_sr${R_SMOOTH}_bm1_biasG18_picos/"
+echo "input will be taken from "$INPUT_PATH
+INPUT_FILES=`ls -1 ${INPUT_PATH}/out_srcs_*.fits`
+NFILES=`echo $files | wc -w`
+echo "${NFILES} input files have been found"
+
+# full path to folder where output will be written
+OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_${COLORE_NGRID}_${COLORE_NODES}_sr${R_SMOOTH}_bm1_biasG18_picos_nside${NSIDE}/"
+echo "output will written to "$OUTPUT_PATH
+if [ ! -d $OUTPUT_PATH ] ; then
+    mkdir -p $OUTPUT_PATH
+fi
+echo "output logs will be saved to "$OUTPUT_PATH"/logs"
+if [ ! -d $outdir/logs ] ; then
+    mkdir -p $outdir/logs
+fi
+
+# full path to file with tuning sigma_G data
+TUNING_PATH="/global/homes/j/jfarr/Projects/LyaCoLoRe/input_files/tune_small_scale_fluctuations.fits"
+
+# we will create this script
+RUN_FILE="/global/homes/j/jfarr/Projects/LyaCoLoRe/run_files/process_colore_output_G_hZsmooth_${COLORE_NGRID}_${COLORE_NODES}_sr${R_SMOOTH}_bm1_biasG18_picos.sh"
+echo "run file "$RUN_FILE
+
+cat > $RUN_FILE <<EOF
+#!/bin/bash -l
+
+#SBATCH --partition regular
+#SBATCH --nodes ${NFILES}
+#SBATCH --time 00:30:00
+#SBATCH --job-name process_colore
+#SBATCH --error "/global/homes/j/jfarr/Projects/LyaCoLoRe/run_files/process-colore-%j.err"
+#SBATCH --output "/global/homes/j/jfarr/Projects/LyaCoLoRe/run_files/process-colore-%j.out"
+#SBATCH -C haswell
+#SBATCH -A desi
+
+date
+
+umask 0002
+export OMP_NUM_THREADS=64
+
+FILE_INDEX=1
+for NODE in `seq $NODES` ; do
+    echo "starting node $NODE"
+
+    # list of files to run
+    if (( $node == $nodes )) ; then
+        last=""
+    fi
+    echo ${first}-${last}
+    NODE_FILE=`echo $INPUT_FILES | cut -d " " -f ${FILE_INDEX}-${FILE_INDEX}`
+    FILE_INDEX=$(( FILE_INDEX + 1 ))
+
+    command="srun -N 1 -n 1 -c ${NCORES} ${PROCESS_PATH}/process_colore_multi.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} --tuning-file ${TUNING_PATH} --nside ${NSIDE} --nproc ${NCORES} --IVAR-cut ${IVAR_CUT} --cell-size ${CELL_SIZE} --lambda-min ${LAMBDA_MIN} --min-cat-z ${MIN_CAT_Z} ${FLAGS}"
+
+    echo $command
+    $command >& $outdir/logs/node-$node.log &
+
+date
+
+EOF
+
+sbatch $RUN_FILE
