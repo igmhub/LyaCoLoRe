@@ -1,8 +1,12 @@
 import numpy as np
 from astropy.io import fits
 import matplotlib.pyplot as plt
+import sys
 
-filename = '/global/homes/j/jfarr/Programs/picca/cf_200_GAUSS_sr2.0_bm1_quantitiesGG_RR_nside64_rpmin0.0_rpmax100.0_rtmax100.0_np25_nt25_renorm.fits.gz'
+if len(sys.argv) > 1:
+    filename = sys.argv[1]
+else:
+    filename = '/global/homes/j/jfarr/Programs/picca/cf_200_GAUSS_sr2.0_bm1_quantitiesGG_RR_nside64_rpmin0.0_rpmax100.0_rtmax100.0_np25_nt25_renorm.fits.gz'
 N_bins = 15
 R_min = 0.
 R_max = 100.
