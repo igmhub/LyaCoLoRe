@@ -6,14 +6,20 @@ import time
 # TODO: make min process more efficient
 
 output_basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos/'
-process_basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_nside16/'
+process_basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/'
 
-N_qso = 10**5
+N_qso = 1*10**5
 ANG_bound = 0.2
+z_cut = 1.8
+
+filename_base = 'min_ang_sep_zcut{}'.format(z_cut)
 
 def calculate_separations(RA,DEC):
 
     N_qso = RA.shape[0]
+
+    RA_sorted = np.sort(RA)
+    DEC_sorted = np.sort(DEC)
 
     RA_diff = np.zeros(N_qso)
     DEC_diff = np.zeros(N_qso)
@@ -23,12 +29,13 @@ def calculate_separations(RA,DEC):
         if (i+1)//100 == (i+1)/100:
             print('output file {} of {}'.format(i+1,N_qso),end='\r')
 
-        """
+        
         times = []
         previous_time = time.time()
+        """
         times += [time.time()-previous_time]
         previous_time = time.time()
-        """
+        """        
 
         #Centre the RA values on the current QSO, and go to angular separation
         RA_centred = RA - RA[i]
@@ -36,14 +43,45 @@ def calculate_separations(RA,DEC):
         DEC_centred = DEC - DEC[i]
         DEC_separation = abs(DEC_centred)
 
+        #iRA = np.searchsorted(RA_sorted,RA[i])
+        #iDEC = np.searchsorted(DEC_sorted,DEC[i])
+        
+        times += [time.time()-previous_time]
+        previous_time = time.time()
+
         #Add 180 to the separation of the current QSO to rule it out
         RA_separation[i] += 180.
         DEC_separation[i] += 180.
 
+        #Calculate the minimum separation in RA and DEC
+        RA_diff[i] = np.min(RA_separation)
+        DEC_diff[i] = np.min(DEC_separation)
+        """
+        if iRA==0:
+            RA_diff[i] = np.min(RA_sorted[iRA]-RA_sorted[-1],RA_sorted[iRA+1]-RA_sorted[iRA])
+        elif iRA==N_qso:
+            RA_diff[i] = np.min(RA_sorted[iRA]-RA_sorted[iRA-1],RA_sorted[0]-RA_sorted[iRA])
+        else:
+            RA_diff[i] = np.min(RA_sorted[iRA]-RA_sorted[iRA-1],RA_sorted[iRA+1]-RA_sorted[iRA])
+
+        if iRA==0: 
+            RA_diff[i] = np.min(RA_sorted[iRA]-RA_sorted[-1],RA_sorted[iRA+1]-RA_sorted[iRA])
+        elif iRA==N_qso:
+            RA_diff[i] = np.min(RA_sorted[iRA]-RA_sorted[iRA-1],RA_sorted[0]-RA_sorted[iRA])
+        else:
+            RA_diff[i] = np.min(RA_sorted[iRA]-RA_sorted[iRA-1],RA_sorted[iRA+1]-RA_sorted[iRA])
+        """
+
+        times += [time.time()-previous_time]
+        previous_time = time.time()
+
         #Work out which QSOs are within bounds. This avoids having to calculate the angular separation of all QSOs, only those that are relatively close.
         bound = ANG_bound
         within_bound = (RA_separation<bound)*(DEC_separation<bound)
-
+      
+        times += [time.time()-previous_time]
+        previous_time = time.time()
+ 
         while np.sum(within_bound) <= 1:
             bound *= 2
             print('\n  -> i={}: increasing bound from {} to {}'.format(i,bound/2.,bound))
@@ -54,13 +92,17 @@ def calculate_separations(RA,DEC):
 
         new_N_qso = RA_separation.shape[0]
 
-        #Calculate the minimum separation in RA and DEC
-        RA_diff[i] = np.min(RA_separation)
-        DEC_diff[i] = np.min(DEC_separation)
+        times += [time.time()-previous_time]
+        previous_time = time.time()
 
         #Calculate the angular separation, and find the minimum
         ANG_separation = (180./np.pi)*np.arccos((np.cos((np.pi/180.)*RA_separation))*(np.cos((np.pi/180.)*DEC_separation)))
         ANG_diff[i] = np.min(ANG_separation)
+
+        times += [time.time()-previous_time]
+        previous_time = time.time()
+
+        #print(times/np.sum(times),np.sum(times))
 
     return RA_diff, DEC_diff, ANG_diff
 
@@ -73,8 +115,9 @@ for i in range(N_output_files):
     print('output file {} of {}'.format(i+1,N_output_files),end='\r')
     if N_qso_output<N_qso:
         h = fits.open(output_basedir + 'out_srcs_s1_{}.fits'.format(i))
-        RA_output = np.concatenate((RA_output,h[1].data['RA']))
-        DEC_output = np.concatenate((DEC_output,h[1].data['DEC']))
+        Z_QSO = h[1].data['Z_COSMO']
+        RA_output = np.concatenate((RA_output,h[1].data['RA'][Z_QSO>z_cut]))
+        DEC_output = np.concatenate((DEC_output,h[1].data['DEC'][Z_QSO>z_cut]))
         N_qso_output = RA_output.shape[0]
         h.close()
 
@@ -113,7 +156,7 @@ print('\n')
 print('calculating histograms')
 hist_bins = np.linspace(0.,0.01,10001)
 ang_hist_bins = np.linspace(0.,1.0,10001)
-td_hist_bins = np.linspace(0.,0.0001,1001)
+td_hist_bins = np.linspace(0.,0.0001,101)
 print('working on output RA..')
 Rod_hist = np.histogram(RA_output_diff,bins=hist_bins)
 print('working on output DEC..')
@@ -142,7 +185,7 @@ plt.bar(Dpd_hist[1][:-1], Dpd_hist[0], width=np.diff(Dpd_hist[1]), align="edge",
 #plt.bar(Apd_hist[1][:-1], Apd_hist[0], width=np.diff(Apd_hist[1]), align="edge", label='ANG process', alpha=0.5, color='g')
 plt.grid()
 plt.legend()
-plt.savefig('min_ang_sep_RDA_op_wide.pdf')
+plt.savefig(filename_base+'_RDA_op_wide.pdf')
 plt.show()
 
 #2. Plot with everything
@@ -156,7 +199,7 @@ plt.bar(Dpd_hist[1][:-1], Dpd_hist[0], width=np.diff(Dpd_hist[1]), align="edge",
 plt.xlim(-0.000005,0.0001)
 plt.grid()
 plt.legend()
-plt.savefig('min_ang_sep_RDA_op.pdf')
+plt.savefig(filename_base+'_RDA_op.pdf')
 plt.show()
 
 #3. Plot the two RAs
@@ -166,7 +209,7 @@ plt.bar(Rpd_hist[1][:-1], Rpd_hist[0], width=np.diff(Rpd_hist[1]), align="edge",
 plt.xlim(-0.000005,0.0001)
 plt.grid()
 plt.legend()
-plt.savefig('min_ang_sep_R_op.pdf')
+plt.savefig(filename_base+'_R_op.pdf')
 plt.show()
 
 #4. Plot the two DECs
@@ -176,7 +219,7 @@ plt.bar(Dpd_hist[1][:-1], Dpd_hist[0], width=np.diff(Dpd_hist[1]), align="edge",
 plt.xlim(-0.000005,0.0001)
 plt.grid()
 plt.legend()
-plt.savefig('min_ang_sep_D_op.pdf')
+plt.savefig(filename_base+'_D_op.pdf')
 plt.show()
 
 #5. Plot the two RAs and the two DECs
@@ -188,7 +231,7 @@ plt.bar(Dpd_hist[1][:-1], Dpd_hist[0], width=np.diff(Dpd_hist[1]), align="edge",
 plt.xlim(-0.000005,0.0001)
 plt.grid()
 plt.legend()
-plt.savefig('min_ang_sep_RD_op.pdf')
+plt.savefig(filename_base+'_RD_op.pdf')
 plt.show()
 
 #6. Plot the two ANGs
@@ -198,7 +241,7 @@ plt.bar(Apd_hist[1][:-1], Apd_hist[0], width=np.diff(Apd_hist[1]), align="edge",
 plt.xlim(-0.005,0.2)
 plt.grid()
 plt.legend()
-plt.savefig('min_ang_sep_A_op.pdf')
+plt.savefig(filename_base+'_A_op.pdf')
 plt.show()
 
 #7. Plot the output data
@@ -209,7 +252,7 @@ plt.bar(Dod_hist[1][:-1], Dod_hist[0], width=np.diff(Dod_hist[1]), align="edge",
 plt.xlim(-0.000005,0.0001)
 plt.grid()
 plt.legend()
-plt.savefig('min_ang_sep_RDA_o.pdf')
+plt.savefig(filename_base+'_RDA_o.pdf')
 plt.show()
 
 #8. Plot the process data
@@ -220,25 +263,25 @@ plt.bar(Dpd_hist[1][:-1], Dpd_hist[0], width=np.diff(Dpd_hist[1]), align="edge",
 plt.xlim(-0.000005,0.0001)
 plt.grid()
 plt.legend()
-plt.savefig('min_ang_sep_RDA_p.pdf')
+plt.savefig(filename_base+'_RDA_p.pdf')
 plt.show()
 
 #9. Plot a 2D histogram of RA and DEC from the output data
 plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
-plt.imshow(tdo_hist,origin='low',extent=[td_hist_bins[0],td_hist_bins[-1],td_hist_bins[0],td_hist_bins[-1]])
+plt.imshow(tdo_hist.T,origin='low',extent=[td_hist_bins[0],td_hist_bins[-1],td_hist_bins[0],td_hist_bins[-1]])
 plt.title('output')
 plt.xlabel('min RA separation')
 plt.ylabel('min DEC separation')
-plt.savefig('min_ang_sep_2d_o.pdf')
+plt.savefig(filename_base+'_2d_o.pdf')
 plt.show()
 
 #10. Plot a 2D histogram of RA and DEC from the process data
 plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
-plt.imshow(tdp_hist,origin='low',extent=[td_hist_bins[0],td_hist_bins[-1],td_hist_bins[0],td_hist_bins[-1]])
+plt.imshow(tdp_hist.T,origin='low',extent=[td_hist_bins[0],td_hist_bins[-1],td_hist_bins[0],td_hist_bins[-1]])
 plt.title('process')
 plt.xlabel('min RA separation')
 plt.ylabel('min DEC separation')
-plt.savefig('min_ang_sep_2d_o.pdf')
+plt.savefig(filename_base+'_2d_p.pdf')
 plt.show()
 
 print('\nDone!')

@@ -1,9 +1,14 @@
 import numpy as np
 from astropy.io import fits
+import sys
 
 N_side = 16
-N_files = 12*N_side**2
-file_prefix = 'picca-gaussian-RSD'
+if len(sys.argv) >= 1:
+    N_files = int(sys.argv[1])
+else:
+    N_files = 12*N_side**2
+
+file_prefix = 'picca-gaussian-noRSD'
 basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test/'
 
 """
@@ -16,9 +21,43 @@ statistics_dtype = [('N', 'f4')
     , ('F_DELTA_MEAN', 'f4'), ('F_DELTA_VAR', 'f4')]
 """
 
+"""
 statistics = fits.open(basedir + 'statistics.fits')
 mean = statistics[1].data['GAUSSIAN_DELTA_MEAN']
+"""
+
+N_skewers = 0
+mean = 0
+
+N_skewers = []
+mean = []
+
+for N in range(N_files):
+    print('calculating mean from file {} of {}'.format(N+1,N_files),end='\r')
+
+    filepath = basedir + '/{}/{}/'.format(N//100,N) + file_prefix + '-{}-{}.fits'.format(N_side,N)
+    h = fits.open(filepath)
+
+    data_rows = h[0].data.T
+    weights_rows = h[1].data.T
+
+    N_skewers_file = np.sum(weights_rows,axis=0)
+    N_skewers += [N_skewers_file]
+    mean += [np.sum(data_rows*weights_rows,axis=0)]
+
+    h.close()
+
+mean = np.sum(mean,axis=0)
+N_skewers = np.sum(N_skewers,axis=0)
+
 N_cells = mean.shape[0]
+
+for j in range(N_cells):
+    if N_skewers[j] != 0:
+        mean[j] /= N_skewers[j]
+
+print('\n')
+print(mean)
 
 for N in range(N_files):
     filepath = basedir + '/{}/{}/'.format(N//100,N) + file_prefix + '-{}-{}.fits'.format(N_side,N)
