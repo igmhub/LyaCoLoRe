@@ -50,9 +50,9 @@ for i,mu_bin in enumerate(mu_bins):
 
         relevant = mu_relevant * (binned_R_numbers == R_bin)
         binned_data[i,j] = np.average(DA_mean[relevant],weights=WE_sum[relevant])
-        binned_var[i,j] = 1./np.sum(1./binned_var[relevant])
-
-    plt.scatter(binned_R_values,(binned_R_values**2)*binned_data[i,:],y_err=(binned_R_values**2)*binned_var[i,:],label=str(mu_bin))
+        binned_var[i,j] = 1./np.sum(1./DA_var[relevant])
+    print(binned_var)
+    plt.errorbar(binned_R_values,(binned_R_values**2)*binned_data[i,:],yerr=(binned_R_values**2)*binned_var[i,:],fmt='o',label=str(mu_bin))
 
 plt.legend()
 plt.grid()
