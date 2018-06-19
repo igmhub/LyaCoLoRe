@@ -1,5 +1,5 @@
 # specify number of nodes and cores to use
-NODES=32
+NNODES=32
 NCORES=64
 
 # specify process parameters
@@ -57,24 +57,39 @@ cat > $RUN_FILE <<EOF
 #SBATCH -C haswell
 #SBATCH -A desi
 
-date
-
 umask 0002
 export OMP_NUM_THREADS=64
 
-FILE_INDEX=1
-for NODE in `seq $NODES` ; do
+date
+
+echo "making master file"
+${PROCESS_PATH}/make_master.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} --nside ${NSIDE} --nproc ${NCORES} --min-cat-z ${MIN_CAT_Z}
+
+date
+
+NPIXELS=$(( 12*$NSIDE*$NSIDE ))
+NPIXELS_PER_NODE=$(( $NPIXELS/$NNODES + 1 ))
+PIXEL_START=1
+PIXEL_STOP=$NPIXELS_PER_NODE
+
+for NODE in `seq $NNODES` ; do
     echo "starting node $NODE"
 
     # list of files to run
-    if (( $node == $nodes )) ; then
+    if (( $NODE == $NNODES )) ; then
         last=""
     fi
     echo ${first}-${last}
-    NODE_FILE=`echo $INPUT_FILES | cut -d " " -f ${FILE_INDEX}-${FILE_INDEX}`
-    FILE_INDEX=$(( FILE_INDEX + 1 ))
+    PIXEL_START=$(( $PIXEL_START + $NPIXELS_PER_NODE ))
+    PIXEL_STOP=$(( $PIXEL_STOP + $NPIXELS_PER_NODE ))
 
-    command="srun -N 1 -n 1 -c ${NCORES} ${PROCESS_PATH}/process_colore_multi.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} --tuning-file ${TUNING_PATH} --nside ${NSIDE} --nproc ${NCORES} --IVAR-cut ${IVAR_CUT} --cell-size ${CELL_SIZE} --lambda-min ${LAMBDA_MIN} --min-cat-z ${MIN_CAT_Z} ${FLAGS}"
+    #New command for running processing, needs to be updated
+    #Takes a master file as input (default location already in output directory)
+    #Also takes a list of pixels to deal with
+    #Then opens master, finds out where the data for its pixels is stored, and processes on a pixel by pixel basis
+    #May need to think about how the input files are accessed
+
+    command="srun -N 1 -n 1 -c ${NCORES} ${PROCESS_PATH}/make_transmission.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} --pix-start ${PIXEL_START} --pix-stop ${PIXEL_STOP} --tuning-file ${TUNING_PATH} --nside ${NSIDE} --nproc ${NCORES} --IVAR-cut ${IVAR_CUT} --cell-size ${CELL_SIZE} --lambda-min ${LAMBDA_MIN} ${FLAGS}"
 
     echo $command
     $command >& $outdir/logs/node-$node.log &

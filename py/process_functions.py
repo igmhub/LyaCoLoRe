@@ -274,16 +274,17 @@ def get_ID_data(original_file_location,original_filename_structure,file_number,i
 
     #Construct the remaining component parts of the master file's data.
     pixel_ID = make_pixel_ID(N_side,RA,DEC)
+    file_numbers = file_number * np.ones(RA.shape)
 
     #Calculate Z_QSO_RSD.
     Z_QSO_RSD = Z_QSO_NO_RSD + DZ_RSD
 
     #Join the pieces of the ID_data together.
-    ID_data = list(zip(RA,DEC,Z_QSO_NO_RSD,Z_QSO_RSD,MOCKID,pixel_ID))
+    ID_data = list(zip(RA,DEC,Z_QSO_NO_RSD,Z_QSO_RSD,MOCKID,pixel_ID,file_numbers))
 
     #Sort the MOCKIDs and pixel_IDs into the right order: first by pixel number, and then by MOCKID.
     #Also filter out the objects with Z_QSO<minimum_z
-    dtype = [('RA', 'd'), ('DEC', 'd'), ('Z_QSO_NO_RSD', 'd'), ('Z_QSO_RSD', 'd'), ('MOCKID', int), ('PIXNUM', int)]
+    dtype = [('RA', 'd'), ('DEC', 'd'), ('Z_QSO_NO_RSD', 'd'), ('Z_QSO_RSD', 'd'), ('MOCKID', int), ('PIXNUM', int), ('FILENUM', int)]
     ID = np.array(ID_data, dtype=dtype)
     ID = ID[ID['Z_QSO_NO_RSD']>minimum_z]
     ID_sort = np.sort(ID, order=['PIXNUM','MOCKID'])
