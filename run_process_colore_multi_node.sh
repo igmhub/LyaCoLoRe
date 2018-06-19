@@ -79,15 +79,9 @@ for NODE in `seq $NNODES` ; do
     if (( $NODE == $NNODES )) ; then
         last=""
     fi
-    echo ${first}-${last}
-    PIXEL_START=$(( $PIXEL_START + $NPIXELS_PER_NODE ))
-    PIXEL_STOP=$(( $PIXEL_STOP + $NPIXELS_PER_NODE ))
-
-    #New command for running processing, needs to be updated
-    #Takes a master file as input (default location already in output directory)
-    #Also takes a list of pixels to deal with
-    #Then opens master, finds out where the data for its pixels is stored, and processes on a pixel by pixel basis
-    #May need to think about how the input files are accessed
+    echo ${PIXEL_START}-${PIXEL_STOP}
+    PIXEL_START=$(( PIXEL_START + NPIXELS_PER_NODE ))
+    PIXEL_STOP=$(( PIXEL_STOP + NPIXELS_PER_NODE ))
 
     command="srun -N 1 -n 1 -c ${NCORES} ${PROCESS_PATH}/make_transmission.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} --pix-start ${PIXEL_START} --pix-stop ${PIXEL_STOP} --tuning-file ${TUNING_PATH} --nside ${NSIDE} --nproc ${NCORES} --IVAR-cut ${IVAR_CUT} --cell-size ${CELL_SIZE} --lambda-min ${LAMBDA_MIN} ${FLAGS}"
 
