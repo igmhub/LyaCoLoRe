@@ -128,7 +128,7 @@ else:
 
 #Define the original file structure
 original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
-file_numbers = list(range(0,1))
+file_numbers = list(range(0,32))
 input_format = 'gaussian_colore'
 
 #Set file structure
@@ -153,7 +153,6 @@ if simulation_parameters['dens_type'] != 0:
 Construct the MOCKID_lookup from the master file.
 """
 # TODO: potential issue with differnt values of nside being used in make_master.py
-
 master = fits.open(master_location+'/master.fits')
 master_data = master[1].data
 master.close()
@@ -162,17 +161,15 @@ master.close()
 pixel_list = list(sorted(set([pixel for pixel in master_data['PIXNUM'] if pixel in pixels])))
 MOCKID_lookup = {}
 for pixel in pixel_list:
-    print(pixel)
     #pixel_indices = [i for i in range(len(master_data['PIXNUM'])) if master_data['PIXNUM'][i]==pixel]
     pixel_indices = (master_data['PIXNUM']==pixel)
-    MOCKIDs = master_data['MOCKID'][pixel_indices]
+    pixel_MOCKIDs = master_data['MOCKID'][pixel_indices]
     pixel_file_number_list = list(sorted(set(master_data['FILENUM'][pixel_indices])))
     for file_number in pixel_file_number_list:
-        print('-->',file_number)
-        pixel_file_indices = (master_data['FILENUM'][pixel_indices]==file_number)
+        pixel_file_indices = ((master_data['FILENUM'][pixel_indices])==file_number)
         #MOCKID_list = [master_data['MOCKID'][i] for i in range(len(master_data['PIXNUM'])) if master_data['PIXNUM'][i]==pixel and master_data['FILENUM'][i]==file_number]
-        MOCKIDs = MOCKIDs[pixel_file_indices]
-        MOCKID_lookup = {**MOCKID_lookup,**{(file_number,pixel):list(MOCKIDs)}}
+        pixel_file_MOCKIDs = pixel_MOCKIDs[pixel_file_indices]
+        MOCKID_lookup = {**MOCKID_lookup,**{(file_number,pixel):list(pixel_file_MOCKIDs)}}
 
 ################################################################################
 
@@ -438,27 +435,34 @@ master_filename = master_location + '/master.fits'
 
 #Reorganise the data.
 master = fits.open(master_filename)
-master_catalog = master[1].data
-master_colore_cosmology = master[2].data
-master_new_cosmology = new_cosmology
+try:
 
-#Make an appropriate header.
-header = fits.Header()
-header['NSIDE'] = N_side
+    test = master[3].data
+    master.close()
 
-#Make the data into tables.
-hdu_ID = fits.BinTableHDU.from_columns(master_catalog,header=header,name='CATALOG')
-hdu_cosmology_colore = fits.BinTableHDU.from_columns(master_colore_cosmology,header=header,name='COSMO_COL')
-hdu_cosmology_expanded = fits.BinTableHDU.from_columns(master_new_cosmology,header=header,name='COSMO_EXP')
+except IndexError:
 
-#Make a primary HDU.
-prihdr = fits.Header()
-prihdu = fits.PrimaryHDU(header=prihdr)
+    master_catalog = master[1].data
+    master_colore_cosmology = master[2].data
+    master_new_cosmology = new_cosmology
 
-#Make the .fits file.
-hdulist = fits.HDUList([prihdu,hdu_ID,hdu_cosmology_colore,hdu_cosmology_expanded])
-hdulist.writeto(master_filename,overwrite=True)
-hdulist.close()
+    #Make an appropriate header.
+    header = fits.Header()
+    header['NSIDE'] = N_side
+
+    #Make the data into tables.
+    hdu_ID = fits.BinTableHDU.from_columns(master_catalog,header=header,name='CATALOG')
+    hdu_cosmology_colore = fits.BinTableHDU.from_columns(master_colore_cosmology,header=header,name='COSMO_COL')
+    hdu_cosmology_expanded = fits.BinTableHDU.from_columns(master_new_cosmology,header=header,name='COSMO_EXP')
+
+    #Make a primary HDU.
+    prihdr = fits.Header()
+    prihdu = fits.PrimaryHDU(header=prihdr)
+
+    #Make the .fits file.
+    hdulist = fits.HDUList([prihdu,hdu_ID,hdu_cosmology_colore,hdu_cosmology_expanded])
+    hdulist.writeto(master_filename,overwrite=True)
+    hdulist.close()
 
 print('Process complete!\n')
 
@@ -467,6 +471,7 @@ print('Process complete!\n')
 """
 Group the statistics calculated to get means and variances.
 Save these into a fits file.
+"""
 """
 print('\nMaking statistics file...')
 start_time = time.time()
@@ -482,7 +487,7 @@ statistics = functions.means_to_statistics(means)
 functions.write_statistics(new_base_file_location,N_side,statistics,new_cosmology)
 
 print('\nTime to make statistics file: {:4.0f}s.\n'.format(time.time()-start_time))
-
+"""
 ################################################################################
 
 """
