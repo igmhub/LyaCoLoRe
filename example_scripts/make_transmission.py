@@ -49,11 +49,8 @@ parser.add_argument('--nproc', type = int, default = 1, required=False,
 parser.add_argument('--nside', type = int, default = 16, required=False,
                     help = 'HEALPix nside for output files (must be 2^n)')
 
-parser.add_argument('--pix-start', type = int, default = None, required=False,
-                    help = 'which pixel number to start working from')
-
-parser.add_argument('--pix-stop', type = int, default = None, required=False,
-                    help = 'which pixel number to stop working at')
+parser.add_argument('--pixels', type = int, default = None, required=False,
+                    help = 'which pixel numbers to work on', nargs='*')
 
 parser.add_argument('--IVAR-cut', type = float, default = 1150., required=False,
                     help = 'maximum rest frame lambda for IVAR=1 (Å)')
@@ -104,12 +101,9 @@ master_location = args.master_dir
 if not master_location:
     master_location = new_base_file_location
 N_side = args.nside
-pix_start = args.pix_start
-if not pix_start:
-    pix_start = 0
-pix_stop = args.pix_stop
-if not pix_stop:
-    pix_stop = 12*N_side**2
+pixels = args.pixels
+if not pixels:
+    pixels = list(range(12*N_side**2))
 min_catalog_z = args.min_cat_z
 lambda_min = args.lambda_min
 zero_mean_delta = False
@@ -165,7 +159,7 @@ master_data = master[1].data
 master.close()
 
 #Make a MOCKID lookup.
-pixel_list = list(sorted(set([pixel for pixel in master_data['PIXNUM'] if pixel>=pix_start and pixel<=pix_stop])))
+pixel_list = list(sorted(set([pixel for pixel in master_data['PIXNUM'] if pixel in pixels])))
 MOCKID_lookup = {}
 for pixel in pixel_list:
     print(pixel)
