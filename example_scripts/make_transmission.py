@@ -133,7 +133,7 @@ else:
     N_pix = 12*N_side**2
 
 #Define the original file structure
-original_filename_structure = 'N1000_out_srcs_s1_{}.fits' #file_number
+original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
 file_numbers = list(range(0,1))
 input_format = 'gaussian_colore'
 
@@ -168,11 +168,17 @@ master.close()
 pixel_list = list(sorted(set([pixel for pixel in master_data['PIXNUM'] if pixel>=pix_start and pixel<=pix_stop])))
 MOCKID_lookup = {}
 for pixel in pixel_list:
-    pixel_file_number_list = [master_data['FILENUM'][i] for i in range(len(master_data['PIXNUM'])) if master_data['PIXNUM'][i]==pixel]
-    pixel_file_number_list = list(sorted(set(pixel_file_number_list)))
+    print(pixel)
+    #pixel_indices = [i for i in range(len(master_data['PIXNUM'])) if master_data['PIXNUM'][i]==pixel]
+    pixel_indices = (master_data['PIXNUM']==pixel)
+    MOCKIDs = master_data['MOCKID'][pixel_indices]
+    pixel_file_number_list = list(sorted(set(master_data['FILENUM'][pixel_indices])))
     for file_number in pixel_file_number_list:
-        MOCKID_list = [master_data['MOCKID'][i] for i in range(len(master_data['PIXNUM'])) if master_data['PIXNUM'][i]==pixel and master_data['FILENUM'][i]==file_number]
-        MOCKID_lookup = {**MOCKID_lookup,**{(file_number,pixel):MOCKID_list}}
+        print('-->',file_number)
+        pixel_file_indices = (master_data['FILENUM'][pixel_indices]==file_number)
+        #MOCKID_list = [master_data['MOCKID'][i] for i in range(len(master_data['PIXNUM'])) if master_data['PIXNUM'][i]==pixel and master_data['FILENUM'][i]==file_number]
+        MOCKIDs = MOCKIDs[pixel_file_indices]
+        MOCKID_lookup = {**MOCKID_lookup,**{(file_number,pixel):list(MOCKIDs)}}
 
 ################################################################################
 
