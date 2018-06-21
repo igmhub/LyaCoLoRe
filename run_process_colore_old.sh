@@ -27,7 +27,7 @@ INPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/output_G_hZsmooth
 echo "input will be taken from "$INPUT_PATH
 
 # full path to folder where output will be written
-OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_${NGRID}_${NODES}_sr${R_SMOOTH}_bm1_biasG18_picos_nside${NSIDE}/"
+OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_${NGRID}_${NODES}_sr${R_SMOOTH}_bm1_biasG18_picos_nside${NSIDE}_RSD/"
 echo "output will written to "$OUTPUT_PATH
 mkdir $OUTPUT_PATH
 
