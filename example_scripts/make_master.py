@@ -177,4 +177,4 @@ print('Time to make master files: {:4.0f}s.'.format(time.time()-start))
 
 #Make the new file structure
 pixel_list = list(sorted(set(master_data['PIXNUM'])))
-functions.make_file_structure(new_base_file_location,pixel_list)
+general.make_file_structure(new_base_file_location,pixel_list)

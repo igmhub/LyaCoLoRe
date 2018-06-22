@@ -51,6 +51,7 @@ def make_gaussian_pixel_object(pixel,original_file_location,original_filename_st
 
     return pixel_object
 
+#general.py
 #Function to create a file structure based on a set of numbers, of the form "x//100"/"x".
 def make_file_structure(base_location,numbers):
 
@@ -71,6 +72,7 @@ def make_file_structure(base_location,numbers):
 
     return
 
+#general.py
 #Function to convert a list of numbers to a list of n-digit strings.
 def number_to_string(number,string_length):
 
@@ -82,6 +84,7 @@ def number_to_string(number,string_length):
 
     return string
 
+#import.py
 #Function to extract RA values from a colore or picca format hdulist.
 def get_RA(h,input_format):
 
@@ -96,6 +99,7 @@ def get_RA(h,input_format):
 
     return RA
 
+#import.py
 #Function to extract DEC values from a colore or picca format hdulist.
 def get_DEC(h,input_format):
 
@@ -110,6 +114,7 @@ def get_DEC(h,input_format):
 
     return DEC
 
+#import.py
 #Function to extract Z_QSO values from a colore or picca format hdulist.
 def get_Z_QSO(h,input_format):
 
@@ -124,6 +129,7 @@ def get_Z_QSO(h,input_format):
 
     return Z_QSO
 
+#import.py
 #Function to extract DZ_RSD values from a colore.
 def get_DZ_RSD(h,input_format):
 
@@ -138,6 +144,7 @@ def get_DZ_RSD(h,input_format):
 
     return DZ_RSD
 
+#import.py
 #Function to extract MOCKID values from a colore, picca or ID format hdulist.
 def get_MOCKID(h,input_format,file_number):
 
@@ -165,6 +172,7 @@ def get_MOCKID(h,input_format,file_number):
 
     return MOCKID
 
+#general.py
 #Function to construct an array of MOCKIDs given a file_number and a list of row_numbers.
 def make_MOCKID(file_number,row_numbers):
 
@@ -184,6 +192,7 @@ def make_MOCKID(file_number,row_numbers):
 
     return MOCKID
 
+#import.py
 #Function to extract Z values from a colore or picca format hdulist.
 def get_COSMO(h,input_format):
 
@@ -212,6 +221,7 @@ def get_COSMO(h,input_format):
 
     return R, Z, D, V
 
+#import.py
 #Function to extract Z values from a colore or picca format hdulist.
 def get_lya_lambdas(h,input_format):
 
@@ -231,6 +241,7 @@ def get_lya_lambdas(h,input_format):
 
     return lya_lambdas
 
+#general.py
 #Function to determine in which HEALPix pixel each of a set of (RA,DEC) coordinates lies, given N_side.
 def make_pixel_ID(N_side,RA,DEC):
 
@@ -251,6 +262,7 @@ def make_pixel_ID(N_side,RA,DEC):
 
     return pixel_ID
 
+#master.py
 #Function to extract data suitable for making ID files from a set of colore or picca format files.
 def get_ID_data(original_file_location,original_filename_structure,file_number,input_format,N_side,minimum_z=0.0):
 
@@ -305,6 +317,7 @@ def get_ID_data(original_file_location,original_filename_structure,file_number,i
 
     return file_number, ID_sort, cosmology, file_pixel_map_element, MOCKID_lookup_element
 
+#master.py
 #Function to join together the outputs from 'get_ID_data' in several multiprocessing processes.
 def join_ID_data(results,N_side):
 
@@ -336,6 +349,7 @@ def join_ID_data(results,N_side):
 
     return master_data, bad_coordinates_data, cosmology_data, file_pixel_map, MOCKID_lookup
 
+#master.py
 #Function to write a single ID file, given the data.
 def write_ID(filename,ID_data,cosmology_data,N_side):
 
@@ -358,6 +372,7 @@ def write_ID(filename,ID_data,cosmology_data,N_side):
 
     return
 
+#master.py
 #Function to make the drq files needed for picca xcf functions.
 def write_DRQ(filename,RSD_option,ID_data,N_side):
 
@@ -393,6 +408,7 @@ def write_DRQ(filename,RSD_option,ID_data,N_side):
 
     return
 
+#physical.py
 #From lya_mock_p1d.py
 def get_tau(z,density_rows,alpha,beta):
     """transform lognormal density to optical depth, at each z"""
@@ -404,6 +420,7 @@ def get_tau(z,density_rows,alpha,beta):
 
     return TAU_rows
 
+#general.py
 #Function to make ivar mask
 def make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP):
 
@@ -422,6 +439,7 @@ def make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP):
 
     return IVAR_rows
 
+#physical.py
 #Function to convert tau skewers (in rows) to density skewers (in rows).
 def tau_to_density(TAU_rows,alpha,beta):
 
@@ -433,6 +451,7 @@ def tau_to_density(TAU_rows,alpha,beta):
 
     return DENSITY_rows
 
+#physical.py
 #Function to convert lognormal delta skewers (in rows) to gaussian field skewers (in rows).
 def lognormal_delta_to_gaussian(LN_DENSITY_DELTA_rows,SIGMA_G,D):
 
@@ -453,6 +472,7 @@ def lognormal_delta_to_gaussian(LN_DENSITY_DELTA_rows,SIGMA_G,D):
 
     return GAUSSIAN_DELTA_rows
 
+#physical.py
 #Function to convert gaussian field skewers (in rows) to lognormal delta skewers (in rows).
 def gaussian_to_lognormal_delta(GAUSSIAN_DELTA_rows,SIGMA_G,D):
 
@@ -472,6 +492,7 @@ def gaussian_to_lognormal_delta(GAUSSIAN_DELTA_rows,SIGMA_G,D):
 
     return LN_DENSITY_DELTA_rows
 
+#physical.py
 #Function to convert from density to tau using alpha*density^beta
 def density_to_tau(density,alpha,beta):
 
@@ -479,6 +500,7 @@ def density_to_tau(density,alpha,beta):
 
     return tau
 
+#physical.py
 #Function to convert from density to flux using e^-(alpha*density^beta)
 def density_to_flux(density,alpha,beta):
 
@@ -486,6 +508,7 @@ def density_to_flux(density,alpha,beta):
 
     return F
 
+#general.py
 #Function to determine the first index corresponding to a value in an array greater than a minimum value.
 def get_first_relevant_index(minimum,values):
 
@@ -496,6 +519,7 @@ def get_first_relevant_index(minimum,values):
 
     return first_relevant_index
 
+#general.py
 #Function to determine the indices corresponding to the values in an array greater than a minimum value.
 def get_relevant_indices(minimum,values):
 
@@ -504,6 +528,7 @@ def get_relevant_indices(minimum,values):
 
     return relevant_indices
 
+#general.py
 # TODO: sort out the float/integer problem
 #Function to retrieve relevant simulation parameters from the param.cfg file.
 def get_simulation_parameters(location,filename):
@@ -531,6 +556,7 @@ def get_simulation_parameters(location,filename):
 
     return parameter_values
 
+#general.py
 #Function to normalise a set of delta skewer rows to zero mean according to given weights.
 #If all weights for a given cell are zero, then the output will be zero in that cell for all skewers.
 def normalise_deltas(DELTA_rows,mean_DELTA):
@@ -554,6 +580,7 @@ class simulation_parameters:
 
         return
 
+#stats.py
 #Function to calculate the mean of deltas, mean of deltas^2, and N.
 def return_means(DELTA_rows,weights,sample_pc=1.0):
     DELTA_SQUARED_rows = DELTA_rows**2
@@ -571,6 +598,7 @@ def return_means(DELTA_rows,weights,sample_pc=1.0):
 
     return N, mean_DELTA, mean_DELTA_SQUARED
 
+#stats.py
 #
 def combine_pixel_means(results):
 
@@ -592,6 +620,7 @@ def combine_pixel_means(results):
 
     return N, mean_DELTA, var_DELTA
 
+#stats.py
 #Function to take a list of sets of statistics (as produced by 'get_statistics'), and calculate means and variances.
 def combine_means(means_list):
 
@@ -613,6 +642,7 @@ def combine_means(means_list):
 
     return combined_means
 
+#stats.py
 #Function to convert a set of means of quantities and quantities squared (as outputted by 'combine_means') to a set of means and variances.
 def means_to_statistics(means):
 
@@ -637,6 +667,7 @@ def means_to_statistics(means):
 
     return statistics
 
+#stats.py
 #Function to write the statistics data to file, along with an HDU extension contanint cosmology data.
 def write_statistics(location,N_side,statistics,cosmology_data):
 
@@ -656,14 +687,19 @@ def write_statistics(location,N_side,statistics,cosmology_data):
 
     return
 
+#general.py
 #Function to interpolate via the NGP method.
 def get_NGPs(x,x_new):
+
     NGPs = np.zeros(x_new.shape)
+    
     for i,x_new_value in enumerate(x_new):
         distances2 = (x-x_new_value)**2
         NGPs[i] = np.argmin(distances2)
+
     return NGPs
 
+#ssp.py
 #Function to generate random Gaussian skewers with a given standard deviation.
 def get_gaussian_skewers(generator,N_cells,sigma_G=1.0,N_skewers=1):
 
@@ -679,6 +715,7 @@ def get_gaussian_skewers(generator,N_cells,sigma_G=1.0,N_skewers=1):
     """
     return gaussian_skewers
 
+#ssp.py
 #Function to generate random Gaussian fields at a given redshift.
 #From lya_mock_functions
 def get_gaussian_fields(z,N_cells,dv_kms=10.0,N_skewers=1,new_seed=None,white_noise=True):
@@ -712,6 +749,7 @@ def get_gaussian_fields(z,N_cells,dv_kms=10.0,N_skewers=1,new_seed=None,white_no
 
     return delta
 
+#ssp.py
 #Function to return a gaussian P1D in k.
 #From lya_mock_functions
 def power_kms(z_c,k_kms,dv_kms,white_noise):
@@ -734,6 +772,7 @@ def power_kms(z_c,k_kms,dv_kms,white_noise):
     P *= np.exp(-pow(k_kms*R1,2)) * pow(np.sin(kdv/2)/(kdv/2),2)
     return P
 
+#ssp.py
 #Function to integrate under the 1D power spectrum to return the value of sigma_dF at a given redshift.
 def get_sigma_dF_P1D(z,l_hMpc=0.25,Om=0.3):
     #Choose log spaced values of k
@@ -762,6 +801,7 @@ def get_sigma_dF_P1D(z,l_hMpc=0.25,Om=0.3):
 
     return sigma_dF
 
+#tuning.py
 #Function to return the P1D from Palanque-Delabrouille et al. (2013)
 #copied from lyaforecast
 def P1D_z_kms_PD2013(z,k_kms):
@@ -783,12 +823,14 @@ def P1D_z_kms_PD2013(z,k_kms):
     toret = np.pi * A_F / k0 * pow(k_kms/k0, exp1-1) * pow((1+z)/(1+z0), B_F)
     return toret
 
+#tuning.py
 #Function to return the mean value of F at a given redshift.
 #Equation from F-R2012, equation 2.11
 def get_mean_F_model(z):
     mean_F = np.exp((np.log(0.8))*(((1+z)/3.25)**3.2))
     return mean_F
 
+#stats.py
 #Function to calculate mean_F and sigma_dF for given values of sigma_G, alpha and beta.
 def get_flux_stats(sigma_G,alpha,beta,D,mean_only=False,int_lim_fac=10.0):
 
@@ -813,6 +855,7 @@ def get_flux_stats(sigma_G,alpha,beta,D,mean_only=False,int_lim_fac=10.0):
 
     return mean_F, sigma_dF
 
+#tuning.py
 #Function to find the value of alpha required to match mean_F to a specified value.
 def find_alpha(sigma_G,mean_F_required,beta,D,alpha_log_low=-3.0,alpha_log_high=10.0,tolerance=0.0001,max_iter=30):
     #print('---> mean_F required={:2.2f}'.format(mean_F_required))
@@ -846,6 +889,7 @@ def find_alpha(sigma_G,mean_F_required,beta,D,alpha_log_low=-3.0,alpha_log_high=
 
     return alpha,mean_F,sigma_dF
 
+#tuning.py
 #Function to find the values of alpha and sigma_G required to match mean_F and sigma_dF to specified values.
 def find_sigma_G(mean_F_required,sigma_dF_required,beta,D,sigma_G_start=0.001,step_size=1.0,tolerance=0.001,max_steps=30):
     #print('sigma_dF required={:2.2f}'.format(sigma_dF_required))
@@ -921,6 +965,7 @@ def find_sigma_G(mean_F_required,sigma_dF_required,beta,D,sigma_G_start=0.001,st
     """
     return alpha,sigma_G,mean_F,sigma_dF
 
+#data.py
 #Definition of a generic 'simulation_data' class, from which it is easy to save in new formats.
 class simulation_data:
     #Initialisation function.

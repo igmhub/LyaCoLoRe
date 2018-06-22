@@ -1,0 +1,137 @@
+import numpy as np
+from astropy.io import fits
+
+#Function to return the P1D from Palanque-Delabrouille et al. (2013)
+#copied from lyaforecast
+def P1D_z_kms_PD2013(z,k_kms):
+    """Fitting formula for 1D P(z,k) from Palanque-Delabrouille et al. (2013).
+        Wavenumbers and power in units of km/s. Corrected to be flat at low-k"""
+    # numbers from Palanque-Delabrouille (2013)
+    A_F = 0.064
+    n_F = -2.55
+    alpha_F = -0.1
+    B_F = 3.55
+    beta_F = -0.28
+    k0 = 0.009
+    z0 = 3.0
+    n_F_z = n_F + beta_F * np.log((1+z)/(1+z0))
+    # this function would go to 0 at low k, instead of flat power
+    k_min=k0*np.exp((-0.5*n_F_z-1)/alpha_F)
+    k_kms = np.fmax(k_kms,k_min)
+    exp1 = 3 + n_F_z + alpha_F * np.log(k_kms/k0)
+    toret = np.pi * A_F / k0 * pow(k_kms/k0, exp1-1) * pow((1+z)/(1+z0), B_F)
+    return toret
+
+#Function to return the mean value of F at a given redshift.
+#Equation from F-R2012, equation 2.11
+def get_mean_F_model(z):
+    mean_F = np.exp((np.log(0.8))*(((1+z)/3.25)**3.2))
+    return mean_F
+
+#Function to find the value of alpha required to match mean_F to a specified value.
+def find_alpha(sigma_G,mean_F_required,beta,D,alpha_log_low=-3.0,alpha_log_high=10.0,tolerance=0.0001,max_iter=30):
+    #print('---> mean_F required={:2.2f}'.format(mean_F_required))
+    count = 0
+    exit = 0
+    while exit == 0 and count < max_iter:
+        alpha_log_midpoint = (alpha_log_low + alpha_log_high)/2.0
+
+        mean_F_al,sigma_dF_al = get_flux_stats(sigma_G,10**alpha_log_low,beta,D,mean_only=True)
+        mean_F_am,sigma_dF_am = get_flux_stats(sigma_G,10**alpha_log_midpoint,beta,D,mean_only=True)
+        mean_F_ah,sigma_dF_ah = get_flux_stats(sigma_G,10**alpha_log_high,beta,D,mean_only=True)
+
+        #print('---> alphas=({:2.2f},{:2.2f},{:2.2f}) gives mean_F=({:2.2f},{:2.2f},{:2.2f})'.format(10**alpha_log_low,10**alpha_log_midpoint,10**alpha_log_high,mean_F_al,mean_F_am,mean_F_ah))
+
+        if np.sign(mean_F_al-mean_F_required) * np.sign(mean_F_am-mean_F_required) > 0:
+            alpha_log_low = alpha_log_midpoint
+        else:
+            alpha_log_high = alpha_log_midpoint
+
+        if abs(mean_F_am/mean_F_required - 1) < tolerance:
+            exit = 1
+        else:
+            count += 1
+
+    if exit == 0:
+        # TODO: something other than print here. Maybe make a log of some kind?
+        print('\nvalue of mean_F did not converge to within tolerance: error is {:3.2%}'.format(mean_F_am/mean_F_required - 1))
+
+    alpha = 10**alpha_log_midpoint
+    mean_F,sigma_dF = get_flux_stats(sigma_G,alpha,beta,D)
+
+    return alpha,mean_F,sigma_dF
+
+#Function to find the values of alpha and sigma_G required to match mean_F and sigma_dF to specified values.
+def find_sigma_G(mean_F_required,sigma_dF_required,beta,D,sigma_G_start=0.001,step_size=1.0,tolerance=0.001,max_steps=30):
+    #print('sigma_dF required={:2.2f}'.format(sigma_dF_required))
+    #print(' ')
+    #print(' ')
+    count = 0
+    exit = 0
+    sigma_G = sigma_G_start
+
+    while exit == 0 and count < max_steps:
+
+        alpha,mean_F,sigma_dF = find_alpha(sigma_G,mean_F_required,beta,D)
+
+        if abs(sigma_dF/sigma_dF_required - 1) < tolerance:
+            exit = 1
+            #print('sigma_G={:2.4f} gives sigma_dF={:2.4f}. Satisfied. Exiting...'.format(sigma_G,sigma_dF))
+        elif sigma_dF < sigma_dF_required:
+            #print('sigma_G={:2.4f} gives sigma_dF={:2.4f}. Too low. Stepping forwards...'.format(sigma_G,sigma_dF))
+            sigma_G += step_size
+            count += 1
+        elif sigma_dF > sigma_dF_required:
+            #print('sigma_G={:2.4f} gives sigma_dF={:2.4f}. Too high. Stepping backwards...'.format(sigma_G,sigma_dF))
+            sigma_G_too_high = sigma_G
+            sigma_G -= step_size
+            step_size = step_size/10.0
+            sigma_G += step_size
+            count += 1
+
+        #print('error: ',(sigma_dF/sigma_dF_required - 1))
+
+        """
+        sigma_G_log_low = -3.0
+        sigma_G_log_high = 1.0
+
+        sigma_G_log_midpoint = (sigma_G_log_low + sigma_G_log_high)/2.0
+
+        alpha_sGl,mean_F_sGl,sigma_dF_sGl = find_alpha(10**sigma_G_log_low,mean_F_required,beta,D)
+        alpha_sGm,mean_F_sGm,sigma_dF_sGm = find_alpha(10**sigma_G_log_midpoint,mean_F_required,beta,D)
+        alpha_sGh,mean_F_sGh,sigma_dF_sGh = find_alpha(10**sigma_G_log_high,mean_F_required,beta,D)
+
+        print('sigma_Gs=({:2.2f},{:2.2f},{:2.2f}) gives sigma_dFs=({:2.2f},{:2.2f},{:2.2f})'.format(10**sigma_G_log_low,10**sigma_G_log_midpoint,10**sigma_G_log_high,sigma_dF_sGl,sigma_dF_sGm,sigma_dF_sGh))
+
+        if np.sign(sigma_dF_sGl-sigma_dF_required) * np.sign(sigma_dF_sGm-sigma_dF_required) > 0:
+            sigma_G_log_low = sigma_G_log_midpoint
+        else:
+            sigma_G_log_high = sigma_G_log_midpoint
+
+        if abs(sigma_dF_sGm/sigma_dF_required - 1) < tolerance:
+            exit = 1
+        else:
+            count += 1
+        """
+
+    #print('Testing finished. Final values are:')
+    #print('sigma_G={:2.4f} gives sigma_dF={:2.4f}.'.format(sigma_G,sigma_dF))
+    #print('error: ',(sigma_dF/sigma_dF_required - 1))
+
+    if exit == 0:
+        # TODO: something other than print here. Maybe make a log of some kind?
+        print('\nvalue of sigma_dF did not converge to within tolerance: error is {:3.2%}'.format(sigma_dF/sigma_dF_required - 1))
+        sigma_G = (sigma_G+sigma_G_too_high)/2.0
+        alpha,mean_F,sigma_dF = find_alpha(sigma_G,mean_F_required,beta,D)
+
+    #print('Final check finished. Final values are:')
+    #print('sigma_G={:2.4f} gives sigma_dF={:2.4f}.'.format(sigma_G,sigma_dF))
+    #print('error: ',(sigma_dF/sigma_dF_required - 1))
+    #print(' ')
+    """
+    alpha = alpha_sGm
+    sigma_G = 10**sigma_G_log_midpoint
+    mean_F = mean_F_sGm
+    sigma_dF = sigma_dF_sGm
+    """
+    return alpha,sigma_G,mean_F,sigma_dF
