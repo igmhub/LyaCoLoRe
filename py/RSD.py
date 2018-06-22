@@ -2,10 +2,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 import scipy.interpolate as sciint
 import math
+
+import general
+
 lya = 1215.67
 
 
 #Function to add linear RSDs from the velocity skewers.
+#delete?
 def add_linear_skewer_RSDs(initial_skewer_rows,velocity_skewer_rows_dz,z):
 
     N_qso = initial_skewer_rows.shape[0]
@@ -103,21 +107,6 @@ def get_dkms_dhMpc(z,Om=0.3147):
 
     return dkms_dhMpc
 
-# TODO: not sure I need I or K to be defined?
-#
-def I(x,a,sigma,N_steps=10**4):
-
-    x_int = np.linspace(-a,a,N_steps+1)
-    # TODO: should it be 1/2N+1 rather than 1/2N?
-    integrand = (1/(2*a*np.sqrt(2*np.pi)*sigma)) * np.exp(-((x - x_int)**2)/(2*sigma**2))
-    I = np.trapz(integrand,)
-
-    return I
-
-def K(x,sigma):
-    K = x*math.erf(x/(np.sqrt(2)*sigma)) + ((np.sqrt(2)*sigma)/(np.sqrt(np.pi)))*np.exp(-(x**2)/(2*(sigma**2)))
-    return K
-
 def S(x):
     S = x*math.erf(x) + 1./(np.sqrt(np.pi))*np.exp(-(x**2))
     return S
@@ -129,23 +118,8 @@ def J(x,a,sigma):
     J = (1./(4*a*b))*(S((x+a)*b)-S((x-a)*b))
     return J
 
-## TODO: move this to a mroe general module
-#Function to return the index of the point in a sorted array closest to a given value.
-def NN_sorted(arr,val):
-
-    N = arr.shape[0]
-    i = np.searchsorted(arr,val)
-
-    if i > 0 and i < N:
-        if abs(arr[i] - val) > abs(arr[i-1] - val):
-            i -= 1
-    elif i == N:
-        i -= 1
-
-    return i
-
 #
-def add_skewer_RSDs(initial_tau_rows,initial_density_rows,velocity_skewer_rows_dz,z,r_hMpc,thermal=True):
+def add_skewer_RSDs(initial_tau_rows,initial_density_rows,velocity_skewer_rows_dz,z,r_hMpc,thermal=False):
 
     N_qso = initial_tau_rows.shape[0]
     N_cells = initial_tau_rows.shape[1]
@@ -187,7 +161,7 @@ def add_skewer_RSDs(initial_tau_rows,initial_density_rows,velocity_skewer_rows_d
             #If we want to include thermal effects, we include contributions to all cells within a chosen x_kms range.
             if thermal == True:
                 tau = initial_tau_rows[i,j]
-                
+
                 #Calculate the dispersion as a result of thermal effects.
                 sigma_kms = get_sigma_kms(T_K_rows[i,j])
 
@@ -198,8 +172,8 @@ def add_skewer_RSDs(initial_tau_rows,initial_density_rows,velocity_skewer_rows_d
 
                 #If at least one limit is within the skewer, determine which cells we determine weights for.
                 if x_upper_limit > x_kms[0] and x_lower_limit < x_kms[-1]:
-                    j_upper_limit = NN_sorted(x_kms,x_upper_limit)
-                    j_lower_limit = NN_sorted(x_kms,x_lower_limit)
+                    j_upper_limit = general.NN_sorted(x_kms,x_upper_limit)
+                    j_lower_limit = general.NN_sorted(x_kms,x_lower_limit)
                     j_values = np.array(list(range(j_lower_limit,j_upper_limit+1)))
                 else:
                     j_values = np.array([])
@@ -274,6 +248,20 @@ def add_skewer_RSDs(initial_tau_rows,initial_density_rows,velocity_skewer_rows_d
 BELOW IS OLD CODE.
 INCLUDES CODE TO USE AN INTEGRAL METHOD FOR DETERMINING THERMAL RSDS.
 SLOWER THAN THE METHOD INCLUDED ABOVE
+
+def I(x,a,sigma,N_steps=10**4):
+
+    x_int = np.linspace(-a,a,N_steps+1)
+    # TODO: should it be 1/2N+1 rather than 1/2N?
+    integrand = (1/(2*a*np.sqrt(2*np.pi)*sigma)) * np.exp(-((x - x_int)**2)/(2*sigma**2))
+    I = np.trapz(integrand,)
+
+    return I
+
+def K(x,sigma):
+    K = x*math.erf(x/(np.sqrt(2)*sigma)) + ((np.sqrt(2)*sigma)/(np.sqrt(np.pi)))*np.exp(-(x**2)/(2*(sigma**2)))
+    return K
+
 
 
 #
