@@ -3,6 +3,11 @@ from astropy.io import fits
 
 import general
 import input
+import convert
+import RSD
+import DLA
+
+lya = 1215.67
 
 #Function to create a 'simulation_data' object given a specific pixel, information about the complete simulation, and the location/filenames of data files.
 def make_gaussian_pixel_object(pixel,original_file_location,original_filename_structure,input_format,MOCKID_lookup,lambda_min=0,IVAR_cutoff=lya):
@@ -86,9 +91,9 @@ class simulation_data:
 
         h = fits.open(filename)
 
-        h_MOCKID = get_MOCKID(h,input_format,file_number)
-        h_R, h_Z, h_D, h_V = get_COSMO(h,input_format)
-        h_lya_lambdas = get_lya_lambdas(h,input_format)
+        h_MOCKID = input.get_MOCKID(h,input_format,file_number)
+        h_R, h_Z, h_D, h_V = input.get_COSMO(h,input_format)
+        h_lya_lambdas = input.get_lya_lambdas(h,input_format)
 
         if MOCKIDs != None:
             #Work out which rows in the hdulist we are interested in.
@@ -131,11 +136,11 @@ class simulation_data:
                 SIGMA_G = h[4].header['SIGMA_G']
 
             #Derive the MOCKID and LOGLAM_MAP.
-            MOCKID = get_MOCKID(h,input_format,file_number)
+            MOCKID = input.get_MOCKID(h,input_format,file_number)
             LOGLAM_MAP = np.log10(lya*(1+Z))
 
             #Calculate the Gaussian skewers.
-            GAUSSIAN_DELTA_rows = lognormal_delta_to_gaussian(DENSITY_DELTA_rows,SIGMA_G,D)
+            GAUSSIAN_DELTA_rows = convert.lognormal_delta_to_gaussian(DENSITY_DELTA_rows,SIGMA_G,D)
 
             #Set the remaining variables to None
             DENSITY_DELTA_rows = None
@@ -148,7 +153,7 @@ class simulation_data:
             MJD = np.zeros(N_qso)
             FIBER = np.zeros(N_qso)
 
-            IVAR_rows = make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP)
+            IVAR_rows = general.make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP)
 
         elif input_format == 'gaussian_colore':
 
@@ -178,7 +183,7 @@ class simulation_data:
             if MOCKIDs != None:
                 MOCKID = MOCKIDs
             else:
-                MOCKID = get_MOCKID(h,input_format,file_number)
+                MOCKID = input.get_MOCKID(h,input_format,file_number)
             LOGLAM_MAP = np.log10(lya*(1+Z))
 
             #Set the remaining variables to None
@@ -192,7 +197,7 @@ class simulation_data:
             MJD = np.zeros(N_qso)
             FIBER = np.zeros(N_qso)
 
-            IVAR_rows = make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP)
+            IVAR_rows = general.make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP)
 
         elif input_format == 'picca_density':
 
@@ -221,7 +226,7 @@ class simulation_data:
             Z = (10**LOGLAM_MAP)/lya - 1
 
             #Calculate the Gaussian skewers.
-            GAUSSIAN_DELTA_rows = lognormal_delta_to_gaussian(DENSITY_DELTA_rows,SIGMA_G,D)
+            GAUSSIAN_DELTA_rows = convert.lognormal_delta_to_gaussian(DENSITY_DELTA_rows,SIGMA_G,D)
 
             #Set the remaining variables to None
             DENSITY_DELTA_rows = None
@@ -324,7 +329,7 @@ class simulation_data:
         new_R = np.arange(Rmin,Rmax,cell_size)
         new_N_cells = new_R.shape[0]
 
-        NGPs = get_NGPs(old_R,new_R).astype(int)
+        NGPs = general.get_NGPs(old_R,new_R).astype(int)
         expanded_GAUSSIAN_DELTA_rows = np.zeros((self.N_qso,new_N_cells))
 
         for i in range(self.N_qso):
@@ -344,7 +349,7 @@ class simulation_data:
         self.VEL_rows = self.VEL_rows[:,NGPs]
 
         #Make new IVAR rows.
-        self.IVAR_rows = make_IVAR_rows(IVAR_cutoff,self.Z_QSO,self.LOGLAM_MAP)
+        self.IVAR_rows = general.make_IVAR_rows(IVAR_cutoff,self.Z_QSO,self.LOGLAM_MAP)
 
         #For each skewer, determine the last relevant cell
         first_relevant_cells = np.zeros(self.N_qso)
@@ -362,6 +367,8 @@ class simulation_data:
 
             first_relevant_cells[i] = first_relevant_cell
             last_relevant_cells[i] = last_relevant_cell
+
+        extra_var = independent.get_gaussian_fields(generator,self.N_cells,dv_kms=,N_skewers=self.N_qso,white_noise=white_noise)
 
         """
         # TODO: Improve this
@@ -416,7 +423,7 @@ class simulation_data:
     #Function to add physical skewers to the object via a lognormal transformation.
     def compute_physical_skewers(self,density_type='lognormal'):
 
-        self.DENSITY_DELTA_rows = gaussian_to_lognormal_delta(self.GAUSSIAN_DELTA_rows,self.SIGMA_G,self.D)
+        self.DENSITY_DELTA_rows = convert.gaussian_to_lognormal_delta(self.GAUSSIAN_DELTA_rows,self.SIGMA_G,self.D)
         self.density_computed = True
 
         return
@@ -424,7 +431,7 @@ class simulation_data:
     #Function to add physical skewers to the object via a lognormal transformation.
     def compute_tau_skewers(self,alpha,beta):
 
-        self.TAU_rows = density_to_tau(self.DENSITY_DELTA_rows+1,alpha,beta)
+        self.TAU_rows = convert.density_to_tau(self.DENSITY_DELTA_rows+1,alpha,beta)
         self.tau_computed = True
 
         return
@@ -461,11 +468,11 @@ class simulation_data:
         moodified_new_TAU_rows = new_TAU_rows + (new_TAU_rows==0)*1.0e-10
 
         #convert the new tau rows back to physical density
-        new_density_rows = tau_to_density(moodified_new_TAU_rows,alpha,beta)
+        new_density_rows = convert.tau_to_density(moodified_new_TAU_rows,alpha,beta)
         new_density_delta_rows = new_density_rows - 1
 
         #convert the new physical density rows back to gaussian
-        new_gaussian_rows = lognormal_delta_to_gaussian(new_density_delta_rows,self.SIGMA_G,self.D)
+        new_gaussian_rows = convert.lognormal_delta_to_gaussian(new_density_delta_rows,self.SIGMA_G,self.D)
 
         #Make a mask where the physical skewers are zero.
         #mask = (new_density_rows != 0)
@@ -491,11 +498,11 @@ class simulation_data:
         moodified_new_TAU_rows = new_TAU_rows + (new_TAU_rows==0)*1.0e-10
 
         #convert the new tau rows back to physical density
-        new_density_rows = tau_to_density(moodified_new_TAU_rows,alpha,beta)
+        new_density_rows = convert.tau_to_density(moodified_new_TAU_rows,alpha,beta)
         new_density_delta_rows = new_density_rows - 1
 
         #convert the new physical density rows back to gaussian
-        new_gaussian_rows = lognormal_delta_to_gaussian(new_density_delta_rows,self.SIGMA_G,self.D)
+        new_gaussian_rows = convert.lognormal_delta_to_gaussian(new_density_delta_rows,self.SIGMA_G,self.D)
 
         #Make a mask where the physical skewers are zero.
         #mask = (new_density_rows != 0)
@@ -616,7 +623,7 @@ class simulation_data:
 
         #If desired, enforce that the Delta rows have zero mean.
         if zero_mean_delta == True:
-            relevant_GAUSSIAN_DELTA_rows = normalise_deltas(relevant_GAUSSIAN_DELTA_rows,mean_DELTA)
+            relevant_GAUSSIAN_DELTA_rows = general.normalise_deltas(relevant_GAUSSIAN_DELTA_rows,mean_DELTA)
 
         #Organise the data into picca-format arrays.
         picca_0 = relevant_GAUSSIAN_DELTA_rows.T
@@ -702,7 +709,7 @@ class simulation_data:
 
         #If desired, enforce that the Delta rows have zero mean.
         if zero_mean_delta == True:
-            relevant_DENSITY_DELTA_rows = normalise_deltas(relevant_DENSITY_DELTA_rows,mean_DELTA)
+            relevant_DENSITY_DELTA_rows = general.normalise_deltas(relevant_DENSITY_DELTA_rows,mean_DELTA)
 
         #Organise the data into picca-format arrays.
         picca_0 = relevant_DENSITY_DELTA_rows.T
@@ -874,7 +881,7 @@ class simulation_data:
         lya_lambdas = 10**self.LOGLAM_MAP
 
         #Determine the first cell which corresponds to a lya_line at wavelength > lambda_min
-        first_relevant_cell = get_first_relevant_index(lambda_min,lya_lambdas)
+        first_relevant_cell = general.get_first_relevant_index(lambda_min,lya_lambdas)
 
         #Determine the furthest cell which is still relevant: i.e. the one in which at least one QSO has non-zero value of IVAR.
         furthest_QSO_index = np.argmax(self.Z_QSO)

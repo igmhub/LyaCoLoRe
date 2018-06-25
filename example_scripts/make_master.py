@@ -8,8 +8,8 @@ import multiprocessing
 import time
 import argparse
 
-import process_functions as functions
 import general
+import master
 
 ################################################################################
 
@@ -92,7 +92,7 @@ new_file_structure = '{}/{}/'               #pixel number//100, pixel number
 new_filename_structure = '{}-{}-{}.fits'    #file type, nside, pixel number
 
 #Get the simulation parameters from the parameter file.
-simulation_parameters = functions.get_simulation_parameters(original_file_location,parameter_filename)
+simulation_parameters = general.get_simulation_parameters(original_file_location,parameter_filename)
 
 # TODO: Modify this to accomodate other density types.
 #If density type is not lognormal, then crash.
@@ -132,7 +132,7 @@ start = time.time()
 #Define the process to make the master data.
 def make_master_data(original_file_location,original_filename_structure,file_number,input_format,N_side,minimum_z=min_catalog_z):
 
-    file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element = functions.get_ID_data(original_file_location,original_filename_structure,file_number,input_format,N_side,minimum_z=min_catalog_z)
+    file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element = master.get_ID_data(original_file_location,original_filename_structure,file_number,input_format,N_side,minimum_z=min_catalog_z)
 
     return [file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element]
 
@@ -154,16 +154,16 @@ if __name__ == '__main__':
 print('\nSaving the master files...')
 
 #Join the multiprocessing results into 'master' and 'bad_coordinates' arrays.
-master_data, bad_coordinates_data, cosmology_data, file_pixel_map, MOCKID_lookup = functions.join_ID_data(results,N_side)
+master_data, bad_coordinates_data, cosmology_data, file_pixel_map, MOCKID_lookup = master.join_ID_data(results,N_side)
 
 #Write master and bad coordinates files.
 master_filename = new_base_file_location + '/master.fits'
-functions.write_ID(master_filename,master_data,cosmology_data,N_side)
+master.write_ID(master_filename,master_data,cosmology_data,N_side)
 print('\nMaster file contains {} objects.'.format(master_data.shape[0]))
 
 if bad_coordinates_data.shape[0] > 0:
     bad_coordinates_filename = new_base_file_location + '/bad_coordinates.fits'
-    functions.write_ID(bad_coordinates_filename,bad_coordinates_data,cosmology_data,N_side)
+    master.write_ID(bad_coordinates_filename,bad_coordinates_data,cosmology_data,N_side)
     print('"bad coordinates" file contains {} objects.'.format(bad_coordinates_data.shape[0]))
 
 #If desired, write the DRQ files for picca xcf to deal with.
@@ -171,7 +171,7 @@ if add_picca_drqs:
     print('\nMaster file contains {} objects.'.format(master_data.shape[0]))
     for RSD_option in ['RSD','NO_RSD']:
         DRQ_filename = new_base_file_location + '/master_picca_{}.fits'.format(RSD_option)
-        functions.write_DRQ(DRQ_filename,RSD_option,master_data,N_side)
+        master.write_DRQ(DRQ_filename,RSD_option,master_data,N_side)
 
 print('Time to make master files: {:4.0f}s.'.format(time.time()-start))
 

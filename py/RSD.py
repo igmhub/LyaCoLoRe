@@ -7,7 +7,6 @@ import general
 
 lya = 1215.67
 
-
 #Function to add linear RSDs from the velocity skewers.
 #delete?
 def add_linear_skewer_RSDs(initial_skewer_rows,velocity_skewer_rows_dz,z):
@@ -99,14 +98,6 @@ def get_T_K(z,density_rows):
 
     return T_K
 
-#This should probably go in a general function file
-def get_dkms_dhMpc(z,Om=0.3147):
-
-    E_z = np.sqrt(Om*(1+z)**3 + (1-Om))
-    dkms_dhMpc = 100. * E_z / (1+z)
-
-    return dkms_dhMpc
-
 def S(x):
     S = x*math.erf(x) + 1./(np.sqrt(np.pi))*np.exp(-(x**2))
     return S
@@ -126,7 +117,7 @@ def add_skewer_RSDs(initial_tau_rows,initial_density_rows,velocity_skewer_rows_d
     final_tau_rows = np.zeros(initial_tau_rows.shape)
 
     #Convert radial distance to a velocity.
-    dkms_dhMpc = get_dkms_dhMpc(z)
+    dkms_dhMpc = general.get_dkms_dhMpc(z)
     x_kms = r_hMpc * dkms_dhMpc
 
     #Calculate the temperature in every cell if we want to include thermal effects.
@@ -152,7 +143,7 @@ def add_skewer_RSDs(initial_tau_rows,initial_density_rows,velocity_skewer_rows_d
                 cell_size = (x_kms[j] - x_kms[j-1])
 
             new_r_hMpc = np.interp(new_z_cell,z,r_hMpc)
-            new_x_kms_cell = new_r_hMpc * get_dkms_dhMpc(new_z_cell)
+            new_x_kms_cell = new_r_hMpc * general.get_dkms_dhMpc(new_z_cell)
             #new_x_kms_cell = x_kms_cell
 
             j_upper = np.searchsorted(x_kms,new_x_kms_cell)

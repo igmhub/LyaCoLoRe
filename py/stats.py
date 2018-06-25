@@ -1,6 +1,8 @@
 import numpy as np
 from astropy.io import fits
 
+lya = 1215.67
+
 #Function to calculate the mean of deltas, mean of deltas^2, and N.
 def return_means(DELTA_rows,weights,sample_pc=1.0):
     DELTA_SQUARED_rows = DELTA_rows**2
@@ -102,27 +104,3 @@ def write_statistics(location,N_side,statistics,cosmology_data):
     hdulist.close
 
     return
-
-#Function to calculate mean_F and sigma_dF for given values of sigma_G, alpha and beta.
-def get_flux_stats(sigma_G,alpha,beta,D,mean_only=False,int_lim_fac=10.0):
-
-    int_lim = sigma_G*int_lim_fac
-
-    delta_G_integral = np.linspace(-int_lim,int_lim,10**4)
-    delta_G_integral = np.reshape(delta_G_integral,(1,delta_G_integral.shape[0]))
-
-    prob_delta_G = (1/((np.sqrt(2*np.pi))*sigma_G))*np.exp(-(delta_G_integral**2)/(2*(sigma_G**2)))
-
-    density_integral = gaussian_to_lognormal_delta(delta_G_integral,sigma_G,D) + 1
-    F_integral = density_to_flux(density_integral,alpha,beta)
-
-    mean_F = np.trapz(prob_delta_G*F_integral,delta_G_integral)[0]
-
-    if mean_only == False:
-        delta_F_integral = F_integral/mean_F - 1
-        integrand = prob_delta_G*(delta_F_integral**2)
-        sigma_dF = (np.sqrt(np.trapz(integrand,delta_G_integral)[0]))
-    else:
-        sigma_dF = None
-
-    return mean_F, sigma_dF
