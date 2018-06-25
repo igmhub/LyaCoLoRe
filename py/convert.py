@@ -1,6 +1,8 @@
 import numpy as np
 from astropy.io import fits
 
+lya = 1215.67
+
 #Function to convert gaussian field skewers (in rows) to lognormal delta skewers (in rows).
 def gaussian_to_lognormal_delta(GAUSSIAN_DELTA_rows,SIGMA_G,D):
 

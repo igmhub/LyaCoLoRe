@@ -2,6 +2,9 @@ import numpy as np
 from astropy.io import fits
 import time
 import os
+import healpy as hp
+
+lya = 1215.67
 
 #Define a function to print a progress bar.
 def progress_bar(N_complete,N_tasks,start_time):
@@ -18,13 +21,6 @@ def progress_bar(N_complete,N_tasks,start_time):
 
     if N_complete == N_tasks:
         print('\nProcess complete!')
-
-    return
-
-#Define an error-tracking function.
-def log_error(retval):
-
-    print('Error:',retval)
 
     return
 
@@ -99,6 +95,42 @@ def make_pixel_ID(N_side,RA,DEC):
 
     return pixel_ID
 
+#Function to make ivar mask
+def make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP):
+
+    N_cells = LOGLAM_MAP.shape[0]
+    N_qso = Z_QSO.shape[0]
+
+    lya_lambdas = IVAR_cutoff*(1+Z_QSO)
+    IVAR_rows = np.ones((N_qso,N_cells),dtype='float32')
+    lambdas = 10**LOGLAM_MAP
+
+    for i in range(N_qso):
+        last_relevant_cell = np.searchsorted(lambdas,lya_lambdas[i]) - 1
+
+        for j in range(last_relevant_cell+1,N_cells):
+            IVAR_rows[i,j] = 0.
+
+    return IVAR_rows
+
+#Function to determine the first index corresponding to a value in an array greater than a minimum value.
+def get_first_relevant_index(minimum,values):
+
+    if minimum > 0:
+        first_relevant_index = np.argmax(values >= minimum)
+    else:
+        first_relevant_index = 0
+
+    return first_relevant_index
+
+#Function to determine the indices corresponding to the values in an array greater than a minimum value.
+def get_relevant_indices(minimum,values):
+
+    N = values.shape[0]
+    relevant_indices = [i for i in range(N) if values[i] > minimum]
+
+    return relevant_indices
+
 #Function to retrieve relevant simulation parameters from the param.cfg file.
 def get_simulation_parameters(location,filename):
 
@@ -161,3 +193,11 @@ def NN_sorted(arr,val):
         i -= 1
 
     return i
+
+#This should probably go in a general function file
+def get_dkms_dhMpc(z,Om=0.3147):
+
+    E_z = np.sqrt(Om*(1+z)**3 + (1-Om))
+    dkms_dhMpc = 100. * E_z / (1+z)
+
+    return dkms_dhMpc

@@ -1,5 +1,9 @@
 import numpy as np
 
+import general
+
+lya = 1215.67
+
 #Function to extract RA values from a colore or picca format hdulist.
 def get_RA(h,input_format):
 
@@ -68,14 +72,14 @@ def get_MOCKID(h,input_format,file_number):
         except KeyError:
             h_N_qso = h[1].data.shape[0]
             row_numbers = list(range(h_N_qso))
-            MOCKID = make_MOCKID(file_number,row_numbers)
+            MOCKID = general.make_MOCKID(file_number,row_numbers)
     elif input_format == 'gaussian_colore':
         try:
             MOCKID = h[1].data['MOCKID']
         except KeyError:
             h_N_qso = h[1].data.shape[0]
             row_numbers = list(range(h_N_qso))
-            MOCKID = make_MOCKID(file_number,row_numbers)
+            MOCKID = general.make_MOCKID(file_number,row_numbers)
     elif input_format == 'picca':
         MOCKID = h[3].data['THING_ID']
     elif input_format == 'ID':

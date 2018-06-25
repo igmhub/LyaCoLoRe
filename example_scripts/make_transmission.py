@@ -10,8 +10,14 @@ import time
 import os
 import argparse
 
-import process_functions as functions
 import general
+import independent
+import stats
+import convert
+import pixelise
+import input
+import DLA
+import RSD
 
 ################################################################################
 
@@ -140,7 +146,7 @@ new_filename_structure = '{}-{}-{}.fits'    #file type, nside, pixel number
 z_min = lambda_min/lya - 1
 
 #Get the simulation parameters from the parameter file.
-simulation_parameters = functions.get_simulation_parameters(original_file_location,parameter_filename)
+simulation_parameters = general.get_simulation_parameters(original_file_location,parameter_filename)
 
 # TODO: Modify this to accomodate other density types.
 #If density type is not lognormal, then crash.
@@ -201,7 +207,7 @@ def pixelise_gaussian_skewers(pixel,original_file_location,original_filename_str
     location = new_base_file_location + '/' + new_file_structure.format(pixel//100,pixel)
 
     #Make file into an object
-    pixel_object = functions.make_gaussian_pixel_object(pixel,original_file_location,original_filename_structure,input_format,shared_MOCKID_lookup,IVAR_cutoff=IVAR_cutoff)
+    pixel_object = pixelise.make_gaussian_pixel_object(pixel,original_file_location,original_filename_structure,input_format,shared_MOCKID_lookup,IVAR_cutoff=IVAR_cutoff)
 
     # TODO: These could be made beforehand and passed to the function? Or is there already enough being passed?
     #Make some useful headers
@@ -220,7 +226,7 @@ def pixelise_gaussian_skewers(pixel,original_file_location,original_filename_str
 
     #Calculate the means of the pixel's gaussian skewers.
     #WARNING: this currently just uses all of the cells but this may be too slow once we've added small scale power?
-    N, mean_DG, mean_DGS = functions.return_means(pixel_object.GAUSSIAN_DELTA_rows,pixel_object.IVAR_rows)
+    N, mean_DG, mean_DGS = stats.return_means(pixel_object.GAUSSIAN_DELTA_rows,pixel_object.IVAR_rows)
     means_data = [N,mean_DG,mean_DGS]
 
     return means_data
@@ -309,7 +315,7 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     gaussian_filename = new_filename_structure.format('gaussian-colore',N_side,pixel)
 
     #Make a pixel object from it.
-    pixel_object = functions.simulation_data.get_gaussian_skewers_object(location+gaussian_filename,None,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
+    pixel_object = pixelise.simulation_data.get_gaussian_skewers_object(location+gaussian_filename,None,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
 
     #Make some useful headers
     header = fits.Header()
@@ -480,8 +486,8 @@ start_time = time.time()
 means_list = []
 for result in results:
     means_list += [result[1]]
-means = functions.combine_means(means_list)
-statistics = functions.means_to_statistics(means)
+means = stats.combine_means(means_list)
+statistics = stats.means_to_statistics(means)
 
 #Save the statistics data as a new fits file.
 functions.write_statistics(new_base_file_location,N_side,statistics,new_cosmology)
