@@ -1,6 +1,11 @@
 import numpy as np
 from astropy.io import fits
 
+import general
+import input
+
+lya = 1215.67
+
 #Function to extract data suitable for making ID files from a set of colore or picca format files.
 def get_ID_data(original_file_location,original_filename_structure,file_number,input_format,N_side,minimum_z=0.0):
 
@@ -13,17 +18,17 @@ def get_ID_data(original_file_location,original_filename_structure,file_number,i
     h = fits.open(filename)
 
     #Extract the component parts of the master file's data from h.
-    RA = get_RA(h,input_format)
-    DEC = get_DEC(h,input_format)
-    Z_QSO_NO_RSD = get_Z_QSO(h,input_format)
-    DZ_RSD = get_DZ_RSD(h,input_format)
-    MOCKID = get_MOCKID(h,input_format,file_number)
-    h_R, h_Z, h_D, h_V = get_COSMO(h,input_format)
+    RA = input.get_RA(h,input_format)
+    DEC = input.get_DEC(h,input_format)
+    Z_QSO_NO_RSD = input.get_Z_QSO(h,input_format)
+    DZ_RSD = input.get_DZ_RSD(h,input_format)
+    MOCKID = input.get_MOCKID(h,input_format,file_number)
+    h_R, h_Z, h_D, h_V = input.get_COSMO(h,input_format)
 
     h.close()
 
     #Construct the remaining component parts of the master file's data.
-    pixel_ID = make_pixel_ID(N_side,RA,DEC)
+    pixel_ID = general.make_pixel_ID(N_side,RA,DEC)
     file_numbers = file_number * np.ones(RA.shape)
 
     #Calculate Z_QSO_RSD.

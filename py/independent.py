@@ -21,7 +21,7 @@ def get_gaussian_skewers(generator,N_cells,sigma_G=1.0,N_skewers=1):
 
 #Function to generate random Gaussian fields at a given redshift.
 #From lya_mock_functions
-def get_gaussian_fields(generator,N_cells,dv_kms=10.0,N_skewers=1,white_noise=True):
+def get_gaussian_fields(generator,N_cells,z=0.0,dv_kms=10.0,N_skewers=1,white_noise=True):
 
     # number of Fourier modes
     NF = int(N_cells/2+1)
@@ -30,7 +30,7 @@ def get_gaussian_fields(generator,N_cells,dv_kms=10.0,N_skewers=1,white_noise=Tr
     k_kms = np.fft.rfftfreq(N_cells)*2*np.pi/dv_kms
 
     # get power evaluated at each k_kms
-    P_kms = power_kms(0.0,k_kms,dv_kms,white_noise=white_noise)
+    P_kms = power_kms(z,k_kms,dv_kms,white_noise=white_noise)
 
     # generate random Fourier modes
     modes = np.empty([N_skewers,NF], dtype=complex)

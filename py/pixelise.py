@@ -6,6 +6,7 @@ import input
 import convert
 import RSD
 import DLA
+import independent
 
 lya = 1215.67
 
@@ -368,7 +369,27 @@ class simulation_data:
             first_relevant_cells[i] = first_relevant_cell
             last_relevant_cells[i] = last_relevant_cell
 
-        extra_var = independent.get_gaussian_fields(generator,self.N_cells,dv_kms=,N_skewers=self.N_qso,white_noise=white_noise)
+        extra_var = np.zeros(expanded_GAUSSIAN_DELTA_rows.shape)
+        extra_sigma_G = np.interp(self.Z,sigma_G_z_values,extra_sigma_G_values)
+
+
+        # TODO: dv is not constant at the moment - how to deal with this
+        #Generate extra variance, either white noise or correlated.
+        dkms_dhMpc = general.get_dkms_dhMpc(0.)
+        dv_kms = cell_size * dkms_dhMpc
+        extra_var = independent.get_gaussian_fields(generator,self.N_cells,dv_kms=dv_kms,N_skewers=self.N_qso,white_noise=white_noise)
+
+        #Normalise the extra variance to have unit variance
+        k_kms = np.fft.rfftfreq(self.N_cells)*2*np.pi/dv_kms
+        mean_P = np.average(independent.power_kms(0.,k_kms,dv_kms,white_noise))
+        extra_var /= np.sqrt(mean_P/dv_kms)
+
+        extra_var *= extra_sigma_G
+
+        mask = general.make_IVAR_rows(lya,self.Z_QSO,self.LOGLAM_MAP)
+        extra_var *= mask
+
+
 
         """
         # TODO: Improve this
@@ -377,15 +398,15 @@ class simulation_data:
         final_GAUSSIAN_DELTA_rows = expanded_GAUSSIAN_DELTA_rows + amplitude*extra_variance
         """
 
-        extra_sigma_G = np.interp(self.Z,sigma_G_z_values,extra_sigma_G_values)
-
-        extra_var = np.zeros(expanded_GAUSSIAN_DELTA_rows.shape)
-
+        """
         for j in range(self.N_cells):
             relevant_QSOs = [i for i in range(self.N_qso) if first_relevant_cells[i]<=j and last_relevant_cells[i]>=j]
             extra_var[relevant_QSOs,j] = generator.normal(scale=extra_sigma_G[j],size=len(relevant_QSOs))
+        """
+
 
         expanded_GAUSSIAN_DELTA_rows += amplitude*extra_var
+
         """
         for i in range(self.N_qso):
             first_relevant_cell = first_relevant_cells[i].astype('int32')
