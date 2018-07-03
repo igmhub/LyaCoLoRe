@@ -20,18 +20,19 @@ def get_Pk1D(skewer_rows,IVAR_rows,R_hMpc,z,z_value,z_width=0.2,N_processes=1):
 
     #calculate 1d correlation
     R_binned, xi, var_xi = get_cf1D(skewer_rows_chunk,R_hMpc,N_processes=N_processes)
-    
+
     #do fft on it
+
+
     #Done!
 
     return k_kms, Pk1D
 
-def get_binned_separations(R_hMpc,rmax=160,rmin=0.0,nr=40):
+def get_binned_separations(R_hMpc,bins,rmin=0.0,rmax=160.,nr=40):
 
     N_cells = R_hMpc.shape[0]
 
     #Calculate separations
-    bins = np.linspace(rmin,rmax,nr+1)
     separations = np.zeros((N_cells,N_cells))
     for i in range(N_cells):
         for j in range(N_cells):
@@ -56,10 +57,12 @@ def get_cf1D(skewer_rows,R_hMpc,N_processes=1):
     rmax = 160.0
     rmin = 0.0
     nr = 40
+    bins = np.linspace(rmin,rmax,nr+1)
 
     N_bin_splits = 100
+    N_skewers = skewer_rows.shape[0]
 
-    binned_separations = get_binned_separations(R_hMpc,rmax=rmax,rmin=rmin,nr=nr)
+    binned_separations = get_binned_separations(R_hMpc,bins)
 
     R_binned = np.zeros(nr)
     for i in range(nr):
@@ -84,23 +87,23 @@ def get_cf1D(skewer_rows,R_hMpc,N_processes=1):
         tasks = []
         for bin_n in range(nr):
             for split in splits:
-                tasks += [(bin_n,bin_coordinates[bin_n],skewers[:,split[0]:split[1]])]
+                tasks += [(bin_n,bin_coordinates[bin_n],skewer_rows[:,split[0]:split[1]])]
     else:
         split_size = N_skewers
-        tasks = [(bin_n,bin_coordinates[bin_n],skewers) for bin_n in range(nr)]
+        tasks = [(bin_n,bin_coordinates[bin_n],skewer_rows) for bin_n in range(nr)]
 
     print('divided job up into {} tasks, with ~{} skewers in each one.'.format(len(tasks),split_size))
 
     #Define the worker function.
-    def get_xi(bin_n,bin_coordinates,skewers):
+    def get_xi(bin_n,bin_coordinates,skewer_rows):
 
         del_squared_chunk = 0
         N_contributions_chunk = 0
-        N_skewers = skewers.shape[1]
+        N_skewers = skewer_rows.shape[1]
 
         for skewer_n in range(N_skewers):
 
-            skewer = skewers[:,skewer_n]
+            skewer = skewer_rows[:,skewer_n]
 
             for coordinates in bin_coordinates:
                 i = coordinates[0]
