@@ -7,14 +7,14 @@ lya = 1215.67
 
 #Function to return the P1D from Palanque-Delabrouille et al. (2013)
 #copied from lyaforecast
-def P1D_z_kms_PD2013(z,k_kms):
+def P1D_z_kms_PD2013(k_kms,z,A_F=0.064,B_F=3.55):
     """Fitting formula for 1D P(z,k) from Palanque-Delabrouille et al. (2013).
         Wavenumbers and power in units of km/s. Corrected to be flat at low-k"""
     # numbers from Palanque-Delabrouille (2013)
-    A_F = 0.064
+    #A_F = 0.064
     n_F = -2.55
     alpha_F = -0.1
-    B_F = 3.55
+    #B_F = 3.55
     beta_F = -0.28
     k0 = 0.009
     z0 = 3.0
