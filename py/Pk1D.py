@@ -1,5 +1,7 @@
 import numpy as np
 
+import general
+
 def get_Pk1D(skewer_rows,IVAR_rows,R_hMpc,z,z_value,z_width=0.2,N_processes=1):
 
     #Find relevant chunk of the skewers
@@ -18,15 +20,33 @@ def get_Pk1D(skewer_rows,IVAR_rows,R_hMpc,z,z_value,z_width=0.2,N_processes=1):
             skewer_rows_chunk.append(skewer_rows[i][j_lower:j_upper])
     skewer_rows_chunk = np.array(skewer_rows_chunk)
 
-    #calculate 1d correlation
-    R_binned, xi, var_xi = get_cf1D(skewer_rows_chunk,R_hMpc,N_processes=N_processes)
+    #trim R to the chunk now being considered
+    R_hMpc = R_hMpc[j_lower:j_upper]
 
-    #do fft on it
+    #convert to kms
+    dkms_dhMpc = general.get_dkms_dhMpc(z_value)
+    R_kms = dkms_dhMpc*R_hMpc
 
+    #ft the skewers
+    pk_rows = np.fft.rfft(skewer_rows,axis=1)
+
+    #get the cell width (this is not constant in kms)
+    dv_kms = dkms_dhMpc*(R_hMpc[-1] - R_hMpc[0])/N_cells_chunk
+
+    #get the k frequencies
+    k_kms = np.fft.rfftfreq(N_cells_chunk)*2*np.pi/dv_kms
+
+    #calculate mean and variance
+    pk_kms = np.average(pk_rows,axis=0)
+    var_kms = np.sum((pk_rows-pk_kms)**2,axis=0)
 
     #Done!
 
-    return k_kms, Pk1D
+    return k_kms, pk_kms, var_kms
+
+
+"""
+Not needed at the moment
 
 def get_binned_separations(R_hMpc,bins,rmin=0.0,rmax=160.,nr=40):
 
@@ -189,3 +209,5 @@ def get_cf1D(skewer_rows,R_hMpc,N_processes=1):
         var_xi[bin_n] = mean_xi_squared[bin_n] - (xi[bin_n])**2
 
     return R_binned, xi, var_xi
+
+"""

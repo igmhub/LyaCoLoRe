@@ -256,10 +256,17 @@ class simulation_data:
         return cls(N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,F_rows,R,Z,D,V,LOGLAM_MAP,A)
 
     #Function to trim skewers according to a minimum value of lambda. QSOs with no relevant cells are removed.
-    def trim_skewers(self,lambda_min,min_catalog_z,extra_cells=0):
+    def trim_skewers(self,lambda_min,min_catalog_z,extra_cells=0,lambda_max=None,whole_lambda_range=False):
 
         lambdas = 10**(self.LOGLAM_MAP)
         first_relevant_cell = np.searchsorted(lambdas,lambda_min)
+        if lambda_max:
+            last_relevant_cell = np.searchsorted(lambdas,lambda_max)
+        else:
+            last_relevant_cell = -1
+
+        #If we want to keep any extra_cells, we subtract from the first_relevant_cell.
+        first_relevant_cell -= extra_cells
 
         #Determine which QSOs have any relevant cells to keep.
         """
@@ -269,10 +276,11 @@ class simulation_data:
             if self.IVAR_rows[i,first_relevant_cell] > 0:
                 relevant_QSOs += [i]
         """
-        relevant_QSOs = self.Z_QSO>min_catalog_z
+        relevant_QSOs = (self.Z_QSO>min_catalog_z)
 
-        #If we want to keep any extra_cells, we subtract from the first_relevant_cell.
-        first_relevant_cell -= extra_cells
+        #If we want the entirety of the lambda range to be relevant (i.e. with IVAR=1), we must remove skewers that do not have this
+        if whole_lambda_range:
+            relevant_QSOs *= (self.IVAR_rows[:,first_relevant_cell] == 1) * (self.IVAR_rows[:,last_relevant_cell] == 1)
 
         #Remove QSOs no longer needed.
         self.N_qso = len(relevant_QSOs)
@@ -300,21 +308,21 @@ class simulation_data:
         #Now trim the skewers of the remaining QSOs.
         self.N_cells -= first_relevant_cell
 
-        self.GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows[:,first_relevant_cell:]
+        self.GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows[:,first_relevant_cell:last_relevant_cell]
         if self.density_computed == True:
-            self.DENSITY_DELTA_rows = self.DENSITY_DELTA_rows[:,first_relevant_cell:]
-        self.VEL_rows = self.VEL_rows[:,first_relevant_cell:]
-        self.IVAR_rows = self.IVAR_rows[:,first_relevant_cell:]
+            self.DENSITY_DELTA_rows = self.DENSITY_DELTA_rows[:,first_relevant_cell:last_relevant_cell]
+        self.VEL_rows = self.VEL_rows[:,first_relevant_cell:last_relevant_cell]
+        self.IVAR_rows = self.IVAR_rows[:,first_relevant_cell:last_relevant_cell]
         if self.tau_computed == True:
-            self.TAU_rows = self.TAU_rows[:,first_relevant_cell:]
+            self.TAU_rows = self.TAU_rows[:,first_relevant_cell:last_relevant_cell]
         if self.flux_computed == True:
-            self.F_rows = self.F_rows[:,first_relevant_cell:]
+            self.F_rows = self.F_rows[:,first_relevant_cell:last_relevant_cell]
 
-        self.R = self.R[first_relevant_cell:]
-        self.Z = self.Z[first_relevant_cell:]
-        self.D = self.D[first_relevant_cell:]
-        self.V = self.V[first_relevant_cell:]
-        self.LOGLAM_MAP = self.LOGLAM_MAP[first_relevant_cell:]
+        self.R = self.R[first_relevant_cell:last_relevant_cell]
+        self.Z = self.Z[first_relevant_cell:last_relevant_cell]
+        self.D = self.D[first_relevant_cell:last_relevant_cell]
+        self.V = self.V[first_relevant_cell:last_relevant_cell]
+        self.LOGLAM_MAP = self.LOGLAM_MAP[first_relevant_cell:last_relevant_cell]
 
         return
 
