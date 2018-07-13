@@ -30,6 +30,9 @@ def get_Pk1D(skewer_rows,IVAR_rows,R_hMpc,z,z_value,z_width=0.2,N_processes=1):
     #ft the skewers
     pk_rows = np.fft.rfft(skewer_rows,axis=1)
 
+    # TODO: is this right?
+    pk_rows = abs(pk_rows)
+
     #get the cell width (this is not constant in kms)
     dv_kms = dkms_dhMpc*(R_hMpc[-1] - R_hMpc[0])/N_cells_chunk
 

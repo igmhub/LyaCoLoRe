@@ -1,5 +1,6 @@
 import numpy as np
 from astropy.io import fits
+import time
 
 import general
 import input
@@ -88,6 +89,9 @@ class simulation_data:
     @classmethod
     def get_gaussian_skewers_object(cls,filename,file_number,input_format,MOCKIDs=None,lambda_min=0,IVAR_cutoff=lya,SIGMA_G=None):
 
+        start = time.time()
+        times = [0.]
+
         lya = 1215.67
 
         h = fits.open(filename)
@@ -96,21 +100,24 @@ class simulation_data:
         h_R, h_Z, h_D, h_V = input.get_COSMO(h,input_format)
         h_lya_lambdas = input.get_lya_lambdas(h,input_format)
 
+        times += [time.time()-start-np.sum(times[:-1])]
+
         if MOCKIDs != None:
             #Work out which rows in the hdulist we are interested in.
-            rows = ['']*len(MOCKIDs)
+            rows = []
             s = set(MOCKIDs)
-            j = 0
+
             for i, qso in enumerate(h_MOCKID):
                 if qso in s:
-                    rows[j] = i
-                    j = j+1
+                    rows += [i]
         else:
             rows = list(range(h_MOCKID.shape[0]))
 
         #Calculate the first_relevant_cell.
         first_relevant_cell = np.searchsorted(h_lya_lambdas,lambda_min)
         actual_lambda_min = h_lya_lambdas[first_relevant_cell]
+
+        times += [time.time()-start-np.sum(times[:-1])]
 
         if input_format == 'physical_colore':
 
@@ -251,7 +258,11 @@ class simulation_data:
             print('Input format not recognised: current options are "colore" and "picca".')
             print('Please choose one of these options and try again.')
 
+        times += [time.time()-start-np.sum(times[:-1])]
+
         h.close()
+
+        #print('{:3.0%} {:3.0%} {:3.0%} {:3.0%}'.format(times[0]/np.sum(times),times[1]/np.sum(times),times[2]/np.sum(times),times[3]/np.sum(times)))
 
         return cls(N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,F_rows,R,Z,D,V,LOGLAM_MAP,A)
 
