@@ -133,7 +133,7 @@ else:
     N_pix = 12*N_side**2
 
 #Define the original file structure
-original_filename_structure = 'N1000_out_srcs_s1_{}.fits' #file_number
+original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
 file_numbers = list(range(0,1))
 input_format = 'gaussian_colore'
 
@@ -202,12 +202,12 @@ print('\nWorking on per-HEALPix pixel initial Gaussian skewer files...')
 start_time = time.time()
 
 #Define the pixelisation process.
-def pixelise_gaussian_skewers(pixel,original_file_location,original_filename_structure,input_format,shared_MOCKID_lookup,z_min,new_base_file_location,new_file_structure,N_side):
+def pixelise_gaussian_skewers(pixel,original_file_location,original_filename_structure,input_format,MOCKID_lookup,z_min,new_base_file_location,new_file_structure,N_side):
     #Define the save location for the pixel, according to the new file structure.
     location = new_base_file_location + '/' + new_file_structure.format(pixel//100,pixel)
 
     #Make file into an object
-    pixel_object = pixelise.make_gaussian_pixel_object(pixel,original_file_location,original_filename_structure,input_format,shared_MOCKID_lookup,IVAR_cutoff=IVAR_cutoff)
+    pixel_object = pixelise.make_gaussian_pixel_object(pixel,original_file_location,original_filename_structure,input_format,MOCKID_lookup,IVAR_cutoff=IVAR_cutoff)
 
     # TODO: These could be made beforehand and passed to the function? Or is there already enough being passed?
     #Make some useful headers
@@ -228,14 +228,14 @@ def pixelise_gaussian_skewers(pixel,original_file_location,original_filename_str
     #WARNING: this currently just uses all of the cells but this may be too slow once we've added small scale power?
     N, mean_DG, mean_DGS = stats.return_means(pixel_object.GAUSSIAN_DELTA_rows,pixel_object.IVAR_rows)
     means_data = [N,mean_DG,mean_DGS]
-
+    print(pixel)
     return means_data
 
 #Set up the multiprocessing pool parameters and make a list of tasks.
-#N_processes = int(sys.argv[1])
-manager = multiprocessing.Manager()
-shared_MOCKID_lookup = manager.dict(MOCKID_lookup)
-tasks = [(pixel,original_file_location,original_filename_structure,input_format,shared_MOCKID_lookup,z_min,new_base_file_location,new_file_structure,N_side) for pixel in pixel_list]
+#what's the sharing doing here?
+#manager = multiprocessing.Manager()
+#shared_MOCKID_lookup = manager.dict(MOCKID_lookup)
+tasks = [(pixel,original_file_location,original_filename_structure,input_format,MOCKID_lookup,z_min,new_base_file_location,new_file_structure,N_side) for pixel in pixel_list]
 
 #Run the multiprocessing pool
 if __name__ == '__main__':
