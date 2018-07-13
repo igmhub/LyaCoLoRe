@@ -7,6 +7,16 @@ from optparse import OptionParser
 import astropy.table
 import os
 import matplotlib.pyplot as plt
+try:
+    from pyigm.fN.fnmodel import FNModel
+    from astropy import units as u
+    from astropy import constants as const
+    from astropy import cosmology
+    fN_default = FNModel.default_model()
+    cosmo = fN_default.cosmo
+    use_pyigm = True
+except:
+    use_pyigm = False
 
 parser  = OptionParser()
 
@@ -92,7 +102,11 @@ nu_arr = nu_of_bD(bias*D)
 flagged_pixels = flag_DLA(skewers,nu_arr,sigma_g)
 zedges = np.concatenate([[0],(z[1:]+z[:-1])*0.5,[z[-1]+(-z[-2]+z[-1])*0.5]]).ravel()
 z_width = zedges[1:]-zedges[:-1]
-N = z_width*dNdz(z) # Average number of DLAs per pixel
+if use_pyigm:
+    N = fN_default.calculate_rhoHI(z, (Nmin, Nmax))/((const.m_p.cgs * cosmo.H0 /
+            const.c.cgs / (u.cm**2)).to(u.Msun/u.Mpc**3)) # Reconvert to N(z) and not N(X)
+else:
+    N = z_width*dNdz(z) # Average number of DLAs per pixel
 p_nu_z = 1.0-norm.cdf(nu_arr) # For a given z, probability of having the density higher than the threshold
 mu = N/p_nu_z
 pois = np.random.poisson(mu,size=(len(skewers),len(mu)))
@@ -109,7 +123,11 @@ for nskw,dla in enumerate(dlas):
         kskw[idx:idx+dla[ii]]=nskw
         dz_dla[idx:idx+dla[ii]]=v_skw[nskw,ii]
         idx = idx+dla[ii]
-Ndla = get_N(zdla)
+if use_pyigm:
+    N = fN_default.calculate_rhoHI(z, (Nmin, Nmax))/((const.m_p.cgs * cosmo.H0 /
+            const.c.cgs / (u.cm**2)).to(u.Msun/u.Mpc**3)) # Reconvert to N(z) and not N(X)
+else:
+    Ndla = get_N(zdla)
 taux = astropy.table.Table([kskw,zdla,dz_dla,Ndla],names=('SKEWER_NUMBER','Z_DLA','DZ_DLA','N_HI_DLA'))
 new_hdu = fits.hdu.BinTableHDU(data=taux,name='DLA')
 hdulist = fits.open(o.input_file)
