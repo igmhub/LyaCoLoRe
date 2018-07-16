@@ -228,7 +228,7 @@ def pixelise_gaussian_skewers(pixel,original_file_location,original_filename_str
     #WARNING: this currently just uses all of the cells but this may be too slow once we've added small scale power?
     N, mean_DG, mean_DGS = stats.return_means(pixel_object.GAUSSIAN_DELTA_rows,pixel_object.IVAR_rows)
     means_data = [N,mean_DG,mean_DGS]
-    print(pixel)
+
     return means_data
 
 #Set up the multiprocessing pool parameters and make a list of tasks.
