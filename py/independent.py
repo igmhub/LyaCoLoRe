@@ -66,7 +66,7 @@ def power_kms(z_c,k_kms,dv_kms,white_noise):
     # power used to make mocks in from McDonald et al. (2006)
     A = power_amplitude(z_c)
     k1 = 0.001
-    n = 0.7
+    n = 0.7 * 1.5
     R1 = 5.0
     # compute term without smoothing
     P = A * (1.0+pow(0.01/k1,n)) / (1.0+pow(k_kms/k1,n))

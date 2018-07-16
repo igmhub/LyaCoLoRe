@@ -288,13 +288,12 @@ class simulation_data:
                 relevant_QSOs += [i]
         """
         relevant_QSOs = (self.Z_QSO>min_catalog_z)
-
         #If we want the entirety of the lambda range to be relevant (i.e. with IVAR=1), we must remove skewers that do not have this
         if whole_lambda_range:
             relevant_QSOs *= (self.IVAR_rows[:,first_relevant_cell] == 1) * (self.IVAR_rows[:,last_relevant_cell] == 1)
 
         #Remove QSOs no longer needed.
-        self.N_qso = len(relevant_QSOs)
+        self.N_qso = np.sum(relevant_QSOs)
 
         self.TYPE = self.TYPE[relevant_QSOs]
         self.RA = self.RA[relevant_QSOs]
@@ -555,6 +554,38 @@ class simulation_data:
         self.thermal_skewer_RSDs_added = True
 
         return
+
+    #Function to measure mean flux.
+    def get_mean_flux(self,z_value=None,z_width=None):
+
+        if not z_value:
+            mean_F = np.average(self.F_rows,axis=0)
+
+        elif not z_width:
+            j_value_upper = np.searchsorted(self.Z,z_value)
+            j_value_lower = j_value_upper - 1
+
+            if j_value_lower > -1:
+                weight_upper = (z_value - self.Z[j_value_lower])/(self.Z[j_value_upper] - self.Z[j_value_lower])
+                weight_lower = (self.Z[j_value_upper] - z_value)/(self.Z[j_value_upper] - self.Z[j_value_lower])
+
+            else:
+                weight_upper = 1
+                weight_lower = 0
+
+            weights = np.ones((self.N_qso,2))
+            weights[:,0] *= weight_lower
+            weights[:,1] *= weight_upper
+
+            mean_F = np.average(self.F_rows[:,j_value_lower:j_value_upper+1],weights=weights)
+
+        else:
+            j_value_upper = np.searchsorted(self.Z,z_value + z_width/2.)
+            j_value_lower = np.searchsorted(self.Z,z_value - z_width/2.) - 1
+
+            mean_F = np.average(self.F_rows[j_value_lower:j_value_upper+1])
+
+        return mean_F
 
     #Method to combine data from two objects into one.
     # TODO: add something to check that we can just take values from 1 of the objects
