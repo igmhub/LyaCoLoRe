@@ -10,7 +10,7 @@ def get_Pk1D(skewer_rows,IVAR_rows,R_hMpc,z,z_value,z_width=0.2,N_processes=1):
 
     j_lower = np.searchsorted(z,z_min)
     j_upper = np.searchsorted(z,z_max) - 1
-    N_cells_chunk = j_upper - j_lower
+    N_cells_chunk = j_upper - j_lower + 1
 
     #if skewer contains entire chunk, keep, otherwise discard
     N_qso = skewer_rows.shape[0]
@@ -42,8 +42,6 @@ def get_Pk1D(skewer_rows,IVAR_rows,R_hMpc,z,z_value,z_width=0.2,N_processes=1):
     #calculate mean and variance
     pk_kms = np.average(pk_rows,axis=0)
     var_kms = np.sum((pk_rows-pk_kms)**2,axis=0)
-
-    #Done!
 
     return k_kms, pk_kms, var_kms
 
