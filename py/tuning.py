@@ -5,6 +5,19 @@ import convert
 
 lya = 1215.67
 
+################################################################################
+"""
+Below: new tuning, measurement based
+"""
+
+
+
+
+################################################################################
+"""
+Below: old tuning, no-RSD, theoretical based Method
+"""
+
 #Function to return the P1D from Palanque-Delabrouille et al. (2013)
 #copied from lyaforecast
 def P1D_z_kms_PD2013(k_kms,z,A_F=0.064,B_F=3.55):

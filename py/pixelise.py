@@ -272,9 +272,9 @@ class simulation_data:
         lambdas = 10**(self.LOGLAM_MAP)
         first_relevant_cell = np.searchsorted(lambdas,lambda_min)
         if lambda_max:
-            last_relevant_cell = np.searchsorted(lambdas,lambda_max)
+            last_relevant_cell = np.searchsorted(lambdas,lambda_max) - 1
         else:
-            last_relevant_cell = -1
+            last_relevant_cell = -1 % self.N_cells
 
         #If we want to keep any extra_cells, we subtract from the first_relevant_cell.
         first_relevant_cell -= extra_cells
@@ -290,7 +290,7 @@ class simulation_data:
         relevant_QSOs = (self.Z_QSO>min_catalog_z)
         #If we want the entirety of the lambda range to be relevant (i.e. with IVAR=1), we must remove skewers that do not have this
         if whole_lambda_range:
-            relevant_QSOs *= (self.IVAR_rows[:,first_relevant_cell] == 1) * (self.IVAR_rows[:,last_relevant_cell] == 1)
+            relevant_QSOs *= (self.IVAR_rows[:,first_relevant_cell] == 1) * (self.IVAR_rows[:,last_relevant_cell + 1] == 1)
 
         #Remove QSOs no longer needed.
         self.N_qso = np.sum(relevant_QSOs)
@@ -316,28 +316,28 @@ class simulation_data:
             self.F_rows = self.F_rows[relevant_QSOs,:]
 
         #Now trim the skewers of the remaining QSOs.
-        self.N_cells -= first_relevant_cell
+        self.N_cells = last_relevant_cell - first_relevant_cell + 1
 
-        self.GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows[:,first_relevant_cell:last_relevant_cell]
+        self.GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows[:,first_relevant_cell:last_relevant_cell + 1]
         if self.density_computed == True:
-            self.DENSITY_DELTA_rows = self.DENSITY_DELTA_rows[:,first_relevant_cell:last_relevant_cell]
-        self.VEL_rows = self.VEL_rows[:,first_relevant_cell:last_relevant_cell]
-        self.IVAR_rows = self.IVAR_rows[:,first_relevant_cell:last_relevant_cell]
+            self.DENSITY_DELTA_rows = self.DENSITY_DELTA_rows[:,first_relevant_cell:last_relevant_cell + 1]
+        self.VEL_rows = self.VEL_rows[:,first_relevant_cell:last_relevant_cell + 1]
+        self.IVAR_rows = self.IVAR_rows[:,first_relevant_cell:last_relevant_cell + 1]
         if self.tau_computed == True:
-            self.TAU_rows = self.TAU_rows[:,first_relevant_cell:last_relevant_cell]
+            self.TAU_rows = self.TAU_rows[:,first_relevant_cell:last_relevant_cell + 1]
         if self.flux_computed == True:
-            self.F_rows = self.F_rows[:,first_relevant_cell:last_relevant_cell]
+            self.F_rows = self.F_rows[:,first_relevant_cell:last_relevant_cell + 1]
 
-        self.R = self.R[first_relevant_cell:last_relevant_cell]
-        self.Z = self.Z[first_relevant_cell:last_relevant_cell]
-        self.D = self.D[first_relevant_cell:last_relevant_cell]
-        self.V = self.V[first_relevant_cell:last_relevant_cell]
-        self.LOGLAM_MAP = self.LOGLAM_MAP[first_relevant_cell:last_relevant_cell]
+        self.R = self.R[first_relevant_cell:last_relevant_cell + 1]
+        self.Z = self.Z[first_relevant_cell:last_relevant_cell + 1]
+        self.D = self.D[first_relevant_cell:last_relevant_cell + 1]
+        self.V = self.V[first_relevant_cell:last_relevant_cell + 1]
+        self.LOGLAM_MAP = self.LOGLAM_MAP[first_relevant_cell:last_relevant_cell + 1]
 
         return
 
     #Function to add small scale gaussian fluctuations.
-    def add_small_scale_gaussian_fluctuations(self,cell_size,sigma_G_z_values,extra_sigma_G_values,generator,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya):
+    def add_small_scale_gaussian_fluctuations(self,cell_size,sigma_G_z_values,extra_sigma_G_values,generator,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n_mult=1.0):
 
         # TODO: Is NGP really the way to go?
 
@@ -395,7 +395,7 @@ class simulation_data:
         #Generate extra variance, either white noise or correlated.
         dkms_dhMpc = general.get_dkms_dhMpc(0.)
         dv_kms = cell_size * dkms_dhMpc
-        extra_var = independent.get_gaussian_fields(generator,self.N_cells,dv_kms=dv_kms,N_skewers=self.N_qso,white_noise=white_noise)
+        extra_var = independent.get_gaussian_fields(generator,self.N_cells,dv_kms=dv_kms,N_skewers=self.N_qso,white_noise=white_noise,n_mult=n_mult)
 
         #Normalise the extra variance to have unit variance
         k_kms = np.fft.rfftfreq(self.N_cells)*2*np.pi/dv_kms
