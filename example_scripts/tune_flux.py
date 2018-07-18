@@ -16,20 +16,21 @@ import general
 
 lya = 1215.67
 
-N_processes = 4
+N_processes = 64
 lambda_min = 3550.0
 min_cat_z = 1.8
 IVAR_cutoff = 1150.0
 
 #Get the starting values of alpha, beta and sigma_G from file
 #Decide which z values we are going to tune
-z_values = [3.0]
+z_values = [2.5]
 z_width = 0.2
 
 cell_size = 0.25 #Mpc/h
 
 #Open up the Gaussian colore files
 base_file_location = '/Users/jfarr/Projects/test_data/test/'
+base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_nside16_RSD'
 N_side = 16
 
 new_file_structure = '{}/{}/'               #pixel number//100, pixel number
@@ -40,7 +41,7 @@ input_format = 'gaussian_colore'
 #get pixels from those directories created by make_master.py
 dirs = glob.glob(base_file_location+new_file_structure.format('*','*'))
 pixels = []
-for dir in dirs[:1]:
+for dir in dirs[:2]:
     pixels += [int(dir[len(dir)-dir[-2::-1].find('/')-1:-1])]
 #pixels=[0]
 
@@ -88,7 +89,7 @@ for z_value in z_values:
     beta_values += [np.interp(z_value,tuning_z_values,betas)]
     sigma_G_values += [np.interp(z_value,tuning_z_values,desired_sigma_G_values)]
 
-multipliers = np.linspace(0.5,1.5,7)
+multipliers = np.linspace(0.3,1.8,21)
 
 #Extract the values of parameters to optimies over
 parameters_list = []
@@ -98,7 +99,7 @@ lookup = {}
 import itertools
 for i,z_value in enumerate(z_values):
     a = alpha_values[i] * multipliers
-    b = beta_values[i] * multipliers
+    b = [beta_values[i]]
     sG = sigma_G_values[i] * multipliers
     parameters_list += list(itertools.product([z_value],a,b,sG))
 
@@ -228,6 +229,11 @@ if __name__ == '__main__':
 
 results = np.array(results)
 
+mean_F_errors = np.array((multipliers.shape[0],multipliers.shape[0]))
+Pk1D_errors = np.array((multipliers.shape[0],multipliers.shape[0]))
+A_F_errors = np.array((multipliers.shape[0],multipliers.shape[0]))
+B_F_errors = np.array((multipliers.shape[0],multipliers.shape[0]))
+
 #Fit model
 def get_model_Pk_kms(k_kms,A_F,B_F):
     return tuning.P1D_z_kms_PD2013(k_kms,z_value,A_F=A_F,B_F=B_F)
@@ -235,7 +241,7 @@ def get_model_Pk_kms(k_kms,A_F,B_F):
 for z_value in z_values:
     min_error = 1.0
     z_results = results[results['z_value']==z_value]
-
+    print('z value: {}'.format(z_value))
     for ID in ID_list:
         z_ID_results = z_results[z_results['ID']==ID]
 
@@ -281,10 +287,10 @@ for z_value in z_values:
 
     best = lookup[z_value][min_err_ID]
 
-    print('mean F error is {:3.0%}'.format(lookup[z_value][min_err_ID]['errors']['mean_F']))
-    print('Pk1D error is {:3.0%}'.format(lookup[z_value][min_err_ID]['errors']['Pk1D']))
-    print('A_F error is {:3.0%}'.format(lookup[z_value][min_err_ID]['errors']['A_F']))
-    print('B_F error is {:3.0%}'.format(lookup[z_value][min_err_ID]['errors']['B_F']))
+    print('mean F = {:2.2f}, error is {:3.0%}'.format(best['results']['mean_F'],best['errors']['mean_F']))
+    print('Pk1D average error is {:3.0%}'.format(best['errors']['Pk1D']))
+    print('A_F = {:2.2f}, error is {:3.0%}'.format(best['results']['A_F'],best['errors']['A_F']))
+    print('B_F = {:2.2f}, error is {:3.0%}'.format(best['results']['B_F'],best['errors']['B_F']))
 
     plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
     plt.title('alpha={:2.2f}, beta={:2.2f}, sG={:2.2f}'.format(best['parameters']['alpha'],best['parameters']['beta'],best['parameters']['sigma_G']))
@@ -301,7 +307,7 @@ for z_value in z_values:
     plt.grid()
     #plt.savefig('Pk1D_abs_slope1.5_alpha{:2.2f}_beta{:2.2f}_sG{:2.2f}.pdf'.format(alpha,beta,sigma_G_required))
     plt.show()
-
+    print(' ')
 
 
 
