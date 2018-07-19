@@ -16,7 +16,7 @@ import general
 
 lya = 1215.67
 
-N_processes = 64
+N_processes = 4
 lambda_min = 3550.0
 min_cat_z = 1.8
 IVAR_cutoff = 1150.0
@@ -28,9 +28,11 @@ z_width = 0.2
 
 cell_size = 0.25 #Mpc/h
 
+max_k = 0.005 #skm-1
+
 #Open up the Gaussian colore files
 base_file_location = '/Users/jfarr/Projects/test_data/test/'
-base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_nside16_RSD'
+#base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_nside16_RSD'
 N_side = 16
 
 new_file_structure = '{}/{}/'               #pixel number//100, pixel number
@@ -41,7 +43,7 @@ input_format = 'gaussian_colore'
 #get pixels from those directories created by make_master.py
 dirs = glob.glob(base_file_location+new_file_structure.format('*','*'))
 pixels = []
-for dir in dirs[:2]:
+for dir in dirs[:1]:
     pixels += [int(dir[len(dir)-dir[-2::-1].find('/')-1:-1])]
 #pixels=[0]
 
@@ -76,40 +78,65 @@ desired_sigma_G_values = tune_small_scale_fluctuations['sigma_G']
 desired_mean_F = tune_small_scale_fluctuations['mean_F']
 alphas = tune_small_scale_fluctuations['alpha']
 
-beta = 1.65
-betas = beta*np.ones(tuning_z_values.shape[0])
+beta_default = 1.65
+betas = beta_default*np.ones(tuning_z_values.shape[0])
+
+n_default = 0.7
+ns = n_default*np.ones(tuning_z_values.shape[0])
+
+k1_default = 0.001
+k1s = k1_default*np.ones(tuning_z_values.shape[0])
 
 #Get the values of alpha, beta, sigma_G for the z_values
 alpha_values = []
 beta_values = []
 sigma_G_values = []
+n_values = []
+k1_values = []
 
 for z_value in z_values:
     alpha_values += [np.interp(z_value,tuning_z_values,alphas)]
     beta_values += [np.interp(z_value,tuning_z_values,betas)]
     sigma_G_values += [np.interp(z_value,tuning_z_values,desired_sigma_G_values)]
+    n_values += [np.interp(z_value,tuning_z_values,ns)]
+    k1_values += [np.interp(z_value,tuning_z_values,k1s)]
 
-multipliers = np.linspace(0.3,1.8,21)
 
-#Extract the values of parameters to optimies over
+################################################################################
+"""
+#Set the parameter values that we will iterate over
+import itertools
+for i,z_value in enumerate(z_values):
+    a = alpha_values[i] * multipliers
+    b = [beta_values[i]]
+    sG = sigma_G_values[i] * multipliers
+
+"""
+
+multipliers = np.linspace(0.8,1.2,3)
+
+#Extract the values of parameters to optimise over
 parameters_list = []
 
 lookup = {}
 
 import itertools
 for i,z_value in enumerate(z_values):
-    a = alpha_values[i] * multipliers
-    b = [beta_values[i]]
-    sG = sigma_G_values[i] * multipliers
-    parameters_list += list(itertools.product([z_value],a,b,sG))
+    a = [alpha_values[i]] * multipliers
+    b = [beta_values[i]] * multipliers
+    sG = [sigma_G_values[i]] * multipliers
+    n = [n_values[i]] * multipliers
+    k1 = [k1_values[i]] * multipliers
 
-    parameter_values_list = list(itertools.product(a,b,sG))
+    #parameters_list += list(itertools.product([z_value],a,b,sG,n,k1))
+
+    parameter_values_list = list(itertools.product(a,b,sG,n,k1))
 
     # TODO: need a better ID number of some kind
     z_dict = {}
     ID = 0
     for parameter_values in parameter_values_list:
-        parameters_dict = {'alpha':parameter_values[0],'beta':parameter_values[1],'sigma_G':parameter_values[2]}
+        parameters_dict = {'alpha':parameter_values[0],'beta':parameter_values[1],'sigma_G':parameter_values[2],'n':parameter_values[3],'k1':parameter_values[4]}
         Pk_dict = {'k_kms':None,'Pk_kms':None,'var_kms':None}
         results_dict = {'mean_F':None,'Pk1D':Pk_dict,'A_F':None,'B_F':None,'bias':None,'beta':None}
         errors_dict = {'mean_F':None,'Pk1D':None,'A_F':None,'B_F':None,'bias':None,'beta':None}
@@ -118,7 +145,7 @@ for i,z_value in enumerate(z_values):
         ID += 1
 
 
-    data_type = [('alpha','f4'),('beta','f4'),('sigma_G','f4')]
+    data_type = [('alpha','f4'),('beta','f4'),('sigma_G','f4'),('n','f4'),('k1','f4')]
     parameters = np.array(parameter_values,dtype=data_type)
 
     lookup = {**lookup,**{z_value:z_dict}}
@@ -130,6 +157,8 @@ def measure_pixel_segment(pixel,z_value,ID,lookup):
     alpha = lookup[z_value][ID]['parameters']['alpha']
     beta = lookup[z_value][ID]['parameters']['beta']
     sigma_G_required = lookup[z_value][ID]['parameters']['sigma_G']
+    n_value = lookup[z_value][ID]['parameters']['n']
+    k1_value = lookup[z_value][ID]['parameters']['k1']
 
     location = base_file_location + '/' + new_file_structure.format(pixel//100,pixel)
     mean_F_data = np.array(list(zip(tuning_z_values,desired_mean_F)))
@@ -158,7 +187,7 @@ def measure_pixel_segment(pixel,z_value,ID,lookup):
     #add small scale fluctuations
     seed = int(str(N_side) + str(pixel))
     generator = np.random.RandomState(seed)
-    data.add_small_scale_gaussian_fluctuations(cell_size,data.Z,np.ones(data.Z.shape[0])*extra_sigma_G,generator,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n_mult=1.7)
+    data.add_small_scale_gaussian_fluctuations(cell_size,data.Z,np.ones(data.Z.shape[0])*extra_sigma_G,generator,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n=n_value,k1=k1_value) #n=0.7, k1=0.001 default
 
     #Convert to flux
     data.compute_physical_skewers()
@@ -259,7 +288,8 @@ for z_value in z_values:
         lookup[z_value][ID]['results']['beta'] = None
 
         #Get model values
-        fit = curve_fit(get_model_Pk_kms,lookup[z_value][ID]['results']['Pk1D']['k_kms'],lookup[z_value][ID]['results']['Pk1D']['Pk_kms'],p0=(0.064,3.55))
+        max_j = np.searchsorted(lookup[z_value][ID]['results']['Pk1D']['k_kms'],max_k)
+        fit = curve_fit(get_model_Pk_kms,lookup[z_value][ID]['results']['Pk1D']['k_kms'][:max_j],lookup[z_value][ID]['results']['Pk1D']['Pk_kms'][:max_j],p0=(0.064,3.55))
         A_F = fit[0][0]
         B_F = fit[0][1]
         lookup[z_value][ID]['results']['A_F'] = A_F
@@ -267,8 +297,8 @@ for z_value in z_values:
 
         # TODO: some sort of goodness of fit estimator may be better here?
         model_Pk_kms = get_model_Pk_kms(lookup[z_value][ID]['results']['Pk1D']['k_kms'],A_F,B_F)
-        Pk_differences = lookup[z_value][ID]['results']['Pk1D']['Pk_kms'] - model_Pk_kms
-        Pk_error = np.average(abs(Pk_differences)/model_Pk_kms)
+        Pk_differences = lookup[z_value][ID]['results']['Pk1D']['Pk_kms'][:max_j] - model_Pk_kms[:max_j]
+        Pk_error = np.average(abs(Pk_differences)/model_Pk_kms[:max_j])
 
         mean_F_model = tuning.get_mean_F_model(z_value)
 
@@ -281,22 +311,33 @@ for z_value in z_values:
 
         error = np.sqrt(np.sum([lookup[z_value][ID]['errors'][key]**2 for key in lookup[z_value][ID]['errors'].keys()]))
 
+        #print(lookup[z_value][ID]['parameters'])
+        #print(error)
+        #print(' ')
+
         if error < min_error:
-            error = min_error
+            min_error = error
             min_err_ID = ID
 
     best = lookup[z_value][min_err_ID]
 
+    print('alpha = {:2.2f}'.format(best['parameters']['alpha']))
+    print('beta = {:2.2f}'.format(best['parameters']['beta']))
+    print('sigma_G = {:2.2f}'.format(best['parameters']['sigma_G']))
+    print('n = {:2.2f}'.format(best['parameters']['n']))
+    print('k1 = {:2.4f}'.format(best['parameters']['k1']))
+    print(' ')
     print('mean F = {:2.2f}, error is {:3.0%}'.format(best['results']['mean_F'],best['errors']['mean_F']))
     print('Pk1D average error is {:3.0%}'.format(best['errors']['Pk1D']))
     print('A_F = {:2.2f}, error is {:3.0%}'.format(best['results']['A_F'],best['errors']['A_F']))
     print('B_F = {:2.2f}, error is {:3.0%}'.format(best['results']['B_F'],best['errors']['B_F']))
 
     plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
-    plt.title('alpha={:2.2f}, beta={:2.2f}, sG={:2.2f}'.format(best['parameters']['alpha'],best['parameters']['beta'],best['parameters']['sigma_G']))
+    plt.title('z_value={:2.2f}: alpha={:2.2f}, beta={:2.2f}, sG={:2.2f}, n={:2.2f}, k1={:2.4f}'.format(best['parameters']['alpha'],best['parameters']['beta'],best['parameters']['sigma_G'],best['parameters']['n'],best['parameters']['k1']))
     plt.errorbar(best['results']['Pk1D']['k_kms'],best['results']['Pk1D']['Pk_kms'],yerr=np.sqrt(best['results']['Pk1D']['var_kms']),fmt='o',label='measured',color='orange')
-    plt.plot(best['results']['Pk1D']['k_kms'],get_model_Pk_kms(best['results']['Pk1D']['k_kms'],A_F,B_F),label='model fit: A_F={:2.2f}, B_F={:2.2f}'.format(fit[0][0],fit[0][1]),color='b')
+    plt.plot(best['results']['Pk1D']['k_kms'],get_model_Pk_kms(best['results']['Pk1D']['k_kms'],best['results']['A_F'],best['results']['B_F']),label='model fit: A_F={:2.2f}, B_F={:2.2f}'.format(best['results']['A_F'],best['results']['B_F']),color='b')
     plt.plot(best['results']['Pk1D']['k_kms'],get_model_Pk_kms(best['results']['Pk1D']['k_kms'],0.064,3.55),label='model default: A_F={:2.2f}, B_F={:2.2f}'.format(0.064,3.55),color=(0.5,0.5,0.5))
+    plt.axvline(x=max_k,c=(0.,0.,0.),label='max fitting k value')
     #plt.fill_between(k_kms,0.9*model_Pk_kms_default,1.1*model_Pk_kms_default,label='model default +/- 10%',color=(0.5,0.5,0.5),alpha=0.5)
     #plt.plot(k_kms,independent.power_kms(z_value,k_kms,cell_size*general.get_dkms_dhMpc(z_value),False),label='added')
     plt.semilogy()
