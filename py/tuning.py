@@ -12,6 +12,27 @@ Below: new tuning, measurement based
 
 
 
+class measurement:
+    def __init__(self):
+
+        self.z
+        self.s_parameters
+        self.t_parameters
+        self.mean_F
+        self.Pk1D
+        self.cf
+
+        return
+
+    def measure_Pk1D(self,):
+
+        self.Pk1D = get_Pk1D(skewer_rows,IVAR_rows,R_hMpc,z,z_value,z_width=0.2,N_processes=1)
+
+        return
+
+    def measure_mean_F():
+
+        return
 
 ################################################################################
 """
