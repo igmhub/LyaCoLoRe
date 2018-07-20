@@ -2,6 +2,7 @@ import numpy as np
 from astropy.io import fits
 
 import convert
+import Pk1D
 
 lya = 1215.67
 
@@ -11,28 +12,100 @@ Below: new tuning, measurement based
 """
 
 
+class tuning_parameters:
+
+    def __init__(self,):
+        return
+
+    @classmethod
+    def add_parameter(name,value):
+
+
+
+        return cls()
+
+# TODO: need to add in a pixel lael or something
 
 class measurement:
-    def __init__(self):
-
-        self.z
-        self.s_parameters
-        self.t_parameters
-        self.mean_F
-        self.Pk1D
-        self.cf
-
+    def __init__(self,ID,z_value,z_width,n,k1,alpha,beta,sigma_G,mean_F=None,k_kms=None,Pk_kms=None,cf=None):
+        self.ID = ID
+        self.z_value = z_value
+        self.z_width = z_width
+        self.n = n
+        self.k1 = k1
+        self.alpha = alpha
+        self.beta = beta
+        self.sigma_G = sigma_G
+        self.mean_F = mean_F
+        self.k_kms = k_kms
+        self.Pk_kms = Pk_kms
+        self.cf = cf
         return
-
-    def measure_Pk1D(self,):
-
-        self.Pk1D = get_Pk1D(skewer_rows,IVAR_rows,R_hMpc,z,z_value,z_width=0.2,N_processes=1)
-
+    def add_Pk1D_measurement(self,pixel_object):
+        F_rows = pixel_object.F_rows
+        mean_F = np.average(F_rows)
+        delta_F_rows = F_rows/mean_F - 1
+        IVAR_rows = pixel_object.IVAR_rows
+        R_hMpc = pixel_object.R
+        z = pixel_object.Z
+        k_kms, Pk_kms, var_kms = Pk1D.get_Pk1D(delta_F_rows,IVAR_rows,R_hMpc,z,self.z_value,z_width=self.z_width,N_processes=1)
+        self.k_kms = k_kms
+        self.Pk_kms = Pk_kms
         return
-
-    def measure_mean_F():
-
+    def add_mean_F_measurement(self,pixel_object):
+        self.mean_F = pixel_object.get_mean_flux(self.z_value,z_width=self.z_width)
         return
+    def add_Pk1D_error(self,max_k=None):
+        model_Pk_kms = P1D_z_kms_PD2013(self.k_kms,self.z_value)
+        Pk_kms_errors = (self.Pk_kms - model_Pk_kms)/model_Pk_kms
+        if max_k:
+            max_j = np.searchsorted(self.k_kms,max_k)
+        else:
+            max_j = -1
+        average_error = np.average(Pk_kms_errors[:max_j])
+        self.Pk_kms_error = average_error
+        return
+    def add_mean_F_error(self):
+        model_mean_F = get_mean_F_model(self.z_value)
+        mean_F_error = (self.mean_F - model_mean_F)/model_mean_F
+        self.mean_F_error = mean_F_error
+        return
+    def get_error(self):
+        error = np.sqrt(self.Pk_kms_error**2 + self.mean_F_error**2)
+        return error
+
+class measurement_set:
+    def __init__(self,measurements=[],IDs=[]):
+        self.measurements = []
+        self.IDs = []
+        return
+    def add_measurement(self,measurement):
+        self.measurements += [measurement]
+        self.IDs += [measurement.ID]
+        return
+    def z_filter(self,z_value):
+        new_set = measurement_set()
+        for measurement in self.measurements:
+            if measurement.z_value == z_value:
+                new_set.add_measurement(measurement)
+        return new_set
+    def s_filter(self,n,k1):
+        new_set = measurement_set()
+        for measurement in self.measurements:
+            if measurement.n == n and measurement.k1 == k1:
+                new_set.add_measurement(measurement)
+        return new_set
+    def get_best_measurement(self,min_error=1.0):
+        best_measurement = None
+        for measurement in self.measurements:
+            error = measurement.get_error()
+            print(min_error,error,measurement.Pk_kms_error,measurement.mean_F_error)
+            if error < min_error:
+                min_error = error
+                best_measurement = measurement
+        return best_measurement
+
+
 
 ################################################################################
 """
