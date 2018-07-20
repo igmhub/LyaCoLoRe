@@ -56,7 +56,8 @@ Define the multiprocessing tracking functions
 #Define a progress-tracking function.
 def log_result(retval):
 
-    results.append(retval)
+    results.append(retval[0])
+    measurement_set.add_measurement(retval[1])
     N_complete = len(results)
     N_tasks = len(tasks)
 
@@ -123,42 +124,49 @@ lookup = {}
 import itertools
 for i,z_value in enumerate(z_values):
     a = [alpha_values[i]] * multipliers
-    b = [beta_values[i]] * multipliers
-    sG = [sigma_G_values[i]] * multipliers
+    b = [beta_values[i]]# * multipliers
+    sG = [sigma_G_values[i]]# * multipliers
+
     n = [n_values[i]] * multipliers
     k1 = [k1_values[i]] * multipliers
 
     #parameters_list += list(itertools.product([z_value],a,b,sG,n,k1))
 
-    parameter_values_list = list(itertools.product(a,b,sG,n,k1))
+    s_parameter_values_list = list(itertools.product(n,k1))
+    t_parameter_values_list = list(itertools.product(a,b,sG))
 
     # TODO: need a better ID number of some kind
     z_dict = {}
     ID = 0
-    for parameter_values in parameter_values_list:
-        parameters_dict = {'alpha':parameter_values[0],'beta':parameter_values[1],'sigma_G':parameter_values[2],'n':parameter_values[3],'k1':parameter_values[4]}
-        Pk_dict = {'k_kms':None,'Pk_kms':None,'var_kms':None}
-        results_dict = {'mean_F':None,'Pk1D':Pk_dict,'A_F':None,'B_F':None,'bias':None,'beta':None}
-        errors_dict = {'mean_F':None,'Pk1D':None,'A_F':None,'B_F':None,'bias':None,'beta':None}
-        ID_dict = {'parameters':parameters_dict,'results':results_dict,'errors':errors_dict}
-        z_dict = {**z_dict,**{ID:ID_dict}}
-        ID += 1
+    for s_parameter_values in s_parameter_values_list:
+        for t_parameter_values in t_parameter_values_list:
+            s_parameters_dict = {'n':s_parameter_values[0],'k1':s_parameter_values[1]}
+            t_parameters_dict = {'alpha':t_parameter_values[0],'beta':t_parameter_values[1],'sigma_G':t_parameter_values[2]}
+
+            Pk_dict = {'k_kms':None,'Pk_kms':None,'var_kms':None}
+            results_dict = {'mean_F':None,'Pk1D':Pk_dict,'A_F':None,'B_F':None,'bias':None,'beta':None}
+            errors_dict = {'mean_F':None,'Pk1D':None,'A_F':None,'B_F':None,'bias':None,'beta':None}
+            ID_dict = {'s_parameters':s_parameters_dict,'t_parameters':t_parameters_dict,'results':results_dict,'errors':errors_dict}
+            z_dict = {**z_dict,**{ID:ID_dict}}
+            ID += 1
 
 
-    data_type = [('alpha','f4'),('beta','f4'),('sigma_G','f4'),('n','f4'),('k1','f4')]
-    parameters = np.array(parameter_values,dtype=data_type)
+    #data_type = [('alpha','f4'),('beta','f4'),('sigma_G','f4'),('n','f4'),('k1','f4')]
+    #parameters = np.array(parameter_values,dtype=data_type)
 
     lookup = {**lookup,**{z_value:z_dict}}
 
 ID_list = list(range(ID))
+measurement_set = tuning.measurement_set()
 
 def measure_pixel_segment(pixel,z_value,ID,lookup):
 
-    alpha = lookup[z_value][ID]['parameters']['alpha']
-    beta = lookup[z_value][ID]['parameters']['beta']
-    sigma_G_required = lookup[z_value][ID]['parameters']['sigma_G']
-    n_value = lookup[z_value][ID]['parameters']['n']
-    k1_value = lookup[z_value][ID]['parameters']['k1']
+    n = lookup[z_value][ID]['s_parameters']['n']
+    k1 = lookup[z_value][ID]['s_parameters']['k1']
+
+    alpha = lookup[z_value][ID]['t_parameters']['alpha']
+    beta = lookup[z_value][ID]['t_parameters']['beta']
+    sigma_G_required = lookup[z_value][ID]['t_parameters']['sigma_G']
 
     location = base_file_location + '/' + new_file_structure.format(pixel//100,pixel)
     mean_F_data = np.array(list(zip(tuning_z_values,desired_mean_F)))
@@ -187,7 +195,7 @@ def measure_pixel_segment(pixel,z_value,ID,lookup):
     #add small scale fluctuations
     seed = int(str(N_side) + str(pixel))
     generator = np.random.RandomState(seed)
-    data.add_small_scale_gaussian_fluctuations(cell_size,data.Z,np.ones(data.Z.shape[0])*extra_sigma_G,generator,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n=n_value,k1=k1_value) #n=0.7, k1=0.001 default
+    data.add_small_scale_gaussian_fluctuations(cell_size,data.Z,np.ones(data.Z.shape[0])*extra_sigma_G,generator,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n=n,k1=k1) #n=0.7, k1=0.001 default
 
     #Convert to flux
     data.compute_physical_skewers()
@@ -201,7 +209,7 @@ def measure_pixel_segment(pixel,z_value,ID,lookup):
     data.trim_skewers(lambda_min_val,min_cat_z,lambda_max=lambda_max_val,whole_lambda_range=True)
 
     #Measure mean flux
-    mean_F = data.get_mean_flux(z_value=z_value)
+    mean_F = data.get_mean_flux(z_value=z_value,z_width=z_width)
 
     #Measure P1D
     #Do i want this to be a pixelise function?
@@ -240,7 +248,13 @@ def measure_pixel_segment(pixel,z_value,ID,lookup):
     data_type = [('z_value','f4'),('ID','i4'),('pixel','i4'),('N','i4'),('mean_F','f4'),('k_kms','O'),('Pk_kms','O')]
     result = np.array([(z_value,ID,pixel,data.N_qso,mean_F,k_kms,Pk_kms)],dtype=data_type)
 
-    return result
+    measurement = tuning.measurement(ID,z_value,z_width,n,k1,alpha,beta,sigma_G_required)
+    measurement.add_mean_F_measurement(data)
+    measurement.add_Pk1D_measurement(data)
+    #measurement_set.add_measurement(measurement)
+
+    return (result,measurement)
+
 
 tasks = [(pixel,z_value,ID,lookup) for ID in ID_list for pixel in pixels for z_value in z_values]
 
@@ -256,6 +270,62 @@ if __name__ == '__main__':
     pool.close()
     pool.join()
 
+#Fit model
+def get_model_Pk_kms(k_kms,A_F,B_F):
+    return tuning.P1D_z_kms_PD2013(k_kms,z_value,A_F=A_F,B_F=B_F)
+
+
+for z_value in z_values:
+    print('z value: {}'.format(z_value))
+    z_set = measurement_set.z_filter(z_value)
+    for s_parameter_values in s_parameter_values_list:
+        n = s_parameter_values[0]
+        k1 = s_parameter_values[1]
+        z_s_set = z_set.s_filter(n,k1)
+        print(n,k1,len(z_s_set.measurements))
+        for m in z_s_set.measurements:
+            m.add_Pk1D_error()
+            m.add_mean_F_error()
+        best = z_s_set.get_best_measurement()
+        max_j = np.searchsorted(best.k_kms,max_k)
+        fit = curve_fit(get_model_Pk_kms,best.k_kms[:max_j],best.Pk_kms[:max_j])
+
+        print('alpha = {:2.2f}'.format(best.alpha))
+        print('beta = {:2.2f}'.format(best.beta))
+        print('sigma_G = {:2.2f}'.format(best.sigma_G))
+        print('n = {:2.2f}'.format(best.n))
+        print('k1 = {:2.4f}'.format(best.k1))
+        print(' ')
+        print('mean F = {:2.2f}, error is {:3.0%}'.format(best.mean_F,best.mean_F_error))
+        print('Pk1D average error is {:3.0%}'.format(best.Pk_kms_error))
+        print('A_F = {:2.2f}, error is {:3.0%}'.format(fit[0][0],(fit[0][0]/0.0064 - 1)))
+        print('B_F = {:2.2f}, error is {:3.0%}'.format(fit[0][1],(fit[0][1]/3.55 - 1)))
+
+        plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
+        plt.title('z_value={:2.2f}: alpha={:2.2f}, beta={:2.2f}, sG={:2.2f}, n={:2.2f}, k1={:2.4f}'.format(z_value,best.alpha,best.beta,best.sigma_G,best.n,best.k1))
+        ##Need to update the errors in here
+        plt.errorbar(best.k_kms,best.Pk_kms,yerr=np.zeros(best.k_kms.shape),fmt='o',label='measured',color='orange')
+        plt.plot(best.k_kms,get_model_Pk_kms(best.k_kms,fit[0][0],fit[0][1]),label='model fit: A_F={:2.2f}, B_F={:2.2f}'.format(fit[0][0],fit[0][1]),color='b')
+        plt.plot(best.k_kms,get_model_Pk_kms(best.k_kms,0.064,3.55),label='model default: A_F={:2.2f}, B_F={:2.2f}'.format(0.064,3.55),color=(0.5,0.5,0.5))
+        plt.axvline(x=max_k,c=(0.,0.,0.),label='max fitting k value')
+        #plt.fill_between(k_kms,0.9*model_Pk_kms_default,1.1*model_Pk_kms_default,label='model default +/- 10%',color=(0.5,0.5,0.5),alpha=0.5)
+        #plt.plot(k_kms,independent.power_kms(z_value,k_kms,cell_size*general.get_dkms_dhMpc(z_value),False),label='added')
+        plt.semilogy()
+        plt.semilogx()
+        plt.ylabel('Pk1D')
+        plt.xlabel('k / kms-1')
+        plt.legend()
+        plt.grid()
+        #plt.savefig('Pk1D_abs_slope1.5_alpha{:2.2f}_beta{:2.2f}_sG{:2.2f}.pdf'.format(alpha,beta,sigma_G_required))
+        plt.show()
+        print(' ')
+
+
+print(' ')
+
+
+print('############################')
+
 results = np.array(results)
 
 mean_F_errors = np.array((multipliers.shape[0],multipliers.shape[0]))
@@ -263,15 +333,16 @@ Pk1D_errors = np.array((multipliers.shape[0],multipliers.shape[0]))
 A_F_errors = np.array((multipliers.shape[0],multipliers.shape[0]))
 B_F_errors = np.array((multipliers.shape[0],multipliers.shape[0]))
 
-#Fit model
-def get_model_Pk_kms(k_kms,A_F,B_F):
-    return tuning.P1D_z_kms_PD2013(k_kms,z_value,A_F=A_F,B_F=B_F)
+#s_errors_grid = np.zeros()
+#t_errors_grid
 
 for z_value in z_values:
     min_error = 1.0
     z_results = results[results['z_value']==z_value]
     print('z value: {}'.format(z_value))
+
     for ID in ID_list:
+
         z_ID_results = z_results[z_results['ID']==ID]
 
         lookup[z_value][ID]['results']['mean_F'] = np.average(z_ID_results['mean_F'],weights=z_ID_results['N'])
@@ -296,6 +367,8 @@ for z_value in z_values:
         lookup[z_value][ID]['results']['B_F'] = B_F
 
         # TODO: some sort of goodness of fit estimator may be better here?
+        A_F = 0.064
+        B_F = 3.55
         model_Pk_kms = get_model_Pk_kms(lookup[z_value][ID]['results']['Pk1D']['k_kms'],A_F,B_F)
         Pk_differences = lookup[z_value][ID]['results']['Pk1D']['Pk_kms'][:max_j] - model_Pk_kms[:max_j]
         Pk_error = np.average(abs(Pk_differences)/model_Pk_kms[:max_j])
@@ -321,11 +394,11 @@ for z_value in z_values:
 
     best = lookup[z_value][min_err_ID]
 
-    print('alpha = {:2.2f}'.format(best['parameters']['alpha']))
-    print('beta = {:2.2f}'.format(best['parameters']['beta']))
-    print('sigma_G = {:2.2f}'.format(best['parameters']['sigma_G']))
-    print('n = {:2.2f}'.format(best['parameters']['n']))
-    print('k1 = {:2.4f}'.format(best['parameters']['k1']))
+    print('alpha = {:2.2f}'.format(best['t_parameters']['alpha']))
+    print('beta = {:2.2f}'.format(best['t_parameters']['beta']))
+    print('sigma_G = {:2.2f}'.format(best['t_parameters']['sigma_G']))
+    print('n = {:2.2f}'.format(best['s_parameters']['n']))
+    print('k1 = {:2.4f}'.format(best['s_parameters']['k1']))
     print(' ')
     print('mean F = {:2.2f}, error is {:3.0%}'.format(best['results']['mean_F'],best['errors']['mean_F']))
     print('Pk1D average error is {:3.0%}'.format(best['errors']['Pk1D']))
@@ -333,7 +406,7 @@ for z_value in z_values:
     print('B_F = {:2.2f}, error is {:3.0%}'.format(best['results']['B_F'],best['errors']['B_F']))
 
     plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
-    plt.title('z_value={:2.2f}: alpha={:2.2f}, beta={:2.2f}, sG={:2.2f}, n={:2.2f}, k1={:2.4f}'.format(best['parameters']['alpha'],best['parameters']['beta'],best['parameters']['sigma_G'],best['parameters']['n'],best['parameters']['k1']))
+    plt.title('z_value={:2.2f}: alpha={:2.2f}, beta={:2.2f}, sG={:2.2f}, n={:2.2f}, k1={:2.4f}'.format(z_value,best['t_parameters']['alpha'],best['t_parameters']['beta'],best['t_parameters']['sigma_G'],best['s_parameters']['n'],best['s_parameters']['k1']))
     plt.errorbar(best['results']['Pk1D']['k_kms'],best['results']['Pk1D']['Pk_kms'],yerr=np.sqrt(best['results']['Pk1D']['var_kms']),fmt='o',label='measured',color='orange')
     plt.plot(best['results']['Pk1D']['k_kms'],get_model_Pk_kms(best['results']['Pk1D']['k_kms'],best['results']['A_F'],best['results']['B_F']),label='model fit: A_F={:2.2f}, B_F={:2.2f}'.format(best['results']['A_F'],best['results']['B_F']),color='b')
     plt.plot(best['results']['Pk1D']['k_kms'],get_model_Pk_kms(best['results']['Pk1D']['k_kms'],0.064,3.55),label='model default: A_F={:2.2f}, B_F={:2.2f}'.format(0.064,3.55),color=(0.5,0.5,0.5))
@@ -346,9 +419,12 @@ for z_value in z_values:
     plt.xlabel('k / kms-1')
     plt.legend()
     plt.grid()
+    plt.savefig('test.pdf')
     #plt.savefig('Pk1D_abs_slope1.5_alpha{:2.2f}_beta{:2.2f}_sG{:2.2f}.pdf'.format(alpha,beta,sigma_G_required))
     plt.show()
     print(' ')
+
+
 
 
 
