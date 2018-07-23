@@ -42,9 +42,6 @@ parser.add_argument('--nproc', type = int, default = 1, required=False,
 parser.add_argument('--nside', type = int, default = 16, required=False,
                     help = 'HEALPix nside for output files (must be 2^n)')
 
-parser.add_argument('--cell-size', type = float, default = 0.25, required=False,
-                    help = 'size in Mpc/h of output cells')
-
 parser.add_argument('--min-cat-z', type = float, default = 1.8, required=False,
                     help = 'minimum z of objects in catalog')
 
@@ -68,7 +65,6 @@ original_file_location = args.in_dir
 new_base_file_location = args.out_dir
 N_side = args.nside
 min_catalog_z = args.min_cat_z
-final_cell_size = args.cell_size
 N_processes = args.nproc
 parameter_filename = args.param_file
 N_skewers = args.nskewers
@@ -84,7 +80,7 @@ else:
 
 #Define the original file structure
 original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
-file_numbers = list(range(0,1))
+file_numbers = list(range(0,32))
 input_format = 'gaussian_colore'
 
 #Set file structure
@@ -155,7 +151,7 @@ print('\nSaving the master files...')
 
 #Join the multiprocessing results into 'master' and 'bad_coordinates' arrays.
 master_data, bad_coordinates_data, cosmology_data, file_pixel_map, MOCKID_lookup = master.join_ID_data(results,N_side)
-
+    
 #Write master and bad coordinates files.
 master_filename = new_base_file_location + '/master.fits'
 master.write_ID(master_filename,master_data,cosmology_data,N_side)
