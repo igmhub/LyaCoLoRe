@@ -134,7 +134,7 @@ else:
 
 #Define the original file structure
 original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
-file_numbers = list(range(0,1))
+file_numbers = list(range(0,32))
 input_format = 'gaussian_colore'
 
 #Set file structure
