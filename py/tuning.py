@@ -1,5 +1,6 @@
 import numpy as np
 from astropy.io import fits
+import matplotlib.pyplot as plt
 
 import convert
 import Pk1D
@@ -91,9 +92,10 @@ class measurement:
         chi2 = np.sum(((self.mean_F - model_mean_F)**2)/denom)
         self.mean_F_chi2 = chi2
         return
-    def get_chi2(self):
+    def add_total_chi2(self):
         chi2 = self.Pk_kms_chi2 + self.mean_F_chi2
-        return chi2
+        self.total_chi2 = chi2
+        return
     @classmethod
     def combine_measurements(cls,m1,m2):
         if general.confirm_identical(m1.parameter_ID,m2.parameter_ID,item_name='parameter_ID'):
@@ -173,11 +175,10 @@ class measurement_set:
         return measurement_set(filtered_measurements)
     def get_best_measurement(self,min_chi2=10**6):
         best_measurement = None
-        for measurement in self.measurements:
-            chi2 = measurement.get_chi2()
-            if chi2 < min_chi2:
-                min_chi2 = chi2
-                best_measurement = measurement
+        for m in self.measurements:
+            if m.total_chi2 < min_chi2:
+                min_chi2 = m.total_chi2
+                best_measurement = m
         return best_measurement
     def combine_pixels(self):
         z_values = list(set([m.z_value for m in self.measurements]))
@@ -193,6 +194,80 @@ class measurement_set:
                         c_m = measurement.combine_measurements(c_m,m)
                 combined_measurements += [c_m]
         return measurement_set(combined_measurements)
+    def optimize_s_parameters(self,plot_optimal=False):
+
+        best_measurements = []
+
+        z_values = list(set([m.z_value for m in self.measurements]))
+        s_parameter_values_list = list(set([(m.n,m.k1) for m in self.measurements]))
+
+        min_chi2 = 10**6
+
+        for s_parameter_values in s_parameter_values_list:
+            n = s_parameter_values[0]
+            k1 = s_parameter_values[1]
+            s_set = self.s_filter(n,k1)
+            print('number measurements in s filtered is:',len(s_set.measurements))
+            total_chi2 = 0
+            fixed_s_best_measurements = []
+            for z_value in z_values:
+                z_s_set = s_set.z_filter(z_value)
+                best = z_s_set.get_best_measurement()
+                total_chi2 += best.total_chi2
+                fixed_s_best_measurements += [best]
+            if total_chi2 < min_chi2:
+                best_measurements = fixed_s_best_measurements
+                min_chi2 = total_chi2
+        s_optimized_set = measurement_set(measurements=best_measurements)
+        print('number measurements in optimised is:',len(s_optimized_set.measurements))
+
+        if plot_optimal:
+            plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
+            for m in s_optimized_set.measurements:
+                plt.errorbar(m.k_kms,m.Pk_kms,fmt='o',label='measured, z={}'.format(m.z_value))
+                plt.plot(m.k_kms,P1D_z_kms_PD2013(m.k_kms,m.z_value),label='theory, z={}'.format(m.z_value))
+            plt.semilogy()
+            plt.semilogx()
+            plt.ylabel('Pk1D')
+            plt.xlabel('k / kms-1')
+            plt.legend()
+            plt.grid()
+            #plt.savefig('Pk1D_abs_slope1.5_alpha{:2.2f}_beta{:2.2f}_sG{:2.2f}.pdf'.format(alpha,beta,sigma_G_required))
+            plt.show()
+
+            plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
+            mean_F = []
+            alpha = []
+            beta = []
+            sigma_G = []
+            z = []
+            for m in s_optimized_set.measurements:
+                mean_F += [m.mean_F]
+                alpha += [m.alpha]
+                beta += [m.beta]
+                sigma_G += [m.sigma_G]
+                z += [m.z_value]
+            plt.errorbar(z,mean_F,fmt='o',label='measured')
+            theory_z = np.linspace(1.8,4.0,100)
+            plt.plot(theory_z,get_mean_F_model(theory_z),label='theory')
+            plt.ylabel('mean F')
+            plt.xlabel('z')
+            plt.legend()
+            plt.grid()
+            plt.show()
+
+            plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
+            plt.plot(z,alpha,marker='o',label='alpha')
+            plt.plot(z,beta,marker='o',label='beta')
+            plt.plot(z,sigma_G,marker='o',label='sigma_G')
+            plt.ylabel('parameters')
+            plt.xlabel('z')
+            plt.legend()
+            plt.grid()
+            plt.show()
+
+
+        return s_optimized_set
 
 
 
