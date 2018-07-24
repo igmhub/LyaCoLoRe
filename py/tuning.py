@@ -82,21 +82,18 @@ class measurement:
             eps = 10**6 * np.ones(self.k_kms.shape)
             eps[min_j:max_j] *= 0.1 / 10**6
             denom = (eps * model_Pk_kms)**2
-        chi2 = np.sum(((self.Pk_kms[min_j:max_j] - model_Pk_kms[min_j:max_j])**2)/denom[min_j:max_j])
+        chi2 = np.sum(((self.Pk_kms - model_Pk_kms)**2)/denom)
         self.Pk_kms_chi2 = chi2
         return
-    def add_mean_F_chi2(self,min_k=None,max_k=None,denom="uniform10"):
+    def add_mean_F_chi2(self,min_k=None,max_k=None,eps=0.1):
         model_mean_F = get_mean_F_model(self.z_value)
-        if denom == "uniform5":
-            denom = (0.05 * model_mean_F)**2
-        elif denom == "uniform10":
-            denom = (0.10 * model_mean_F)**2
+        denom = (eps * model_mean_F)**2
         chi2 = np.sum(((self.mean_F - model_mean_F)**2)/denom)
         self.mean_F_chi2 = chi2
         return
-    def get_error(self):
-        error = np.sqrt(self.Pk_kms_error**2 + self.mean_F_error**2)
-        return error
+    def get_chi2(self):
+        chi2 = self.Pk_kms_chi2 + self.mean_F_chi2
+        return chi2
     @classmethod
     def combine_measurements(cls,m1,m2):
         if general.confirm_identical(m1.parameter_ID,m2.parameter_ID,item_name='parameter_ID'):
@@ -137,7 +134,7 @@ class measurement:
         self.mean_F_error = mean_F_error
         return
     """
-    
+
 class measurement_set:
     def __init__(self,measurements=[]):
         self.measurements = measurements
@@ -174,12 +171,12 @@ class measurement_set:
             if m.alpha == alpha and m.beta == beta and m.sigma_G == sigma_G:
                 filtered_measurements += [m]
         return measurement_set(filtered_measurements)
-    def get_best_measurement(self,min_error=1.0):
+    def get_best_measurement(self,min_chi2=10**6):
         best_measurement = None
         for measurement in self.measurements:
-            error = measurement.get_error()
-            if error < min_error:
-                min_error = error
+            chi2 = measurement.get_chi2()
+            if chi2 < min_chi2:
+                min_chi2 = chi2
                 best_measurement = measurement
         return best_measurement
     def combine_pixels(self):
