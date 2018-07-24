@@ -16,14 +16,14 @@ import general
 
 lya = 1215.67
 
-N_processes = 4
+N_processes = 1
 lambda_min = 3550.0
 min_cat_z = 1.8
 IVAR_cutoff = 1150.0
 
 #Get the starting values of alpha, beta and sigma_G from file
 #Decide which z values we are going to tune
-z_values = [2.5]
+z_values = [2.0,2.5,3.0]
 z_width = 0.2
 
 cell_size = 0.25 #Mpc/h
@@ -43,7 +43,7 @@ input_format = 'gaussian_colore'
 #get pixels from those directories created by make_master.py
 dirs = glob.glob(base_file_location+new_file_structure.format('*','*'))
 pixels = []
-for dir in dirs[:3]:
+for dir in dirs[:2]:
     pixels += [int(dir[len(dir)-dir[-2::-1].find('/')-1:-1])]
 #pixels=[0]
 
@@ -113,7 +113,7 @@ for i,z_value in enumerate(z_values):
 
 """
 
-multipliers = np.linspace(0.8,1.2,3)
+multipliers = np.linspace(0.8,1.2,2)
 
 #Extract the values of parameters to optimise over
 parameters_list = []
@@ -212,6 +212,9 @@ def measure_pixel_segment(pixel,z_value,ID,lookup):
     measurement = tuning.measurement(ID,z_value,z_width,data.N_qso,n,k1,alpha,beta,sigma_G_required,pixels=[pixel])
     measurement.add_mean_F_measurement(data)
     measurement.add_Pk1D_measurement(data)
+    measurement.add_mean_F_chi2(eps=0.01)
+    measurement.add_Pk1D_chi2(max_k=max_k)
+    measurement.add_total_chi2()
 
     return measurement
 
@@ -239,6 +242,39 @@ print('after combining, number measuremts is:',len(combined_set.measurements))
 #Fit model
 def get_model_Pk_kms(k_kms,A_F,B_F):
     return tuning.P1D_z_kms_PD2013(k_kms,z_value,A_F=A_F,B_F=B_F)
+
+
+optimal_measurements = measurement_set.optimize_s_parameters(plot_optimal=True)
+
+
+
+s_parameters_chi2 = []
+best_measurements = np.zeros((len(s_parameter_values_list),len(z_values)))
+for i,s_parameter_values in enumerate(s_parameter_values_list):
+    n = s_parameter_values[0]
+    k1 = s_parameter_values[1]
+    s_set = measurement_set.s_filter(n,k1)
+    total_chi2 = 0
+    for j,z_value in enumerate(z_values):
+        z_s_set = s_set.z_filter(z_value)
+        best = z_s_set.get_best_measurement()
+        max_j = np.searchsorted(best.k_kms,max_k)
+        fit = curve_fit(get_model_Pk_kms,best.k_kms[:max_j],best.Pk_kms[:max_j],p0=(0.064,3.55))
+        best_measurements[i,j] = best
+        total_chi2 += best.total_chi2
+    s_parameters_chi2 += [total_chi2]
+
+#This is very basic. Improve
+i = np.argmin(s_parameters_chi2)
+print('best overall s parameters are:',s_parameter_values_list[i])
+n_best = s_parameter_values_list[i][0]
+k1_best = s_parameter_values_list[i][1]
+
+plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
+for j in range(len(z_values)):
+    m = best_measurements[i,j]
+
+
 
 
 for z_value in z_values:

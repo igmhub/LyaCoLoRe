@@ -581,8 +581,7 @@ class simulation_data:
 
         else:
             j_value_upper = np.searchsorted(self.Z,z_value + z_width/2.)
-            j_value_lower = np.searchsorted(self.Z,z_value - z_width/2.) - 1
-
+            j_value_lower = np.max(0,np.searchsorted(self.Z,z_value - z_width/2.) - 1)
             mean_F = np.average(self.F_rows[j_value_lower:j_value_upper+1])
 
         return mean_F
