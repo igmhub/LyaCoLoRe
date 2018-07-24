@@ -2,6 +2,8 @@
 
 These instructions worked in November 2nd 2017. 
 
+NOTE: These are not instructions to install LyaCoLoRe, but CoLoRe. LyaCoLoRe should not require installation, besides loading python modules if needed.
+
 ## Load relevant modules
 
 You can choose whether to use GNU or Intel modules, here we use GNU
