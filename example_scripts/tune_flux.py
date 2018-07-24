@@ -43,7 +43,7 @@ input_format = 'gaussian_colore'
 #get pixels from those directories created by make_master.py
 dirs = glob.glob(base_file_location+new_file_structure.format('*','*'))
 pixels = []
-for dir in dirs[:1]:
+for dir in dirs[:3]:
     pixels += [int(dir[len(dir)-dir[-2::-1].find('/')-1:-1])]
 #pixels=[0]
 
@@ -57,7 +57,7 @@ Define the multiprocessing tracking functions
 def log_result(retval):
 
     results.append(retval[0])
-    measurement_set.add_measurement(retval[1])
+    new_results.append(retval[1])
     N_complete = len(results)
     N_tasks = len(tasks)
 
@@ -114,7 +114,7 @@ for i,z_value in enumerate(z_values):
 
 """
 
-multipliers = np.linspace(0.8,1.2,3)
+multipliers = np.linspace(0.8,1.2,2)
 
 #Extract the values of parameters to optimise over
 parameters_list = []
@@ -125,7 +125,7 @@ import itertools
 for i,z_value in enumerate(z_values):
     a = [alpha_values[i]] * multipliers
     b = [beta_values[i]]# * multipliers
-    sG = [sigma_G_values[i]]# * multipliers
+    sG = [sigma_G_values[i]] * multipliers
 
     n = [n_values[i]] * multipliers
     k1 = [k1_values[i]] * multipliers
@@ -157,7 +157,6 @@ for i,z_value in enumerate(z_values):
     lookup = {**lookup,**{z_value:z_dict}}
 
 ID_list = list(range(ID))
-measurement_set = tuning.measurement_set()
 
 def measure_pixel_segment(pixel,z_value,ID,lookup):
 
@@ -208,23 +207,19 @@ def measure_pixel_segment(pixel,z_value,ID,lookup):
     lambda_max_val = lya*(1 + z_value + z_width/2)
     data.trim_skewers(lambda_min_val,min_cat_z,lambda_max=lambda_max_val,whole_lambda_range=True)
 
-    #Measure mean flux
-    mean_F = data.get_mean_flux(z_value=z_value,z_width=z_width)
-
     #Measure P1D
-    #Do i want this to be a pixelise function?
-    #this is returning complex results atm
     mean_F = np.average(data.F_rows)
     delta_F_rows = data.F_rows/mean_F - 1
 
+    #Do i want this to be a pixelise function?
     k_kms, Pk_kms, var_kms = Pk1D.get_Pk1D(delta_F_rows,data.IVAR_rows,data.R,data.Z,z_value,z_width=0.2,N_processes=1)
-
-    #lookup[z_value][ID]['results']['Pk1D']['k_kms'] = k_kms
-    #lookup[z_value][ID]['results']['Pk1D']['Pk_kms'] = Pk_kms
 
     Pk1D_results = (k_kms,Pk_kms,var_kms)
 
-    #Convert back to small cells
+    #Measure mean flux
+    mean_F = data.get_mean_flux(z_value=z_value,z_width=z_width)
+
+    #Convert back to small cells for cf measurement
     #need a new function to merge cells back together
 
     # TODO: this doesn't want to go here - we need to save the files and then measure it.
@@ -248,7 +243,7 @@ def measure_pixel_segment(pixel,z_value,ID,lookup):
     data_type = [('z_value','f4'),('ID','i4'),('pixel','i4'),('N','i4'),('mean_F','f4'),('k_kms','O'),('Pk_kms','O')]
     result = np.array([(z_value,ID,pixel,data.N_qso,mean_F,k_kms,Pk_kms)],dtype=data_type)
 
-    measurement = tuning.measurement(ID,z_value,z_width,n,k1,alpha,beta,sigma_G_required)
+    measurement = tuning.measurement(ID,z_value,z_width,data.N_qso,n,k1,alpha,beta,sigma_G_required,pixels=[pixel])
     measurement.add_mean_F_measurement(data)
     measurement.add_Pk1D_measurement(data)
     #measurement_set.add_measurement(measurement)
@@ -263,12 +258,21 @@ if __name__ == '__main__':
     pool = Pool(processes = N_processes)
     start_time = time.time()
     results = []
+    new_results = []
 
     for task in tasks:
         pool.apply_async(measure_pixel_segment,task,callback=log_result,error_callback=log_error)
 
     pool.close()
     pool.join()
+
+
+measurement_set = tuning.measurement_set(measurements=new_results)
+
+
+print('originally number measuremts is:',len(measurement_set.measurements))
+combined_set = measurement_set.combine_pixels()
+print('after combining, number measuremts is:',len(combined_set.measurements))
 
 #Fit model
 def get_model_Pk_kms(k_kms,A_F,B_F):
@@ -282,13 +286,14 @@ for z_value in z_values:
         n = s_parameter_values[0]
         k1 = s_parameter_values[1]
         z_s_set = z_set.s_filter(n,k1)
-        print(n,k1,len(z_s_set.measurements))
         for m in z_s_set.measurements:
-            m.add_Pk1D_error()
+            m.add_Pk1D_error(max_k=max_k)
             m.add_mean_F_error()
+            m.add_Pk1D_chi2(max_k=max_k)
+            m.add_mean_F_chi2()
         best = z_s_set.get_best_measurement()
         max_j = np.searchsorted(best.k_kms,max_k)
-        fit = curve_fit(get_model_Pk_kms,best.k_kms[:max_j],best.Pk_kms[:max_j])
+        fit = curve_fit(get_model_Pk_kms,best.k_kms[:max_j],best.Pk_kms[:max_j],p0=(0.064,3.55))
 
         print('alpha = {:2.2f}'.format(best.alpha))
         print('beta = {:2.2f}'.format(best.beta))
@@ -298,8 +303,11 @@ for z_value in z_values:
         print(' ')
         print('mean F = {:2.2f}, error is {:3.0%}'.format(best.mean_F,best.mean_F_error))
         print('Pk1D average error is {:3.0%}'.format(best.Pk_kms_error))
-        print('A_F = {:2.2f}, error is {:3.0%}'.format(fit[0][0],(fit[0][0]/0.0064 - 1)))
+        print('A_F = {:2.2f}, error is {:3.0%}'.format(fit[0][0],(fit[0][0]/0.064 - 1)))
         print('B_F = {:2.2f}, error is {:3.0%}'.format(fit[0][1],(fit[0][1]/3.55 - 1)))
+        print(' ')
+        print('mean F = {:2.2f}, chi2 is {:2.2f}'.format(best.mean_F,best.mean_F_chi2))
+        print('Pk1D chi2 is {:2.2f}'.format(best.Pk_kms_chi2))
 
         plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
         plt.title('z_value={:2.2f}: alpha={:2.2f}, beta={:2.2f}, sG={:2.2f}, n={:2.2f}, k1={:2.4f}'.format(z_value,best.alpha,best.beta,best.sigma_G,best.n,best.k1))
@@ -369,7 +377,8 @@ for z_value in z_values:
         # TODO: some sort of goodness of fit estimator may be better here?
         A_F = 0.064
         B_F = 3.55
-        model_Pk_kms = get_model_Pk_kms(lookup[z_value][ID]['results']['Pk1D']['k_kms'],A_F,B_F)
+        #model_Pk_kms = get_model_Pk_kms(lookup[z_value][ID]['results']['Pk1D']['k_kms'],A_F,B_F)
+        model_Pk_kms = get_model_Pk_kms(lookup[z_value][ID]['results']['Pk1D']['k_kms'],0.064,3.55)
         Pk_differences = lookup[z_value][ID]['results']['Pk1D']['Pk_kms'][:max_j] - model_Pk_kms[:max_j]
         Pk_error = np.average(abs(Pk_differences)/model_Pk_kms[:max_j])
 
@@ -394,6 +403,7 @@ for z_value in z_values:
 
     best = lookup[z_value][min_err_ID]
 
+    print('Best fit is:')
     print('alpha = {:2.2f}'.format(best['t_parameters']['alpha']))
     print('beta = {:2.2f}'.format(best['t_parameters']['beta']))
     print('sigma_G = {:2.2f}'.format(best['t_parameters']['sigma_G']))
@@ -423,7 +433,6 @@ for z_value in z_values:
     #plt.savefig('Pk1D_abs_slope1.5_alpha{:2.2f}_beta{:2.2f}_sG{:2.2f}.pdf'.format(alpha,beta,sigma_G_required))
     plt.show()
     print(' ')
-
 
 
 

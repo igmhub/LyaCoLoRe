@@ -3,6 +3,7 @@ from astropy.io import fits
 
 import convert
 import Pk1D
+import general
 
 lya = 1215.67
 
@@ -24,18 +25,22 @@ class tuning_parameters:
 
         return cls()
 
-# TODO: need to add in a pixel lael or something
 
 class measurement:
-    def __init__(self,ID,z_value,z_width,n,k1,alpha,beta,sigma_G,mean_F=None,k_kms=None,Pk_kms=None,cf=None):
-        self.ID = ID
+    def __init__(self,parameter_ID,z_value,z_width,N_skewers,n,k1,alpha,beta,sigma_G,pixels=[],mean_F=None,k_kms=None,Pk_kms=None,cf=None):
+        self.parameter_ID = parameter_ID
         self.z_value = z_value
         self.z_width = z_width
+        self.N_skewers = N_skewers
+
         self.n = n
         self.k1 = k1
         self.alpha = alpha
         self.beta = beta
         self.sigma_G = sigma_G
+
+        self.pixels = pixels
+
         self.mean_F = mean_F
         self.k_kms = k_kms
         self.Pk_kms = Pk_kms
@@ -48,21 +53,82 @@ class measurement:
         IVAR_rows = pixel_object.IVAR_rows
         R_hMpc = pixel_object.R
         z = pixel_object.Z
-        k_kms, Pk_kms, var_kms = Pk1D.get_Pk1D(delta_F_rows,IVAR_rows,R_hMpc,z,self.z_value,z_width=self.z_width,N_processes=1)
+        k_kms, Pk_kms, var_kms = Pk1D.get_Pk1D(delta_F_rows,IVAR_rows,R_hMpc,z,self.z_value,z_width=self.z_width)
         self.k_kms = k_kms
         self.Pk_kms = Pk_kms
         return
     def add_mean_F_measurement(self,pixel_object):
-        self.mean_F = pixel_object.get_mean_flux(self.z_value,z_width=self.z_width)
+        self.mean_F = pixel_object.get_mean_flux(z_value=self.z_value,z_width=self.z_width)
         return
-    def add_Pk1D_error(self,max_k=None):
+    def add_Pk1D_chi2(self,min_k=None,max_k=None,denom="krange10"):
         model_Pk_kms = P1D_z_kms_PD2013(self.k_kms,self.z_value)
-        Pk_kms_errors = (self.Pk_kms - model_Pk_kms)/model_Pk_kms
+        if min_k:
+            min_j = max(np.searchsorted(self.k_kms,min_k) - 1,0)
+        else:
+            min_j = 0
         if max_k:
             max_j = np.searchsorted(self.k_kms,max_k)
         else:
             max_j = -1
-        average_error = np.average(Pk_kms_errors[:max_j])
+        if denom == "uniform5":
+            denom = (0.05 * model_Pk_kms)**2
+        elif denom == "uniform10":
+            denom = (0.10 * model_Pk_kms)**2
+        elif denom == "krange5":
+            eps = 10**6 * np.ones(self.k_kms.shape)
+            eps[min_j:max_j] *= 0.05 / 10**6
+            denom = (eps * model_Pk_kms)**2
+        elif denom == "krange10":
+            eps = 10**6 * np.ones(self.k_kms.shape)
+            eps[min_j:max_j] *= 0.1 / 10**6
+            denom = (eps * model_Pk_kms)**2
+        chi2 = np.sum(((self.Pk_kms[min_j:max_j] - model_Pk_kms[min_j:max_j])**2)/denom[min_j:max_j])
+        self.Pk_kms_chi2 = chi2
+        return
+    def add_mean_F_chi2(self,min_k=None,max_k=None,denom="uniform10"):
+        model_mean_F = get_mean_F_model(self.z_value)
+        if denom == "uniform5":
+            denom = (0.05 * model_mean_F)**2
+        elif denom == "uniform10":
+            denom = (0.10 * model_mean_F)**2
+        chi2 = np.sum(((self.mean_F - model_mean_F)**2)/denom)
+        self.mean_F_chi2 = chi2
+        return
+    def get_error(self):
+        error = np.sqrt(self.Pk_kms_error**2 + self.mean_F_error**2)
+        return error
+    @classmethod
+    def combine_measurements(cls,m1,m2):
+        if general.confirm_identical(m1.parameter_ID,m2.parameter_ID,item_name='parameter_ID'):
+            parameter_ID = m1.parameter_ID
+            n = m1.n
+            k1 = m1.k1
+            alpha = m1.alpha
+            beta = m1.beta
+            sigma_G = m1.sigma_G
+        if general.confirm_identical(m1.z_value,m2.z_value,item_name='z_value'):
+            z_value = m1.z_value
+        if general.confirm_identical(m1.z_width,m2.z_width,item_name='z_width'):
+            z_width = m1.z_width
+        N_skewers = m1.N_skewers + m2.N_skewers
+        pixels = m1.pixels + m2.pixels
+        mean_F = (m1.mean_F*m1.N_skewers + m2.mean_F*m2.N_skewers)/(m1.N_skewers + m2.N_skewers)
+        k_kms_check = True
+        if general.confirm_identical(m1.k_kms,m2.k_kms,item_name='k_kms',array=True):
+            k_kms = m1.k_kms
+        Pk_kms = (m1.Pk_kms*m1.N_skewers + m2.Pk_kms*m2.N_skewers)/(m1.N_skewers + m2.N_skewers)
+        #May need to work on this?
+        cf = None
+        return measurement(parameter_ID,z_value,z_width,N_skewers,n,k1,alpha,beta,sigma_G,pixels=pixels,mean_F=mean_F,k_kms=k_kms,Pk_kms=Pk_kms,cf=cf)
+    """
+    def add_Pk1D_error(self,max_k=None):
+        model_Pk_kms = P1D_z_kms_PD2013(self.k_kms,self.z_value)
+        if max_k:
+            max_j = np.searchsorted(self.k_kms,max_k)
+        else:
+            max_j = -1
+        Pk_kms_errors = (self.Pk_kms[:max_j] - model_Pk_kms[:max_j])/model_Pk_kms[:max_j]
+        average_error = np.average(Pk_kms_errors)
         self.Pk_kms_error = average_error
         return
     def add_mean_F_error(self):
@@ -70,40 +136,66 @@ class measurement:
         mean_F_error = (self.mean_F - model_mean_F)/model_mean_F
         self.mean_F_error = mean_F_error
         return
-    def get_error(self):
-        error = np.sqrt(self.Pk_kms_error**2 + self.mean_F_error**2)
-        return error
-
+    """
+    
 class measurement_set:
-    def __init__(self,measurements=[],IDs=[]):
-        self.measurements = []
+    def __init__(self,measurements=[]):
+        self.measurements = measurements
+        """
+        self.pixels = []
         self.IDs = []
+        self.z_values = []
+        measurement_index = []
+        for m in self.measurements:
+            self.pixels += m.pixels
+            self.IDs
+            measurement_index += [(m.z_value,m.pixels,m.parameter_ID)]
+        self.measurement_index = np.array(measurement_index,dtype=dtype)
+        """
         return
     def add_measurement(self,measurement):
         self.measurements += [measurement]
-        self.IDs += [measurement.ID]
         return
     def z_filter(self,z_value):
-        new_set = measurement_set()
-        for measurement in self.measurements:
-            if measurement.z_value == z_value:
-                new_set.add_measurement(measurement)
-        return new_set
+        filtered_measurements = []
+        for m in self.measurements:
+            if m.z_value == z_value:
+                filtered_measurements += [m]
+        return measurement_set(filtered_measurements)
     def s_filter(self,n,k1):
-        new_set = measurement_set()
-        for measurement in self.measurements:
-            if measurement.n == n and measurement.k1 == k1:
-                new_set.add_measurement(measurement)
-        return new_set
+        filtered_measurements = []
+        for m in self.measurements:
+            if m.n == n and m.k1 == k1:
+                filtered_measurements += [m]
+        return measurement_set(filtered_measurements)
+    def t_filter(self,alpha,beta,sigma_G):
+        filtered_measurements = []
+        for m in self.measurements:
+            if m.alpha == alpha and m.beta == beta and m.sigma_G == sigma_G:
+                filtered_measurements += [m]
+        return measurement_set(filtered_measurements)
     def get_best_measurement(self,min_error=1.0):
         best_measurement = None
         for measurement in self.measurements:
             error = measurement.get_error()
-            print(min_error,error,measurement.Pk_kms_error,measurement.mean_F_error)
             if error < min_error:
                 min_error = error
                 best_measurement = measurement
         return best_measurement
+    def combine_pixels(self):
+        z_values = list(set([m.z_value for m in self.measurements]))
+        combined_measurements = []
+        for z_value in z_values:
+            z_set = [m for m in self.measurements if m.z_value == z_value]
+            z_parameter_IDs = list(set([m.parameter_ID for m in z_set]))
+            for parameter_ID in z_parameter_IDs:
+                z_parameter_set = [m for m in z_set if m.parameter_ID == parameter_ID]
+                c_m = z_parameter_set[0]
+                if len(z_parameter_set) > 1:
+                    for m in z_parameter_set[1:]:
+                        c_m = measurement.combine_measurements(c_m,m)
+                combined_measurements += [c_m]
+        return measurement_set(combined_measurements)
 
 
 

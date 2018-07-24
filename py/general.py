@@ -201,3 +201,25 @@ def get_dkms_dhMpc(z,Om=0.3147):
     dkms_dhMpc = 100. * E_z / (1+z)
 
     return dkms_dhMpc
+
+#Function to check if two objects are the same, return an error if not.
+def confirm_identical(A,B,item_name=None,array=False):
+    if not array:
+        if A != B:
+            if item_name:
+                raise ValueError('Wrongly attempted to combine non-identical objects of type {}!'.format(item_name))
+            else:
+                raise ValueError('Wrongly attempted to combine non-identical objects!')
+            result = False
+        else:
+            result = True
+    else:
+        if any(A != B):
+            if item_name:
+                raise ValueError('Wrongly attempted to combine non-identical objects of type {}!'.format(item_name))
+            else:
+                raise ValueError('Wrongly attempted to combine non-identical objects!')
+            result = False
+        else:
+            result = True
+    return result
