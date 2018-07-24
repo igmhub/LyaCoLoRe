@@ -1,6 +1,11 @@
 # LyaCoLoRe
 Code development to use CoLoRe simulations for generating simulated Lyman alpha forest spectra
 
+## Install
+You only need to include LyaCoLoRe/py in your PYTHONPATH, with something like: 
+export PYTHONPATH=$PYTHONPATH:$HOME/Programs/igmhub/LyaCoLoRe/py
+
+## Examples
 You can find some examples under example_scripts/. Specifically, the examples available are:
 
  - plot_delta_picca.ipynb
