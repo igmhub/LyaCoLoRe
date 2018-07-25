@@ -20,6 +20,8 @@ You can find some examples under example_scripts/. Specifically, the examples av
  - read_skewers_lya.ipynb
       To look in detail at files in the CoLoRe output format.
 
+## Main production of DESI mocks
+
 There are two main stages to processing the output files from a CoLoRe simulation, each with a separate script in LyaCoLoRe. These are:
 
 1. Making the master file, and creating the new file structure:
@@ -41,3 +43,4 @@ The options are as explained in part 1. Other option of interest are:
  - if you would only like to produce transmission files (and not Gaussian or Density files), then the option "--transmission-only" will do this
 
 These two stages can be carried out in parallel using the script 'run_process_colore_multi_node.sh'.
+
