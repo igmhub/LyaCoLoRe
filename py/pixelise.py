@@ -583,7 +583,8 @@ class simulation_data:
             j_value_upper = np.searchsorted(self.Z,z_value + z_width/2.)
             j_value_lower = np.max(0,np.searchsorted(self.Z,z_value - z_width/2.) - 1)
             mean_F = np.average(self.F_rows[j_value_lower:j_value_upper+1])
-
+            #print(self.N_qso)
+            #print(j_value_lower,j_value_upper)
         return mean_F
 
     #Method to combine data from two objects into one.
