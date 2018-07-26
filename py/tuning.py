@@ -392,7 +392,7 @@ def P1D_z_kms_PD2013(k_kms,z,A_F=0.064,B_F=3.55):
 #Function to return the mean value of F at a given redshift.
 #Equation from F-R2012, equation 2.11
 def get_mean_F_model(z,model='Becker13'):
-    if model = 'Becker13'
+    if model == 'Becker13':
         mean_F = np.exp(-0.751*(((1+z)/4.5)**2.9)-0.132)
     elif model == 'FontRibera12':
         mean_F = np.exp((np.log(0.8))*(((1+z)/3.25)**3.2))
