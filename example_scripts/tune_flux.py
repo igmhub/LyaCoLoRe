@@ -16,14 +16,14 @@ import general
 
 lya = 1215.67
 
-N_processes = 64
+N_processes = 4
 lambda_min = 3550.0
 min_cat_z = 1.8
 IVAR_cutoff = 1150.0
 
 #Get the starting values of alpha, beta and sigma_G from file
 #Decide which z values we are going to tune
-z_values = [2.0,2.5,3.0]
+z_values = [2.5,3.0]
 z_width = 0.2
 
 cell_size = 0.25 #Mpc/h
@@ -32,7 +32,7 @@ max_k = 0.005 #skm-1
 
 #Open up the Gaussian colore files
 base_file_location = '/Users/jfarr/Projects/test_data/test/'
-base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_nside16_RSD'
+#base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_nside16_RSD'
 N_side = 16
 
 new_file_structure = '{}/{}/'               #pixel number//100, pixel number
@@ -43,7 +43,7 @@ input_format = 'gaussian_colore'
 #get pixels from those directories created by make_master.py
 dirs = glob.glob(base_file_location+new_file_structure.format('*','*'))
 pixels = []
-for dir in dirs[:3]:
+for dir in dirs[:1]:
     pixels += [int(dir[len(dir)-dir[-2::-1].find('/')-1:-1])]
 #pixels=[0]
 
@@ -113,8 +113,8 @@ for i,z_value in enumerate(z_values):
 
 """
 
-s_multipliers = np.linspace(0.7,1.3,5)
-t_multipliers = np.linspace(0.7,1.3,5)
+s_multipliers = np.linspace(0.7,1.3,3)
+t_multipliers = np.linspace(0.7,1.3,3)
 
 #Extract the values of parameters to optimise over
 parameters_list = []
@@ -124,7 +124,7 @@ lookup = {}
 import itertools
 for i,z_value in enumerate(z_values):
     a = [alpha_values[i]] * t_multipliers
-    b = [beta_values[i]] * t_multipliers
+    b = [beta_values[i]] #* t_multipliers
     sG = [sigma_G_values[i]] * t_multipliers
 
     n = [n_values[i]] * s_multipliers
