@@ -1,7 +1,7 @@
 # specify number of nodes and cores to use
 NNODES=64
 NCORES=64
-TIME="00:20:00" #hh:mm:ss
+TIME="00:10:00" #hh:mm:ss
 
 # specify process parameters
 NSIDE=16
@@ -30,7 +30,7 @@ echo "${NFILES} input files have been found"
 
 # full path to folder where output will be written
 OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_${COLORE_NGRID}_${COLORE_NODES}_sr${R_SMOOTH}_bm1_biasG18_picos_nside${NSIDE}/"
-OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test_4/"
+OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test/"
 echo "output will written to "$OUTPUT_PATH
 if [ ! -d $OUTPUT_PATH ] ; then
     mkdir -p $OUTPUT_PATH

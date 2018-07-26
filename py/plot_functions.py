@@ -177,11 +177,14 @@ def get_plot_data(mumin,mumax,file_path):
     xi_grid = data['DA'][:]
     cov_grid = data['CO'][:]
 
+    
     #REMOVE NON_DIAGONALS FROM COV MATRIX
     for i in range(cov_grid.shape[0]):
         for j in range(cov_grid.shape[1]):
             if i!=j:
                 cov_grid[i,j]=0
+    
+    print(xi_grid.shape,cov_grid.shape)
 
     r, xi_wed, cov_wed = b.wedge(xi_grid,cov_grid)
 

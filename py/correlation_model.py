@@ -12,7 +12,7 @@ def visual_fit(filename,b_values,beta_values,model,data_parameters,z,compute_b_b
     for i in range(len(mubin_boundaries)-1):
         mubins += [(mubin_boundaries[i],mubin_boundaries[i+1])]
     #mubins = [(0.0,0.33),(0.33,0.67),(0.67,1.0)]
-    mubins = [(0.0,0.1),(0.5,0.6),(0.9,1.0)]
+    mubins = [(0.0,0.33),(0.33,0.67),(0.67,1.0)]
     #find a more sophisticated way to do this
     colours = ['r',(0.5,0.5,0.5),'b']
 
