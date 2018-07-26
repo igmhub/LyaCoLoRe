@@ -291,7 +291,7 @@ class measurement_set:
             plt.legend()
             plt.grid()
             #plt.savefig('Pk1D_b55.7.15.pdf')
-            plt.show()
+            #plt.show()
 
             plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
             mean_F = []
@@ -313,7 +313,7 @@ class measurement_set:
             plt.legend()
             plt.grid()
             #plt.savefig('mean_F_b55.7.15.pdf')
-            plt.show()
+            #plt.show()
 
             plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
             plt.plot(z,alpha,marker='o',label='alpha')
@@ -324,7 +324,7 @@ class measurement_set:
             plt.legend()
             plt.grid()
             #plt.savefig('parameters_b55.7.15.pdf')
-            plt.show()
+            #plt.show()
 
         n_grids = len(z_values) * 3
         n_values = np.sort(list(set([spv[0] for spv in s_parameter_values_list])))
@@ -340,9 +340,9 @@ class measurement_set:
             for j,z_value in enumerate(z_values):
                 z_s_set = s_set.z_filter(z_value)
                 best = z_s_set.get_best_measurement()
-                colour_grids[j*3+0,n_i,k1_i] = best.Pk_kms_chi2
-                colour_grids[j*3+1,n_i,k1_i] = best.mean_F_chi2
-                colour_grids[j*3+2,n_i,k1_i] = best.total_chi2
+                colour_grids[j*3+0,k1_i,n_i] = best.Pk_kms_chi2
+                colour_grids[j*3+1,k1_i,n_i] = best.mean_F_chi2
+                colour_grids[j*3+2,k1_i,n_i] = best.total_chi2
 
         for k,z_value in enumerate(z_values):
             fig, ax = plt.subplots(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
@@ -365,7 +365,7 @@ class measurement_set:
                                    ha="center", va="center", color=(0,0,0))
             ax.set_title('Pk chi2 values, z={}'.format(z_value))
             plt.savefig('colour_z{}_{}.pdf'.format(z_value,'Pk'))
-            plt.show()
+            #plt.show()
 
             fig, ax = plt.subplots(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
             im = ax.imshow(colour_grids[k*3+1,:,:],cmap='YlGn',vmin=0,vmax=np.max(colour_grids))
@@ -387,7 +387,7 @@ class measurement_set:
                                    ha="center", va="center", color=(0,0,0))
             ax.set_title('mean F chi2 values, z={}'.format(z_value))
             plt.savefig('colour_z{}_{}.pdf'.format(z_value,'mean_F'))
-            plt.show()
+            #plt.show()
 
             fig, ax = plt.subplots(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
             im = ax.imshow(colour_grids[k*3+2,:,:],cmap='YlGn',vmin=0,vmax=np.max(colour_grids))
@@ -409,7 +409,7 @@ class measurement_set:
                                    ha="center", va="center", color=(0,0,0))
             ax.set_title('Total chi2 values, z={}'.format(z_value))
             plt.savefig('colour_z{}_{}.pdf'.format(z_value,'total'))
-            plt.show()
+            #plt.show()
 
         return s_optimized_set
 
