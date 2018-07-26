@@ -16,7 +16,7 @@ import general
 
 lya = 1215.67
 
-N_processes = 4
+N_processes = 64
 lambda_min = 3550.0
 min_cat_z = 1.8
 IVAR_cutoff = 1150.0
@@ -32,7 +32,7 @@ max_k = 0.005 #skm-1
 
 #Open up the Gaussian colore files
 base_file_location = '/Users/jfarr/Projects/test_data/test/'
-#base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_nside16_RSD'
+base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_nside16_RSD'
 N_side = 16
 
 new_file_structure = '{}/{}/'               #pixel number//100, pixel number
@@ -112,9 +112,10 @@ for i,z_value in enumerate(z_values):
     sG = sigma_G_values[i] * multipliers
 
 """
-
-s_multipliers = np.linspace(0.7,1.3,3)
-t_multipliers = np.linspace(0.7,1.3,3)
+#s_multipliers = np.linspace(0.7,1.3,5)
+t_multipliers = np.linspace(0.4,1.6,7)
+n_multipliers = np.linspace(1.15,1.75,5)
+k1_multipliers = np.linspace(0.25,0.85,5)
 
 #Extract the values of parameters to optimise over
 parameters_list = []
@@ -124,11 +125,11 @@ lookup = {}
 import itertools
 for i,z_value in enumerate(z_values):
     a = [alpha_values[i]] * t_multipliers
-    b = [beta_values[i]] #* t_multipliers
+    b = [beta_values[i]] * t_multipliers
     sG = [sigma_G_values[i]] * t_multipliers
 
-    n = [n_values[i]] * s_multipliers
-    k1 = [k1_values[i]] * s_multipliers
+    n = [n_values[i]] * n_multipliers
+    k1 = [k1_values[i]] * k1_multipliers
 
     #parameters_list += list(itertools.product([z_value],a,b,sG,n,k1))
 
