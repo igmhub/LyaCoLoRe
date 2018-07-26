@@ -16,7 +16,7 @@ import general
 
 lya = 1215.67
 
-N_processes = 1
+N_processes = 64
 lambda_min = 3550.0
 min_cat_z = 1.8
 IVAR_cutoff = 1150.0
@@ -32,7 +32,7 @@ max_k = 0.005 #skm-1
 
 #Open up the Gaussian colore files
 base_file_location = '/Users/jfarr/Projects/test_data/test/'
-#base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_nside16_RSD'
+base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_nside16_RSD'
 N_side = 16
 
 new_file_structure = '{}/{}/'               #pixel number//100, pixel number
@@ -43,7 +43,7 @@ input_format = 'gaussian_colore'
 #get pixels from those directories created by make_master.py
 dirs = glob.glob(base_file_location+new_file_structure.format('*','*'))
 pixels = []
-for dir in dirs[:2]:
+for dir in dirs[:3]:
     pixels += [int(dir[len(dir)-dir[-2::-1].find('/')-1:-1])]
 #pixels=[0]
 
@@ -113,7 +113,8 @@ for i,z_value in enumerate(z_values):
 
 """
 
-multipliers = np.linspace(0.8,1.2,2)
+s_multipliers = np.linspace(0.7,1.3,5)
+t_multipliers = np.linspace(0.7,1.3,5)
 
 #Extract the values of parameters to optimise over
 parameters_list = []
@@ -122,12 +123,12 @@ lookup = {}
 
 import itertools
 for i,z_value in enumerate(z_values):
-    a = [alpha_values[i]] * multipliers
-    b = [beta_values[i]]# * multipliers
-    sG = [sigma_G_values[i]] * multipliers
+    a = [alpha_values[i]] * t_multipliers
+    b = [beta_values[i]] * t_multipliers
+    sG = [sigma_G_values[i]] * t_multipliers
 
-    n = [n_values[i]] * multipliers
-    k1 = [k1_values[i]] * multipliers
+    n = [n_values[i]] * s_multipliers
+    k1 = [k1_values[i]] * s_multipliers
 
     #parameters_list += list(itertools.product([z_value],a,b,sG,n,k1))
 
@@ -158,6 +159,7 @@ for i,z_value in enumerate(z_values):
 ID_list = list(range(ID))
 
 def measure_pixel_segment(pixel,z_value,ID,lookup):
+    #print('start',z_value)
 
     n = lookup[z_value][ID]['s_parameters']['n']
     k1 = lookup[z_value][ID]['s_parameters']['k1']
@@ -210,9 +212,12 @@ def measure_pixel_segment(pixel,z_value,ID,lookup):
     #need a new function to merge cells back together
 
     measurement = tuning.measurement(ID,z_value,z_width,data.N_qso,n,k1,alpha,beta,sigma_G_required,pixels=[pixel])
+    #print('measure mean_F',z_value)
     measurement.add_mean_F_measurement(data)
+    #print('measure Pk1D',z_value)
     measurement.add_Pk1D_measurement(data)
-    measurement.add_mean_F_chi2(eps=0.01)
+    #print('measure chi2s',z_value)
+    measurement.add_mean_F_chi2(eps=0.05)
     measurement.add_Pk1D_chi2(max_k=max_k)
     measurement.add_total_chi2()
 
@@ -247,6 +252,7 @@ def get_model_Pk_kms(k_kms,A_F,B_F):
 optimal_measurements = measurement_set.optimize_s_parameters(plot_optimal=True)
 
 
+"""
 
 s_parameters_chi2 = []
 best_measurements = np.zeros((len(s_parameter_values_list),len(z_values)))
@@ -324,7 +330,7 @@ for z_value in z_values:
 
 
 print(' ')
-
+"""
 # TODO: may need to save the output files for each parameter set and run a cf
 """
 #Measure correlation function

@@ -59,6 +59,7 @@ class measurement:
         self.Pk_kms = Pk_kms
         return
     def add_mean_F_measurement(self,pixel_object):
+        #print(self.z_value,self.z_width)
         self.mean_F = pixel_object.get_mean_flux(z_value=self.z_value,z_width=self.z_width)
         return
     def add_Pk1D_chi2(self,min_k=None,max_k=None,denom="krange10"):
@@ -206,21 +207,26 @@ class measurement_set:
         for s_parameter_values in s_parameter_values_list:
             n = s_parameter_values[0]
             k1 = s_parameter_values[1]
+            print(n,k1)
             s_set = self.s_filter(n,k1)
             print('number measurements in s filtered is:',len(s_set.measurements))
             total_chi2 = 0
             fixed_s_best_measurements = []
             for z_value in z_values:
+                print('->',z_value)
                 z_s_set = s_set.z_filter(z_value)
                 best = z_s_set.get_best_measurement()
+                print('->-> chi2 Pk1D {:2.2f}, mean_F {:2.2f}, total {:2.2f}'.format(best.Pk_kms_chi2,best.mean_F_chi2,best.total_chi2))
                 total_chi2 += best.total_chi2
                 fixed_s_best_measurements += [best]
             if total_chi2 < min_chi2:
                 best_measurements = fixed_s_best_measurements
                 min_chi2 = total_chi2
+            print(' ')
         s_optimized_set = measurement_set(measurements=best_measurements)
         print('number measurements in optimised is:',len(s_optimized_set.measurements))
-
+        for m in s_optimized_set.measurements:
+            print(m.z_value,m.total_chi2)
         if plot_optimal:
             plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
             for m in s_optimized_set.measurements:
@@ -232,7 +238,7 @@ class measurement_set:
             plt.xlabel('k / kms-1')
             plt.legend()
             plt.grid()
-            #plt.savefig('Pk1D_abs_slope1.5_alpha{:2.2f}_beta{:2.2f}_sG{:2.2f}.pdf'.format(alpha,beta,sigma_G_required))
+            plt.savefig('Pk1D_b55.7.15.pdf')
             plt.show()
 
             plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
@@ -254,6 +260,7 @@ class measurement_set:
             plt.xlabel('z')
             plt.legend()
             plt.grid()
+            plt.savefig('mean_F_b55.7.15.pdf')
             plt.show()
 
             plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
@@ -264,9 +271,30 @@ class measurement_set:
             plt.xlabel('z')
             plt.legend()
             plt.grid()
+            plt.savefig('parameters_b55.7.15.pdf')
             plt.show()
 
+        n_grids = len(z_values) * 3
+        colour_grids = np.zeros((n_grids,,))
+        for s_parameter_values in s_parameter_values_list:
+            n = s_parameter_values[0]
+            k1 = s_parameter_values[1]
+            s_set = self.s_filter(n,k1)
+            total_chi2 = 0
+            for j,z_value in enumerate(z_values):
+                z_s_set = s_set.z_filter(z_value)
+                best = z_s_set.get_best_measurement()
+                colour_grids[n,k1,j*3+0] = best.Pk_kms_chi2
+                colour_grids[n,k1,j*3+1] = best.mean_F_chi2
+                colour_grids[n,k1,j*3+2] = best.total_chi2
 
+        for j,z_value in enumerate(z_values):
+            plt.imshow(colour_grids[j*3+0,:,:])
+            plt.savefig('colour_z{}_{}.pdf'.format(z_value,'Pk'))
+            plt.imshow(colour_grids[j*3+1,:,:])
+            plt.savefig('colour_z{}_{}.pdf'.format(z_value,'mean F'))
+            plt.imshow(colour_grids[j*3+2,:,:])
+            plt.savefig('colour_z{}_{}.pdf'.format(z_value,'total'))
         return s_optimized_set
 
 
