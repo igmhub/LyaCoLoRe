@@ -294,7 +294,7 @@ class measurement_set:
 
         for k,z_value in enumerate(z_values):
             fig, ax = plt.subplots(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
-            im = ax.imshow(colour_grids[k*3+0,:,:],cmap='YlGn')
+            im = ax.imshow(colour_grids[k*3+0,:,:],cmap='YlGn',vmin=0,vmax=np.max(colour_grids))
             # Create colorbar
             cbar = ax.figure.colorbar(im, ax=ax)
             cbar.ax.set_ylabel("chi2", rotation=-90, va="bottom")
@@ -316,7 +316,7 @@ class measurement_set:
             plt.show()
 
             fig, ax = plt.subplots(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
-            im = ax.imshow(colour_grids[k*3+1,:,:],cmap='YlGn')
+            im = ax.imshow(colour_grids[k*3+1,:,:],cmap='YlGn',vmin=0,vmax=np.max(colour_grids))
             # Create colorbar
             cbar = ax.figure.colorbar(im, ax=ax)
             cbar.ax.set_ylabel("chi2", rotation=-90, va="bottom")
@@ -338,7 +338,7 @@ class measurement_set:
             plt.show()
 
             fig, ax = plt.subplots(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
-            im = ax.imshow(colour_grids[k*3+2,:,:],cmap='YlGn')
+            im = ax.imshow(colour_grids[k*3+2,:,:],cmap='YlGn',vmin=0,vmax=np.max(colour_grids))
             # Create colorbar
             cbar = ax.figure.colorbar(im, ax=ax)
             cbar.ax.set_ylabel("chi2", rotation=-90, va="bottom")
@@ -391,8 +391,11 @@ def P1D_z_kms_PD2013(k_kms,z,A_F=0.064,B_F=3.55):
 
 #Function to return the mean value of F at a given redshift.
 #Equation from F-R2012, equation 2.11
-def get_mean_F_model(z):
-    mean_F = np.exp((np.log(0.8))*(((1+z)/3.25)**3.2))
+def get_mean_F_model(z,model='Becker13'):
+    if model = 'Becker13'
+        mean_F = np.exp(-0.751*(((1+z)/4.5)**2.9)-0.132)
+    elif model == 'FontRibera12':
+        mean_F = np.exp((np.log(0.8))*(((1+z)/3.25)**3.2))
     return mean_F
 
 #Function to find the value of alpha required to match mean_F to a specified value.
