@@ -120,6 +120,58 @@ class measurement:
         #May need to work on this?
         cf = None
         return measurement(parameter_ID,z_value,z_width,N_skewers,n,k1,alpha,beta,sigma_G,pixels=pixels,mean_F=mean_F,k_kms=k_kms,Pk_kms=Pk_kms,cf=cf)
+    @classmethod
+    def load_measurement(cls,filepath):
+        h = fits.open(filepath)
+        parameter_ID = h[1].header['parameter_ID']
+        z_value = h[1].header['z_value']
+        z_width = h[1].header['z_width']
+        N_skewers = h[1].header['N_skewers']
+
+        n = h[1].header['n']
+        k1 = h[1].header['k1']
+        alpha = h[1].header['alpha']
+        beta = h[1].header['beta']
+        sigma_G = h[1].header['sigma_G']
+
+        pixels = h[1].header['pixels']
+
+        mean_F = h[1].header['mean_F']
+        k_kms = h[1].header['k_kms']
+        Pk_kms = h[1].header['Pk_kms']
+        cf = h[1].header['cf']
+        h.close()
+        return cls(parameter_ID,z_value,z_width,N_skewers,n,k1,alpha,beta,sigma_G,pixels=pixels,mean_F=mean_F,k_kms=k_kms,Pk_kms=Pk_kms,cf=cf)
+    def save(self,filepath):
+        header = fits.Header()
+        header['parameter_ID'] = self.parameter_ID
+        header['z_value'] = self.z_value
+        header['z_width'] = self.z_width
+        header['N_skewers'] = self.N_skewers
+        header['n'] = self.n
+        header['k1'] = self.k1
+        header['alpha'] = self.alpha
+        header['beta'] = self.beta
+        header['sigma_G'] = self.sigma_G
+        header['mean_F'] = self.mean_F
+        header['cf'] = self.cf
+
+        Pk_data = list(zip(self.k_kms,self.Pk_kms))
+        dtype = [('k_kms', 'f8'), ('Pk_kms', 'f8')]
+        measurement_1 = np.array(Pk_data,dtype=dtype)
+        #Construct HDUs from the data arrays.
+        prihdr = fits.Header()
+        prihdu = fits.PrimaryHDU(header=prihdr)
+        cols_Pk1D = fits.ColDefs(measurement_1)
+        hdu_Pk1D = fits.BinTableHDU.from_columns(cols_Pk1D,header=header,name='Pk1D')
+
+        #Combine the HDUs into an HDUlist
+        hdulist = fits.HDUList([prihdu, hdu_Pk1D])
+
+        #Save as a new file. Close the HDUlist.
+        hdulist.writeto(filepath)
+        hdulist.close()
+        return
     """
     def add_Pk1D_error(self,max_k=None):
         model_Pk_kms = P1D_z_kms_PD2013(self.k_kms,self.z_value)
