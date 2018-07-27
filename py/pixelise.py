@@ -812,24 +812,34 @@ class simulation_data:
     #Function to save data as a transmission file.
     def save_as_transmission(self,location,filename,header):
         # soon we will have absorber object that will take care of these
+        print('in save')
 
         # rest-frame wavelength for this absorber
         wave_rest = lya
+        print('wave_rest',wave_rest)
 
         # transmission for this absorber, in each cell of the skewers
         F_skewer = self.F_rows
+        print('F_skewer shape',F_skewer.shape)
 
         # wavelength grid, evaluated at each cell of the skewers
         wave_skewer = wave_rest*(1+self.Z)
+        print('wave_skewer shape',wave_skewer.shape)
 
         # define common wavelength grid to be written in files (in Angstroms)
         wave_min=3550
         wave_max=6500
-        wave_step=0.2
+        wave_step=0.1
         wave_grid=np.arange(wave_min,wave_max,wave_step)
+        print('wave grid',wave_grid)
 
         # interpolate F into the common grid
-        F_grid = np.interp(wave_grid,wave_skewer,F_skewer)
+        N_los = F_skewer.shape[0]
+        N_w = wave_grid.shape[0]
+        F_grid = np.empty([N_los,N_w])
+        for i in range(N_los):
+            F_grid[i,] = np.interp(wave_grid,wave_skewer,F_skewer[i])
+        print('got interp, new shape',F_grid.shape)
 
         # construct quasar catalog HDU
         Z_RSD = self.Z_QSO + self.DZ_RSD
