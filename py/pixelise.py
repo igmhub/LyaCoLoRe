@@ -92,10 +92,12 @@ class simulation_data:
         self.tau_computed = False
         self.flux_computed = False
 
-        self.absorbers = []
-        self.absorbers.append(absorber.AbsorberData(name='Lya',rest_wave=1215.67,flux_transform_m=1.0))
-        self.absorbers.append(absorber.AbsorberData(name='Lyb',rest_wave=1024.0,flux_transform_m=0.1))
-        self.absorbers.append(absorber.AbsorberData(name='SiII',rest_wave=1205.0,flux_transform_m=0.05))
+        #self.absorbers = []
+        #self.absorbers.append(absorber.AbsorberData(name='Lya',rest_wave=1215.67,flux_transform_m=1.0))
+        #self.absorbers.append(absorber.AbsorberData(name='Lyb',rest_wave=1024.0,flux_transform_m=0.1))
+        #self.absorbers.append(absorber.AbsorberData(name='SiII',rest_wave=1205.0,flux_transform_m=0.05))
+
+        lya_absorber=absorber.AbsorberData(name='Lya',rest_wave=1215.67,flux_transform_m=1.0)
 
         return
 
