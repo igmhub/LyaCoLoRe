@@ -811,25 +811,42 @@ class simulation_data:
 
     #Function to save data as a transmission file.
     def save_as_transmission(self,location,filename,header):
-        lya_lambdas = 10**self.LOGLAM_MAP
+        # soon we will have absorber object that will take care of these
 
+        # rest-frame wavelength for this absorber
+        wave_rest = lya
+
+        # transmission for this absorber, in each cell of the skewers
+        F_skewer = self.F_rows
+
+        # wavelength grid, evaluated at each cell of the skewers
+        wave_skewer = wave_rest*(1+self.Z)
+
+        # define common wavelength grid to be written in files (in Angstroms)
+        wave_min=3550
+        wave_max=6500
+        wave_step=0.2
+        wave_grid=np.arange(wave_min,wave_max,wave_step)
+
+        # interpolate F into the common grid
+        F_grid = np.interp(wave_grid,wave_skewer,F_skewer)
+
+        # construct quasar catalog HDU
         Z_RSD = self.Z_QSO + self.DZ_RSD
-
-        transmission_1_data = list(zip(self.RA,self.DEC,Z_RSD,self.Z_QSO,self.MOCKID))
-
+        catalog_data = list(zip(self.RA,self.DEC,Z_RSD,self.Z_QSO,self.MOCKID))
         dtype = [('RA', 'f8'), ('DEC', 'f8'), ('Z', 'f8'), ('Z_noRSD', 'f8'), ('MOCKID', int)]
-        transmission_1 = np.array(transmission_1_data,dtype=dtype)
+        catalog_data = np.array(catalog_data,dtype=dtype)
 
-        transmission_2 = 10**(self.LOGLAM_MAP)
-        transmission_3 = self.F_rows
+#transmission_2 = 10**(self.LOGLAM_MAP)
+#transmission_3 = self.F_rows
 
         #Construct HDUs from the data arrays.
         prihdr = fits.Header()
         prihdu = fits.PrimaryHDU(header=prihdr)
-        cols_METADATA = fits.ColDefs(transmission_1)
+        cols_METADATA = fits.ColDefs(catalog_data)
         hdu_METADATA = fits.BinTableHDU.from_columns(cols_METADATA,header=header,name='METADATA')
-        hdu_WAVELENGTH = fits.ImageHDU(data=transmission_2,header=header,name='WAVELENGTH')
-        hdu_TRANSMISSION = fits.ImageHDU(data=transmission_3,header=header,name='TRANSMISSION')
+        hdu_WAVELENGTH = fits.ImageHDU(data=wave_grid,header=header,name='WAVELENGTH')
+        hdu_TRANSMISSION = fits.ImageHDU(data=F_grid,header=header,name='TRANSMISSION')
 
         #Combine the HDUs into an HDUlist (including DLAs, if they have been computed)
         if hasattr(self,'DLA_table') == True:
