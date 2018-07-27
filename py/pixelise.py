@@ -89,7 +89,8 @@ class simulation_data:
         self.thermal_skewer_RSDs_added = False
 
         self.density_computed = False
-        self.tau_computed = False
+        
+#self.tau_computed = False
         self.flux_computed = False
 
         #self.absorbers = []
@@ -97,7 +98,10 @@ class simulation_data:
         #self.absorbers.append(absorber.AbsorberData(name='Lyb',rest_wave=1024.0,flux_transform_m=0.1))
         #self.absorbers.append(absorber.AbsorberData(name='SiII',rest_wave=1205.0,flux_transform_m=0.05))
 
-        lya_absorber=absorber.AbsorberData(name='Lya',rest_wave=1215.67,flux_transform_m=1.0)
+        self.lya_absorber=absorber.AbsorberData(name='Lya',rest_wave=1215.67,flux_transform_m=1.0)
+
+        self.lya_absorber.tau_computed = False
+        self.lya_absorber.flux_computed = False
 
         return
 
@@ -326,8 +330,8 @@ class simulation_data:
             self.DENSITY_DELTA_rows = self.DENSITY_DELTA_rows[relevant_QSOs,:]
         self.VEL_rows = self.VEL_rows[relevant_QSOs,:]
         self.IVAR_rows = self.IVAR_rows[relevant_QSOs,:]
-        if self.tau_computed == True:
-            self.TAU_rows = self.TAU_rows[relevant_QSOs,:]
+        if self.lya_absorber.tau_computed == True:
+            self.lya_absorber.TAU_rows = self.lya_absorber.TAU_rows[relevant_QSOs,:]
         if self.flux_computed == True:
             self.F_rows = self.F_rows[relevant_QSOs,:]
 
@@ -339,8 +343,8 @@ class simulation_data:
             self.DENSITY_DELTA_rows = self.DENSITY_DELTA_rows[:,first_relevant_cell:last_relevant_cell + 1]
         self.VEL_rows = self.VEL_rows[:,first_relevant_cell:last_relevant_cell + 1]
         self.IVAR_rows = self.IVAR_rows[:,first_relevant_cell:last_relevant_cell + 1]
-        if self.tau_computed == True:
-            self.TAU_rows = self.TAU_rows[:,first_relevant_cell:last_relevant_cell + 1]
+        if self.lya_absorber.tau_computed == True:
+            self.lya_absorber.TAU_rows = self.lya_absorber.TAU_rows[:,first_relevant_cell:last_relevant_cell + 1]
         if self.flux_computed == True:
             self.F_rows = self.F_rows[:,first_relevant_cell:last_relevant_cell + 1]
 
@@ -486,8 +490,8 @@ class simulation_data:
     #Function to add physical skewers to the object via a lognormal transformation.
     def compute_tau_skewers(self,alpha,beta):
 
-        self.TAU_rows = convert.density_to_tau(self.DENSITY_DELTA_rows+1,alpha,beta)
-        self.tau_computed = True
+        self.lya_absorber.TAU_rows = convert.density_to_tau(self.DENSITY_DELTA_rows+1,alpha,beta)
+        self.lya_absorber.tau_computed = True
 
         return
 
@@ -495,7 +499,7 @@ class simulation_data:
     def compute_flux_skewers(self):
 
         #self.TAU_rows = get_tau(self.Z,self.DENSITY_DELTA_rows+1,alpha,beta)
-        self.F_rows = np.exp(-self.TAU_rows)
+        self.F_rows = np.exp(-self.lya_absorber.TAU_rows)
         #self.F_rows = density_to_flux(self.DENSITY_DELTA_rows+1,alpha,beta)
 
         #Set the skewers to 1 beyond the quasars.
@@ -515,7 +519,7 @@ class simulation_data:
     def add_linear_RSDs(self,alpha,beta):
 
         #add RSDs to these physical density rows
-        new_TAU_rows = RSD.add_linear_skewer_RSDs(self.TAU_rows,self.VEL_rows,self.Z)
+        new_TAU_rows = RSD.add_linear_skewer_RSDs(self.lya_absorber.TAU_rows,self.VEL_rows,self.Z)
 
         ## TODO: find a neater way to do this
         #For the moment, we add a very small value onto the tau skewers, to avoid problems in the inverse lognormal transformation
@@ -534,7 +538,7 @@ class simulation_data:
         #self.IVAR_rows *= mask
 
         #Overwrite the physical and tau skewers and set a flag to True.
-        self.TAU_rows = new_TAU_rows
+        self.lya_absorber.TAU_rows = new_TAU_rows
         self.DENSITY_DELTA_rows = new_density_delta_rows
         self.GAUSSIAN_DELTA_rows = new_gaussian_rows
         self.linear_skewer_RSDs_added = True
@@ -545,7 +549,7 @@ class simulation_data:
     def add_RSDs(self,alpha,beta,thermal=False):
 
         initial_density_rows = 1 + self.DENSITY_DELTA_rows
-        new_TAU_rows = RSD.add_skewer_RSDs(self.TAU_rows,initial_density_rows,self.VEL_rows,self.Z,self.R,thermal=thermal)
+        new_TAU_rows = RSD.add_skewer_RSDs(self.lya_absorber.TAU_rows,initial_density_rows,self.VEL_rows,self.Z,self.R,thermal=thermal)
 
         ## TODO: find a neater way to do this
         #For the moment, we add a very small value onto the tau skewers, to avoid problems in the inverse lognormal transformation
@@ -564,7 +568,7 @@ class simulation_data:
         #self.IVAR_rows *= mask
 
         #Overwrite the physical and tau skewers and set a flag to True.
-        self.TAU_rows = new_TAU_rows
+        self.lya_absorber.TAU_rows = new_TAU_rows
         self.DENSITY_DELTA_rows = new_density_delta_rows
         self.GAUSSIAN_DELTA_rows = new_gaussian_rows
         self.thermal_skewer_RSDs_added = True
