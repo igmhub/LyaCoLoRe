@@ -290,7 +290,7 @@ class measurement_set:
             plt.xlabel('k / kms-1')
             plt.legend()
             plt.grid()
-            #plt.savefig('Pk1D_b55.7.15.pdf')
+            plt.savefig('Pk1D_002.pdf')
             #plt.show()
 
             plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
@@ -312,7 +312,7 @@ class measurement_set:
             plt.xlabel('z')
             plt.legend()
             plt.grid()
-            #plt.savefig('mean_F_b55.7.15.pdf')
+            plt.savefig('mean_F_002.pdf')
             #plt.show()
 
             plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
@@ -323,7 +323,7 @@ class measurement_set:
             plt.xlabel('z')
             plt.legend()
             plt.grid()
-            #plt.savefig('parameters_b55.7.15.pdf')
+            plt.savefig('parameters_002.pdf')
             #plt.show()
 
         n_grids = len(z_values) * 3
