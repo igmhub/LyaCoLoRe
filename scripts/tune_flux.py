@@ -202,7 +202,6 @@ def measure_pixel_segment(pixel,z_value,ID,lookup):
     data.compute_physical_skewers()
     data.compute_tau_skewers(data.lya_absorber,alpha=np.ones(data.Z.shape[0])*alpha,beta=beta)
     data.add_RSDs(data.lya_absorber,np.ones(data.Z.shape[0])*alpha,beta,thermal=False)
-    data.compute_flux_skewers()
 
     #Trim the skewers again to get rid of the additional cells
     lambda_min_val = lya*(1 + z_value - z_width/2)
