@@ -87,7 +87,7 @@ class simulation_data:
         self.thermal_skewer_RSDs_added = False
 
         self.density_computed = False
-        
+
         #self.absorbers = []
         #self.absorbers.append(absorber.AbsorberData(name='Lya',rest_wave=1215.67,flux_transform_m=1.0))
         #self.absorbers.append(absorber.AbsorberData(name='Lyb',rest_wave=1024.0,flux_transform_m=0.1))
@@ -493,8 +493,8 @@ class simulation_data:
     #Function to add thermal RSDs from the velocity skewers.
     def add_RSDs(self,absorber,alpha,beta,thermal=False):
 
-        initial_density_rows = 1 + self.DENSITY_DELTA_rows
-        new_tau = RSD.add_skewer_RSDs(absorber.tau,initial_density_rows,self.VEL_rows,self.Z,self.R,thermal=thermal)
+        density = 1 + self.DENSITY_DELTA_rows
+        new_tau = RSD.add_skewer_RSDs(absorber.tau,density,self.VEL_rows,self.Z,self.R,thermal=thermal)
 
         #Overwrite the tau skewers and set a flag to True.
         absorber.tau = new_tau
@@ -525,12 +525,12 @@ class simulation_data:
             weights[:,0] *= weight_lower
             weights[:,1] *= weight_upper
 
-            mean_F = np.average(self.F_rows[:,j_value_lower:j_value_upper+1],weights=weights)
+            mean_F = np.average(F[:,j_value_lower:j_value_upper+1],weights=weights)
 
         else:
             j_value_upper = np.searchsorted(self.Z,z_value + z_width/2.)
             j_value_lower = np.max(0,np.searchsorted(self.Z,z_value - z_width/2.) - 1)
-            mean_F = np.average(self.F_rows[j_value_lower:j_value_upper+1])
+            mean_F = np.average(F[j_value_lower:j_value_upper+1])
             #print(self.N_qso)
             #print(j_value_lower,j_value_upper)
         return mean_F
@@ -565,13 +565,11 @@ class simulation_data:
             DENSITY_DELTA_rows = np.concatenate((object_A.DENSITY_DELTA_rows,object_B.DENSITY_DELTA_rows),axis=0)
             VEL_rows = np.concatenate((object_A.VEL_rows,object_B.VEL_rows),axis=0)
             IVAR_rows = np.concatenate((object_A.IVAR_rows,object_B.IVAR_rows),axis=0)
-            F_rows = np.concatenate((object_A.F_rows,object_B.F_rows),axis=0)
         else:
             GAUSSIAN_DELTA_rows = np.concatenate((object_A.GAUSSIAN_DELTA_rows,object_B.GAUSSIAN_DELTA_rows),axis=0)
             DENSITY_DELTA_rows = None
             VEL_rows = np.concatenate((object_A.VEL_rows,object_B.VEL_rows),axis=0)
             IVAR_rows = np.concatenate((object_A.IVAR_rows,object_B.IVAR_rows),axis=0)
-            F_rows = None
 
         """
         Something to check this is ok?
@@ -584,7 +582,7 @@ class simulation_data:
         V = object_A.V
         A = object_A.A
 
-        return cls(N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,F_rows,R,Z,D,V,LOGLAM_MAP,A)
+        return cls(N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,R,Z,D,V,LOGLAM_MAP,A)
 
     #Function to save data as a Gaussian colore file.
     def save_as_gaussian_colore(self,location,filename,header,overwrite=False):
@@ -765,7 +763,7 @@ class simulation_data:
         wave_rest = lya
 
         # transmission for this absorber, in each cell of the skewers
-        F_skewer = self.F_rows
+        F_skewer = self.lya_absorber.transmission()
 
         # wavelength grid, evaluated at each cell of the skewers
         wave_skewer = wave_rest*(1+self.Z)
@@ -822,27 +820,30 @@ class simulation_data:
             if np.sum(self.IVAR_rows[i,:]) >= min_number_cells:
                 relevant_QSOs += [i]
 
+        # get Lya transmission
+        F = self.lya_absorber.transmission()
+
         #Trim data according to the relevant cells and QSOs.
-        relevant_F_rows = self.F_rows[relevant_QSOs,:]
-        relevant_IVAR_rows = self.IVAR_rows[relevant_QSOs,:]
+        relevant_F = F[relevant_QSOs,:]
+        relevant_IVAR = self.IVAR_rows[relevant_QSOs,:]
         relevant_LOGLAM_MAP = self.LOGLAM_MAP[:]
         relevant_Z = self.Z[:]
 
-        #Calculate mean F as a function of z for the relevant cells, then F_DELTA_rows.
+        #Calculate mean F as a function of z for the relevant cells, then delta_F.
         try:
             mean_F_z_values = mean_F_data[:,0]
             mean_F = mean_F_data[:,1]
-            relevant_F_BAR = np.interp(relevant_Z,mean_F_z_values,mean_F)
+            relevant_mean_F = np.interp(relevant_Z,mean_F_z_values,mean_F)
         except ValueError:
             #This is done with a 'hack' to avoid problems with weights summing to zero.
             small = 1.0e-10
-            relevant_F_BAR = np.average(relevant_F_rows,weights=relevant_IVAR_rows+small,axis=0)
+            relevant_mean_F = np.average(relevant_F,weights=relevant_IVAR+small,axis=0)
 
-        relevant_F_DELTA_rows = ((relevant_F_rows)/relevant_F_BAR - 1)*relevant_IVAR_rows
+        relevant_delta_F = ((relevant_F)/relevant_mean_F - 1)*relevant_IVAR
 
         #Organise the data into picca-format arrays.
-        picca_0 = relevant_F_DELTA_rows.T
-        picca_1 = relevant_IVAR_rows.T
+        picca_0 = relevant_delta_F.T
+        picca_1 = relevant_IVAR.T
         picca_2 = relevant_LOGLAM_MAP
 
         picca_3_data = []
@@ -880,13 +881,13 @@ class simulation_data:
                 relevant_QSOs += [i]
 
         #Trim data according to the relevant cells and QSOs.
-        relevant_VEL_rows = self.VEL_rows[relevant_QSOs,:]
-        relevant_IVAR_rows = self.IVAR_rows[relevant_QSOs,:]
+        relevant_VEL = self.VEL_rows[relevant_QSOs,:]
+        relevant_IVAR = self.IVAR_rows[relevant_QSOs,:]
         relevant_LOGLAM_MAP = self.LOGLAM_MAP[:]
 
         #Organise the data into picca-format arrays.
-        picca_0 = relevant_VEL_rows.T
-        picca_1 = relevant_IVAR_rows.T
+        picca_0 = relevant_VEL.T
+        picca_1 = relevant_IVAR.T
         picca_2 = relevant_LOGLAM_MAP
 
         picca_3_data = []
@@ -929,38 +930,39 @@ class simulation_data:
         relevant_QSOs = [i for i in range(self.N_qso) if self.IVAR_rows[i,first_relevant_cell] == 1]
 
         #Trim data according to the relevant cells and QSOs.
-        relevant_DENSITY_DELTA_rows = self.DENSITY_DELTA_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
-        relevant_GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
-        relevant_F_rows = self.F_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
-        relevant_IVAR_rows = self.IVAR_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
+        relevant_DENSITY_DELTA = self.DENSITY_DELTA_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
+        relevant_GAUSSIAN_DELTA = self.GAUSSIAN_DELTA_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
+        F = self.lya_absorber.transmission()
+        relevant_F = F[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
+        relevant_IVAR = self.IVAR_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
         relevant_LOGLAM_MAP = self.LOGLAM_MAP[first_relevant_cell:last_relevant_cell+1]
 
         #For each cell, determine the number of skewers for which it is relevant.
-        N_relevant_skewers = np.sum(relevant_IVAR_rows,axis=0)
+        N_relevant_skewers = np.sum(relevant_IVAR,axis=0)
         relevant_cells = N_relevant_skewers>0
 
-        #Calculate F_DELTA_rows from F_rows.
+        #Calculate delta_F from F.
         #Introduce a small 'hack' in order to get around the problem of having cells with no skewers contributing to them.
         # TODO: find a neater way to deal with this
         small = 1.0e-10
-        relevant_F_BAR = np.average(relevant_F_rows,weights=relevant_IVAR_rows+small,axis=0)
-        relevant_F_DELTA_rows = ((relevant_F_rows)/relevant_F_BAR - 1)*relevant_IVAR_rows
+        relevant_mean_F = np.average(relevant_F,weights=relevant_IVAR+small,axis=0)
+        relevant_delta_F = ((relevant_F)/relevant_mean_F - 1)*relevant_IVAR
 
         #Calculate the mean in each cell of the gaussian delta and its square.
-        GDB = np.average(relevant_GAUSSIAN_DELTA_rows,weights=relevant_IVAR_rows+small,axis=0)*relevant_cells
-        GDSB = np.average(relevant_GAUSSIAN_DELTA_rows**2,weights=relevant_IVAR_rows+small,axis=0)*relevant_cells
+        GDB = np.average(relevant_GAUSSIAN_DELTA,weights=relevant_IVAR+small,axis=0)*relevant_cells
+        GDSB = np.average(relevant_GAUSSIAN_DELTA**2,weights=relevant_IVAR+small,axis=0)*relevant_cells
 
         #Calculate the mean in each cell of the density delta and its square.
-        DDB = np.average(relevant_DENSITY_DELTA_rows,weights=relevant_IVAR_rows+small,axis=0)*relevant_cells
-        DDSB = np.average(relevant_DENSITY_DELTA_rows**2,weights=relevant_IVAR_rows+small,axis=0)*relevant_cells
+        DDB = np.average(relevant_DENSITY_DELTA,weights=relevant_IVAR+small,axis=0)*relevant_cells
+        DDSB = np.average(relevant_DENSITY_DELTA**2,weights=relevant_IVAR+small,axis=0)*relevant_cells
 
         #Calculate the mean in each cell of the flux and its square.
-        FB = np.average(relevant_F_rows,weights=relevant_IVAR_rows+small,axis=0)*relevant_cells
-        FSB = np.average(relevant_F_rows**2,weights=relevant_IVAR_rows+small,axis=0)*relevant_cells
+        FB = np.average(relevant_F,weights=relevant_IVAR+small,axis=0)*relevant_cells
+        FSB = np.average(relevant_F**2,weights=relevant_IVAR+small,axis=0)*relevant_cells
 
         #Calculate the mean in each cell of the flux delta and its square.
-        FDB = np.average(relevant_F_DELTA_rows,weights=relevant_IVAR_rows+small,axis=0)*relevant_cells
-        FDSB = np.average(relevant_F_DELTA_rows**2,weights=relevant_IVAR_rows+small,axis=0)*relevant_cells
+        FDB = np.average(relevant_delta_F,weights=relevant_IVAR+small,axis=0)*relevant_cells
+        FDSB = np.average(relevant_delta_F**2,weights=relevant_IVAR+small,axis=0)*relevant_cells
 
         #Stitch together the means into a binary table.
         dtype = [('N', 'f4'),('GAUSSIAN_DELTA', 'f4'), ('GAUSSIAN_DELTA_SQUARED', 'f4'), ('DENSITY_DELTA', 'f4'), ('DENSITY_DELTA_SQUARED', 'f4')
