@@ -5,6 +5,16 @@ from scipy.stats import norm
 from scipy.interpolate import interp1d, interp2d
 import astropy.table
 import os
+try:
+    from pyigm.fN.fnmodel import FNModel
+    from astropy import units as u
+    from astropy import constants as const
+    from astropy import cosmology
+    fN_default = FNModel.default_model()
+    cosmo = fN_default.cosmo
+    use_pyigm = False#True
+except:
+    use_pyigm = False
 
 def nu_of_bD(b):
     """ Compute the Gaussian field threshold for a given bias"""
@@ -63,7 +73,7 @@ def get_N(z, Nmin=19.5, Nmax=22.0, nsamp=100):
         N[i] = np.random.choice(nn,size=1,p=probs[i]/np.sum(probs[i]))
     return N
 
-def add_DLA_table_to_object(object,dla_bias=2.0,extrapolate_z_down=None):
+def add_DLA_table_to_object(object,dla_bias=2.0,extrapolate_z_down=None,Nmin=19.5,Nmax=22.):
 
     y = interp1d(object.Z,object.D)
     bias = dla_bias/(object.D)*y(2.25)
@@ -83,7 +93,11 @@ def add_DLA_table_to_object(object,dla_bias=2.0,extrapolate_z_down=None):
     z_width = zedges[1:]-zedges[:-1]
 
     #Average number of DLAs per pixel
-    N = z_width*dNdz(object.Z)
+    if use_pyigm:
+        N = fN_default.calculate_rhoHI(object.Z, (Nmin, Nmax))/((const.m_p.cgs * cosmo.H0 /
+            const.c.cgs / (u.cm**2)).to(u.Msun/u.Mpc**3)) # Reconvert to N(z) and not N(X)
+    else:
+        N = z_width*dNdz(object.Z,Nmin=Nmin,Nmax=Nmax) # Average number of DLAs per pixel
 
     #For a given z, probability of having the density higher than the threshold
     p_nu_z = 1.0-norm.cdf(nu_arr)
@@ -113,7 +127,11 @@ def add_DLA_table_to_object(object,dla_bias=2.0,extrapolate_z_down=None):
             dz_dla[idx:idx+dla[ii]] = object.VEL_rows[nskw,ii]
             idx = idx+dla[ii]
 
-    Ndla = get_N(zdla)
+    if use_pyigm:
+        N = fN_default.calculate_rhoHI(object.Z, (Nmin, Nmax))/((const.m_p.cgs * cosmo.H0 /
+                const.c.cgs / (u.cm**2)).to(u.Msun/u.Mpc**3)) # Reconvert to N(z) and not N(X)
+    else:
+        Ndla = get_N(zdla,Nmin=Nmin,Nmax=Nmax)
     kskw = kskw.astype('int32')
     MOCKIDs = object.MOCKID[kskw]
 
