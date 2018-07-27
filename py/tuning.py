@@ -1,6 +1,7 @@
 import numpy as np
 from astropy.io import fits
 import matplotlib.pyplot as plt
+import glob
 
 import convert
 import Pk1D
@@ -47,6 +48,10 @@ class measurement:
         self.Pk_kms = Pk_kms
         self.cf = cf
         return
+    def get_details(self):
+        details = (self.z_value,self.z_width,self.N_skewers,
+                self.n,self.k1,self.alpha,self.beta,self.sigma_G,self.pixels)
+        return details
     def add_Pk1D_measurement(self,pixel_object):
         F_rows = pixel_object.F_rows
         mean_F = np.average(F_rows)
@@ -121,74 +126,55 @@ class measurement:
         cf = None
         return measurement(parameter_ID,z_value,z_width,N_skewers,n,k1,alpha,beta,sigma_G,pixels=pixels,mean_F=mean_F,k_kms=k_kms,Pk_kms=Pk_kms,cf=cf)
     @classmethod
-    def load_measurement(cls,filepath):
-        h = fits.open(filepath)
-        parameter_ID = h[1].header['parameter_ID']
-        z_value = h[1].header['z_value']
-        z_width = h[1].header['z_width']
-        N_skewers = h[1].header['N_skewers']
+    def load_measurement(cls,hdu):
+        parameter_ID = hdu.header['param_ID']
+        z_value = hdu.header['z_value']
+        z_width = hdu.header['z_width']
+        N_skewers = hdu.header['N_skw']
 
-        n = h[1].header['n']
-        k1 = h[1].header['k1']
-        alpha = h[1].header['alpha']
-        beta = h[1].header['beta']
-        sigma_G = h[1].header['sigma_G']
+        n = hdu.header['n']
+        k1 = hdu.header['k1']
+        alpha = hdu.header['alpha']
+        beta = hdu.header['beta']
+        sigma_G = hdu.header['sigma_G']
 
-        pixels = h[1].header['pixels']
+        #Not sure how to do this...
+        N_pix = hdu.header['N_pix']
+        if hdu.header['pixels'] == 'multiple':
+            pixels = ['']*N_pix
+        else:
+            pixels = [hdu.header['pixels']]
 
-        mean_F = h[1].header['mean_F']
-        k_kms = h[1].header['k_kms']
-        Pk_kms = h[1].header['Pk_kms']
-        cf = h[1].header['cf']
-        h.close()
+        mean_F = hdu.header['mean_F']
+        k_kms = hdu.data['k_kms']
+        Pk_kms = hdu.data['Pk_kms']
+        cf = hdu.header['cf']
         return cls(parameter_ID,z_value,z_width,N_skewers,n,k1,alpha,beta,sigma_G,pixels=pixels,mean_F=mean_F,k_kms=k_kms,Pk_kms=Pk_kms,cf=cf)
-    def save(self,filepath):
+    def make_HDU(self):
         header = fits.Header()
-        header['parameter_ID'] = self.parameter_ID
+        header['param_ID'] = self.parameter_ID
         header['z_value'] = self.z_value
         header['z_width'] = self.z_width
-        header['N_skewers'] = self.N_skewers
+        header['N_skw'] = self.N_skewers
         header['n'] = self.n
         header['k1'] = self.k1
         header['alpha'] = self.alpha
         header['beta'] = self.beta
         header['sigma_G'] = self.sigma_G
+        header['N_pix'] = len(self.pixels)
+        if len(self.pixels) > 1:
+            header['pixels'] = 'multiple'
+        else:
+            header['pixels'] = self.pixels[0]
         header['mean_F'] = self.mean_F
         header['cf'] = self.cf
 
         Pk_data = list(zip(self.k_kms,self.Pk_kms))
         dtype = [('k_kms', 'f8'), ('Pk_kms', 'f8')]
         measurement_1 = np.array(Pk_data,dtype=dtype)
-        #Construct HDUs from the data arrays.
-        prihdr = fits.Header()
-        prihdu = fits.PrimaryHDU(header=prihdr)
-        cols_Pk1D = fits.ColDefs(measurement_1)
-        hdu_Pk1D = fits.BinTableHDU.from_columns(cols_Pk1D,header=header,name='Pk1D')
-
-        #Combine the HDUs into an HDUlist
-        hdulist = fits.HDUList([prihdu, hdu_Pk1D])
-
-        #Save as a new file. Close the HDUlist.
-        hdulist.writeto(filepath)
-        hdulist.close()
-        return
-    """
-    def add_Pk1D_error(self,max_k=None):
-        model_Pk_kms = P1D_z_kms_PD2013(self.k_kms,self.z_value)
-        if max_k:
-            max_j = np.searchsorted(self.k_kms,max_k)
-        else:
-            max_j = -1
-        Pk_kms_errors = (self.Pk_kms[:max_j] - model_Pk_kms[:max_j])/model_Pk_kms[:max_j]
-        average_error = np.average(Pk_kms_errors)
-        self.Pk_kms_error = average_error
-        return
-    def add_mean_F_error(self):
-        model_mean_F = get_mean_F_model(self.z_value)
-        mean_F_error = (self.mean_F - model_mean_F)/model_mean_F
-        self.mean_F_error = mean_F_error
-        return
-    """
+        cols = fits.ColDefs(measurement_1)
+        hdu = fits.BinTableHDU.from_columns(cols,header=header,name='Pk1D')
+        return hdu
 
 class measurement_set:
     def __init__(self,measurements=[]):
@@ -290,8 +276,8 @@ class measurement_set:
             plt.xlabel('k / kms-1')
             plt.legend()
             plt.grid()
-            plt.savefig('Pk1D_002.pdf')
-            #plt.show()
+            #plt.savefig('Pk1D_002.pdf')
+            plt.show()
 
             plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
             mean_F = []
@@ -312,8 +298,8 @@ class measurement_set:
             plt.xlabel('z')
             plt.legend()
             plt.grid()
-            plt.savefig('mean_F_002.pdf')
-            #plt.show()
+            #plt.savefig('mean_F_002.pdf')
+            plt.show()
 
             plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
             plt.plot(z,alpha,marker='o',label='alpha')
@@ -323,8 +309,8 @@ class measurement_set:
             plt.xlabel('z')
             plt.legend()
             plt.grid()
-            plt.savefig('parameters_002.pdf')
-            #plt.show()
+            #plt.savefig('parameters_002.pdf')
+            plt.show()
 
         n_grids = len(z_values) * 3
         n_values = np.sort(list(set([spv[0] for spv in s_parameter_values_list])))
@@ -364,8 +350,8 @@ class measurement_set:
                     text = ax.text(j, i, round(colour_grids[k*3+0,i,j],2),
                                    ha="center", va="center", color=(0,0,0))
             ax.set_title('Pk chi2 values, z={}'.format(z_value))
-            plt.savefig('colour_z{}_{}.pdf'.format(z_value,'Pk'))
-            #plt.show()
+            #plt.savefig('colour_z{}_{}.pdf'.format(z_value,'Pk'))
+            plt.show()
 
             fig, ax = plt.subplots(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
             im = ax.imshow(colour_grids[k*3+1,:,:],cmap='YlGn',vmin=0,vmax=np.max(colour_grids))
@@ -386,8 +372,8 @@ class measurement_set:
                     text = ax.text(j, i, round(colour_grids[k*3+1,i,j],2),
                                    ha="center", va="center", color=(0,0,0))
             ax.set_title('mean F chi2 values, z={}'.format(z_value))
-            plt.savefig('colour_z{}_{}.pdf'.format(z_value,'mean_F'))
-            #plt.show()
+            #plt.savefig('colour_z{}_{}.pdf'.format(z_value,'mean_F'))
+            plt.show()
 
             fig, ax = plt.subplots(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
             im = ax.imshow(colour_grids[k*3+2,:,:],cmap='YlGn',vmin=0,vmax=np.max(colour_grids))
@@ -408,10 +394,48 @@ class measurement_set:
                     text = ax.text(j, i, round(colour_grids[k*3+2,i,j],2),
                                    ha="center", va="center", color=(0,0,0))
             ax.set_title('Total chi2 values, z={}'.format(z_value))
-            plt.savefig('colour_z{}_{}.pdf'.format(z_value,'total'))
-            #plt.show()
+            #plt.savefig('colour_z{}_{}.pdf'.format(z_value,'total'))
+            plt.show()
 
         return s_optimized_set
+    def save(self,filepath,existing='overwrite'):
+        #Make a list of HDUs from the current set of measurements.
+        list_of_hdus = []
+        for m in self.measurements:
+            list_of_hdus += [m.make_HDU()]
+
+        #Check if a file already exists. If so, follow the chosen path, if not, make a new file.
+        if len(glob.glob(filepath)) > 0:
+            if existing == 'combine':
+                #Open the existing file and get the list of what parameter sets it includes.
+                hdulist = fits.open(filepath)
+                existing_parameters_list = []
+                for existing_hdu in hdulist[1:]:
+                    m = measurement.load_measurement(existing_hdu)
+                    existing_parameters_list += [m.get_details()]
+                    print('#####')
+                    print(existing_parameters_list)
+
+                for i,hdu in enumerate(list_of_hdus):
+                    details = measurement.load_measurement(hdu).get_details()
+                    print(details)
+                    if details in existing_parameters_list:
+                        print('measurement with parameters {} already included in {}, existing measurement retained'.format(details,filepath))
+                    else:
+                        hdulist.append(hdu)
+            elif existing == 'overwrite':
+                prihdr = fits.Header()
+                prihdu = fits.PrimaryHDU(header=prihdr)
+                hdulist = fits.HDUList([prihdu]+list_of_hdus)
+            else:
+                raise ValueError('File already exists, specified behaviour not recognised')
+        else:
+            prihdr = fits.Header()
+            prihdu = fits.PrimaryHDU(header=prihdr)
+            hdulist = fits.HDUList([prihdu]+list_of_hdus)
+        hdulist.writeto(filepath,overwrite=True)
+        hdulist.close()
+        return
 
 
 
