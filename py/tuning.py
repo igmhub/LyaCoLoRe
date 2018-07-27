@@ -6,8 +6,6 @@ import convert
 import Pk1D
 import general
 
-lya = 1215.67
-
 ################################################################################
 """
 Below: new tuning, measurement based
@@ -48,13 +46,13 @@ class measurement:
         self.cf = cf
         return
     def add_Pk1D_measurement(self,pixel_object):
-        F_rows = pixel_object.F_rows
-        mean_F = np.average(F_rows)
-        delta_F_rows = F_rows/mean_F - 1
-        IVAR_rows = pixel_object.IVAR_rows
+        F = pixel_object.lya_absorber.transmission()
+        mean_F = np.average(F)
+        delta_F = F/mean_F - 1
+        IVAR = pixel_object.IVAR_rows
         R_hMpc = pixel_object.R
         z = pixel_object.Z
-        k_kms, Pk_kms, var_kms = Pk1D.get_Pk1D(delta_F_rows,IVAR_rows,R_hMpc,z,self.z_value,z_width=self.z_width)
+        k_kms, Pk_kms, var_kms = Pk1D.get_Pk1D(delta_F,IVAR,R_hMpc,z,self.z_value,z_width=self.z_width)
         self.k_kms = k_kms
         self.Pk_kms = Pk_kms
         return

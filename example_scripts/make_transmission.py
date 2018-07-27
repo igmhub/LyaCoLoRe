@@ -364,9 +364,6 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     alphas=np.interp(pixel_object.Z,tuning_z_values,tuning_alphas)
     pixel_object.compute_tau_skewers(pixel_object.lya_absorber,alphas,beta)
 
-    #Convert the tau skewers to flux skewers.
-    pixel_object.compute_flux_skewers()
-
     if transmission_only == False:
         #Picca Gaussian
         filename = new_filename_structure.format('picca-gaussian-noRSD',N_side,pixel)
@@ -384,9 +381,6 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     #Add RSDs from the velocity skewers provided by CoLoRe.
     if add_RSDs == True:
         pixel_object.add_RSDs(pixel_object.lya_absorber,alphas,beta,thermal=include_thermal_effects)
-
-    #Convert the tau skewers to flux skewers.
-    pixel_object.compute_flux_skewers()
 
     #transmission
     filename = new_filename_structure.format('transmission',N_side,pixel)

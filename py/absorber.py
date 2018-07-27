@@ -1,3 +1,5 @@
+import numpy as np
+
 # Class storing information related to a particular absorber
 class AbsorberData:
 
