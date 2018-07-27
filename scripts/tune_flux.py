@@ -200,8 +200,8 @@ def measure_pixel_segment(pixel,z_value,ID,lookup):
 
     #Convert to flux
     data.compute_physical_skewers()
-    data.compute_tau_skewers(alpha=np.ones(data.Z.shape[0])*alpha,beta=beta)
-    data.add_RSDs(np.ones(data.Z.shape[0])*alpha,beta,thermal=False)
+    data.compute_tau_skewers(data.lya_absorber,alpha=np.ones(data.Z.shape[0])*alpha,beta=beta)
+    data.add_RSDs(data.lya_absorber,np.ones(data.Z.shape[0])*alpha,beta,thermal=False)
     data.compute_flux_skewers()
 
     #Trim the skewers again to get rid of the additional cells

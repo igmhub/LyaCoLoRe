@@ -47,7 +47,7 @@ def make_gaussian_pixel_object(pixel,original_file_location,original_filename_st
 #Definition of a generic 'simulation_data' class, from which it is easy to save in new formats.
 class simulation_data:
     #Initialisation function.
-    def __init__(self,N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,F_rows,R,Z,D,V,LOGLAM_MAP,A):
+    def __init__(self,N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,R,Z,D,V,LOGLAM_MAP,A):
 
         self.N_qso = N_qso
         self.N_cells = N_cells
@@ -83,16 +83,11 @@ class simulation_data:
 
         # below are mostly obsolete 
 
-        self.F_rows = F_rows
-
         self.linear_skewer_RSDs_added = False
         self.thermal_skewer_RSDs_added = False
 
         self.density_computed = False
         
-#self.tau_computed = False
-        self.flux_computed = False
-
         #self.absorbers = []
         #self.absorbers.append(absorber.AbsorberData(name='Lya',rest_wave=1215.67,flux_transform_m=1.0))
         #self.absorbers.append(absorber.AbsorberData(name='Lyb',rest_wave=1024.0,flux_transform_m=0.1))
@@ -101,7 +96,6 @@ class simulation_data:
         self.lya_absorber=absorber.AbsorberData(name='Lya',rest_wave=1215.67,flux_transform_m=1.0)
 
         self.lya_absorber.tau_computed = False
-        self.lya_absorber.flux_computed = False
 
         return
 
@@ -174,7 +168,6 @@ class simulation_data:
             DENSITY_DELTA_rows = None
             A = None
             ALPHA = None
-            F_rows = None
 
             #Insert placeholder values for remaining variables.
             PLATE = MOCKID
@@ -218,7 +211,6 @@ class simulation_data:
             DENSITY_DELTA_rows = None
             A = None
             ALPHA = None
-            F_rows = None
 
             #Insert placeholder values for remaining variables.
             PLATE = MOCKID
@@ -260,7 +252,6 @@ class simulation_data:
             DENSITY_DELTA_rows = None
             A = None
             ALPHA = None
-            F_rows = None
 
             """
             Can we calculate DZ_RSD,R,D,V?
@@ -284,7 +275,7 @@ class simulation_data:
 
         #print('{:3.0%} {:3.0%} {:3.0%} {:3.0%}'.format(times[0]/np.sum(times),times[1]/np.sum(times),times[2]/np.sum(times),times[3]/np.sum(times)))
 
-        return cls(N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,F_rows,R,Z,D,V,LOGLAM_MAP,A)
+        return cls(N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,R,Z,D,V,LOGLAM_MAP,A)
 
     #Function to trim skewers according to a minimum value of lambda. QSOs with no relevant cells are removed.
     def trim_skewers(self,lambda_min,min_catalog_z,extra_cells=0,lambda_max=None,whole_lambda_range=False):
@@ -331,9 +322,7 @@ class simulation_data:
         self.VEL_rows = self.VEL_rows[relevant_QSOs,:]
         self.IVAR_rows = self.IVAR_rows[relevant_QSOs,:]
         if self.lya_absorber.tau_computed == True:
-            self.lya_absorber.TAU_rows = self.lya_absorber.TAU_rows[relevant_QSOs,:]
-        if self.flux_computed == True:
-            self.F_rows = self.F_rows[relevant_QSOs,:]
+            self.lya_absorber.tau = self.lya_absorber.tau[relevant_QSOs,:]
 
         #Now trim the skewers of the remaining QSOs.
         self.N_cells = last_relevant_cell - first_relevant_cell + 1
@@ -344,9 +333,7 @@ class simulation_data:
         self.VEL_rows = self.VEL_rows[:,first_relevant_cell:last_relevant_cell + 1]
         self.IVAR_rows = self.IVAR_rows[:,first_relevant_cell:last_relevant_cell + 1]
         if self.lya_absorber.tau_computed == True:
-            self.lya_absorber.TAU_rows = self.lya_absorber.TAU_rows[:,first_relevant_cell:last_relevant_cell + 1]
-        if self.flux_computed == True:
-            self.F_rows = self.F_rows[:,first_relevant_cell:last_relevant_cell + 1]
+            self.lya_absorber.tau = self.lya_absorber.tau[:,first_relevant_cell:last_relevant_cell + 1]
 
         self.R = self.R[first_relevant_cell:last_relevant_cell + 1]
         self.Z = self.Z[first_relevant_cell:last_relevant_cell + 1]
@@ -488,98 +475,39 @@ class simulation_data:
         return
 
     #Function to add physical skewers to the object via a lognormal transformation.
-    def compute_tau_skewers(self,alpha,beta):
+    def compute_tau_skewers(self,absorber,alpha,beta):
 
-        self.lya_absorber.TAU_rows = convert.density_to_tau(self.DENSITY_DELTA_rows+1,alpha,beta)
-        self.lya_absorber.tau_computed = True
+        # scale optical depth for this particular absorber (=1 for Lya)
+        absorber_alpha = alpha*absorber.flux_transform_m
+        absorber.tau = convert.density_to_tau(self.DENSITY_DELTA_rows+1,alpha,beta)
 
-        return
-
-    #Function to add flux skewers to the object.
-    def compute_flux_skewers(self):
-
-        #self.TAU_rows = get_tau(self.Z,self.DENSITY_DELTA_rows+1,alpha,beta)
-        self.F_rows = np.exp(-self.lya_absorber.TAU_rows)
-        #self.F_rows = density_to_flux(self.DENSITY_DELTA_rows+1,alpha,beta)
-
-        #Set the skewers to 1 beyond the quasars.
+        #Set tau to 0 beyond the quasars.
         for i in range(self.N_qso):
-            if self.linear_skewer_RSDs_added == True:
-                last_relevant_cell = np.searchsorted(self.Z,self.Z_QSO[i]+self.DZ_RSD[i]) - 1
-            else:
-                last_relevant_cell = np.searchsorted(self.Z,self.Z_QSO[i]) - 1
-            self.F_rows[i,last_relevant_cell+1:] = 1
+            last_relevant_cell = np.searchsorted(self.Z,self.Z_QSO[i]) - 1
+            absorber.tau[i,last_relevant_cell+1:] = 0
 
-        self.flux_computed = True
-
-        return
-
-    ## TODO: remove this, now defunct
-    #Function to add linear RSDs from the velocity skewers.
-    def add_linear_RSDs(self,alpha,beta):
-
-        #add RSDs to these physical density rows
-        new_TAU_rows = RSD.add_linear_skewer_RSDs(self.lya_absorber.TAU_rows,self.VEL_rows,self.Z)
-
-        ## TODO: find a neater way to do this
-        #For the moment, we add a very small value onto the tau skewers, to avoid problems in the inverse lognormal transformation
-        #In future, when we don't care about the gaussian skewers, we can get rid of this
-        moodified_new_TAU_rows = new_TAU_rows + (new_TAU_rows==0)*1.0e-10
-
-        #convert the new tau rows back to physical density
-        new_density_rows = convert.tau_to_density(moodified_new_TAU_rows,alpha,beta)
-        new_density_delta_rows = new_density_rows - 1
-
-        #convert the new physical density rows back to gaussian
-        new_gaussian_rows = convert.lognormal_delta_to_gaussian(new_density_delta_rows,self.SIGMA_G,self.D)
-
-        #Make a mask where the physical skewers are zero.
-        #mask = (new_density_rows != 0)
-        #self.IVAR_rows *= mask
-
-        #Overwrite the physical and tau skewers and set a flag to True.
-        self.lya_absorber.TAU_rows = new_TAU_rows
-        self.DENSITY_DELTA_rows = new_density_delta_rows
-        self.GAUSSIAN_DELTA_rows = new_gaussian_rows
-        self.linear_skewer_RSDs_added = True
+        absorber.tau_computed = True
 
         return
 
     #Function to add thermal RSDs from the velocity skewers.
-    def add_RSDs(self,alpha,beta,thermal=False):
+    def add_RSDs(self,absorber,alpha,beta,thermal=False):
 
         initial_density_rows = 1 + self.DENSITY_DELTA_rows
-        new_TAU_rows = RSD.add_skewer_RSDs(self.lya_absorber.TAU_rows,initial_density_rows,self.VEL_rows,self.Z,self.R,thermal=thermal)
+        new_tau = RSD.add_skewer_RSDs(absorber.tau,initial_density_rows,self.VEL_rows,self.Z,self.R,thermal=thermal)
 
-        ## TODO: find a neater way to do this
-        #For the moment, we add a very small value onto the tau skewers, to avoid problems in the inverse lognormal transformation
-        #In future, when we don't care about the gaussian skewers, we can get rid of this
-        moodified_new_TAU_rows = new_TAU_rows + (new_TAU_rows==0)*1.0e-10
-
-        #convert the new tau rows back to physical density
-        new_density_rows = convert.tau_to_density(moodified_new_TAU_rows,alpha,beta)
-        new_density_delta_rows = new_density_rows - 1
-
-        #convert the new physical density rows back to gaussian
-        new_gaussian_rows = convert.lognormal_delta_to_gaussian(new_density_delta_rows,self.SIGMA_G,self.D)
-
-        #Make a mask where the physical skewers are zero.
-        #mask = (new_density_rows != 0)
-        #self.IVAR_rows *= mask
-
-        #Overwrite the physical and tau skewers and set a flag to True.
-        self.lya_absorber.TAU_rows = new_TAU_rows
-        self.DENSITY_DELTA_rows = new_density_delta_rows
-        self.GAUSSIAN_DELTA_rows = new_gaussian_rows
-        self.thermal_skewer_RSDs_added = True
+        #Overwrite the tau skewers and set a flag to True.
+        absorber.tau = new_tau
+        absorber.RSDs_added = True
 
         return
 
     #Function to measure mean flux.
     def get_mean_flux(self,z_value=None,z_width=None):
 
+        F = self.lya_absorber.transmission()
         if not z_value:
-            mean_F = np.average(self.F_rows,axis=0)
+            mean_F = np.average(F,axis=0)
 
         elif not z_width:
             j_value_upper = np.searchsorted(self.Z,z_value)
