@@ -16,14 +16,14 @@ import general
 
 lya = 1215.67
 
-N_processes = 64
+N_processes = 4
 lambda_min = 3550.0
 min_cat_z = 1.8
 IVAR_cutoff = 1150.0
 
 #Get the starting values of alpha, beta and sigma_G from file
 #Decide which z values we are going to tune
-z_values = [2.5,3.0]
+z_values = [2.5]
 z_width = 0.2
 
 cell_size = 0.25 #Mpc/h
@@ -32,7 +32,7 @@ max_k = 0.005 #skm-1
 
 #Open up the Gaussian colore files
 base_file_location = '/Users/jfarr/Projects/test_data/test/'
-base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_nside16_RSD'
+#base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_nside16_RSD'
 N_side = 16
 
 new_file_structure = '{}/{}/'               #pixel number//100, pixel number
@@ -113,9 +113,9 @@ for i,z_value in enumerate(z_values):
 
 """
 #s_multipliers = np.linspace(0.7,1.3,5)
-t_multipliers = np.linspace(0.4,1.6,7)
-n_multipliers = np.linspace(1.15,1.75,5)
-k1_multipliers = np.linspace(0.25,0.85,5)
+t_multipliers = np.linspace(0.8,1.2,1)
+n_multipliers = np.linspace(0.8,1.2,1)
+k1_multipliers = np.linspace(0.8,1.2,1)
 
 #Extract the values of parameters to optimise over
 parameters_list = []
@@ -249,7 +249,7 @@ print('after combining, number measuremts is:',len(combined_set.measurements))
 def get_model_Pk_kms(k_kms,A_F,B_F):
     return tuning.P1D_z_kms_PD2013(k_kms,z_value,A_F=A_F,B_F=B_F)
 
-
+measurement_set.save('measurements.fits',existing='combine')
 optimal_measurements = measurement_set.optimize_s_parameters(plot_optimal=True)
 
 
