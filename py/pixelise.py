@@ -8,6 +8,7 @@ import convert
 import RSD
 import DLA
 import independent
+import absorber
 
 lya = 1215.67
 
@@ -53,6 +54,7 @@ class simulation_data:
         self.SIGMA_G = SIGMA_G
         self.ALPHA = ALPHA
 
+        # catalog information
         self.TYPE = TYPE
         self.RA = RA
         self.DEC = DEC
@@ -63,18 +65,25 @@ class simulation_data:
         self.MJD = MJD
         self.FIBER = FIBER
 
+        # skewer information used by all absorbers
         self.GAUSSIAN_DELTA_rows = GAUSSIAN_DELTA_rows
         self.DENSITY_DELTA_rows = DENSITY_DELTA_rows
         self.VEL_rows = VEL_rows
-        self.IVAR_rows = IVAR_rows
-        self.F_rows = F_rows
 
+        # used in picca files to mask outside Lya region
+        self.LOGLAM_MAP = LOGLAM_MAP
+        self.IVAR_rows = IVAR_rows
+
+        # coordinates for the skewer cells (might get rid of some of these)
         self.R = R
         self.Z = Z
         self.D = D
         self.V = V
-        self.LOGLAM_MAP = LOGLAM_MAP
         self.A = A
+
+        # below are mostly obsolete 
+
+        self.F_rows = F_rows
 
         self.linear_skewer_RSDs_added = False
         self.thermal_skewer_RSDs_added = False
@@ -82,6 +91,11 @@ class simulation_data:
         self.density_computed = False
         self.tau_computed = False
         self.flux_computed = False
+
+        self.absorbers = []
+        self.absorbers.append(absorber.AbsorberData(name='Lya',rest_wave=1215.67,flux_transform_m=1.0))
+        self.absorbers.append(absorber.AbsorberData(name='Lyb',rest_wave=1024.0,flux_transform_m=0.1))
+        self.absorbers.append(absorber.AbsorberData(name='SiII',rest_wave=1205.0,flux_transform_m=0.05))
 
         return
 
