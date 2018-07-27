@@ -293,7 +293,7 @@ else:
 tuning_z_values = tune_small_scale_fluctuations['z']
 desired_sigma_G_values = tune_small_scale_fluctuations['sigma_G']
 desired_mean_F = tune_small_scale_fluctuations['mean_F']
-alphas = tune_small_scale_fluctuations['alpha']
+tuning_alphas = tune_small_scale_fluctuations['alpha']
 
 #Determine the desired sigma_G by sampling
 extra_sigma_G_values = np.sqrt(desired_sigma_G_values**2 - measured_SIGMA_G**2)
@@ -360,8 +360,9 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     #Add physical skewers to the object.
     pixel_object.compute_physical_skewers()
 
-    #Add tau skewers to the object.
-    pixel_object.compute_tau_skewers(np.interp(pixel_object.Z,tuning_z_values,alphas),beta)
+    #Add tau skewers to the object, starting with Lyman-alpha
+    alphas=np.interp(pixel_object.Z,tuning_z_values,tuning_alphas)
+    pixel_object.compute_tau_skewers(pixel_object.lya_absorber,alphas,beta)
 
     #Convert the tau skewers to flux skewers.
     pixel_object.compute_flux_skewers()
@@ -382,7 +383,7 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     #Add thermal RSDs to the tau skewers.
     #Add RSDs from the velocity skewers provided by CoLoRe.
     if add_RSDs == True:
-        pixel_object.add_RSDs(np.interp(pixel_object.Z,tuning_z_values,alphas),beta,thermal=include_thermal_effects)
+        pixel_object.add_RSDs(pixel_object.lya_absorber,alphas,beta,thermal=include_thermal_effects)
 
     #Convert the tau skewers to flux skewers.
     pixel_object.compute_flux_skewers()
