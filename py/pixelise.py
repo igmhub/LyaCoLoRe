@@ -545,16 +545,13 @@ class SimulationData:
         MJD = np.concatenate((object_A.MJD,object_B.MJD),axis=0)
         FIBER = np.concatenate((object_A.FIBER,object_B.FIBER),axis=0)
 
-        if not gaussian_only:
-            GAUSSIAN_DELTA_rows = np.concatenate((object_A.GAUSSIAN_DELTA_rows,object_B.GAUSSIAN_DELTA_rows),axis=0)
-            DENSITY_DELTA_rows = np.concatenate((object_A.DENSITY_DELTA_rows,object_B.DENSITY_DELTA_rows),axis=0)
-            VEL_rows = np.concatenate((object_A.VEL_rows,object_B.VEL_rows),axis=0)
-            IVAR_rows = np.concatenate((object_A.IVAR_rows,object_B.IVAR_rows),axis=0)
-        else:
-            GAUSSIAN_DELTA_rows = np.concatenate((object_A.GAUSSIAN_DELTA_rows,object_B.GAUSSIAN_DELTA_rows),axis=0)
+        GAUSSIAN_DELTA_rows = np.concatenate((object_A.GAUSSIAN_DELTA_rows,object_B.GAUSSIAN_DELTA_rows),axis=0)
+        VEL_rows = np.concatenate((object_A.VEL_rows,object_B.VEL_rows),axis=0)
+        IVAR_rows = np.concatenate((object_A.IVAR_rows,object_B.IVAR_rows),axis=0)
+        if gaussian_only:
             DENSITY_DELTA_rows = None
-            VEL_rows = np.concatenate((object_A.VEL_rows,object_B.VEL_rows),axis=0)
-            IVAR_rows = np.concatenate((object_A.IVAR_rows,object_B.IVAR_rows),axis=0)
+        else:
+            DENSITY_DELTA_rows = np.concatenate((object_A.DENSITY_DELTA_rows,object_B.DENSITY_DELTA_rows),axis=0)
 
         """
         Something to check this is ok?
@@ -740,24 +737,14 @@ class SimulationData:
 
         return
 
-    #Function to save data as a transmission file.
-    def save_as_transmission(self,location,filename,header):
-        # soon we will have absorber object that will take care of these
-
-        # rest-frame wavelength for this absorber
-        wave_rest = lya
-
-        # transmission for this absorber, in each cell of the skewers
-        F_skewer = self.lya_absorber.transmission()
-
-        # wavelength grid, evaluated at each cell of the skewers
-        wave_skewer = wave_rest*(1+self.Z)
-
-        # define common wavelength grid to be written in files (in Angstroms)
-        wave_min=3550
-        wave_max=6500
-        wave_step=0.1
-        wave_grid=np.arange(wave_min,wave_max,wave_step)
+    #Compute transmission for a particular absorber, on a particular grid
+    def compute_grid_transmission(self,absorber,wave_grid):
+        #Get transmission on each cell, from tau stored in absorber 
+        F_skewer = absorber.transmission()
+        #Get rest-frame wavelength for this particular absorber
+        rest_wave = absorber.rest_wave
+        #Get wavelength on each original cell, for this particular absorber
+        wave_skewer = rest_wave*(1+self.Z)
 
         # interpolate F into the common grid
         N_los = F_skewer.shape[0]
@@ -765,6 +752,27 @@ class SimulationData:
         F_grid = np.empty([N_los,N_w])
         for i in range(N_los):
             F_grid[i,] = np.interp(wave_grid,wave_skewer,F_skewer[i])
+
+        return F_grid
+
+    #Function to save data as a transmission file.
+    def save_as_transmission(self,location,filename,header):
+        
+        # define common wavelength grid to be written in files (in Angstroms)
+        wave_min=3550
+        wave_max=6500
+        wave_step=0.1
+        wave_grid=np.arange(wave_min,wave_max,wave_step)
+
+        # now we should loop over the different absorbers, combine them and 
+        # write them in HDUs. I suggest to have two HDU:
+        # - TRANSMISSION will contain both Lya and Lyb
+        # - METALS will contain all metal absorption
+
+        # compute Lyman alpha transmission on grid of wavelengths
+        F_grid_Lya = self.compute_grid_transmission(self.lya_absorber,wave_grid)
+        
+        # here we would add Lyb
 
         # construct quasar catalog HDU
         Z_RSD = self.Z_QSO + self.DZ_RSD
@@ -778,7 +786,7 @@ class SimulationData:
         cols_METADATA = fits.ColDefs(catalog_data)
         hdu_METADATA = fits.BinTableHDU.from_columns(cols_METADATA,header=header,name='METADATA')
         hdu_WAVELENGTH = fits.ImageHDU(data=wave_grid,header=header,name='WAVELENGTH')
-        hdu_TRANSMISSION = fits.ImageHDU(data=F_grid,header=header,name='TRANSMISSION')
+        hdu_TRANSMISSION = fits.ImageHDU(data=F_grid_Lya,header=header,name='TRANSMISSION')
 
         #Combine the HDUs into an HDUlist (including DLAs, if they have been computed)
         if hasattr(self,'DLA_table') == True:
