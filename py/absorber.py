@@ -11,13 +11,16 @@ class AbsorberData:
 
         # we will store here the optical depth 
         self.tau = None
-        self.tau_computed = False
-        self.RSDs_added = False
 
         return
 
+    def tau_computed(self):
+        if self.tau is None: 
+            return False
+        return True
+
     def transmission(self):
-        if not self.tau_computed:
-            print('you can not get transmission without storing tau')
+        if not self.tau_computed():
+            print('you can not get transmission without first computing tau')
             raise ValueError('Can not access transmission arrays')
         return np.exp(-self.tau)
