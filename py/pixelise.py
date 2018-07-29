@@ -8,10 +8,11 @@ import convert
 import RSD
 import DLA
 import independent
+import absorber
 
 lya = 1215.67
 
-#Function to create a 'simulation_data' object given a specific pixel, information about the complete simulation, and the location/filenames of data files.
+#Function to create a SimulationData object given a specific pixel, information about the complete simulation, and the location/filenames of data files.
 def make_gaussian_pixel_object(pixel,original_file_location,original_filename_structure,input_format,MOCKID_lookup,lambda_min=0,IVAR_cutoff=lya):
 
     #Determine which file numbers we need to look at for the current pixel.
@@ -25,15 +26,15 @@ def make_gaussian_pixel_object(pixel,original_file_location,original_filename_st
         relevant_MOCKIDs = MOCKID_lookup[key]
         N_relevant_qso = len(relevant_MOCKIDs)
 
-        #If there are some relevant quasars, open the data file and make it into a simulation_data object.
-        #We use simulation_data.get_reduced_data to avoid loading all of the file's data into the object.
+        #If there are some relevant quasars, open the data file and make it into a SimulationData object.
+        #We use SimulationData.get_reduced_data to avoid loading all of the file's data into the object.
         if N_relevant_qso > 0:
             filename = original_file_location + '/' + original_filename_structure.format(file_number)
-            working = simulation_data.get_gaussian_skewers_object(filename,file_number,input_format,MOCKIDs=relevant_MOCKIDs,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff)
+            working = SimulationData.get_gaussian_skewers_object(filename,file_number,input_format,MOCKIDs=relevant_MOCKIDs,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff)
 
         #Combine the data from the working file with that from the files already looked at.
         if files_included > 0:
-            combined = simulation_data.combine_files(combined,working,gaussian_only=True)
+            combined = SimulationData.combine_files(combined,working,gaussian_only=True)
             files_included += 1
         else:
             combined = working
@@ -43,16 +44,17 @@ def make_gaussian_pixel_object(pixel,original_file_location,original_filename_st
 
     return pixel_object
 
-#Definition of a generic 'simulation_data' class, from which it is easy to save in new formats.
-class simulation_data:
+#Definition of a generic SimulationData class, from which it is easy to save in new formats.
+class SimulationData:
     #Initialisation function.
-    def __init__(self,N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,F_rows,R,Z,D,V,LOGLAM_MAP,A):
+    def __init__(self,N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,R,Z,D,V,LOGLAM_MAP,A):
 
         self.N_qso = N_qso
         self.N_cells = N_cells
         self.SIGMA_G = SIGMA_G
         self.ALPHA = ALPHA
 
+        # catalog information
         self.TYPE = TYPE
         self.RA = RA
         self.DEC = DEC
@@ -63,25 +65,28 @@ class simulation_data:
         self.MJD = MJD
         self.FIBER = FIBER
 
+        # skewer information used by all absorbers
         self.GAUSSIAN_DELTA_rows = GAUSSIAN_DELTA_rows
         self.DENSITY_DELTA_rows = DENSITY_DELTA_rows
         self.VEL_rows = VEL_rows
-        self.IVAR_rows = IVAR_rows
-        self.F_rows = F_rows
 
+        # used in picca files to mask outside Lya region
+        self.LOGLAM_MAP = LOGLAM_MAP
+        self.IVAR_rows = IVAR_rows
+
+        # coordinates for the skewer cells (might get rid of some of these)
         self.R = R
         self.Z = Z
         self.D = D
         self.V = V
-        self.LOGLAM_MAP = LOGLAM_MAP
         self.A = A
 
-        self.linear_skewer_RSDs_added = False
-        self.thermal_skewer_RSDs_added = False
+        #self.absorbers = []
+        #self.absorbers.append(absorber.AbsorberData(name='Lya',rest_wave=1215.67,flux_transform_m=1.0))
+        #self.absorbers.append(absorber.AbsorberData(name='Lyb',rest_wave=1024.0,flux_transform_m=0.1))
+        #self.absorbers.append(absorber.AbsorberData(name='SiII',rest_wave=1205.0,flux_transform_m=0.05))
 
-        self.density_computed = False
-        self.tau_computed = False
-        self.flux_computed = False
+        self.lya_absorber=absorber.AbsorberData(name='Lya',rest_wave=1215.67,flux_transform_m=1.0)
 
         return
 
@@ -154,7 +159,6 @@ class simulation_data:
             DENSITY_DELTA_rows = None
             A = None
             ALPHA = None
-            F_rows = None
 
             #Insert placeholder values for remaining variables.
             PLATE = MOCKID
@@ -198,7 +202,6 @@ class simulation_data:
             DENSITY_DELTA_rows = None
             A = None
             ALPHA = None
-            F_rows = None
 
             #Insert placeholder values for remaining variables.
             PLATE = MOCKID
@@ -240,7 +243,6 @@ class simulation_data:
             DENSITY_DELTA_rows = None
             A = None
             ALPHA = None
-            F_rows = None
 
             """
             Can we calculate DZ_RSD,R,D,V?
@@ -264,7 +266,7 @@ class simulation_data:
 
         #print('{:3.0%} {:3.0%} {:3.0%} {:3.0%}'.format(times[0]/np.sum(times),times[1]/np.sum(times),times[2]/np.sum(times),times[3]/np.sum(times)))
 
-        return cls(N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,F_rows,R,Z,D,V,LOGLAM_MAP,A)
+        return cls(N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,R,Z,D,V,LOGLAM_MAP,A)
 
     #Function to trim skewers according to a minimum value of lambda. QSOs with no relevant cells are removed.
     def trim_skewers(self,lambda_min,min_catalog_z,extra_cells=0,lambda_max=None,whole_lambda_range=False):
@@ -306,27 +308,23 @@ class simulation_data:
         self.FIBER = self.FIBER[relevant_QSOs]
 
         self.GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows[relevant_QSOs,:]
-        if self.density_computed == True:
+        if self.DENSITY_DELTA_rows is not None:
             self.DENSITY_DELTA_rows = self.DENSITY_DELTA_rows[relevant_QSOs,:]
         self.VEL_rows = self.VEL_rows[relevant_QSOs,:]
         self.IVAR_rows = self.IVAR_rows[relevant_QSOs,:]
-        if self.tau_computed == True:
-            self.TAU_rows = self.TAU_rows[relevant_QSOs,:]
-        if self.flux_computed == True:
-            self.F_rows = self.F_rows[relevant_QSOs,:]
+        if self.lya_absorber.tau_computed():
+            self.lya_absorber.tau = self.lya_absorber.tau[relevant_QSOs,:]
 
         #Now trim the skewers of the remaining QSOs.
         self.N_cells = last_relevant_cell - first_relevant_cell + 1
 
         self.GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows[:,first_relevant_cell:last_relevant_cell + 1]
-        if self.density_computed == True:
+        if self.DENSITY_DELTA_rows is not None:
             self.DENSITY_DELTA_rows = self.DENSITY_DELTA_rows[:,first_relevant_cell:last_relevant_cell + 1]
         self.VEL_rows = self.VEL_rows[:,first_relevant_cell:last_relevant_cell + 1]
         self.IVAR_rows = self.IVAR_rows[:,first_relevant_cell:last_relevant_cell + 1]
-        if self.tau_computed == True:
-            self.TAU_rows = self.TAU_rows[:,first_relevant_cell:last_relevant_cell + 1]
-        if self.flux_computed == True:
-            self.F_rows = self.F_rows[:,first_relevant_cell:last_relevant_cell + 1]
+        if self.lya_absorber.tau_computed():
+            self.lya_absorber.tau = self.lya_absorber.tau[:,first_relevant_cell:last_relevant_cell + 1]
 
         self.R = self.R[first_relevant_cell:last_relevant_cell + 1]
         self.Z = self.Z[first_relevant_cell:last_relevant_cell + 1]
@@ -375,10 +373,8 @@ class simulation_data:
         last_relevant_cells = np.zeros(self.N_qso)
         for i in range(self.N_qso):
             first_relevant_cell = np.searchsorted(10**(self.LOGLAM_MAP),lambda_min)
-            if self.linear_skewer_RSDs_added == True:
-                last_relevant_cell = np.searchsorted(self.Z,self.Z_QSO[i]+self.DZ_RSD[i]) - 1
-            else:
-                last_relevant_cell = np.searchsorted(self.Z,self.Z_QSO[i]) - 1
+            # it is not clear whether to cut at Z_QSO or Z_QSO + DZ_RSD
+            last_relevant_cell = np.searchsorted(self.Z,self.Z_QSO[i]) - 1
 
             #Clip the gaussian skewers so that they are zero after the quasar.
             #This avoids effects from NGP interpolation).
@@ -463,103 +459,40 @@ class simulation_data:
     def compute_physical_skewers(self,density_type='lognormal'):
 
         self.DENSITY_DELTA_rows = convert.gaussian_to_lognormal_delta(self.GAUSSIAN_DELTA_rows,self.SIGMA_G,self.D)
-        self.density_computed = True
 
         return
 
     #Function to add physical skewers to the object via a lognormal transformation.
-    def compute_tau_skewers(self,alpha,beta):
+    def compute_tau_skewers(self,absorber,alpha,beta):
 
-        self.TAU_rows = convert.density_to_tau(self.DENSITY_DELTA_rows+1,alpha,beta)
-        self.tau_computed = True
+        # scale optical depth for this particular absorber (=1 for Lya)
+        absorber_alpha = alpha*absorber.flux_transform_m
+        absorber.tau = convert.density_to_tau(self.DENSITY_DELTA_rows+1,alpha,beta)
 
-        return
-
-    #Function to add flux skewers to the object.
-    def compute_flux_skewers(self):
-
-        #self.TAU_rows = get_tau(self.Z,self.DENSITY_DELTA_rows+1,alpha,beta)
-        self.F_rows = np.exp(-self.TAU_rows)
-        #self.F_rows = density_to_flux(self.DENSITY_DELTA_rows+1,alpha,beta)
-
-        #Set the skewers to 1 beyond the quasars.
+        #Set tau to 0 beyond the quasars.
         for i in range(self.N_qso):
-            if self.linear_skewer_RSDs_added == True:
-                last_relevant_cell = np.searchsorted(self.Z,self.Z_QSO[i]+self.DZ_RSD[i]) - 1
-            else:
-                last_relevant_cell = np.searchsorted(self.Z,self.Z_QSO[i]) - 1
-            self.F_rows[i,last_relevant_cell+1:] = 1
-
-        self.flux_computed = True
-
-        return
-
-    ## TODO: remove this, now defunct
-    #Function to add linear RSDs from the velocity skewers.
-    def add_linear_RSDs(self,alpha,beta):
-
-        #add RSDs to these physical density rows
-        new_TAU_rows = RSD.add_linear_skewer_RSDs(self.TAU_rows,self.VEL_rows,self.Z)
-
-        ## TODO: find a neater way to do this
-        #For the moment, we add a very small value onto the tau skewers, to avoid problems in the inverse lognormal transformation
-        #In future, when we don't care about the gaussian skewers, we can get rid of this
-        moodified_new_TAU_rows = new_TAU_rows + (new_TAU_rows==0)*1.0e-10
-
-        #convert the new tau rows back to physical density
-        new_density_rows = convert.tau_to_density(moodified_new_TAU_rows,alpha,beta)
-        new_density_delta_rows = new_density_rows - 1
-
-        #convert the new physical density rows back to gaussian
-        new_gaussian_rows = convert.lognormal_delta_to_gaussian(new_density_delta_rows,self.SIGMA_G,self.D)
-
-        #Make a mask where the physical skewers are zero.
-        #mask = (new_density_rows != 0)
-        #self.IVAR_rows *= mask
-
-        #Overwrite the physical and tau skewers and set a flag to True.
-        self.TAU_rows = new_TAU_rows
-        self.DENSITY_DELTA_rows = new_density_delta_rows
-        self.GAUSSIAN_DELTA_rows = new_gaussian_rows
-        self.linear_skewer_RSDs_added = True
+            last_relevant_cell = np.searchsorted(self.Z,self.Z_QSO[i]) - 1
+            absorber.tau[i,last_relevant_cell+1:] = 0
 
         return
 
     #Function to add thermal RSDs from the velocity skewers.
-    def add_RSDs(self,alpha,beta,thermal=False):
+    def add_RSDs(self,absorber,alpha,beta,thermal=False):
 
-        initial_density_rows = 1 + self.DENSITY_DELTA_rows
-        new_TAU_rows = RSD.add_skewer_RSDs(self.TAU_rows,initial_density_rows,self.VEL_rows,self.Z,self.R,thermal=thermal)
+        density = 1 + self.DENSITY_DELTA_rows
+        new_tau = RSD.add_skewer_RSDs(absorber.tau,density,self.VEL_rows,self.Z,self.R,thermal=thermal)
 
-        ## TODO: find a neater way to do this
-        #For the moment, we add a very small value onto the tau skewers, to avoid problems in the inverse lognormal transformation
-        #In future, when we don't care about the gaussian skewers, we can get rid of this
-        moodified_new_TAU_rows = new_TAU_rows + (new_TAU_rows==0)*1.0e-10
-
-        #convert the new tau rows back to physical density
-        new_density_rows = convert.tau_to_density(moodified_new_TAU_rows,alpha,beta)
-        new_density_delta_rows = new_density_rows - 1
-
-        #convert the new physical density rows back to gaussian
-        new_gaussian_rows = convert.lognormal_delta_to_gaussian(new_density_delta_rows,self.SIGMA_G,self.D)
-
-        #Make a mask where the physical skewers are zero.
-        #mask = (new_density_rows != 0)
-        #self.IVAR_rows *= mask
-
-        #Overwrite the physical and tau skewers and set a flag to True.
-        self.TAU_rows = new_TAU_rows
-        self.DENSITY_DELTA_rows = new_density_delta_rows
-        self.GAUSSIAN_DELTA_rows = new_gaussian_rows
-        self.thermal_skewer_RSDs_added = True
+        #Overwrite the tau skewers and set a flag to True.
+        absorber.tau = new_tau
 
         return
 
     #Function to measure mean flux.
-    def get_mean_flux(self,z_value=None,z_width=None):
+    def get_mean_flux(self,absorber,z_value=None,z_width=None):
 
+        F = absorber.transmission()
         if not z_value:
-            mean_F = np.average(self.F_rows,axis=0)
+            mean_F = np.average(F,axis=0)
 
         elif not z_width:
             j_value_upper = np.searchsorted(self.Z,z_value)
@@ -577,12 +510,12 @@ class simulation_data:
             weights[:,0] *= weight_lower
             weights[:,1] *= weight_upper
 
-            mean_F = np.average(self.F_rows[:,j_value_lower:j_value_upper+1],weights=weights)
+            mean_F = np.average(F[:,j_value_lower:j_value_upper+1],weights=weights)
 
         else:
             j_value_upper = np.searchsorted(self.Z,z_value + z_width/2.)
             j_value_lower = np.max(0,np.searchsorted(self.Z,z_value - z_width/2.) - 1)
-            mean_F = np.average(self.F_rows[j_value_lower:j_value_upper+1])
+            mean_F = np.average(F[j_value_lower:j_value_upper+1])
             #print(self.N_qso)
             #print(j_value_lower,j_value_upper)
         return mean_F
@@ -612,18 +545,13 @@ class simulation_data:
         MJD = np.concatenate((object_A.MJD,object_B.MJD),axis=0)
         FIBER = np.concatenate((object_A.FIBER,object_B.FIBER),axis=0)
 
-        if not gaussian_only:
-            GAUSSIAN_DELTA_rows = np.concatenate((object_A.GAUSSIAN_DELTA_rows,object_B.GAUSSIAN_DELTA_rows),axis=0)
-            DENSITY_DELTA_rows = np.concatenate((object_A.DENSITY_DELTA_rows,object_B.DENSITY_DELTA_rows),axis=0)
-            VEL_rows = np.concatenate((object_A.VEL_rows,object_B.VEL_rows),axis=0)
-            IVAR_rows = np.concatenate((object_A.IVAR_rows,object_B.IVAR_rows),axis=0)
-            F_rows = np.concatenate((object_A.F_rows,object_B.F_rows),axis=0)
-        else:
-            GAUSSIAN_DELTA_rows = np.concatenate((object_A.GAUSSIAN_DELTA_rows,object_B.GAUSSIAN_DELTA_rows),axis=0)
+        GAUSSIAN_DELTA_rows = np.concatenate((object_A.GAUSSIAN_DELTA_rows,object_B.GAUSSIAN_DELTA_rows),axis=0)
+        VEL_rows = np.concatenate((object_A.VEL_rows,object_B.VEL_rows),axis=0)
+        IVAR_rows = np.concatenate((object_A.IVAR_rows,object_B.IVAR_rows),axis=0)
+        if gaussian_only:
             DENSITY_DELTA_rows = None
-            VEL_rows = np.concatenate((object_A.VEL_rows,object_B.VEL_rows),axis=0)
-            IVAR_rows = np.concatenate((object_A.IVAR_rows,object_B.IVAR_rows),axis=0)
-            F_rows = None
+        else:
+            DENSITY_DELTA_rows = np.concatenate((object_A.DENSITY_DELTA_rows,object_B.DENSITY_DELTA_rows),axis=0)
 
         """
         Something to check this is ok?
@@ -636,7 +564,7 @@ class simulation_data:
         V = object_A.V
         A = object_A.A
 
-        return cls(N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,F_rows,R,Z,D,V,LOGLAM_MAP,A)
+        return cls(N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,R,Z,D,V,LOGLAM_MAP,A)
 
     #Function to save data as a Gaussian colore file.
     def save_as_gaussian_colore(self,location,filename,header,overwrite=False):
@@ -809,27 +737,56 @@ class simulation_data:
 
         return
 
+    #Compute transmission for a particular absorber, on a particular grid
+    def compute_grid_transmission(self,absorber,wave_grid):
+        #Get transmission on each cell, from tau stored in absorber 
+        F_skewer = absorber.transmission()
+        #Get rest-frame wavelength for this particular absorber
+        rest_wave = absorber.rest_wave
+        #Get wavelength on each original cell, for this particular absorber
+        wave_skewer = rest_wave*(1+self.Z)
+
+        # interpolate F into the common grid
+        N_los = F_skewer.shape[0]
+        N_w = wave_grid.shape[0]
+        F_grid = np.empty([N_los,N_w])
+        for i in range(N_los):
+            F_grid[i,] = np.interp(wave_grid,wave_skewer,F_skewer[i])
+
+        return F_grid
+
     #Function to save data as a transmission file.
     def save_as_transmission(self,location,filename,header):
-        lya_lambdas = 10**self.LOGLAM_MAP
+        
+        # define common wavelength grid to be written in files (in Angstroms)
+        wave_min=3550
+        wave_max=6500
+        wave_step=0.1
+        wave_grid=np.arange(wave_min,wave_max,wave_step)
 
+        # now we should loop over the different absorbers, combine them and 
+        # write them in HDUs. I suggest to have two HDU:
+        # - TRANSMISSION will contain both Lya and Lyb
+        # - METALS will contain all metal absorption
+
+        # compute Lyman alpha transmission on grid of wavelengths
+        F_grid_Lya = self.compute_grid_transmission(self.lya_absorber,wave_grid)
+        
+        # here we would add Lyb
+
+        # construct quasar catalog HDU
         Z_RSD = self.Z_QSO + self.DZ_RSD
-
-        transmission_1_data = list(zip(self.RA,self.DEC,Z_RSD,self.Z_QSO,self.MOCKID))
-
+        catalog_data = list(zip(self.RA,self.DEC,Z_RSD,self.Z_QSO,self.MOCKID))
         dtype = [('RA', 'f8'), ('DEC', 'f8'), ('Z', 'f8'), ('Z_noRSD', 'f8'), ('MOCKID', int)]
-        transmission_1 = np.array(transmission_1_data,dtype=dtype)
-
-        transmission_2 = 10**(self.LOGLAM_MAP)
-        transmission_3 = self.F_rows
+        catalog_data = np.array(catalog_data,dtype=dtype)
 
         #Construct HDUs from the data arrays.
         prihdr = fits.Header()
         prihdu = fits.PrimaryHDU(header=prihdr)
-        cols_METADATA = fits.ColDefs(transmission_1)
+        cols_METADATA = fits.ColDefs(catalog_data)
         hdu_METADATA = fits.BinTableHDU.from_columns(cols_METADATA,header=header,name='METADATA')
-        hdu_WAVELENGTH = fits.ImageHDU(data=transmission_2,header=header,name='WAVELENGTH')
-        hdu_TRANSMISSION = fits.ImageHDU(data=transmission_3,header=header,name='TRANSMISSION')
+        hdu_WAVELENGTH = fits.ImageHDU(data=wave_grid,header=header,name='WAVELENGTH')
+        hdu_TRANSMISSION = fits.ImageHDU(data=F_grid_Lya,header=header,name='TRANSMISSION')
 
         #Combine the HDUs into an HDUlist (including DLAs, if they have been computed)
         if hasattr(self,'DLA_table') == True:
@@ -856,27 +813,30 @@ class simulation_data:
             if np.sum(self.IVAR_rows[i,:]) >= min_number_cells:
                 relevant_QSOs += [i]
 
+        # get Lya transmission
+        F = self.lya_absorber.transmission()
+
         #Trim data according to the relevant cells and QSOs.
-        relevant_F_rows = self.F_rows[relevant_QSOs,:]
-        relevant_IVAR_rows = self.IVAR_rows[relevant_QSOs,:]
+        relevant_F = F[relevant_QSOs,:]
+        relevant_IVAR = self.IVAR_rows[relevant_QSOs,:]
         relevant_LOGLAM_MAP = self.LOGLAM_MAP[:]
         relevant_Z = self.Z[:]
 
-        #Calculate mean F as a function of z for the relevant cells, then F_DELTA_rows.
+        #Calculate mean F as a function of z for the relevant cells, then delta_F.
         try:
             mean_F_z_values = mean_F_data[:,0]
             mean_F = mean_F_data[:,1]
-            relevant_F_BAR = np.interp(relevant_Z,mean_F_z_values,mean_F)
+            relevant_mean_F = np.interp(relevant_Z,mean_F_z_values,mean_F)
         except ValueError:
             #This is done with a 'hack' to avoid problems with weights summing to zero.
             small = 1.0e-10
-            relevant_F_BAR = np.average(relevant_F_rows,weights=relevant_IVAR_rows+small,axis=0)
+            relevant_mean_F = np.average(relevant_F,weights=relevant_IVAR+small,axis=0)
 
-        relevant_F_DELTA_rows = ((relevant_F_rows)/relevant_F_BAR - 1)*relevant_IVAR_rows
+        relevant_delta_F = ((relevant_F)/relevant_mean_F - 1)*relevant_IVAR
 
         #Organise the data into picca-format arrays.
-        picca_0 = relevant_F_DELTA_rows.T
-        picca_1 = relevant_IVAR_rows.T
+        picca_0 = relevant_delta_F.T
+        picca_1 = relevant_IVAR.T
         picca_2 = relevant_LOGLAM_MAP
 
         picca_3_data = []
@@ -914,13 +874,13 @@ class simulation_data:
                 relevant_QSOs += [i]
 
         #Trim data according to the relevant cells and QSOs.
-        relevant_VEL_rows = self.VEL_rows[relevant_QSOs,:]
-        relevant_IVAR_rows = self.IVAR_rows[relevant_QSOs,:]
+        relevant_VEL = self.VEL_rows[relevant_QSOs,:]
+        relevant_IVAR = self.IVAR_rows[relevant_QSOs,:]
         relevant_LOGLAM_MAP = self.LOGLAM_MAP[:]
 
         #Organise the data into picca-format arrays.
-        picca_0 = relevant_VEL_rows.T
-        picca_1 = relevant_IVAR_rows.T
+        picca_0 = relevant_VEL.T
+        picca_1 = relevant_IVAR.T
         picca_2 = relevant_LOGLAM_MAP
 
         picca_3_data = []
@@ -963,38 +923,39 @@ class simulation_data:
         relevant_QSOs = [i for i in range(self.N_qso) if self.IVAR_rows[i,first_relevant_cell] == 1]
 
         #Trim data according to the relevant cells and QSOs.
-        relevant_DENSITY_DELTA_rows = self.DENSITY_DELTA_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
-        relevant_GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
-        relevant_F_rows = self.F_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
-        relevant_IVAR_rows = self.IVAR_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
+        relevant_DENSITY_DELTA = self.DENSITY_DELTA_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
+        relevant_GAUSSIAN_DELTA = self.GAUSSIAN_DELTA_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
+        F = self.lya_absorber.transmission()
+        relevant_F = F[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
+        relevant_IVAR = self.IVAR_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
         relevant_LOGLAM_MAP = self.LOGLAM_MAP[first_relevant_cell:last_relevant_cell+1]
 
         #For each cell, determine the number of skewers for which it is relevant.
-        N_relevant_skewers = np.sum(relevant_IVAR_rows,axis=0)
+        N_relevant_skewers = np.sum(relevant_IVAR,axis=0)
         relevant_cells = N_relevant_skewers>0
 
-        #Calculate F_DELTA_rows from F_rows.
+        #Calculate delta_F from F.
         #Introduce a small 'hack' in order to get around the problem of having cells with no skewers contributing to them.
         # TODO: find a neater way to deal with this
         small = 1.0e-10
-        relevant_F_BAR = np.average(relevant_F_rows,weights=relevant_IVAR_rows+small,axis=0)
-        relevant_F_DELTA_rows = ((relevant_F_rows)/relevant_F_BAR - 1)*relevant_IVAR_rows
+        relevant_mean_F = np.average(relevant_F,weights=relevant_IVAR+small,axis=0)
+        relevant_delta_F = ((relevant_F)/relevant_mean_F - 1)*relevant_IVAR
 
         #Calculate the mean in each cell of the gaussian delta and its square.
-        GDB = np.average(relevant_GAUSSIAN_DELTA_rows,weights=relevant_IVAR_rows+small,axis=0)*relevant_cells
-        GDSB = np.average(relevant_GAUSSIAN_DELTA_rows**2,weights=relevant_IVAR_rows+small,axis=0)*relevant_cells
+        GDB = np.average(relevant_GAUSSIAN_DELTA,weights=relevant_IVAR+small,axis=0)*relevant_cells
+        GDSB = np.average(relevant_GAUSSIAN_DELTA**2,weights=relevant_IVAR+small,axis=0)*relevant_cells
 
         #Calculate the mean in each cell of the density delta and its square.
-        DDB = np.average(relevant_DENSITY_DELTA_rows,weights=relevant_IVAR_rows+small,axis=0)*relevant_cells
-        DDSB = np.average(relevant_DENSITY_DELTA_rows**2,weights=relevant_IVAR_rows+small,axis=0)*relevant_cells
+        DDB = np.average(relevant_DENSITY_DELTA,weights=relevant_IVAR+small,axis=0)*relevant_cells
+        DDSB = np.average(relevant_DENSITY_DELTA**2,weights=relevant_IVAR+small,axis=0)*relevant_cells
 
         #Calculate the mean in each cell of the flux and its square.
-        FB = np.average(relevant_F_rows,weights=relevant_IVAR_rows+small,axis=0)*relevant_cells
-        FSB = np.average(relevant_F_rows**2,weights=relevant_IVAR_rows+small,axis=0)*relevant_cells
+        FB = np.average(relevant_F,weights=relevant_IVAR+small,axis=0)*relevant_cells
+        FSB = np.average(relevant_F**2,weights=relevant_IVAR+small,axis=0)*relevant_cells
 
         #Calculate the mean in each cell of the flux delta and its square.
-        FDB = np.average(relevant_F_DELTA_rows,weights=relevant_IVAR_rows+small,axis=0)*relevant_cells
-        FDSB = np.average(relevant_F_DELTA_rows**2,weights=relevant_IVAR_rows+small,axis=0)*relevant_cells
+        FDB = np.average(relevant_delta_F,weights=relevant_IVAR+small,axis=0)*relevant_cells
+        FDSB = np.average(relevant_delta_F**2,weights=relevant_IVAR+small,axis=0)*relevant_cells
 
         #Stitch together the means into a binary table.
         dtype = [('N', 'f4'),('GAUSSIAN_DELTA', 'f4'), ('GAUSSIAN_DELTA_SQUARED', 'f4'), ('DENSITY_DELTA', 'f4'), ('DENSITY_DELTA_SQUARED', 'f4')

@@ -179,7 +179,7 @@ def measure_pixel_segment(pixel,z_value,ID,lookup):
     gaussian_filename = new_filename_structure.format('gaussian-colore',N_side,pixel)
 
     #Make a pixel object from it.
-    data = pixelise.simulation_data.get_gaussian_skewers_object(location+gaussian_filename,None,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
+    data = pixelise.SimulationData.get_gaussian_skewers_object(location+gaussian_filename,None,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
 
     #Determine the sigma_G to add
     extra_sigma_G = np.sqrt(sigma_G_required**2 - measured_SIGMA_G**2)
@@ -200,9 +200,8 @@ def measure_pixel_segment(pixel,z_value,ID,lookup):
 
     #Convert to flux
     data.compute_physical_skewers()
-    data.compute_tau_skewers(alpha=np.ones(data.Z.shape[0])*alpha,beta=beta)
-    data.add_RSDs(np.ones(data.Z.shape[0])*alpha,beta,thermal=False)
-    data.compute_flux_skewers()
+    data.compute_tau_skewers(data.lya_absorber,alpha=np.ones(data.Z.shape[0])*alpha,beta=beta)
+    data.add_RSDs(data.lya_absorber,np.ones(data.Z.shape[0])*alpha,beta,thermal=False)
 
     #Trim the skewers again to get rid of the additional cells
     lambda_min_val = lya*(1 + z_value - z_width/2)
