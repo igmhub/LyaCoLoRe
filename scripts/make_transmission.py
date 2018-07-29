@@ -366,11 +366,11 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
 
     if transmission_only == False:
         #Picca Gaussian
-        filename = new_filename_structure.format('picca-gaussian-noRSD',N_side,pixel)
+        filename = new_filename_structure.format('picca-gaussian',N_side,pixel)
         pixel_object.save_as_picca_gaussian(location,filename,header)
 
         #Picca density
-        filename = new_filename_structure.format('picca-density-noRSD',N_side,pixel)
+        filename = new_filename_structure.format('picca-density',N_side,pixel)
         pixel_object.save_as_picca_density(location,filename,header)
 
         #picca flux
@@ -388,12 +388,12 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
 
     if transmission_only == False:
         #Picca Gaussian
-        filename = new_filename_structure.format('picca-gaussian',N_side,pixel)
-        pixel_object.save_as_picca_gaussian(location,filename,header)
+        #filename = new_filename_structure.format('picca-gaussian',N_side,pixel)
+        #pixel_object.save_as_picca_gaussian(location,filename,header)
 
         #Picca density
-        filename = new_filename_structure.format('picca-density',N_side,pixel)
-        pixel_object.save_as_picca_density(location,filename,header)
+        #filename = new_filename_structure.format('picca-density',N_side,pixel)
+        #pixel_object.save_as_picca_density(location,filename,header)
 
         #picca flux
         filename = new_filename_structure.format('picca-flux',N_side,pixel)
