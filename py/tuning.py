@@ -58,7 +58,7 @@ class measurement:
         return
     def add_mean_F_measurement(self,pixel_object):
         #print(self.z_value,self.z_width)
-        self.mean_F = pixel_object.get_mean_flux(z_value=self.z_value,z_width=self.z_width)
+        self.mean_F = pixel_object.get_mean_flux(pixel_object.lya_absorber,z_value=self.z_value,z_width=self.z_width)
         return
     def add_Pk1D_chi2(self,min_k=None,max_k=None,denom="krange10"):
         model_Pk_kms = P1D_z_kms_PD2013(self.k_kms,self.z_value)

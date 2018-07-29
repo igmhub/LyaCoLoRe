@@ -12,7 +12,7 @@ import absorber
 
 lya = 1215.67
 
-#Function to create a 'simulation_data' object given a specific pixel, information about the complete simulation, and the location/filenames of data files.
+#Function to create a SimulationData object given a specific pixel, information about the complete simulation, and the location/filenames of data files.
 def make_gaussian_pixel_object(pixel,original_file_location,original_filename_structure,input_format,MOCKID_lookup,lambda_min=0,IVAR_cutoff=lya):
 
     #Determine which file numbers we need to look at for the current pixel.
@@ -26,15 +26,15 @@ def make_gaussian_pixel_object(pixel,original_file_location,original_filename_st
         relevant_MOCKIDs = MOCKID_lookup[key]
         N_relevant_qso = len(relevant_MOCKIDs)
 
-        #If there are some relevant quasars, open the data file and make it into a simulation_data object.
-        #We use simulation_data.get_reduced_data to avoid loading all of the file's data into the object.
+        #If there are some relevant quasars, open the data file and make it into a SimulationData object.
+        #We use SimulationData.get_reduced_data to avoid loading all of the file's data into the object.
         if N_relevant_qso > 0:
             filename = original_file_location + '/' + original_filename_structure.format(file_number)
-            working = simulation_data.get_gaussian_skewers_object(filename,file_number,input_format,MOCKIDs=relevant_MOCKIDs,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff)
+            working = SimulationData.get_gaussian_skewers_object(filename,file_number,input_format,MOCKIDs=relevant_MOCKIDs,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff)
 
         #Combine the data from the working file with that from the files already looked at.
         if files_included > 0:
-            combined = simulation_data.combine_files(combined,working,gaussian_only=True)
+            combined = SimulationData.combine_files(combined,working,gaussian_only=True)
             files_included += 1
         else:
             combined = working
@@ -44,8 +44,8 @@ def make_gaussian_pixel_object(pixel,original_file_location,original_filename_st
 
     return pixel_object
 
-#Definition of a generic 'simulation_data' class, from which it is easy to save in new formats.
-class simulation_data:
+#Definition of a generic SimulationData class, from which it is easy to save in new formats.
+class SimulationData:
     #Initialisation function.
     def __init__(self,N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,R,Z,D,V,LOGLAM_MAP,A):
 
@@ -81,21 +81,12 @@ class simulation_data:
         self.V = V
         self.A = A
 
-        # below are mostly obsolete 
-
-        self.linear_skewer_RSDs_added = False
-        self.thermal_skewer_RSDs_added = False
-
-        self.density_computed = False
-
         #self.absorbers = []
         #self.absorbers.append(absorber.AbsorberData(name='Lya',rest_wave=1215.67,flux_transform_m=1.0))
         #self.absorbers.append(absorber.AbsorberData(name='Lyb',rest_wave=1024.0,flux_transform_m=0.1))
         #self.absorbers.append(absorber.AbsorberData(name='SiII',rest_wave=1205.0,flux_transform_m=0.05))
 
         self.lya_absorber=absorber.AbsorberData(name='Lya',rest_wave=1215.67,flux_transform_m=1.0)
-
-        self.lya_absorber.tau_computed = False
 
         return
 
@@ -317,22 +308,22 @@ class simulation_data:
         self.FIBER = self.FIBER[relevant_QSOs]
 
         self.GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows[relevant_QSOs,:]
-        if self.density_computed == True:
+        if self.DENSITY_DELTA_rows is not None:
             self.DENSITY_DELTA_rows = self.DENSITY_DELTA_rows[relevant_QSOs,:]
         self.VEL_rows = self.VEL_rows[relevant_QSOs,:]
         self.IVAR_rows = self.IVAR_rows[relevant_QSOs,:]
-        if self.lya_absorber.tau_computed == True:
+        if self.lya_absorber.tau_computed():
             self.lya_absorber.tau = self.lya_absorber.tau[relevant_QSOs,:]
 
         #Now trim the skewers of the remaining QSOs.
         self.N_cells = last_relevant_cell - first_relevant_cell + 1
 
         self.GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows[:,first_relevant_cell:last_relevant_cell + 1]
-        if self.density_computed == True:
+        if self.DENSITY_DELTA_rows is not None:
             self.DENSITY_DELTA_rows = self.DENSITY_DELTA_rows[:,first_relevant_cell:last_relevant_cell + 1]
         self.VEL_rows = self.VEL_rows[:,first_relevant_cell:last_relevant_cell + 1]
         self.IVAR_rows = self.IVAR_rows[:,first_relevant_cell:last_relevant_cell + 1]
-        if self.lya_absorber.tau_computed == True:
+        if self.lya_absorber.tau_computed():
             self.lya_absorber.tau = self.lya_absorber.tau[:,first_relevant_cell:last_relevant_cell + 1]
 
         self.R = self.R[first_relevant_cell:last_relevant_cell + 1]
@@ -382,10 +373,8 @@ class simulation_data:
         last_relevant_cells = np.zeros(self.N_qso)
         for i in range(self.N_qso):
             first_relevant_cell = np.searchsorted(10**(self.LOGLAM_MAP),lambda_min)
-            if self.linear_skewer_RSDs_added == True:
-                last_relevant_cell = np.searchsorted(self.Z,self.Z_QSO[i]+self.DZ_RSD[i]) - 1
-            else:
-                last_relevant_cell = np.searchsorted(self.Z,self.Z_QSO[i]) - 1
+            # it is not clear whether to cut at Z_QSO or Z_QSO + DZ_RSD
+            last_relevant_cell = np.searchsorted(self.Z,self.Z_QSO[i]) - 1
 
             #Clip the gaussian skewers so that they are zero after the quasar.
             #This avoids effects from NGP interpolation).
@@ -470,7 +459,6 @@ class simulation_data:
     def compute_physical_skewers(self,density_type='lognormal'):
 
         self.DENSITY_DELTA_rows = convert.gaussian_to_lognormal_delta(self.GAUSSIAN_DELTA_rows,self.SIGMA_G,self.D)
-        self.density_computed = True
 
         return
 
@@ -486,8 +474,6 @@ class simulation_data:
             last_relevant_cell = np.searchsorted(self.Z,self.Z_QSO[i]) - 1
             absorber.tau[i,last_relevant_cell+1:] = 0
 
-        absorber.tau_computed = True
-
         return
 
     #Function to add thermal RSDs from the velocity skewers.
@@ -498,14 +484,13 @@ class simulation_data:
 
         #Overwrite the tau skewers and set a flag to True.
         absorber.tau = new_tau
-        absorber.RSDs_added = True
 
         return
 
     #Function to measure mean flux.
-    def get_mean_flux(self,z_value=None,z_width=None):
+    def get_mean_flux(self,absorber,z_value=None,z_width=None):
 
-        F = self.lya_absorber.transmission()
+        F = absorber.transmission()
         if not z_value:
             mean_F = np.average(F,axis=0)
 
