@@ -476,6 +476,16 @@ class SimulationData:
 
         return
 
+    def compute_all_tau_skewers(self,alpha,beta):
+
+        # for each absorber, compute its optical depth skewers
+        self.compute_tau_skewers(lya_absorber,alpha,beta)
+
+        # do the same for Ly-b
+
+        return
+
+
     #Function to add thermal RSDs from the velocity skewers.
     def add_RSDs(self,absorber,alpha,beta,thermal=False):
 
@@ -486,6 +496,17 @@ class SimulationData:
         absorber.tau = new_tau
 
         return
+
+
+    def add_all_RSDs(self,alpha,beta,thermal=False):
+
+        # for each absorber, add RSDs
+        self.add_RSDs(lya_absorber,alpha,beta,thermal)
+
+        # do the same for Ly-b
+
+        return
+
 
     #Function to measure mean flux.
     def get_mean_flux(self,absorber,z_value=None,z_width=None):
