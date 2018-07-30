@@ -10,9 +10,7 @@ import time
 lya = 1215.67
 N_processes = int(sys.argv[1])
 
-basedir = 'example_data/update_160518/'
-basedir = '/Users/James/Projects/test_data/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_nside16/'
-basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test/'
+basedir = '../example_data/lya_skewers/'
 
 files = glob.glob(basedir + '/*/*/gaussian-colore-16*.fits')
 
@@ -148,32 +146,11 @@ vel_skw_hist /= sum(vel_skw_hist)
 
 plt.plot(bin_centres,QSO_hist,label='QSO dz values')
 plt.plot(bin_centres,vel_skw_hist,label='vel skw values')
+plt.xlabel('dz')
+plt.title('Histogram of RSD dz from QSO and skewer cells')
 plt.legend()
 plt.grid()
 plt.savefig('dz_histogram_{}_{}.pdf'.format(N_files,rest_frame_cutoff))
 plt.show()
 
 
-
-"""
-for k,file in enumerate(files):
-    print('\nlooking at {} ({}/{})'.format(file,k+1,len(files)))
-    h = fits.open(file)
-
-    relevant_QSOs = [i for i in range(h[1].data.shape[0]) if h[1].data['Z_COSMO'][i] > z_min and h[1].data['Z_COSMO'][i] < z_max]
-    file_QSO_hist,bins = np.histogram(h[1].data['DZ_RSD'][relevant_QSOs],bins=N_bins,range=dz_range)
-    N_QSO += len(relevant_QSOs)
-    QSO_hist += file_QSO_hist
-    print('done with QSOs')
-
-    for i,relevant_QSO in enumerate(relevant_QSOs):
-        print('{}/{} skewers'.format(i,len(relevant_QSOs)),end='\r')
-        relevant_cells = [i for i in range(h[4].data.shape[0]) if h[4].data['Z'][i] > z_min and h[4].data['Z'][i] < min(h[1].data['Z_COSMO'][relevant_QSO],z_max)]
-        file_vel_skw_hist,bins = np.histogram(h[3].data[relevant_QSO,relevant_cells],bins=N_bins,range=dz_range)
-        N_cells += len(relevant_cells)
-        vel_skw_hist += file_vel_skw_hist
-    print('done with vel skewers')
-
-    h.close()
-
-"""
