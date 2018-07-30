@@ -479,7 +479,7 @@ class SimulationData:
     def compute_all_tau_skewers(self,alpha,beta):
 
         # for each absorber, compute its optical depth skewers
-        self.compute_tau_skewers(lya_absorber,alpha,beta)
+        self.compute_tau_skewers(self.lya_absorber,alpha,beta)
 
         # do the same for Ly-b
 
@@ -501,7 +501,7 @@ class SimulationData:
     def add_all_RSDs(self,alpha,beta,thermal=False):
 
         # for each absorber, add RSDs
-        self.add_RSDs(lya_absorber,alpha,beta,thermal)
+        self.add_RSDs(self.lya_absorber,alpha,beta,thermal)
 
         # do the same for Ly-b
 

@@ -31,8 +31,9 @@ cell_size = 0.25 #Mpc/h
 max_k = 0.005 #skm-1
 
 #Open up the Gaussian colore files
-base_file_location = '/Users/jfarr/Projects/test_data/test/'
-base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_nside16_RSD'
+#base_file_location = '/Users/jfarr/Projects/test_data/test/'
+#base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_nside16_RSD'
+base_file_location = 'example_data/lya_skewers'
 N_side = 16
 
 new_file_structure = '{}/{}/'               #pixel number//100, pixel number
