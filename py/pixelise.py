@@ -87,7 +87,7 @@ class SimulationData:
         #self.absorbers.append(absorber.AbsorberData(name='SiII',rest_wave=1205.0,flux_transform_m=0.05))
 
         self.lya_absorber=absorber.AbsorberData(name='Lya',rest_wave=1215.67,flux_transform_m=1.0)
-
+        self.lyb_absorber=absorber.AbsorberData(name='Lyb',rest_wave=1025.72,flux_transform_m=0.1)
         return
 
     #Method to extract reduced data from an input file of a given format, with a given list of MOCKIDs.
@@ -479,9 +479,10 @@ class SimulationData:
     def compute_all_tau_skewers(self,alpha,beta):
 
         # for each absorber, compute its optical depth skewers
-        self.compute_tau_skewers(lya_absorber,alpha,beta)
+        self.compute_tau_skewers(self.lya_absorber,alpha,beta)
 
-        # do the same for Ly-b
+        # optical depth for Ly_b
+        self.compute_tau_skewers(self.lyb_absorber,alpha,beta)
 
         return
 
@@ -501,9 +502,10 @@ class SimulationData:
     def add_all_RSDs(self,alpha,beta,thermal=False):
 
         # for each absorber, add RSDs
-        self.add_RSDs(lya_absorber,alpha,beta,thermal)
+        self.add_RSDs(self.lya_absorber,alpha,beta,thermal)
 
-        # do the same for Ly-b
+        # RSD for Ly-b
+        self.add_RSDd(self.lyb_absorber,alpha,beta,thermal)
 
         return
 
@@ -793,7 +795,8 @@ class SimulationData:
         # compute Lyman alpha transmission on grid of wavelengths
         F_grid_Lya = self.compute_grid_transmission(self.lya_absorber,wave_grid)
         
-        # here we would add Lyb
+        # compute Lyman beta transmission on grid of wavelengths
+        F_grid_Lyb = self.compute_grid_transmission(self.lyb_absorber,wave_grid)
 
         # construct quasar catalog HDU
         Z_RSD = self.Z_QSO + self.DZ_RSD
@@ -807,6 +810,8 @@ class SimulationData:
         cols_METADATA = fits.ColDefs(catalog_data)
         hdu_METADATA = fits.BinTableHDU.from_columns(cols_METADATA,header=header,name='METADATA')
         hdu_WAVELENGTH = fits.ImageHDU(data=wave_grid,header=header,name='WAVELENGTH')
+              #Gives transmission with the different species
+        #hdu_TRANSMISSION = fits.ImageHDU(data=F_grid_Lya*F_grid_Lyb,header=header,name='TRANSMISSION')
         hdu_TRANSMISSION = fits.ImageHDU(data=F_grid_Lya,header=header,name='TRANSMISSION')
 
         #Combine the HDUs into an HDUlist (including DLAs, if they have been computed)
