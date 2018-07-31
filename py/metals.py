@@ -1,5 +1,13 @@
 import absorber
 
+
+
+"""
+This is a dictionary containing names of the added metals, their corresponding restframe wavelength, and optical depth.
+The values are taken as the ones used in desisim, and Si lines were chosen as in Bautista et al. 2017 https://arxiv.org/pdf/1702.00176.pdf
+Notice that the metals that are being considered are only those with wavelengths  close from Lya.
+
+"""
 def get_metal_dict():
     metal_dict = { 
       'SiII(1260)' : absorber.AbsorberData('SiII(1260)',1260.42,8.e-4),
