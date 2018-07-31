@@ -9,6 +9,7 @@ import RSD
 import DLA
 import independent
 import absorber
+import metals
 
 lya = 1215.67
 
@@ -88,6 +89,10 @@ class SimulationData:
 
         self.lya_absorber=absorber.AbsorberData(name='Lya',rest_wave=1215.67,flux_transform_m=1.0)
         self.lyb_absorber=absorber.AbsorberData(name='Lyb',rest_wave=1025.72,flux_transform_m=0.1)
+
+        # get a dictionary with multiple absorbers, one for each metal line 
+        self.metals=metals.get_metal_dict()
+
         return
 
     #Method to extract reduced data from an input file of a given format, with a given list of MOCKIDs.
@@ -483,6 +488,10 @@ class SimulationData:
 
         # optical depth for Ly_b
         self.compute_tau_skewers(self.lyb_absorber,alpha,beta)
+    
+        # loop over metals in dictionary
+        for metal in iter(self.metals.values()):
+            self.compute_tau_skewers(metal,alpha,beta)
 
         return
 
@@ -505,7 +514,11 @@ class SimulationData:
         self.add_RSDs(self.lya_absorber,alpha,beta,thermal)
 
         # RSD for Ly-b
-        self.add_RSDd(self.lyb_absorber,alpha,beta,thermal)
+        self.add_RSDs(self.lyb_absorber,alpha,beta,thermal)
+
+        # loop over metals in dictionary
+        for metal in iter(self.metals.values()):
+            self.add_RSDs(metal,alpha,beta,thermal)
 
         return
 
