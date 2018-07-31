@@ -46,5 +46,6 @@ The input directory is a file previously created with CoLoRe. To run this instru
 Other option of interest are:
  - If you are only looking to run on a small number of skewers, the "--pixels" option allows you to specify pixel numbers to work on. For example adding "--pixels 0 1 2 3" would produce output files for pixels 0, 1, 2 and 3 and ignore all other pixels
  - If you would only like to produce transmission files (and not Gaussian or Density files), then the option "--transmission-only" will do this
+ - You probably want to add RSD to the flux skewers. If so, you'll need to add the flag --add-RSDs.
 
 These two stages can be carried out in parallel using the script 'run_process_colore_multi_node.sh'.
