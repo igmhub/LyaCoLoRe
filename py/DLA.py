@@ -11,8 +11,9 @@ try:
     from astropy import constants as const
     from astropy import cosmology
     fN_default = FNModel.default_model()
+    fN_default.zmnx = (0.5,4)
     cosmo = fN_default.cosmo
-    use_pyigm = False#True
+    use_pyigm = True #False
 except:
     use_pyigm = False
 
@@ -99,6 +100,8 @@ def add_DLA_table_to_object(object,dla_bias=2.0,extrapolate_z_down=None,Nmin=19.
     else:
         N = z_width*dNdz(object.Z,Nmin=Nmin,Nmax=Nmax) # Average number of DLAs per pixel
 
+    N_old = z_width*dNdz(object.Z,Nmin=Nmin,Nmax=Nmax) # Average number of DLAs per pixel
+    print(N,N_old)
     #For a given z, probability of having the density higher than the threshold
     p_nu_z = 1.0-norm.cdf(nu_arr)
     mu = N/p_nu_z
