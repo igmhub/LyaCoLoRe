@@ -829,6 +829,14 @@ class SimulationData:
         else:
             F_grid_Lyb = self.compute_grid_transmission(self.lyb_absorber,wave_grid)
 
+        # compute metals' transmission on grid of wavelengths
+        F_grid_met = np.ones_like(F_grid_Lya)
+        for metal in iter(self.metals.values()):
+            F_i=self.compute_grid_transmission(metal,wave_grid) 
+            F_grid_met *= F_i
+
+        F_grid_met
+
         # construct quasar catalog HDU
         Z_RSD = self.Z_QSO + self.DZ_RSD
         catalog_data = list(zip(self.RA,self.DEC,Z_RSD,self.Z_QSO,self.MOCKID))
@@ -843,7 +851,8 @@ class SimulationData:
         hdu_WAVELENGTH = fits.ImageHDU(data=wave_grid,header=header,name='WAVELENGTH')
               #Gives transmission with the different species
         #hdu_TRANSMISSION = fits.ImageHDU(data=F_grid_Lya*F_grid_Lyb,header=header,name='TRANSMISSION')
-        hdu_TRANSMISSION = fits.ImageHDU(data=F_grid_Lya,header=header,name='TRANSMISSION')
+        #hdu_TRANSMISSION = fits.ImageHDU(data=F_grid_Lya,header=header,name='TRANSMISSION')
+        hdu_TRANSMISSION = fits.ImageHDU(data=F_grid_met,header=header,name='TRANSMISSION')
 
         #Combine the HDUs into an HDUlist (including DLAs, if they have been computed)
         if hasattr(self,'DLA_table') == True:
