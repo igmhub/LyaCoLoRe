@@ -16,7 +16,7 @@ import general
 
 lya = 1215.67
 
-N_processes = 4
+N_processes = 64
 lambda_min = 3550.0
 min_cat_z = 1.8
 IVAR_cutoff = 1150.0
@@ -32,7 +32,7 @@ max_k = 0.005 #skm-1
 
 #Open up the Gaussian colore files
 base_file_location = '/Users/jfarr/Projects/test_data/test/'
-#base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_nside16_RSD'
+base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_nside16_RSD'
 N_side = 16
 
 new_file_structure = '{}/{}/'               #pixel number//100, pixel number
@@ -103,19 +103,12 @@ for z_value in z_values:
 
 
 ################################################################################
-"""
-#Set the parameter values that we will iterate over
-import itertools
-for i,z_value in enumerate(z_values):
-    a = alpha_values[i] * multipliers
-    b = [beta_values[i]]
-    sG = sigma_G_values[i] * multipliers
 
-"""
-#s_multipliers = np.linspace(0.7,1.3,5)
-t_multipliers = np.linspace(0.8,1.2,1)
-n_multipliers = np.linspace(0.8,1.2,1)
-k1_multipliers = np.linspace(0.8,1.2,1)
+a_multipliers = np.linspace(0.4,1.6,7)
+b_multipliers = np.linspace(0.4,1.6,7)
+sG_multipliers = np.linspace(0.4,1.6,7)
+n_multipliers = np.linspace(0.1,0.7,5)
+k1_multipliers = np.linspace(1.45,2.05,5)
 
 #Extract the values of parameters to optimise over
 parameters_list = []
@@ -124,13 +117,18 @@ lookup = {}
 
 import itertools
 for i,z_value in enumerate(z_values):
-    a = [alpha_values[i]] * t_multipliers
-    b = [beta_values[i]] * t_multipliers
-    sG = [sigma_G_values[i]] * t_multipliers
+    a = [alpha_values[i]] * a_multipliers
+    b = [beta_values[i]] * b_multipliers
+    sG = [sigma_G_values[i]] * sG_multipliers
 
     n = [n_values[i]] * n_multipliers
     k1 = [k1_values[i]] * k1_multipliers
-
+ 
+    a = [1.737]
+    b=[1.65]
+    sG=[6.578]
+    n=[0.9098]
+    k1=[0.003395] 
     #parameters_list += list(itertools.product([z_value],a,b,sG,n,k1))
 
     s_parameter_values_list = list(itertools.product(n,k1))
@@ -218,7 +216,7 @@ def measure_pixel_segment(pixel,z_value,ID,lookup):
     #print('measure Pk1D',z_value)
     measurement.add_Pk1D_measurement(data)
     #print('measure chi2s',z_value)
-    measurement.add_mean_F_chi2(eps=0.05)
+    measurement.add_mean_F_chi2(eps=0.01)
     measurement.add_Pk1D_chi2(max_k=max_k)
     measurement.add_total_chi2()
 
@@ -249,7 +247,7 @@ print('after combining, number measuremts is:',len(combined_set.measurements))
 def get_model_Pk_kms(k_kms,A_F,B_F):
     return tuning.P1D_z_kms_PD2013(k_kms,z_value,A_F=A_F,B_F=B_F)
 
-measurement_set.save('measurements.fits',existing='combine')
+#measurement_set.save('measurements.fits',existing='combine')
 optimal_measurements = measurement_set.optimize_s_parameters(plot_optimal=True)
 
 

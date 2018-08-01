@@ -255,6 +255,7 @@ class measurement_set:
                 z_s_set = s_set.z_filter(z_value)
                 best = z_s_set.get_best_measurement()
                 print('->-> chi2 Pk1D {:2.2f}, mean_F {:2.2f}, total {:2.2f}'.format(best.Pk_kms_chi2,best.mean_F_chi2,best.total_chi2))
+                print('->-> alpha {:2.2f}, beta {:2.2f}, sigma_G {:2.2f}'.format(best.alpha,best.beta,best.sigma_G))
                 total_chi2 += best.total_chi2
                 fixed_s_best_measurements += [best]
             if total_chi2 < min_chi2:
@@ -263,8 +264,11 @@ class measurement_set:
             print(' ')
         s_optimized_set = measurement_set(measurements=best_measurements)
         print('number measurements in optimised is:',len(s_optimized_set.measurements))
-        for m in s_optimized_set.measurements:
-            print(m.z_value,m.total_chi2)
+        for best in s_optimized_set.measurements:
+            print(best.z_value)
+            print('->-> chi2 Pk1D {:2.2f}, mean_F {:2.2f}, total {:2.2f}'.format(best.Pk_kms_chi2,best.mean_F_chi2,best.total_chi2))
+            print('->-> alpha {:2.2f}, beta {:2.2f}, sigma_G {:2.2f}'.format(best.alpha,best.beta,best.sigma_G))
+            print('->-> n {:2.2f}, k1 {:2.6f}'.format(best.n,best.k1))
         if plot_optimal:
             plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
             for m in s_optimized_set.measurements:
@@ -276,8 +280,8 @@ class measurement_set:
             plt.xlabel('k / kms-1')
             plt.legend()
             plt.grid()
-            plt.savefig('Pk1D_002.pdf')
-            plt.show()
+            plt.savefig('Pk1D_010.pdf')
+            #plt.show()
 
             plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
             mean_F = []
@@ -298,8 +302,8 @@ class measurement_set:
             plt.xlabel('z')
             plt.legend()
             plt.grid()
-            plt.savefig('mean_F_002.pdf')
-            plt.show()
+            plt.savefig('mean_F_010.pdf')
+            #plt.show()
 
             plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
             plt.plot(z,alpha,marker='o',label='alpha')
@@ -309,8 +313,8 @@ class measurement_set:
             plt.xlabel('z')
             plt.legend()
             plt.grid()
-            plt.savefig('parameters_002.pdf')
-            plt.show()
+            plt.savefig('parameters_010.pdf')
+            #plt.show()
 
         n_grids = len(z_values) * 3
         n_values = np.sort(list(set([spv[0] for spv in s_parameter_values_list])))
@@ -351,7 +355,7 @@ class measurement_set:
                                    ha="center", va="center", color=(0,0,0))
             ax.set_title('Pk chi2 values, z={}'.format(z_value))
             plt.savefig('colour_z{}_{}.pdf'.format(z_value,'Pk'))
-            plt.show()
+            #plt.show()
 
             fig, ax = plt.subplots(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
             im = ax.imshow(colour_grids[k*3+1,:,:],cmap='YlGn',vmin=0,vmax=np.max(colour_grids))
@@ -373,7 +377,7 @@ class measurement_set:
                                    ha="center", va="center", color=(0,0,0))
             ax.set_title('mean F chi2 values, z={}'.format(z_value))
             plt.savefig('colour_z{}_{}.pdf'.format(z_value,'mean_F'))
-            plt.show()
+            #plt.show()
 
             fig, ax = plt.subplots(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
             im = ax.imshow(colour_grids[k*3+2,:,:],cmap='YlGn',vmin=0,vmax=np.max(colour_grids))
@@ -395,79 +399,80 @@ class measurement_set:
                                    ha="center", va="center", color=(0,0,0))
             ax.set_title('Total chi2 values, z={}'.format(z_value))
             plt.savefig('colour_z{}_{}.pdf'.format(z_value,'total'))
-            plt.show()
+            #plt.show()
 
-        collapsed_z_colour_grids = np.zeros((3,len(n_values),len(k1_values)))
-        for j,z_value in enumerate(z_values):
-            collapsed_z_colour_grids[0,:,:] += colour_grids[3*j+0,:,:]
-            collapsed_z_colour_grids[1,:,:] += colour_grids[3*j+1,:,:]
-            collapsed_z_colour_grids[2,:,:] += colour_grids[3*j+2,:,:]
+        if len(z_values) > 1:
+            collapsed_z_colour_grids = np.zeros((3,len(n_values),len(k1_values)))
+            for j,z_value in enumerate(z_values):
+                collapsed_z_colour_grids[0,:,:] += colour_grids[3*j+0,:,:]
+                collapsed_z_colour_grids[1,:,:] += colour_grids[3*j+1,:,:]
+                collapsed_z_colour_grids[2,:,:] += colour_grids[3*j+2,:,:]
 
-        fig, ax = plt.subplots(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
-        im = ax.imshow(collapsed_z_colour_grids[0,:,:],cmap='YlGn',vmin=0,vmax=np.max(colour_grids))
-        # Create colorbar
-        cbar = ax.figure.colorbar(im, ax=ax)
-        cbar.ax.set_ylabel("chi2", rotation=-90, va="bottom")
-        # We want to show all ticks...
-        ax.set_xticks(np.arange(len(n_values)))
-        ax.set_yticks(np.arange(len(k1_values)))
-        # ... and label them with the respective list entries
-        ax.set_xticklabels(n_values)
-        ax.set_yticklabels(k1_values)
-        # Rotate the tick labels and set their alignment.
-        plt.setp(ax.get_xticklabels(), ha="right")
-        # Loop over data dimensions and create text annotations.
-        for i in range(len(n_values)):
-            for j in range(len(k1_values)):
-                text = ax.text(j, i, round(collapsed_z_colour_grids[0,i,j],2),
-                               ha="center", va="center", color=(0,0,0))
-        ax.set_title('Pk chi2 values, all z values')
-        plt.savefig('colour_{}.pdf'.format('Pk'))
-        plt.show()
+            fig, ax = plt.subplots(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
+            im = ax.imshow(collapsed_z_colour_grids[0,:,:],cmap='YlGn',vmin=0,vmax=np.max(colour_grids))
+            # Create colorbar
+            cbar = ax.figure.colorbar(im, ax=ax)
+            cbar.ax.set_ylabel("chi2", rotation=-90, va="bottom")
+            # We want to show all ticks...
+            ax.set_xticks(np.arange(len(n_values)))
+            ax.set_yticks(np.arange(len(k1_values)))
+            # ... and label them with the respective list entries
+            ax.set_xticklabels(n_values)
+            ax.set_yticklabels(k1_values)
+            # Rotate the tick labels and set their alignment.
+            plt.setp(ax.get_xticklabels(), ha="right")
+            # Loop over data dimensions and create text annotations.
+            for i in range(len(n_values)):
+                for j in range(len(k1_values)):
+                    text = ax.text(j, i, round(collapsed_z_colour_grids[0,i,j],2),
+                                   ha="center", va="center", color=(0,0,0))
+            ax.set_title('Pk chi2 values, all z values')
+            plt.savefig('colour_{}.pdf'.format('Pk'))
+            #plt.show()
 
-        fig, ax = plt.subplots(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
-        im = ax.imshow(collapsed_z_colour_grids[1,:,:],cmap='YlGn',vmin=0,vmax=np.max(colour_grids))
-        # Create colorbar
-        cbar = ax.figure.colorbar(im, ax=ax)
-        cbar.ax.set_ylabel("chi2", rotation=-90, va="bottom")
-        # We want to show all ticks...
-        ax.set_xticks(np.arange(len(n_values)))
-        ax.set_yticks(np.arange(len(k1_values)))
-        # ... and label them with the respective list entries
-        ax.set_xticklabels(n_values)
-        ax.set_yticklabels(k1_values)
-        # Rotate the tick labels and set their alignment.
-        plt.setp(ax.get_xticklabels(), ha="right")
-        # Loop over data dimensions and create text annotations.
-        for i in range(len(n_values)):
-            for j in range(len(k1_values)):
-                text = ax.text(j, i, round(collapsed_z_colour_grids[1,i,j],2),
-                               ha="center", va="center", color=(0,0,0))
-        ax.set_title('mean F chi2 values, all z values')
-        plt.savefig('colour_{}.pdf'.format('mean_F'))
-        plt.show()
+            fig, ax = plt.subplots(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
+            im = ax.imshow(collapsed_z_colour_grids[1,:,:],cmap='YlGn',vmin=0,vmax=np.max(colour_grids))
+            # Create colorbar
+            cbar = ax.figure.colorbar(im, ax=ax)
+            cbar.ax.set_ylabel("chi2", rotation=-90, va="bottom")
+            # We want to show all ticks...
+            ax.set_xticks(np.arange(len(n_values)))
+            ax.set_yticks(np.arange(len(k1_values)))
+            # ... and label them with the respective list entries
+            ax.set_xticklabels(n_values)
+            ax.set_yticklabels(k1_values)
+            # Rotate the tick labels and set their alignment.
+            plt.setp(ax.get_xticklabels(), ha="right")
+            # Loop over data dimensions and create text annotations.
+            for i in range(len(n_values)):
+                for j in range(len(k1_values)):
+                    text = ax.text(j, i, round(collapsed_z_colour_grids[1,i,j],2),
+                                   ha="center", va="center", color=(0,0,0))
+            ax.set_title('mean F chi2 values, all z values')
+            plt.savefig('colour_{}.pdf'.format('mean_F'))
+            #plt.show()
 
-        fig, ax = plt.subplots(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
-        im = ax.imshow(collapsed_z_colour_grids[2,:,:],cmap='YlGn',vmin=0,vmax=np.max(colour_grids))
-        # Create colorbar
-        cbar = ax.figure.colorbar(im, ax=ax)
-        cbar.ax.set_ylabel("chi2", rotation=-90, va="bottom")
-        # We want to show all ticks...
-        ax.set_xticks(np.arange(len(n_values)))
-        ax.set_yticks(np.arange(len(k1_values)))
-        # ... and label them with the respective list entries
-        ax.set_xticklabels(n_values)
-        ax.set_yticklabels(k1_values)
-        # Rotate the tick labels and set their alignment.
-        plt.setp(ax.get_xticklabels(), ha="right")
-        # Loop over data dimensions and create text annotations.
-        for i in range(len(n_values)):
-            for j in range(len(k1_values)):
-                text = ax.text(j, i, round(collapsed_z_colour_grids[2,i,j],2),
-                               ha="center", va="center", color=(0,0,0))
-        ax.set_title('Total chi2 values, all z values')
-        plt.savefig('colour_{}.pdf'.format('total'))
-        plt.show()
+            fig, ax = plt.subplots(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
+            im = ax.imshow(collapsed_z_colour_grids[2,:,:],cmap='YlGn',vmin=0,vmax=np.max(colour_grids))
+            # Create colorbar
+            cbar = ax.figure.colorbar(im, ax=ax)
+            cbar.ax.set_ylabel("chi2", rotation=-90, va="bottom")
+            # We want to show all ticks...
+            ax.set_xticks(np.arange(len(n_values)))
+            ax.set_yticks(np.arange(len(k1_values)))
+            # ... and label them with the respective list entries
+            ax.set_xticklabels(n_values)
+            ax.set_yticklabels(k1_values)
+            # Rotate the tick labels and set their alignment.
+            plt.setp(ax.get_xticklabels(), ha="right")
+            # Loop over data dimensions and create text annotations.
+            for i in range(len(n_values)):
+                for j in range(len(k1_values)):
+                    text = ax.text(j, i, round(collapsed_z_colour_grids[2,i,j],2),
+                                   ha="center", va="center", color=(0,0,0))
+            ax.set_title('Total chi2 values, all z values')
+            plt.savefig('colour_{}.pdf'.format('total'))
+            #plt.show()
 
         return s_optimized_set
     def save(self,filepath,existing='overwrite'):
