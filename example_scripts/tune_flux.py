@@ -124,6 +124,7 @@ lookup = {}
 
 import itertools
 for i,z_value in enumerate(z_values):
+    
     a = [alpha_values[i]] * t_multipliers
     b = [beta_values[i]] * t_multipliers
     sG = [sigma_G_values[i]] * t_multipliers
