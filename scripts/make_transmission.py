@@ -82,6 +82,12 @@ parser.add_argument('--add-DLAs', action="store_true", default = True, required=
 parser.add_argument('--add-RSDs', action="store_true", default = False, required=False,
                     help = 'add linear RSDs to the transmission file')
 
+parser.add_argument('--add-Lyb', action="store_true", default = False, required=False,
+                    help = 'add Lyman-beta absorption to TRANSMISSION HDU')
+
+parser.add_argument('--add-metals', action="store_true", default = False, required=False,
+                    help = 'add METALS HDU with metal absorption')
+
 parser.add_argument('--include-thermal-effects', action="store_true", default = False, required=False,
                     help = 'add thermal RSDs to the transmission file')
 
@@ -119,6 +125,8 @@ N_processes = args.nproc
 parameter_filename = args.param_file
 add_DLAs = args.add_DLAs
 add_RSDs = args.add_RSDs
+add_Lyb = args.add_Lyb
+add_metals = args.add_metals
 include_thermal_effects = args.include_thermal_effects
 retune_small_scale_fluctuations = args.retune_small_scale_fluctuations
 tuning_file = args.tuning_file
@@ -316,6 +324,12 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
 
     #Make a pixel object from it.
     pixel_object = pixelise.SimulationData.get_gaussian_skewers_object(location+gaussian_filename,None,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
+
+    if add_Lyb:
+        pixel_object.setup_Lyb_absorber()
+
+    if add_metals:
+        pixel_object.setup_metal_absorbers()
 
     #Make some useful headers
     header = fits.Header()

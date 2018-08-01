@@ -88,7 +88,18 @@ class SimulationData:
         #self.absorbers.append(absorber.AbsorberData(name='SiII',rest_wave=1205.0,flux_transform_m=0.05))
 
         self.lya_absorber=absorber.AbsorberData(name='Lya',rest_wave=1215.67,flux_transform_m=1.0)
+        self.lyb_absorber=None
+        self.metals=None
+
+        return
+
+    def setup_Lyb_absorber(self):
+
         self.lyb_absorber=absorber.AbsorberData(name='Lyb',rest_wave=1025.72,flux_transform_m=0.1)
+
+        return
+
+    def setup_metal_absorbers(self):
 
         # get a dictionary with multiple absorbers, one for each metal line 
         self.metals=metals.get_metal_dict()
@@ -487,11 +498,13 @@ class SimulationData:
         self.compute_tau_skewers(self.lya_absorber,alpha,beta)
 
         # optical depth for Ly_b
-        self.compute_tau_skewers(self.lyb_absorber,alpha,beta)
+        if self.lyb_absorber is not None:
+            self.compute_tau_skewers(self.lyb_absorber,alpha,beta)
     
         # loop over metals in dictionary
-        for metal in iter(self.metals.values()):
-            self.compute_tau_skewers(metal,alpha,beta)
+        if self.metals is not None:
+            for metal in iter(self.metals.values()):
+                self.compute_tau_skewers(metal,alpha,beta)
 
         return
 
@@ -514,11 +527,13 @@ class SimulationData:
         self.add_RSDs(self.lya_absorber,alpha,beta,thermal)
 
         # RSD for Ly-b
-        self.add_RSDs(self.lyb_absorber,alpha,beta,thermal)
+        if self.lyb_absorber is not None:
+            self.add_RSDs(self.lyb_absorber,alpha,beta,thermal)
 
         # loop over metals in dictionary
-        for metal in iter(self.metals.values()):
-            self.add_RSDs(metal,alpha,beta,thermal)
+        if self.metals is not None:
+            for metal in iter(self.metals.values()):
+                self.add_RSDs(metal,alpha,beta,thermal)
 
         return
 
@@ -809,7 +824,10 @@ class SimulationData:
         F_grid_Lya = self.compute_grid_transmission(self.lya_absorber,wave_grid)
         
         # compute Lyman beta transmission on grid of wavelengths
-        F_grid_Lyb = self.compute_grid_transmission(self.lyb_absorber,wave_grid)
+        if self.lyb_absorber is None:
+            F_grid_Lyb = np.ones_like(F_grid_Lya)
+        else:
+            F_grid_Lyb = self.compute_grid_transmission(self.lyb_absorber,wave_grid)
 
         # construct quasar catalog HDU
         Z_RSD = self.Z_QSO + self.DZ_RSD
