@@ -117,9 +117,16 @@ lookup = {}
 
 import itertools
 for i,z_value in enumerate(z_values):
+<<<<<<< HEAD
     a = [alpha_values[i]] * a_multipliers
     b = [beta_values[i]] * b_multipliers
     sG = [sigma_G_values[i]] * sG_multipliers
+=======
+    
+    a = [alpha_values[i]] * t_multipliers
+    b = [beta_values[i]] * t_multipliers
+    sG = [sigma_G_values[i]] * t_multipliers
+>>>>>>> 62d191dcbedb0132e07e5dfabc3ed00851a42298
 
     n = [n_values[i]] * n_multipliers
     k1 = [k1_values[i]] * k1_multipliers
