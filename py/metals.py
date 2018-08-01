@@ -14,5 +14,12 @@ def get_metal_dict():
       'SiIII(1207)' : absorber.AbsorberData('SiIII(1207)',1206.50,5.e-3),
       'SiII(1193)' : absorber.AbsorberData('SiII(1193)',1193.29,5.e-4),
       'SiII(1190)' : absorber.AbsorberData('SiII(1190)',1190.42,5.e-4)
+      #Until the memory needs are known, the following metals will not be added.
+      #'NV(1243)'    : absorber.AbsorberData('NV(1243)',1242.804,5.e-4),
+      #'NV(1239)'    : absorber.AbsorberData('NV(1239)',1238.821,5.e-4),
+      #'NI(1200)'    : absorber.AbsorberData('NI(1200)',1200.,1.e-3),
+      #'OI(1039)'    : absorber.AbsorberData('OI(1039)',1039.230,1.e-3),
+      #'OVI(1038)'   : absorber.AbsorberData('OVI(1038)',1037.613,1.e-3),
+      #'OVI(1032)'   : absorber.AbsorberData('OVI(1032)',1031.912,5.e-3)
     }
     return metal_dict

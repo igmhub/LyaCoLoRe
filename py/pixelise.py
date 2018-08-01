@@ -815,7 +815,7 @@ class SimulationData:
         # define common wavelength grid to be written in files (in Angstroms)
         wave_min=3550
         wave_max=6500
-        wave_step=0.1
+        wave_step=0.2
         wave_grid=np.arange(wave_min,wave_max,wave_step)
 
         # now we should loop over the different absorbers, combine them and 
