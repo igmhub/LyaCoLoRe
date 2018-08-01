@@ -483,7 +483,10 @@ class SimulationData:
 
         # scale optical depth for this particular absorber (=1 for Lya)
         absorber_alpha = alpha*absorber.flux_transform_m
-        absorber.tau = convert.density_to_tau(self.DENSITY_DELTA_rows+1,alpha,beta)
+	#print('absorber',absorber.name,'has m =',absorber.flux_transform_m)
+	#print('absorber',absorber.name,'has first alphas =',absorber_alpha[0:5])
+
+        absorber.tau = convert.density_to_tau(self.DENSITY_DELTA_rows+1,absorber_alpha,beta)
 
         #Set tau to 0 beyond the quasars.
         for i in range(self.N_qso):
