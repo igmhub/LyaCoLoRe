@@ -562,8 +562,11 @@ class simulation_data:
             mean_F = np.average(self.F_rows,axis=0,weights=self.IVAR_rows)
 
         elif not z_width:
+
             j_value_upper = np.searchsorted(self.Z,z_value)
-            j_value_lower = j_value_upper - 1
+            j_value_lower = max(j_value_upper - 1,0)
+
+            relevant_rows = [i for i in range(self.N_qso) if np.sum(self.IVAR_rows[j_value_lower,j_value_upper]) == 2]
 
             if j_value_lower > -1:
                 weight_upper = (z_value - self.Z[j_value_lower])/(self.Z[j_value_upper] - self.Z[j_value_lower])
@@ -577,7 +580,7 @@ class simulation_data:
             weights[:,0] *= weight_lower
             weights[:,1] *= weight_upper
 
-            mean_F = np.average(self.F_rows[:,j_value_lower:j_value_upper+1],weights=weights)
+            mean_F = np.average(self.F_rows[relevant_rows,j_value_lower:j_value_upper+1],weights=weights)
 
         else:
             j_value_upper = np.searchsorted(self.Z,z_value + z_width/2.)
