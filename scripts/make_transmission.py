@@ -14,7 +14,7 @@ import general
 import independent
 import stats
 import convert
-import pixelise
+import simulation_data
 import input
 import DLA
 import RSD
@@ -215,7 +215,7 @@ def pixelise_gaussian_skewers(pixel,original_file_location,original_filename_str
     location = new_base_file_location + '/' + new_file_structure.format(pixel//100,pixel)
 
     #Make file into an object
-    pixel_object = pixelise.make_gaussian_pixel_object(pixel,original_file_location,original_filename_structure,input_format,MOCKID_lookup,IVAR_cutoff=IVAR_cutoff)
+    pixel_object = simulation_data.make_gaussian_pixel_object(pixel,original_file_location,original_filename_structure,input_format,MOCKID_lookup,IVAR_cutoff=IVAR_cutoff)
 
     # TODO: These could be made beforehand and passed to the function? Or is there already enough being passed?
     #Make some useful headers
@@ -323,7 +323,7 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     gaussian_filename = new_filename_structure.format('gaussian-colore',N_side,pixel)
 
     #Make a pixel object from it.
-    pixel_object = pixelise.SimulationData.get_gaussian_skewers_object(location+gaussian_filename,None,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
+    pixel_object = simulation_data.SimulationData.get_gaussian_skewers_object(location+gaussian_filename,None,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
 
     if add_Lyb:
         pixel_object.setup_Lyb_absorber()
