@@ -337,7 +337,7 @@ class simulation_data:
         return
 
     #Function to add small scale gaussian fluctuations.
-    def add_small_scale_gaussian_fluctuations(self,cell_size,sigma_G_z_values,extra_sigma_G_values,generator,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n=0.7,k1=0.001):
+    def add_small_scale_gaussian_fluctuations(self,cell_size,sigma_G_z_values,extra_sigma_G_values,generator,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n=0.7,k1=0.001,A0=58.6):
 
         # TODO: Is NGP really the way to go?
 
@@ -395,7 +395,7 @@ class simulation_data:
         #Generate extra variance, either white noise or correlated.
         dkms_dhMpc = general.get_dkms_dhMpc(0.)
         dv_kms = cell_size * dkms_dhMpc
-        extra_var = independent.get_gaussian_fields(generator,self.N_cells,dv_kms=dv_kms,N_skewers=self.N_qso,white_noise=white_noise,n=n,k1=k1)
+        extra_var = independent.get_gaussian_fields(generator,self.N_cells,dv_kms=dv_kms,N_skewers=self.N_qso,white_noise=white_noise,n=n,k1=k1,A0=A0)
 
         #Normalise the extra variance to have unit variance
         k_kms = np.fft.rfftfreq(self.N_cells)*2*np.pi/dv_kms
@@ -559,7 +559,7 @@ class simulation_data:
     def get_mean_flux(self,z_value=None,z_width=None):
 
         if not z_value:
-            mean_F = np.average(self.F_rows,axis=0)
+            mean_F = np.average(self.F_rows,axis=0,weights=self.IVAR_rows)
 
         elif not z_width:
             j_value_upper = np.searchsorted(self.Z,z_value)
@@ -582,7 +582,7 @@ class simulation_data:
         else:
             j_value_upper = np.searchsorted(self.Z,z_value + z_width/2.)
             j_value_lower = np.max(0,np.searchsorted(self.Z,z_value - z_width/2.) - 1)
-            mean_F = np.average(self.F_rows[j_value_lower:j_value_upper+1])
+            mean_F = np.average(self.F_rows[j_value_lower:j_value_upper+1],weights=self.IVAR_rows[j_value_lower:j_value_upper+1])
             #print(self.N_qso)
             #print(j_value_lower,j_value_upper)
         return mean_F

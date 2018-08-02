@@ -17,14 +17,14 @@ import general
 
 lya = 1215.67
 
-N_processes = 4
+N_processes = 2
 lambda_min = 3550.0
 min_cat_z = 1.8
 IVAR_cutoff = 1150.0
 
 #Get the starting values of alpha, beta and sigma_G from file
 #Decide which z values we are going to tune
-z_values = [2.5]
+z_values = [3.0]
 z_width = 0.2
 
 cell_size = 0.25 #Mpc/h
@@ -44,11 +44,11 @@ input_format = 'gaussian_colore'
 #get pixels from those directories created by make_master.py
 dirs = glob.glob(base_file_location+new_file_structure.format('*','*'))
 pixels = []
-for dir in dirs[:4]:
+for dir in dirs[:2]:
     pixels += [int(dir[len(dir)-dir[-2::-1].find('/')-1:-1])]
 
-
-def measure_pixel_segment(pixel,z_value,alpha,beta,sigma_G_required,n,k1):
+# TODO: want to move this to tuning.py eventually
+def measure_pixel_segment(pixel,z_value,alpha,beta,sigma_G_required,n,k1,A0):
     #print('start',pixel,z_value,alpha,beta,sigma_G_required,n,k1)
 
     location = base_file_location + '/' + new_file_structure.format(pixel//100,pixel)
@@ -77,12 +77,12 @@ def measure_pixel_segment(pixel,z_value,alpha,beta,sigma_G_required,n,k1):
     #add small scale fluctuations
     seed = int(str(N_side) + str(pixel))
     generator = np.random.RandomState(seed)
-    data.add_small_scale_gaussian_fluctuations(cell_size,data.Z,np.ones(data.Z.shape[0])*extra_sigma_G,generator,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n=n,k1=k1) #n=0.7, k1=0.001 default
+    data.add_small_scale_gaussian_fluctuations(cell_size,data.Z,np.ones(data.Z.shape[0])*extra_sigma_G,generator,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n=n,k1=k1,A0=A0) #n=0.7, k1=0.001 default
 
     #Convert to flux
     data.compute_physical_skewers()
     data.compute_tau_skewers(alpha=np.ones(data.Z.shape[0])*alpha,beta=beta)
-    data.add_RSDs(np.ones(data.Z.shape[0])*alpha,beta,thermal=False)
+    #data.add_RSDs(np.ones(data.Z.shape[0])*alpha,beta,thermal=False)
     data.compute_flux_skewers()
 
     #Trim the skewers again to get rid of the additional cells
@@ -100,14 +100,14 @@ def measure_pixel_segment(pixel,z_value,alpha,beta,sigma_G_required,n,k1):
     #print('measure Pk1D',z_value)
     measurement.add_Pk1D_measurement(data)
     #print('measure chi2s',z_value)
-    measurement.add_mean_F_chi2(eps=0.05)
+    measurement.add_mean_F_chi2(eps=0.1)
     measurement.add_Pk1D_chi2(max_k=max_k)
     measurement.add_total_chi2()
 
     return measurement
 
-def f(alpha,beta,sigma_G,n,k1):
-
+def f(alpha,beta,sigma_G,n,k1,A0):
+    #beta=1.65
     ################################################################################
 
     """
@@ -121,7 +121,7 @@ def f(alpha,beta,sigma_G,n,k1):
         N_complete = len(results)
         N_tasks = len(tasks)
 
-        general.progress_bar(N_complete,N_tasks,start_time)
+        #general.progress_bar(N_complete,N_tasks,start_time)
         return retval
 
     #Define an error-tracking function.
@@ -131,9 +131,9 @@ def f(alpha,beta,sigma_G,n,k1):
     ################################################################################
 
 
-    print('looking at params: a={:2.4f}, b={:2.4f}, sG={:2.4f}, n={:2.4f}, k1={:2.6f}'.format(alpha,beta,sigma_G,n,k1))
+    print('looking at params: a={:2.4f}, b={:2.4f}, sG={:2.4f}, n={:2.4f}, k1={:2.6f}, A0={:2.4f}'.format(alpha,beta,sigma_G,n,k1,A0))
 
-    tasks = [(pixel,z_value,alpha,beta,sigma_G,n,k1) for pixel in pixels for z_value in z_values]
+    tasks = [(pixel,z_value,alpha,beta,sigma_G,n,k1,A0) for pixel in pixels for z_value in z_values]
 
     #Run the multiprocessing pool
     if __name__ == '__main__':
@@ -157,11 +157,15 @@ def f(alpha,beta,sigma_G,n,k1):
     measurement_set = tuning.measurement_set(measurements=results)
     combined_pixels_set = measurement_set.combine_pixels()
 
+    Pk_kms_chi2 = 0.
+    mean_F_chi2 = 0.
     overall_chi2 = 0.
     for m in combined_pixels_set.measurements:
         m.add_mean_F_chi2(eps=0.05)
         m.add_Pk1D_chi2(max_k=max_k)
         m.add_total_chi2()
+        Pk_kms_chi2 += m.Pk_kms_chi2
+        mean_F_chi2 += m.mean_F_chi2
         overall_chi2 += m.total_chi2
 
     """
@@ -170,17 +174,30 @@ def f(alpha,beta,sigma_G,n,k1):
     if len(combined_z_pixels_set.measurements) == 1:
         m = combined_z_pixels_set.measurements[0]
     """
-    print('overall chi2={:2.4f}'.format(overall_chi2))
+    print('chi2: Pk {:2.4f}, mean F {:2.4f}, overall {:2.4f}'.format(Pk_kms_chi2,mean_F_chi2,overall_chi2))
     print(' ')
     return overall_chi2
 
-m = Minuit(f,alpha=0.82,error_alpha=0.05,limit_alpha=(0.,10.),
-             beta=1.65,error_beta=0.05,limit_beta=(0.,10.),fix_beta=True,
-             sigma_G=4.83,error_sigma_G=0.05,limit_sigma_G=(0.,20.),
-             n=0.7,error_n=0.05,limit_n=(0.,10.),fix_n=False,
-             k1=0.001,error_k1=0.00005,limit_k1=(0.,0.1),fix_k1=False,
-             )
+t_kwargs = {'alpha' : 1.12,     'error_alpha' : 0.05,   'limit_alpha' : (0., 10.),  'fix_alpha' : False,
+            'beta' : 1.65,      'error_beta' : 0.05,    'limit_beta' : (0., 10.),   'fix_beta' : True,
+            'sigma_G' : 4.44,   'error_sigma_G' : 0.05, 'limit_sigma_G' : (0., 20.),'fix_sigma_G' : False,
+            }
+
+s_kwargs = {'n' : 0.9157,       'error_n' : 0.05,       'limit_n' : (0., 10.),      'fix_n' : True,
+            'k1' : 0.003464,    'error_k1' : 0.00005,   'limit_k1' : (0., 0.1),     'fix_k1' : True,
+            'A0' : 58.6,        'error_A0' : 0.1,       'limit_A0' : (0., 200.),    'fix_A0' : True,
+            }
+
+m = Minuit(f,**t_kwargs,**s_kwargs)
 
 m.print_param()
 m.migrad()
 m.print_param()
+
+alpha = m.values['alpha']
+beta = m.values['beta']
+sigma_G = m.values['sigma_G']
+n = m.values['n']
+k1 = m.values['k1']
+
+#Want to do a final run here

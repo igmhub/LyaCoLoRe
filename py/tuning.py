@@ -175,6 +175,7 @@ class measurement:
         cols = fits.ColDefs(measurement_1)
         hdu = fits.BinTableHDU.from_columns(cols,header=header,name='Pk1D')
         return hdu
+    # TODO: functions to make plots
 
 class measurement_set:
     def __init__(self,measurements=[]):
@@ -513,6 +514,64 @@ class measurement_set:
         hdulist.writeto(filepath,overwrite=True)
         hdulist.close()
         return
+
+def measure_pixel_segment(pixel,z_value,alpha,beta,sigma_G_required,n,k1,A0):
+    #print('start',pixel,z_value,alpha,beta,sigma_G_required,n,k1)
+
+    location = base_file_location + '/' + new_file_structure.format(pixel//100,pixel)
+
+    # TODO: this is a problem
+    measured_SIGMA_G = 1.17
+
+    #We work from the gaussian colore files made in 'pixelise gaussian skewers'.
+    gaussian_filename = new_filename_structure.format('gaussian-colore',N_side,pixel)
+
+    #Make a pixel object from it.
+    data = pixelise.simulation_data.get_gaussian_skewers_object(location+gaussian_filename,None,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
+
+    #Determine the sigma_G to add
+    extra_sigma_G = np.sqrt(sigma_G_required**2 - measured_SIGMA_G**2)
+
+    #trim skewers
+    data.trim_skewers(lambda_min,min_cat_z,extra_cells=1)
+
+    #We extend the ranges of lambda a little to make sure RSDs are all accounted for.
+    extra = 0.1
+    lambda_min_val = lya*(1 + z_value - z_width*(1+extra)/2)
+    lambda_max_val = lya*(1 + z_value + z_width*(1+extra)/2)
+    data.trim_skewers(lambda_min_val,min_cat_z,lambda_max=lambda_max_val,whole_lambda_range=True)
+
+    #add small scale fluctuations
+    seed = int(str(N_side) + str(pixel))
+    generator = np.random.RandomState(seed)
+    data.add_small_scale_gaussian_fluctuations(cell_size,data.Z,np.ones(data.Z.shape[0])*extra_sigma_G,generator,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n=n,k1=k1,A0=A0) #n=0.7, k1=0.001 default
+
+    #Convert to flux
+    data.compute_physical_skewers()
+    data.compute_tau_skewers(alpha=np.ones(data.Z.shape[0])*alpha,beta=beta)
+    data.add_RSDs(np.ones(data.Z.shape[0])*alpha,beta,thermal=False)
+    data.compute_flux_skewers()
+
+    #Trim the skewers again to get rid of the additional cells
+    lambda_min_val = lya*(1 + z_value - z_width/2)
+    lambda_max_val = lya*(1 + z_value + z_width/2)
+    data.trim_skewers(lambda_min_val,min_cat_z,lambda_max=lambda_max_val,whole_lambda_range=True)
+
+    #Convert back to small cells for cf measurement
+    #need a new function to merge cells back together
+
+    ID = 0
+    measurement = tuning.measurement(ID,z_value,z_width,data.N_qso,n,k1,alpha,beta,sigma_G_required,pixels=[pixel])
+    #print('measure mean_F',z_value)
+    measurement.add_mean_F_measurement(data)
+    #print('measure Pk1D',z_value)
+    measurement.add_Pk1D_measurement(data)
+    #print('measure chi2s',z_value)
+    measurement.add_mean_F_chi2(eps=0.1)
+    measurement.add_Pk1D_chi2(max_k=max_k)
+    measurement.add_total_chi2()
+
+    return measurement
 
 
 
