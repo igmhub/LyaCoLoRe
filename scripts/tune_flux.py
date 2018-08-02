@@ -31,8 +31,9 @@ cell_size = 0.25 #Mpc/h
 max_k = 0.005 #skm-1
 
 #Open up the Gaussian colore files
-base_file_location = '/Users/jfarr/Projects/test_data/test/'
-base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_nside16_RSD'
+#base_file_location = '/Users/jfarr/Projects/test_data/test/'
+#base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_nside16_RSD'
+base_file_location = 'example_data/lya_skewers'
 N_side = 16
 
 new_file_structure = '{}/{}/'               #pixel number//100, pixel number
@@ -179,7 +180,7 @@ def measure_pixel_segment(pixel,z_value,ID,lookup):
     gaussian_filename = new_filename_structure.format('gaussian-colore',N_side,pixel)
 
     #Make a pixel object from it.
-    data = pixelise.simulation_data.get_gaussian_skewers_object(location+gaussian_filename,None,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
+    data = pixelise.SimulationData.get_gaussian_skewers_object(location+gaussian_filename,None,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
 
     #Determine the sigma_G to add
     extra_sigma_G = np.sqrt(sigma_G_required**2 - measured_SIGMA_G**2)
@@ -200,9 +201,8 @@ def measure_pixel_segment(pixel,z_value,ID,lookup):
 
     #Convert to flux
     data.compute_physical_skewers()
-    data.compute_tau_skewers(alpha=np.ones(data.Z.shape[0])*alpha,beta=beta)
-    data.add_RSDs(np.ones(data.Z.shape[0])*alpha,beta,thermal=False)
-    data.compute_flux_skewers()
+    data.compute_all_tau_skewers(alpha=np.ones(data.Z.shape[0])*alpha,beta=beta)
+    data.add_all_RSDs(np.ones(data.Z.shape[0])*alpha,beta,thermal=False)
 
     #Trim the skewers again to get rid of the additional cells
     lambda_min_val = lya*(1 + z_value - z_width/2)

@@ -38,7 +38,8 @@ This is carried out by the script 'scripts/make_transmission.py'. In order to ru
 
 scripts/make_transmission.py --in-dir example_data/raw_colore_1000/ --out-dir /path/to/output/directory/ --nside 16 --nproc 64
 
-The options are as explained in part 1. 
+The options are as explained in part 1.
+
 
 Things to keep in mind:
 The input directory is a file previously created with CoLoRe. To run this instruction, you should be in the directory where your LyaCoLoRe is cloned. Input and output files are the same as the ones used in stage 1.
@@ -47,5 +48,6 @@ Other option of interest are:
  - If you are only looking to run on a small number of skewers, the "--pixels" option allows you to specify pixel numbers to work on. For example adding "--pixels 0 1 2 3" would produce output files for pixels 0, 1, 2 and 3 and ignore all other pixels
  - If you would only like to produce transmission files (and not Gaussian or Density files), then the option "--transmission-only" will do this
  - You probably want to add RSD to the flux skewers. If so, you'll need to add the flag --add-RSDs.
+ - The flags --add-Lyb and --add-metals will add these to the files.
 
 These two stages can be carried out in parallel using the script 'run_process_colore_multi_node.sh'.

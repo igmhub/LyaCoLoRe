@@ -82,6 +82,12 @@ parser.add_argument('--add-DLAs', action="store_true", default = True, required=
 parser.add_argument('--add-RSDs', action="store_true", default = False, required=False,
                     help = 'add linear RSDs to the transmission file')
 
+parser.add_argument('--add-Lyb', action="store_true", default = False, required=False,
+                    help = 'add Lyman-beta absorption to TRANSMISSION HDU')
+
+parser.add_argument('--add-metals', action="store_true", default = False, required=False,
+                    help = 'add METALS HDU with metal absorption')
+
 parser.add_argument('--include-thermal-effects', action="store_true", default = False, required=False,
                     help = 'add thermal RSDs to the transmission file')
 
@@ -119,6 +125,8 @@ N_processes = args.nproc
 parameter_filename = args.param_file
 add_DLAs = args.add_DLAs
 add_RSDs = args.add_RSDs
+add_Lyb = args.add_Lyb
+add_metals = args.add_metals
 include_thermal_effects = args.include_thermal_effects
 retune_small_scale_fluctuations = args.retune_small_scale_fluctuations
 tuning_file = args.tuning_file
@@ -293,7 +301,7 @@ else:
 tuning_z_values = tune_small_scale_fluctuations['z']
 desired_sigma_G_values = tune_small_scale_fluctuations['sigma_G']
 desired_mean_F = tune_small_scale_fluctuations['mean_F']
-alphas = tune_small_scale_fluctuations['alpha']
+tuning_alphas = tune_small_scale_fluctuations['alpha']
 
 #Determine the desired sigma_G by sampling
 extra_sigma_G_values = np.sqrt(desired_sigma_G_values**2 - measured_SIGMA_G**2)
@@ -315,7 +323,13 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     gaussian_filename = new_filename_structure.format('gaussian-colore',N_side,pixel)
 
     #Make a pixel object from it.
-    pixel_object = pixelise.simulation_data.get_gaussian_skewers_object(location+gaussian_filename,None,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
+    pixel_object = pixelise.SimulationData.get_gaussian_skewers_object(location+gaussian_filename,None,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
+
+    if add_Lyb:
+        pixel_object.setup_Lyb_absorber()
+
+    if add_metals:
+        pixel_object.setup_metal_absorbers()
 
     #Make some useful headers
     header = fits.Header()
@@ -360,36 +374,9 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     #Add physical skewers to the object.
     pixel_object.compute_physical_skewers()
 
-    #Add tau skewers to the object.
-    pixel_object.compute_tau_skewers(np.interp(pixel_object.Z,tuning_z_values,alphas),beta)
-
-    #Convert the tau skewers to flux skewers.
-    pixel_object.compute_flux_skewers()
-
-    if transmission_only == False:
-        #Picca Gaussian
-        filename = new_filename_structure.format('picca-gaussian-noRSD',N_side,pixel)
-        pixel_object.save_as_picca_gaussian(location,filename,header)
-
-        #Picca density
-        filename = new_filename_structure.format('picca-density-noRSD',N_side,pixel)
-        pixel_object.save_as_picca_density(location,filename,header)
-
-        #picca flux
-        filename = new_filename_structure.format('picca-flux-noRSD',N_side,pixel)
-        pixel_object.save_as_picca_flux(location,filename,header,mean_F_data=mean_F_data)
-
-    #Add thermal RSDs to the tau skewers.
-    #Add RSDs from the velocity skewers provided by CoLoRe.
-    if add_RSDs == True:
-        pixel_object.add_RSDs(np.interp(pixel_object.Z,tuning_z_values,alphas),beta,thermal=include_thermal_effects)
-
-    #Convert the tau skewers to flux skewers.
-    pixel_object.compute_flux_skewers()
-
-    #transmission
-    filename = new_filename_structure.format('transmission',N_side,pixel)
-    pixel_object.save_as_transmission(location,filename,header)
+    #Add tau skewers to the object, starting with Lyman-alpha
+    alphas=np.interp(pixel_object.Z,tuning_z_values,tuning_alphas)
+    pixel_object.compute_all_tau_skewers(alphas,beta)
 
     if transmission_only == False:
         #Picca Gaussian
@@ -399,6 +386,28 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
         #Picca density
         filename = new_filename_structure.format('picca-density',N_side,pixel)
         pixel_object.save_as_picca_density(location,filename,header)
+
+        #picca flux
+        filename = new_filename_structure.format('picca-flux-noRSD',N_side,pixel)
+        pixel_object.save_as_picca_flux(location,filename,header,mean_F_data=mean_F_data)
+
+    #Add thermal RSDs to the tau skewers.
+    #Add RSDs from the velocity skewers provided by CoLoRe.
+    if add_RSDs == True:
+        pixel_object.add_all_RSDs(alphas,beta,thermal=include_thermal_effects)
+
+    #transmission
+    filename = new_filename_structure.format('transmission',N_side,pixel)
+    pixel_object.save_as_transmission(location,filename,header)
+
+    if transmission_only == False:
+        #Picca Gaussian
+        #filename = new_filename_structure.format('picca-gaussian',N_side,pixel)
+        #pixel_object.save_as_picca_gaussian(location,filename,header)
+
+        #Picca density
+        #filename = new_filename_structure.format('picca-density',N_side,pixel)
+        #pixel_object.save_as_picca_density(location,filename,header)
 
         #picca flux
         filename = new_filename_structure.format('picca-flux',N_side,pixel)
