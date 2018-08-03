@@ -7,7 +7,10 @@ import multiprocessing
 import sys
 import time
 
-lya = 1215.67
+import utils
+
+lya = utils.lya_rest
+
 N_processes = int(sys.argv[1])
 
 basedir = '../example_data/lya_skewers/'

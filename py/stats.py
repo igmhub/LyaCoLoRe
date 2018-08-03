@@ -1,8 +1,6 @@
 import numpy as np
 from astropy.io import fits
 
-lya = 1215.67
-
 #Function to calculate the mean of deltas, mean of deltas^2, and N.
 def return_means(DELTA_rows,weights,sample_pc=1.0):
     DELTA_SQUARED_rows = DELTA_rows**2

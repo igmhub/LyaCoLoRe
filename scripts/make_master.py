@@ -8,8 +8,8 @@ import multiprocessing
 import time
 import argparse
 
-import general
-import master
+import utils
+import catalog
 
 ################################################################################
 
@@ -59,7 +59,6 @@ parser.add_argument('--add-picca-drqs', action="store_true", default = False, re
 args = parser.parse_args()
 
 #Define global variables.
-lya = 1215.67
 
 original_file_location = args.in_dir
 new_base_file_location = args.out_dir
@@ -88,7 +87,7 @@ new_file_structure = '{}/{}/'               #pixel number//100, pixel number
 new_filename_structure = '{}-{}-{}.fits'    #file type, nside, pixel number
 
 #Get the simulation parameters from the parameter file.
-simulation_parameters = general.get_simulation_parameters(original_file_location,parameter_filename)
+simulation_parameters = utils.get_simulation_parameters(original_file_location,parameter_filename)
 
 # TODO: Modify this to accomodate other density types.
 #If density type is not lognormal, then crash.
@@ -108,7 +107,7 @@ def log_result(retval):
     N_complete = len(results)
     N_tasks = len(tasks)
 
-    general.progress_bar(N_complete,N_tasks,start_time)
+    utils.progress_bar(N_complete,N_tasks,start_time)
 
 #Define an error-tracking function.
 def log_error(retval):
@@ -128,7 +127,7 @@ start = time.time()
 #Define the process to make the master data.
 def make_master_data(original_file_location,original_filename_structure,file_number,input_format,N_side,minimum_z=min_catalog_z):
 
-    file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element = master.get_ID_data(original_file_location,original_filename_structure,file_number,input_format,N_side,minimum_z=min_catalog_z)
+    file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element = catalog.get_ID_data(original_file_location,original_filename_structure,file_number,input_format,N_side,minimum_z=min_catalog_z)
 
     return [file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element]
 
@@ -150,16 +149,16 @@ if __name__ == '__main__':
 print('\nSaving the master files...')
 
 #Join the multiprocessing results into 'master' and 'bad_coordinates' arrays.
-master_data, bad_coordinates_data, cosmology_data, file_pixel_map, MOCKID_lookup = master.join_ID_data(results,N_side)
+master_data, bad_coordinates_data, cosmology_data, file_pixel_map, MOCKID_lookup = catalog.join_ID_data(results,N_side)
     
 #Write master and bad coordinates files.
 master_filename = new_base_file_location + '/master.fits'
-master.write_ID(master_filename,master_data,cosmology_data,N_side)
+catalog.write_ID(master_filename,master_data,cosmology_data,N_side)
 print('\nMaster file contains {} objects.'.format(master_data.shape[0]))
 
 if bad_coordinates_data.shape[0] > 0:
     bad_coordinates_filename = new_base_file_location + '/bad_coordinates.fits'
-    master.write_ID(bad_coordinates_filename,bad_coordinates_data,cosmology_data,N_side)
+    catalog.write_ID(bad_coordinates_filename,bad_coordinates_data,cosmology_data,N_side)
     print('"bad coordinates" file contains {} objects.'.format(bad_coordinates_data.shape[0]))
 
 #If desired, write the DRQ files for picca xcf to deal with.
@@ -167,10 +166,10 @@ if add_picca_drqs:
     print('\nMaster file contains {} objects.'.format(master_data.shape[0]))
     for RSD_option in ['RSD','NO_RSD']:
         DRQ_filename = new_base_file_location + '/master_picca_{}.fits'.format(RSD_option)
-        master.write_DRQ(DRQ_filename,RSD_option,master_data,N_side)
+        catalog.write_DRQ(DRQ_filename,RSD_option,master_data,N_side)
 
 print('Time to make master files: {:4.0f}s.'.format(time.time()-start))
 
 #Make the new file structure
 pixel_list = list(sorted(set(master_data['PIXNUM'])))
-general.make_file_structure(new_base_file_location,pixel_list)
+utils.make_file_structure(new_base_file_location,pixel_list)

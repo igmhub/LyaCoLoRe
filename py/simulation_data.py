@@ -2,8 +2,8 @@ import numpy as np
 from astropy.io import fits
 import time
 
-import general
-import input
+import utils
+import read_files
 import convert
 import RSD
 import DLA
@@ -11,7 +11,7 @@ import independent
 import absorber
 import metals
 
-lya = 1215.67
+lya = utils.lya_rest
 
 #Function to create a SimulationData object given a specific pixel, information about the complete simulation, and the location/filenames of data files.
 def make_gaussian_pixel_object(pixel,original_file_location,original_filename_structure,input_format,MOCKID_lookup,lambda_min=0,IVAR_cutoff=lya):
@@ -82,12 +82,7 @@ class SimulationData:
         self.V = V
         self.A = A
 
-        #self.absorbers = []
-        #self.absorbers.append(absorber.AbsorberData(name='Lya',rest_wave=1215.67,flux_transform_m=1.0))
-        #self.absorbers.append(absorber.AbsorberData(name='Lyb',rest_wave=1024.0,flux_transform_m=0.1))
-        #self.absorbers.append(absorber.AbsorberData(name='SiII',rest_wave=1205.0,flux_transform_m=0.05))
-
-        self.lya_absorber=absorber.AbsorberData(name='Lya',rest_wave=1215.67,flux_transform_m=1.0)
+        self.lya_absorber=absorber.AbsorberData(name='Lya',rest_wave=lya,flux_transform_m=1.0)
         self.lyb_absorber=None
         self.metals=None
 
@@ -113,13 +108,11 @@ class SimulationData:
         start = time.time()
         times = [0.]
 
-        lya = 1215.67
-
         h = fits.open(filename)
 
-        h_MOCKID = input.get_MOCKID(h,input_format,file_number)
-        h_R, h_Z, h_D, h_V = input.get_COSMO(h,input_format)
-        h_lya_lambdas = input.get_lya_lambdas(h,input_format)
+        h_MOCKID = read_files.get_MOCKID(h,input_format,file_number)
+        h_R, h_Z, h_D, h_V = read_files.get_COSMO(h,input_format)
+        h_lya_lambdas = read_files.get_lya_lambdas(h,input_format)
 
         times += [time.time()-start-np.sum(times[:-1])]
 
@@ -165,7 +158,7 @@ class SimulationData:
                 SIGMA_G = h[4].header['SIGMA_G']
 
             #Derive the MOCKID and LOGLAM_MAP.
-            MOCKID = input.get_MOCKID(h,input_format,file_number)
+            MOCKID = read_files.get_MOCKID(h,input_format,file_number)
             LOGLAM_MAP = np.log10(lya*(1+Z))
 
             #Calculate the Gaussian skewers.
@@ -181,7 +174,7 @@ class SimulationData:
             MJD = np.zeros(N_qso)
             FIBER = np.zeros(N_qso)
 
-            IVAR_rows = general.make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP)
+            IVAR_rows = utils.make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP)
 
         elif input_format == 'gaussian_colore':
 
@@ -211,7 +204,7 @@ class SimulationData:
             if MOCKIDs != None:
                 MOCKID = MOCKIDs
             else:
-                MOCKID = input.get_MOCKID(h,input_format,file_number)
+                MOCKID = read_files.get_MOCKID(h,input_format,file_number)
             LOGLAM_MAP = np.log10(lya*(1+Z))
 
             #Set the remaining variables to None
@@ -224,7 +217,7 @@ class SimulationData:
             MJD = np.zeros(N_qso)
             FIBER = np.zeros(N_qso)
 
-            IVAR_rows = general.make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP)
+            IVAR_rows = utils.make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP)
 
         elif input_format == 'picca_density':
 
@@ -362,7 +355,7 @@ class SimulationData:
         new_R = np.arange(Rmin,Rmax,cell_size)
         new_N_cells = new_R.shape[0]
 
-        NGPs = general.get_NGPs(old_R,new_R).astype(int)
+        NGPs = utils.get_NGPs(old_R,new_R).astype(int)
         expanded_GAUSSIAN_DELTA_rows = np.zeros((self.N_qso,new_N_cells))
 
         for i in range(self.N_qso):
@@ -382,7 +375,7 @@ class SimulationData:
         self.VEL_rows = self.VEL_rows[:,NGPs]
 
         #Make new IVAR rows.
-        self.IVAR_rows = general.make_IVAR_rows(IVAR_cutoff,self.Z_QSO,self.LOGLAM_MAP)
+        self.IVAR_rows = utils.make_IVAR_rows(IVAR_cutoff,self.Z_QSO,self.LOGLAM_MAP)
 
         #For each skewer, determine the last relevant cell
         first_relevant_cells = np.zeros(self.N_qso)
@@ -405,7 +398,7 @@ class SimulationData:
 
         # TODO: dv is not constant at the moment - how to deal with this
         #Generate extra variance, either white noise or correlated.
-        dkms_dhMpc = general.get_dkms_dhMpc(0.)
+        dkms_dhMpc = utils.get_dkms_dhMpc(0.)
         dv_kms = cell_size * dkms_dhMpc
         extra_var = independent.get_gaussian_fields(generator,self.N_cells,dv_kms=dv_kms,N_skewers=self.N_qso,white_noise=white_noise,n=n,k1=k1)
 
@@ -416,7 +409,7 @@ class SimulationData:
 
         extra_var *= extra_sigma_G
 
-        mask = general.make_IVAR_rows(lya,self.Z_QSO,self.LOGLAM_MAP)
+        mask = utils.make_IVAR_rows(lya,self.Z_QSO,self.LOGLAM_MAP)
         extra_var *= mask
 
 
@@ -676,7 +669,7 @@ class SimulationData:
 
         #If desired, enforce that the Delta rows have zero mean.
         if zero_mean_delta == True:
-            relevant_GAUSSIAN_DELTA_rows = general.normalise_deltas(relevant_GAUSSIAN_DELTA_rows,mean_DELTA)
+            relevant_GAUSSIAN_DELTA_rows = utils.normalise_deltas(relevant_GAUSSIAN_DELTA_rows,mean_DELTA)
 
         #Organise the data into picca-format arrays.
         picca_0 = relevant_GAUSSIAN_DELTA_rows.T
@@ -762,7 +755,7 @@ class SimulationData:
 
         #If desired, enforce that the Delta rows have zero mean.
         if zero_mean_delta == True:
-            relevant_DENSITY_DELTA_rows = general.normalise_deltas(relevant_DENSITY_DELTA_rows,mean_DELTA)
+            relevant_DENSITY_DELTA_rows = utils.normalise_deltas(relevant_DENSITY_DELTA_rows,mean_DELTA)
 
         #Organise the data into picca-format arrays.
         picca_0 = relevant_DENSITY_DELTA_rows.T
@@ -981,7 +974,7 @@ class SimulationData:
         lya_lambdas = 10**self.LOGLAM_MAP
 
         #Determine the first cell which corresponds to a lya_line at wavelength > lambda_min
-        first_relevant_cell = general.get_first_relevant_index(lambda_min,lya_lambdas)
+        first_relevant_cell = utils.get_first_relevant_index(lambda_min,lya_lambdas)
 
         #Determine the furthest cell which is still relevant: i.e. the one in which at least one QSO has non-zero value of IVAR.
         furthest_QSO_index = np.argmax(self.Z_QSO)
