@@ -13,8 +13,8 @@ import metals
 
 lya = utils.lya_rest
 
-#Function to create a SimulationData object given a specific pixel, information about the complete simulation, and the location/filenames of data files.
-def make_gaussian_pixel_object(pixel,original_file_location,original_filename_structure,input_format,MOCKID_lookup,lambda_min=0,IVAR_cutoff=lya):
+#Function to create a SimulationData object given a specific pixel, information about the complete simulation, and the filenames.
+def make_gaussian_pixel_object(pixel,base_filename,input_format,MOCKID_lookup,lambda_min=0,IVAR_cutoff=lya):
 
     #Determine which file numbers we need to look at for the current pixel.
     relevant_keys = [key for key in MOCKID_lookup.keys() if key[1]==pixel]
@@ -30,7 +30,7 @@ def make_gaussian_pixel_object(pixel,original_file_location,original_filename_st
         #If there are some relevant quasars, open the data file and make it into a SimulationData object.
         #We use SimulationData.get_reduced_data to avoid loading all of the file's data into the object.
         if N_relevant_qso > 0:
-            filename = original_file_location + '/' + original_filename_structure.format(file_number)
+            filename = base_filename+'{}.fits'.format(file_number)
             working = SimulationData.get_gaussian_skewers_object(filename,file_number,input_format,MOCKIDs=relevant_MOCKIDs,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff)
 
         #Combine the data from the working file with that from the files already looked at.
@@ -82,9 +82,13 @@ class SimulationData:
         self.V = V
         self.A = A
 
+        # these will store the absorbing fields (Lya, Lyb, metals...)
         self.lya_absorber=absorber.AbsorberData(name='Lya',rest_wave=lya,flux_transform_m=1.0)
         self.lyb_absorber=None
         self.metals=None
+
+        # these will store the DLA (if asked for)
+        self.DLA_table=None
 
         return
 
@@ -116,7 +120,7 @@ class SimulationData:
 
         times += [time.time()-start-np.sum(times[:-1])]
 
-        if MOCKIDs != None:
+        if MOCKIDs is not None:
             #Work out which rows in the hdulist we are interested in.
             rows = []
             s = set(MOCKIDs)
@@ -614,7 +618,7 @@ class SimulationData:
         return cls(N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,R,Z,D,V,LOGLAM_MAP,A)
 
     #Function to save data as a Gaussian colore file.
-    def save_as_gaussian_colore(self,location,filename,header,overwrite=False):
+    def save_as_gaussian_colore(self,filename,header,overwrite=False):
 
         #Organise the data into colore-format arrays.
         colore_1_data = []
@@ -645,13 +649,13 @@ class SimulationData:
 
         #Combine the HDUs into an HDUlist and save as a new file. Close the HDUlist.
         hdulist = fits.HDUList([prihdu, hdu_CATALOG, hdu_GAUSSIAN, hdu_VEL, hdu_COSMO])
-        hdulist.writeto(location+filename,overwrite=overwrite)
+        hdulist.writeto(filename,overwrite=overwrite)
         hdulist.close
 
         return
 
     #Function to save data as a picca density file.
-    def save_as_picca_gaussian(self,location,filename,header,overwrite=False,zero_mean_delta=False,min_number_cells=2,mean_DELTA=None):
+    def save_as_picca_gaussian(self,filename,header,overwrite=False,zero_mean_delta=False,min_number_cells=2,mean_DELTA=None):
 
         lya_lambdas = 10**self.LOGLAM_MAP
 
@@ -693,13 +697,13 @@ class SimulationData:
 
         #Combine the HDUs into and HDUlist and save as a new file. Close the HDUlist.
         hdulist = fits.HDUList([hdu_DELTA, hdu_iv, hdu_LOGLAM_MAP, hdu_CATALOG])
-        hdulist.writeto(location+filename,overwrite=overwrite)
+        hdulist.writeto(filename,overwrite=overwrite)
         hdulist.close()
 
         return
 
     #Function to save data as a Lognormal colore file.
-    def save_as_physical_colore(self,location,filename,header):
+    def save_as_physical_colore(self,filename,header):
 
         #Organise the data into colore-format arrays.
         colore_1_data = []
@@ -731,13 +735,13 @@ class SimulationData:
 
         #Combine the HDUs into an HDUlist and save as a new file. Close the HDUlist.
         hdulist = fits.HDUList([prihdu, hdu_CATALOG, hdu_DELTA, hdu_VEL, hdu_COSMO])
-        hdulist.writeto(location+filename)
+        hdulist.writeto(filename)
         hdulist.close
 
         return
 
     #Function to save data as a picca density file.
-    def save_as_picca_density(self,location,filename,header,zero_mean_delta=False,min_number_cells=2,mean_DELTA=None):
+    def save_as_picca_density(self,filename,header,zero_mean_delta=False,min_number_cells=2,mean_DELTA=None):
 
         lya_lambdas = 10**self.LOGLAM_MAP
 
@@ -779,7 +783,7 @@ class SimulationData:
 
         #Combine the HDUs into and HDUlist and save as a new file. Close the HDUlist.
         hdulist = fits.HDUList([hdu_DELTA, hdu_iv, hdu_LOGLAM_MAP, hdu_CATALOG])
-        hdulist.writeto(location+filename)
+        hdulist.writeto(filename)
         hdulist.close()
 
         return
@@ -803,7 +807,7 @@ class SimulationData:
         return F_grid
 
     #Function to save data as a transmission file.
-    def save_as_transmission(self,location,filename,header):
+    def save_as_transmission(self,filename,header):
         
         # define common wavelength grid to be written in files (in Angstroms)
         wave_min=3550
@@ -843,9 +847,10 @@ class SimulationData:
         #Combine the HDUs into an HDUlist (including DLAs and metals, if they have been computed)
         list_hdu = [prihdu, hdu_METADATA, hdu_WAVELENGTH, hdu_TRANSMISSION]
 
-        if hasattr(self,'DLA_table') == True:
+        if self.DLA_table is not None:
             hdu_DLAs = fits.hdu.BinTableHDU(data=self.DLA_table,header=header,name='DLA')
             list_hdu.append(hdu_DLAs)
+
         if self.metals is not None:
             # compute metals' transmission on grid of wavelengths
             F_grid_met = np.ones_like(F_grid_Lya)
@@ -858,13 +863,13 @@ class SimulationData:
 
         #Save as a new file. Close the HDUlist.
         hdulist = fits.HDUList(list_hdu)
-        hdulist.writeto(location+filename)
+        hdulist.writeto(filename)
         hdulist.close()
 
         return
 
     #Function to save data as a picca flux file.
-    def save_as_picca_flux(self,location,filename,header,min_number_cells = 2,mean_F_data=None):
+    def save_as_picca_flux(self,filename,header,min_number_cells = 2,mean_F_data=None):
 
         lya_lambdas = 10**self.LOGLAM_MAP
 
@@ -918,13 +923,13 @@ class SimulationData:
 
         #Combine the HDUs into and HDUlist and save as a new file. Close the HDUlist.
         hdulist = fits.HDUList([hdu_F, hdu_iv, hdu_LOGLAM_MAP, hdu_CATALOG])
-        hdulist.writeto(location+filename)
+        hdulist.writeto(filename)
         hdulist.close()
 
         return
 
     #Function to save data as a picca velocity file.
-    def save_as_picca_velocity(self,location,filename,header,zero_mean_delta=False,min_number_cells=2,overwrite=False):
+    def save_as_picca_velocity(self,filename,header,zero_mean_delta=False,min_number_cells=2,overwrite=False):
 
         lya_lambdas = 10**self.LOGLAM_MAP
 
@@ -962,7 +967,7 @@ class SimulationData:
 
         #Combine the HDUs into and HDUlist and save as a new file. Close the HDUlist.
         hdulist = fits.HDUList([hdu_VEL, hdu_iv, hdu_LOGLAM_MAP, hdu_CATALOG])
-        hdulist.writeto(location+filename,overwrite=overwrite)
+        hdulist.writeto(filename,overwrite=overwrite)
         hdulist.close()
 
         return
@@ -1033,6 +1038,7 @@ class SimulationData:
         #If extrapolate_z_down is set to a value below the skewer, then we extrapolate down to that value.
         #Otherwise, we start placing DLAs at the start of the skewer.
         extrapolate_z_down = None
-        DLA.add_DLA_table_to_object(self,dla_bias=dla_bias,extrapolate_z_down=extrapolate_z_down)
+        DLA_table = DLA.add_DLA_table_to_object(self,dla_bias=dla_bias,extrapolate_z_down=extrapolate_z_down)
+        self.DLA_table = DLA_table
 
         return
