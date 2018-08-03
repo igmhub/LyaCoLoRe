@@ -118,12 +118,10 @@ def add_DLA_table_to_object(object,dla_bias=2.0,extrapolate_z_down=None):
     MOCKIDs = object.MOCKID[kskw]
 
     #Make the data into a table HDU
-    taux = astropy.table.Table([MOCKIDs,zdla,dz_dla,Ndla],names=('MOCKID','Z_DLA','DZ_DLA','N_HI_DLA'))
+    DLA_table = astropy.table.Table([MOCKIDs,zdla,dz_dla,Ndla],names=('MOCKID','Z_DLA','DZ_DLA','N_HI_DLA'))
 
     #Only include DLAs where the DLA is at lower z than the QSO
     DLA_Z_QSOs = object.Z_QSO[kskw]
-    taux = taux[taux['Z_DLA']<DLA_Z_QSOs]
+    DLA_table = DLA_table[DLA_table['Z_DLA']<DLA_Z_QSOs]
 
-    object.DLA_table = taux
-
-    return
+    return DLA_table 
