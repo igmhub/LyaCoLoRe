@@ -10,12 +10,11 @@ import time
 import os
 import argparse
 
-import general
+import utils
 import independent
 import stats
 import convert
 import simulation_data
-import input
 import DLA
 import RSD
 
@@ -102,10 +101,12 @@ parser.add_argument('--nskewers', type = int, default = None, required=False,
 
 ################################################################################
 
+print('setup arguments from parser')
+
 args = parser.parse_args()
 
 #Define global variables.
-lya = 1215.67
+lya = utils.lya_rest
 
 original_file_location = args.in_dir
 new_base_file_location = args.out_dir
@@ -153,8 +154,10 @@ new_filename_structure = '{}-{}-{}.fits'    #file type, nside, pixel number
 #i.e. the z value for which lambda_min cooresponds to the lya wavelength.
 z_min = lambda_min/lya - 1
 
+print('get simulation parameters from',parameter_filename)
+
 #Get the simulation parameters from the parameter file.
-simulation_parameters = general.get_simulation_parameters(original_file_location,parameter_filename)
+simulation_parameters = utils.get_simulation_parameters(original_file_location,parameter_filename)
 
 # TODO: Modify this to accomodate other density types.
 #If density type is not lognormal, then crash.
@@ -198,7 +201,7 @@ def log_result(retval):
     N_complete = len(results)
     N_tasks = len(tasks)
 
-    general.progress_bar(N_complete,N_tasks,start_time)
+    utils.progress_bar(N_complete,N_tasks,start_time)
 
 #Define an error-tracking function.
 def log_error(retval):

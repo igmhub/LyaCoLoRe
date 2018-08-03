@@ -1,8 +1,8 @@
 import numpy as np
 
-import general
+import utils
 
-lya = 1215.67
+lya = utils.lya_rest
 
 #Function to extract RA values from a colore or picca format hdulist.
 def get_RA(h,input_format):
@@ -72,14 +72,14 @@ def get_MOCKID(h,input_format,file_number):
         except KeyError:
             h_N_qso = h[1].data.shape[0]
             row_numbers = list(range(h_N_qso))
-            MOCKID = general.make_MOCKID(file_number,row_numbers)
+            MOCKID = utils.make_MOCKID(file_number,row_numbers)
     elif input_format == 'gaussian_colore':
         try:
             MOCKID = h[1].data['MOCKID']
         except KeyError:
             h_N_qso = h[1].data.shape[0]
             row_numbers = list(range(h_N_qso))
-            MOCKID = general.make_MOCKID(file_number,row_numbers)
+            MOCKID = utils.make_MOCKID(file_number,row_numbers)
     elif input_format == 'picca':
         MOCKID = h[3].data['THING_ID']
     elif input_format == 'ID':
@@ -89,8 +89,6 @@ def get_MOCKID(h,input_format,file_number):
 
 #Function to extract Z values from a colore or picca format hdulist.
 def get_COSMO(h,input_format):
-
-    lya = 1215.67
 
     if input_format == 'physical_colore':
         R = h[4].data['R']
@@ -117,8 +115,6 @@ def get_COSMO(h,input_format):
 
 #Function to extract Z values from a colore or picca format hdulist.
 def get_lya_lambdas(h,input_format):
-
-    lya = 1215.67
 
     if input_format == 'physical_colore':
         Z = h[4].data['Z']
