@@ -74,7 +74,7 @@ def get_N(z, Nmin=19.5, Nmax=22.0, nsamp=100):
         N[i] = np.random.choice(nn,size=1,p=probs[i]/np.sum(probs[i]))
     return N
 
-def add_DLA_table_to_object(object,dla_bias=2.0,extrapolate_z_down=None,Nmin=19.5,Nmax=22.):
+ dd_DLA_table_to_object(object,dla_bias=2.0,extrapolate_z_down=None,Nmin=19.5,Nmax=22.,seed=123):
 
     y = interp1d(object.Z,object.D)
     bias = dla_bias/(object.D)*y(2.25)
@@ -95,46 +95,52 @@ def add_DLA_table_to_object(object,dla_bias=2.0,extrapolate_z_down=None,Nmin=19.
 
     #Average number of DLAs per pixel
     if use_pyigm:
-        N = fN_default.calculate_rhoHI(object.Z, (Nmin, Nmax))/((const.m_p.cgs * cosmo.H0 /
-            const.c.cgs / (u.cm**2)).to(u.Msun/u.Mpc**3)) # Reconvert to N(z) and not N(X)
+        zdla = []
+        kskw = []
+        dz_dla = []
+        HIComps = [monte_HIcomp(fN_default.zmnx, fN_default, NHI_mnx=(Nmin, Nmax), dz=1e-6, cosmo=cosmo, seed=seed+i) for i in range(0,object.N_qso)]
+        for ii, Qtab in enumerate(HIComps):
+            zdla.append(Qtab['z'].data)
+            kskw.append(np.ones(len(Qtab),dtype='int32')*ii)
+            zind = np.argmin(np.fabs(zdla[:,np.newaxis]-object.Z),axis=0)
+            dz_dla.append(object.VEL_rows[ii,zind])
+            Ndla.append(Qtab['lgNHI'].data)
+        zdla = np.concatenate(np.array(zdla)).ravel()
+        kskw = np.concatenate(np.array(kskw)).ravel()
+        dz_dla = np.concatenate(np.array(dz_dla)).ravel()
+        Ndla = np.concatenate(np.array(Ndla)).ravel()
     else:
         N = z_width*dNdz(object.Z,Nmin=Nmin,Nmax=Nmax) # Average number of DLAs per pixel
 
-    N_old = z_width*dNdz(object.Z,Nmin=Nmin,Nmax=Nmax) # Average number of DLAs per pixel
-    print(N,N_old)
-    #For a given z, probability of having the density higher than the threshold
-    p_nu_z = 1.0-norm.cdf(nu_arr)
-    mu = N/p_nu_z
+        #For a given z, probability of having the density higher than the threshold
+        p_nu_z = 1.0-norm.cdf(nu_arr)
+        mu = N/p_nu_z
 
-    #Should the "len(skewers)" be the number of skewers or the number of cells in each skewer here?
-    #Think it's the number of skewers but will check
-    pois = np.random.poisson(mu,size=(object.N_qso,len(mu)))
-    dlas = pois*flagged_pixels
+        #Should the "len(skewers)" be the number of skewers or the number of cells in each skewer here?
+        #Think it's the number of skewers but will check
+        pois = np.random.poisson(mu,size=(object.N_qso,len(mu)))
+        dlas = pois*flagged_pixels
 
-    ndlas = np.sum(dlas)
-    zdla = np.zeros(ndlas)
-    kskw = np.zeros(ndlas)
-    dz_dla = np.zeros(ndlas)
-    idx = 0
+        ndlas = np.sum(dlas)
+    
+        zdla = np.zeros(ndlas)
+        kskw = np.zeros(ndlas)
+        dz_dla = np.zeros(ndlas)
+        idx = 0
 
-    #In each skewer, look at each potential DLA.
-    for nskw,dla in enumerate(dlas):
+        #In each skewer, look at each potential DLA.
+        for nskw,dla in enumerate(dlas):
 
-        #Asess which potential DLA position will be allocated a DLA.
-        ind = np.where(dla>0)[0]
+            #Asess which potential DLA position will be allocated a DLA.
+            ind = np.where(dla>0)[0]
 
-        #For each dla, assign it a redshift, a velocity and a column density.
-        for ii in ind:
-            zdla[idx:idx+dla[ii]] = np.random.uniform(low=(zedges[ii]),high=(zedges[ii+1]),size=dla[ii])
-            kskw[idx:idx+dla[ii]] = nskw
-            dz_dla[idx:idx+dla[ii]] = object.VEL_rows[nskw,ii]
-            idx = idx+dla[ii]
+             #For each dla, assign it a redshift, a velocity and a column density.
+            for ii in ind:
+                zdla[idx:idx+dla[ii]] = np.random.uniform(low=(zedges[ii]),high=(zedges[ii+1]),size=dla[ii])
+                kskw[idx:idx+dla[ii]] = nskw
+                dz_dla[idx:idx+dla[ii]] = object.VEL_rows[nskw,ii]
+                idx = idx+dla[ii]
 
-    if use_pyigm:
-        N = fN_default.calculate_rhoHI(object.Z, (Nmin, Nmax))/((const.m_p.cgs * cosmo.H0 /
-                const.c.cgs / (u.cm**2)).to(u.Msun/u.Mpc**3)) # Reconvert to N(z) and not N(X)
-    else:
-        Ndla = get_N(zdla,Nmin=Nmin,Nmax=Nmax)
     kskw = kskw.astype('int32')
     MOCKIDs = object.MOCKID[kskw]
 
@@ -147,4 +153,3 @@ def add_DLA_table_to_object(object,dla_bias=2.0,extrapolate_z_down=None,Nmin=19.
 
     object.DLA_table = taux
 
-    return
