@@ -7,13 +7,11 @@ import astropy.table
 import os
 try:
     from pyigm.fN.fnmodel import FNModel
-    from astropy import units as u
-    from astropy import constants as const
-    from astropy import cosmology
+    from pyigm.fN.mockforest import monte_HIcomp
     fN_default = FNModel.default_model()
     fN_default.zmnx = (0.5,4)
     cosmo = fN_default.cosmo
-    use_pyigm = True #False
+    use_pyigm = True
 except:
     use_pyigm = False
 
@@ -74,7 +72,7 @@ def get_N(z, Nmin=19.5, Nmax=22.0, nsamp=100):
         N[i] = np.random.choice(nn,size=1,p=probs[i]/np.sum(probs[i]))
     return N
 
- dd_DLA_table_to_object(object,dla_bias=2.0,extrapolate_z_down=None,Nmin=19.5,Nmax=22.,seed=123):
+def add_DLA_table_to_object(object,dla_bias=2.0,extrapolate_z_down=None,Nmin=19.5,Nmax=22.,seed=123):
 
     y = interp1d(object.Z,object.D)
     bias = dla_bias/(object.D)*y(2.25)
@@ -98,6 +96,7 @@ def get_N(z, Nmin=19.5, Nmax=22.0, nsamp=100):
         zdla = []
         kskw = []
         dz_dla = []
+        Ndla = []
         HIComps = [monte_HIcomp(fN_default.zmnx, fN_default, NHI_mnx=(Nmin, Nmax), dz=1e-6, cosmo=cosmo, seed=seed+i) for i in range(0,object.N_qso)]
         for ii, Qtab in enumerate(HIComps):
             zdla.append(Qtab['z'].data)
@@ -134,13 +133,13 @@ def get_N(z, Nmin=19.5, Nmax=22.0, nsamp=100):
             #Asess which potential DLA position will be allocated a DLA.
             ind = np.where(dla>0)[0]
 
-             #For each dla, assign it a redshift, a velocity and a column density.
+            #For each dla, assign it a redshift, a velocity and a column density.
             for ii in ind:
                 zdla[idx:idx+dla[ii]] = np.random.uniform(low=(zedges[ii]),high=(zedges[ii+1]),size=dla[ii])
                 kskw[idx:idx+dla[ii]] = nskw
                 dz_dla[idx:idx+dla[ii]] = object.VEL_rows[nskw,ii]
                 idx = idx+dla[ii]
-
+        Ndla = get_N(zdla,Nmin=Nmin,Nmax=Nmax)        
     kskw = kskw.astype('int32')
     MOCKIDs = object.MOCKID[kskw]
 
