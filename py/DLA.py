@@ -7,7 +7,6 @@ import astropy.table
 import os
 try:
     from pyigm.fN.fnmodel import FNModel
-    from pyigm.fN.mockforest import monte_HIcomp
     fN_default = FNModel.default_model()
     fN_default.zmnx = (0.5,4)
     fN_cosmo = fN_default.cosmo
@@ -44,9 +43,15 @@ def get_sigma_g(fname, mode='SG'):
         skewers = fits.open(fname)[2].data
         return np.std(skewers,axis=0)
 
-def flag_DLA(skewer,nu_arr,sigma_g):
+def flag_DLA(zq,z_cells,deltas,nu_arr,sigma_g):
     """ Flag the pixels in a skewer where DLAs are possible"""
-    flag = skewer > nu_arr*sigma_g
+    # find cells with density above threshold
+    flag = deltas > nu_arr*sigma_g
+    # mask cells with z > z_qso, where DLAs would not be observed
+    Nq=len(zq)
+    for i in range(Nq):
+        low_z = z_cells < zq[i]
+        flag[i,:] *= low_z
     return flag
 
 #number per unit redshift from minimum lg(N) in file (17.2) to argument
@@ -60,95 +65,125 @@ def dnHD_dz_cumlgN(z,logN):
 def dNdz(z, Nmin=19.5, Nmax=22.):
     """ Get the column density distribution as a function of z,
     for a given range in N"""
-    return dnHD_dz_cumlgN(z,Nmax)-dnHD_dz_cumlgN(z,Nmin)
+    if use_pyigm:
+        # get incidence rate per path length dX (in comoving coordinates)
+        dNdX = fN_default.calculate_lox(z,Nmin,Nmax)
+        # convert dX to dz
+        dXdz = fN_cosmo.abs_distance_integrand(z)
+        return dNdX * dXdz
+    else:
+        return dnHD_dz_cumlgN(z,Nmax)-dnHD_dz_cumlgN(z,Nmin)
 
 def get_N(z, Nmin=19.5, Nmax=22.0, nsamp=100):
     """ Get random column densities for a given z
     This always returns recurring decimals of a kind, could just expand nsamp to deal with it"""
+    
+    # number of DLAs we want to generate
+    Nz = len(z)
+
+    # TODO: set this up to work properly for pyigm and tabulated code
+    if False:
+
+        #THIS IS THE TYPE OF CODE WE WANT
+
+        nn = np.linspace(Nmin,Nmax,nsamp)
+        probs = dNdz(z,nn[0,nsamp-1],nn[1,nsamp])
+        NHI = np.zeros(Nz)
+        for i in range(Nz):
+            NHI[i] = np.random.choice(nn,size=1,p=probs[i]/np.sum(probs[i]))
+        return NHI
+
+    # old (fixed) code below, it only works for tabulated code (not for pyigm)
     nn = np.linspace(Nmin,Nmax,nsamp)
-    probs = dnHD_dz_cumlgN(z,nn).T
-    N = np.zeros(len(probs))
-    for i in range(0,len(probs)):
-        N[i] = np.random.choice(nn,size=1,p=probs[i]/np.sum(probs[i]))
-    return N
+    probs = np.zeros([Nz,nsamp])
+    probs_low = dnHD_dz_cumlgN(z,nn[:nsamp-1]).T 
+    probs_high = dnHD_dz_cumlgN(z,nn[1:nsamp]).T 
+    probs[:,1:] = probs_high-probs_low
+    NHI = np.zeros(Nz)
+    for i in range(Nz):
+        NHI[i] = np.random.choice(nn,size=1,p=probs[i]/np.sum(probs[i]))
+    return NHI
 
 def add_DLA_table_to_object(object,dla_bias=2.0,extrapolate_z_down=None,Nmin=19.5,Nmax=22.,seed=123):
 
-    y = interp1d(object.Z,object.D)
-    bias = dla_bias/(object.D)*y(2.25)
+    #Hopefully this sets the seed for all random generators used
+    np.random.seed(seed)
+
+    #Quasar redshift for each skewer
+    zq = object.Z_QSO
+    #Redshift of each cell in the skewer
+    z_cell = object.Z
+    #Linear growth rate of each cell in the skewer
+    D_cell = object.D
+
+    #Setup bias as a function of redshift
+    y = interp1d(z_cell,D_cell)
+    bias = dla_bias/(D_cell)*y(2.25)
 
     #We measure sigma_G already, but it is not fed back into the files at all. This should change.
     sigma_g = object.SIGMA_G
     #sigma_g = DLA.get_sigma_g(o.input_file)
 
-    nu_arr = nu_of_bD(bias*object.D)
-    flagged_pixels = flag_DLA(object.GAUSSIAN_DELTA_rows,nu_arr,sigma_g)
+    nu_arr = nu_of_bD(bias*D_cell)
+    #Figure out cells that could host a DLA, based on Gaussian fluctuation
+    deltas = object.GAUSSIAN_DELTA_rows
+    flagged_cells = flag_DLA(zq,z_cell,deltas,nu_arr,sigma_g)
 
     #Edges of the z bins
-    if extrapolate_z_down and extrapolate_z_down<object.Z[0]:
-        zedges = np.concatenate([[extrapolate_z_down],(object.Z[1:]+object.Z[:-1])*0.5,[object.Z[-1]+(-object.Z[-2]+object.Z[-1])*0.5]]).ravel()
+    if extrapolate_z_down and extrapolate_z_down<z_cell[0]:
+        zedges = np.concatenate([[extrapolate_z_down],(z_cell[1:]+z_cell[:-1])*0.5,[z_cell[-1]+(-z_cell[-2]+z_cell[-1])*0.5]]).ravel()
     else:
-        zedges = np.concatenate([[object.Z[0]],(object.Z[1:]+object.Z[:-1])*0.5,[object.Z[-1]+(-object.Z[-2]+object.Z[-1])*0.5]]).ravel()
+        zedges = np.concatenate([[z_cell[0]],(z_cell[1:]+z_cell[:-1])*0.5,[z_cell[-1]+(-z_cell[-2]+z_cell[-1])*0.5]]).ravel()
     z_width = zedges[1:]-zedges[:-1]
 
-    #Average number of DLAs per pixel
-    if use_pyigm:
-        zdla = []
-        kskw = []
-        dz_dla = []
-        Ndla = []
-        HIComps = [monte_HIcomp(fN_default.zmnx, fN_default, NHI_mnx=(Nmin, Nmax), dz=1e-6, cosmo=fN_cosmo, seed=seed+i) for i in range(0,object.N_qso)]
-        for ii, Qtab in enumerate(HIComps):
-            zdla.append(Qtab['z'].data)
-            kskw.append(np.ones(len(Qtab),dtype='int32')*ii)
-            zind = np.argmin(np.fabs(zdla[:,np.newaxis]-object.Z),axis=0)
-            dz_dla.append(object.VEL_rows[ii,zind])
-            Ndla.append(Qtab['lgNHI'].data)
-        zdla = np.concatenate(np.array(zdla)).ravel()
-        kskw = np.concatenate(np.array(kskw)).ravel()
-        dz_dla = np.concatenate(np.array(dz_dla)).ravel()
-        Ndla = np.concatenate(np.array(Ndla)).ravel()
-    else:
-        N = z_width*dNdz(object.Z,Nmin=Nmin,Nmax=Nmax) # Average number of DLAs per pixel
+    #Get the average number of DLAs per cell, from the column density dist.
+    mean_N_per_cell = z_width*dNdz(z_cell,Nmin=Nmin,Nmax=Nmax)
 
-        #For a given z, probability of having the density higher than the threshold
-        p_nu_z = 1.0-norm.cdf(nu_arr)
-        mu = N/p_nu_z
+    #For a given z, probability of having the density higher than the threshold
+    p_nu_z = 1.0-norm.cdf(nu_arr)
 
-        #Should the "len(skewers)" be the number of skewers or the number of cells in each skewer here?
-        #Think it's the number of skewers but will check
-        pois = np.random.poisson(mu,size=(object.N_qso,len(mu)))
-        dlas = pois*flagged_pixels
+    #Define mean of the Poisson distribution (per cell)
+    mu = mean_N_per_cell/p_nu_z
 
-        ndlas = np.sum(dlas)
-    
-        zdla = np.zeros(ndlas)
-        kskw = np.zeros(ndlas)
-        dz_dla = np.zeros(ndlas)
-        idx = 0
+    #Should the "len(skewers)" be the number of skewers or the number of cells in each skewer here?
+    #Think it's the number of skewers but will check
 
-        #In each skewer, look at each potential DLA.
-        for nskw,dla in enumerate(dlas):
+    #Select cells that will hold a DLA, drawing from the Poisson distribution
+    pois = np.random.poisson(mu,size=(len(zq),len(mu)))
+    #Number of DLAs in each cell (mostly 0, several 1, not many with >1)
+    dlas_in_cell = pois*flagged_cells
 
-            #Asess which potential DLA position will be allocated a DLA.
-            ind = np.where(dla>0)[0]
+    #Total number of DLAs to be added to all the cells of all the skewers
+    ndlas = np.sum(dlas_in_cell)
+    #Store information for each of the DLAs that will be added
+    dla_z = np.zeros(ndlas)
+    dla_skw_id = np.zeros(ndlas)
+    dla_rsd_dz = np.zeros(ndlas)
+    dla_count = 0
 
-            #For each dla, assign it a redshift, a velocity and a column density.
-            for ii in ind:
-                ,zdla[idx:idx+dla[ii]] = np.random.uniform(low=(zedges[ii]),high=(zedges[ii+1]),size=dla[ii])
-                kskw[idx:idx+dla[ii]] = nskw
-                dz_dla[idx:idx+dla[ii]] = object.VEL_rows[nskw,ii]
-                idx = idx+dla[ii]
-        Ndla = get_N(zdla,Nmin=Nmin,Nmax=Nmax)        
-    kskw = kskw.astype('int32')
-    MOCKIDs = object.MOCKID[kskw]
+    #In each skewer, identify cells where we need to add a DLA
+    for skw_id,dla in enumerate(dlas_in_cell):
+
+        #Find cells that will be allocated at least one DLA
+        dla_cells = np.where(dla>0)[0]
+
+        #For each dla, assign it a redshift, a velocity and a column density.
+        for cell in dla_cells:
+            dla_z[dla_count:dla_count+dla[cell]] = np.random.uniform(low=(zedges[cell]),high=(zedges[cell+1]),size=dla[cell])
+            dla_skw_id[dla_count:dla_count+dla[cell]] = skw_id
+            dla_rsd_dz[dla_count:dla_count+dla[cell]] = object.VEL_rows[skw_id,cell]
+            dla_count = dla_count+dla[cell]
+
+    dla_NHI = get_N(dla_z,Nmin=Nmin,Nmax=Nmax)
+
+    dla_skw_id = dla_skw_id.astype('int32')
+    #global id for the skewers
+    MOCKIDs = object.MOCKID[dla_skw_id]
 
     #Make the data into a table HDU
-    taux = astropy.table.Table([MOCKIDs,zdla,dz_dla,Ndla],names=('MOCKID','Z_DLA','DZ_DLA','N_HI_DLA'))
+    dla_table = astropy.table.Table([MOCKIDs,dla_z,dla_rsd_dz,dla_NHI],names=('MOCKID','Z_DLA','DZ_DLA','N_HI_DLA'))
 
-    #Only include DLAs where the DLA is at lower z than the QSO
-    DLA_Z_QSOs = object.Z_QSO[kskw]
-    taux = taux[taux['Z_DLA']<DLA_Z_QSOs]
+    print('DLA table',dla_table)
 
-    object.DLA_table = taux
+    object.DLA_table = dla_table
 
