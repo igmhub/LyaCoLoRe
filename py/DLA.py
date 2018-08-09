@@ -10,7 +10,7 @@ try:
     from pyigm.fN.mockforest import monte_HIcomp
     fN_default = FNModel.default_model()
     fN_default.zmnx = (0.5,4)
-    cosmo = fN_default.cosmo
+    fN_cosmo = fN_default.cosmo
     use_pyigm = True
 except:
     use_pyigm = False
@@ -28,9 +28,9 @@ def nu_of_bD(b):
 def get_bias_z(fname,dla_bias):
     """ Given a path, read the z array there and return a bias inversely
     proportional to the growth"""
-    cosmo = fits.open(fname)[4].data
-    z = cosmo['Z']
-    D = cosmo['D']
+    colore_cosmo = fits.open(fname)[4].data
+    z = colore_cosmo['Z']
+    D = colore_cosmo['D']
     y = interp1d(z,D)
     bias = dla_bias/D*y(2.25)
     return z, bias, D
@@ -58,12 +58,12 @@ def dnHD_dz_cumlgN(z,logN):
     return y(z,logN)
 
 def dNdz(z, Nmin=19.5, Nmax=22.):
-    """ Get the column density as a function of z
+    """ Get the column density distribution as a function of z,
     for a given range in N"""
     return dnHD_dz_cumlgN(z,Nmax)-dnHD_dz_cumlgN(z,Nmin)
 
 def get_N(z, Nmin=19.5, Nmax=22.0, nsamp=100):
-    """ Get the column density for a given z
+    """ Get random column densities for a given z
     This always returns recurring decimals of a kind, could just expand nsamp to deal with it"""
     nn = np.linspace(Nmin,Nmax,nsamp)
     probs = dnHD_dz_cumlgN(z,nn).T
@@ -97,7 +97,7 @@ def add_DLA_table_to_object(object,dla_bias=2.0,extrapolate_z_down=None,Nmin=19.
         kskw = []
         dz_dla = []
         Ndla = []
-        HIComps = [monte_HIcomp(fN_default.zmnx, fN_default, NHI_mnx=(Nmin, Nmax), dz=1e-6, cosmo=cosmo, seed=seed+i) for i in range(0,object.N_qso)]
+        HIComps = [monte_HIcomp(fN_default.zmnx, fN_default, NHI_mnx=(Nmin, Nmax), dz=1e-6, cosmo=fN_cosmo, seed=seed+i) for i in range(0,object.N_qso)]
         for ii, Qtab in enumerate(HIComps):
             zdla.append(Qtab['z'].data)
             kskw.append(np.ones(len(Qtab),dtype='int32')*ii)
@@ -135,7 +135,7 @@ def add_DLA_table_to_object(object,dla_bias=2.0,extrapolate_z_down=None,Nmin=19.
 
             #For each dla, assign it a redshift, a velocity and a column density.
             for ii in ind:
-                zdla[idx:idx+dla[ii]] = np.random.uniform(low=(zedges[ii]),high=(zedges[ii+1]),size=dla[ii])
+                ,zdla[idx:idx+dla[ii]] = np.random.uniform(low=(zedges[ii]),high=(zedges[ii+1]),size=dla[ii])
                 kskw[idx:idx+dla[ii]] = nskw
                 dz_dla[idx:idx+dla[ii]] = object.VEL_rows[nskw,ii]
                 idx = idx+dla[ii]
