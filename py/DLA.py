@@ -77,6 +77,11 @@ def dNdz(z, Nmin=19.5, Nmax=22.):
 def get_N(z, Nmin=19.5, Nmax=22.0, nsamp=100):
     """ Get random column densities for a given z
     This always returns recurring decimals of a kind, could just expand nsamp to deal with it"""
+
+    # TODO: if we continue chosing 1 out of 100 possible values of N_HI, at 
+    # least we should then choose a random value between 
+    #    N_i - 0.5 dN < N_HI < N_i + 0.5 dN
+    # similar to how we choose the DLA redshift 
     
     # number of DLAs we want to generate
     Nz = len(z)
