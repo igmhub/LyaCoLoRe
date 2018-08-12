@@ -8,11 +8,7 @@ import multiprocessing
 import time
 import glob
 
-import pixelise
-import Pk1D
-import tuning
-import independent
-import general
+from pyacolore import pixelise, Pk1D, tuning, independent, general
 
 lya = 1215.67
 

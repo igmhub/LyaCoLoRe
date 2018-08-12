@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import scipy.interpolate as sciint
 import math
 
-import general
+from . import general
 
 lya = 1215.67
 

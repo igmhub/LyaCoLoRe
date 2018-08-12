@@ -10,14 +10,7 @@ import time
 import os
 import argparse
 
-import general
-import independent
-import stats
-import convert
-import pixelise
-import input
-import DLA
-import RSD
+from pyacolore import general, independent, stats, convert, pixelise, input, DLA, RSD
 
 ################################################################################
 
