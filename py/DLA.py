@@ -5,6 +5,8 @@ from scipy.stats import norm
 from scipy.interpolate import interp1d, interp2d
 import astropy.table
 import os
+import matplotlib.pyplot as plt
+
 try:
     from pyigm.fN.fnmodel import FNModel
     fN_default = FNModel.default_model()
@@ -76,37 +78,25 @@ def dNdz(z, Nmin=19.5, Nmax=22.):
 
 def get_N(z, Nmin=19.5, Nmax=22.0, nsamp=100):
     """ Get random column densities for a given z
-    This always returns recurring decimals of a kind, could just expand nsamp to deal with it"""
-
-    # TODO: if we continue chosing 1 out of 100 possible values of N_HI, at 
-    # least we should then choose a random value between 
-    #    N_i - 0.5 dN < N_HI < N_i + 0.5 dN
-    # similar to how we choose the DLA redshift 
-    
+    """
+   
     # number of DLAs we want to generate
-    Nz = len(z)
-
-    # TODO: set this up to work properly for pyigm and tabulated code
-    if False:
-
-        #THIS IS THE TYPE OF CODE WE WANT
-
-        nn = np.linspace(Nmin,Nmax,nsamp)
-        probs = dNdz(z,nn[0,nsamp-1],nn[1,nsamp])
-        NHI = np.zeros(Nz)
-        for i in range(Nz):
-            NHI[i] = np.random.choice(nn,size=1,p=probs[i]/np.sum(probs[i]))
-        return NHI
-
-    # old (fixed) code below, it only works for tabulated code (not for pyigm)
+    Nz = len(z) 
     nn = np.linspace(Nmin,Nmax,nsamp)
     probs = np.zeros([Nz,nsamp])
-    probs_low = dnHD_dz_cumlgN(z,nn[:nsamp-1]).T 
-    probs_high = dnHD_dz_cumlgN(z,nn[1:nsamp]).T 
+    if use_pyigm:
+        auxfN = fN_default.evaluate(nn,z).T
+        probs_low = auxfN[:,1:]
+        probs_high = auxfN[:,:-1]
+        probs_low = dnHD_dz_cumlgN(z,nn[:-1]).T
+        probs_high = dnHD_dz_cumlgN(z,nn[1:]).T 
+    else:
+        probs_low = dnHD_dz_cumlgN(z,nn[:-1]).T 
+        probs_high = dnHD_dz_cumlgN(z,nn[1:]).T 
     probs[:,1:] = probs_high-probs_low
     NHI = np.zeros(Nz)
     for i in range(Nz):
-        NHI[i] = np.random.choice(nn,size=1,p=probs[i]/np.sum(probs[i]))
+        NHI[i] = np.random.choice(nn,size=1,p=probs[i]/np.sum(probs[i]))+(nn[1]-nn[0])*np.random.random(size=1)
     return NHI
 
 def add_DLA_table_to_object(object,dla_bias=2.0,extrapolate_z_down=None,Nmin=19.5,Nmax=22.,seed=123):
