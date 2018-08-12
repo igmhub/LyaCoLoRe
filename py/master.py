@@ -1,8 +1,8 @@
 import numpy as np
 from astropy.io import fits
 
-import general
-import input
+from . import general
+from . import input
 
 lya = 1215.67
 

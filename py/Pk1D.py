@@ -1,6 +1,6 @@
 import numpy as np
 
-import general
+from . import general
 
 def get_Pk1D(skewer_rows,IVAR_rows,R_hMpc,z,z_value,z_width=0.2,N_processes=1):
 
