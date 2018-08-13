@@ -2,14 +2,7 @@ import numpy as np
 from astropy.io import fits
 import time
 
-import general
-import input
-import convert
-import RSD
-import DLA
-import independent
-import absorber
-import metals
+from . import general, input, convert, RSD, DLA, independent, absorber, metals
 
 lya = 1215.67
 
