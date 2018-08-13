@@ -88,7 +88,7 @@ def get_N(z, Nmin=19.5, Nmax=22.0, nsamp=100):
         # TODO: I don't think this can be correct, this is not cummulative
         # If you don't want to innecessarily compute the cummulative, you 
         # should multiply fN times with width of the log(N) bin 
-        auxfN = fN_default.evaluate(nn,z).T
+        auxfN = np.cumsum(fN_default.evaluate(nn,z), axis=0).T
         probs_low = auxfN[:,1:]
         probs_high = auxfN[:,:-1]
     else:
@@ -150,7 +150,7 @@ def add_DLA_table_to_object(object,dla_bias=2.0,extrapolate_z_down=None,Nmin=19.
     ndlas = np.sum(dlas_in_cell)
     #Store information for each of the DLAs that will be added
     dla_z = np.zeros(ndlas)
-    dla_skw_id = np.zeros(ndlas)
+    dla_skw_id = np.zeros(ndlas, dtype='int32')
     dla_rsd_dz = np.zeros(ndlas)
     dla_count = 0
 
@@ -169,8 +169,8 @@ def add_DLA_table_to_object(object,dla_bias=2.0,extrapolate_z_down=None,Nmin=19.
 
     dla_NHI = get_N(dla_z,Nmin=Nmin,Nmax=Nmax)
 
-    #TODO: Why is this needed? It would be good to document
-    dla_skw_id = dla_skw_id.astype('int32')
+
+
     #global id for the skewers
     MOCKIDs = object.MOCKID[dla_skw_id]
 
