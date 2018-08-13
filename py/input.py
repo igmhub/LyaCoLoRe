@@ -1,6 +1,6 @@
 import numpy as np
 
-import general
+from . import general
 
 lya = 1215.67
 
