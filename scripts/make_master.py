@@ -8,8 +8,8 @@ import multiprocessing
 import time
 import argparse
 
-import general
-import master
+from pyacolore import general
+from pyacolore import master
 
 ################################################################################
 
