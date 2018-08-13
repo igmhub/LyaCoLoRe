@@ -85,11 +85,12 @@ def get_N(z, Nmin=19.5, Nmax=22.0, nsamp=100):
     nn = np.linspace(Nmin,Nmax,nsamp)
     probs = np.zeros([Nz,nsamp])
     if use_pyigm:
+        # TODO: I don't think this can be correct, this is not cummulative
+        # If you don't want to innecessarily compute the cummulative, you 
+        # should multiply fN times with width of the log(N) bin 
         auxfN = fN_default.evaluate(nn,z).T
         probs_low = auxfN[:,1:]
         probs_high = auxfN[:,:-1]
-        probs_low = dnHD_dz_cumlgN(z,nn[:-1]).T
-        probs_high = dnHD_dz_cumlgN(z,nn[1:]).T 
     else:
         probs_low = dnHD_dz_cumlgN(z,nn[:-1]).T 
         probs_high = dnHD_dz_cumlgN(z,nn[1:]).T 
@@ -140,9 +141,6 @@ def add_DLA_table_to_object(object,dla_bias=2.0,extrapolate_z_down=None,Nmin=19.
     #Define mean of the Poisson distribution (per cell)
     mu = mean_N_per_cell/p_nu_z
 
-    #Should the "len(skewers)" be the number of skewers or the number of cells in each skewer here?
-    #Think it's the number of skewers but will check
-
     #Select cells that will hold a DLA, drawing from the Poisson distribution
     pois = np.random.poisson(mu,size=(len(zq),len(mu)))
     #Number of DLAs in each cell (mostly 0, several 1, not many with >1)
@@ -171,6 +169,7 @@ def add_DLA_table_to_object(object,dla_bias=2.0,extrapolate_z_down=None,Nmin=19.
 
     dla_NHI = get_N(dla_z,Nmin=Nmin,Nmax=Nmax)
 
+    #TODO: Why is this needed? It would be good to document
     dla_skw_id = dla_skw_id.astype('int32')
     #global id for the skewers
     MOCKIDs = object.MOCKID[dla_skw_id]
@@ -178,7 +177,7 @@ def add_DLA_table_to_object(object,dla_bias=2.0,extrapolate_z_down=None,Nmin=19.
     #Make the data into a table HDU
     dla_table = astropy.table.Table([MOCKIDs,dla_z,dla_rsd_dz,dla_NHI],names=('MOCKID','Z_DLA','DZ_DLA','N_HI_DLA'))
 
-    print('DLA table',dla_table)
+    #print('DLA table',dla_table)
 
     object.DLA_table = dla_table
 
