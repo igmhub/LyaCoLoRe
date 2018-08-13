@@ -1,4 +1,4 @@
-import absorber
+from . import absorber
 
 
 

@@ -5,7 +5,7 @@ from picca import wedgize
 import sys
 from numpy import linalg
 import mcfit
-import correlation_model
+from . import correlation_model
 
 
 # TODO: write this
