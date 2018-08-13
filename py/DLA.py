@@ -85,9 +85,6 @@ def get_N(z, Nmin=19.5, Nmax=22.0, nsamp=100):
     nn = np.linspace(Nmin,Nmax,nsamp)
     probs = np.zeros([Nz,nsamp])
     if use_pyigm:
-        # TODO: I don't think this can be correct, this is not cummulative
-        # If you don't want to innecessarily compute the cummulative, you 
-        # should multiply fN times with width of the log(N) bin 
         auxfN = np.cumsum(fN_default.evaluate(nn,z), axis=0).T
         probs_low = auxfN[:,1:]
         probs_high = auxfN[:,:-1]
