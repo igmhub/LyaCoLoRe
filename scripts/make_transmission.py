@@ -93,6 +93,9 @@ parser.add_argument('--transmission-only', action="store_true", default = False,
 parser.add_argument('--nskewers', type = int, default = None, required=False,
                     help = 'number of skewers to process')
 
+parser.add_argument('--seed', type = int, default = 123, required=False,
+                    help = 'specify seed to generate random numbers')
+
 ################################################################################
 
 args = parser.parse_args()
@@ -125,6 +128,7 @@ retune_small_scale_fluctuations = args.retune_small_scale_fluctuations
 tuning_file = args.tuning_file
 transmission_only = args.transmission_only
 N_skewers = args.nskewers
+global_seed = args.seed
 
 # TODO: print to confirm the arguments. e.g. "DLAs will be added"
 
@@ -346,9 +350,11 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
         print('\nwarning: no objects left in pixel {} after trimming.'.format(pixel))
         return pixel
 
+    #Get seed to generate random numbers for this particular pixel
+    #seed = 10**(len(str(12*N_side**2))) + pixel + global_seed
+    seed = int(str(N_side) + str(pixel)) + global_seed
+
     #Add small scale power to the gaussian skewers:
-    #new_seed = 10**(len(str(12*N_side**2))) + pixel
-    seed = int(str(N_side) + str(pixel))
     generator = np.random.RandomState(seed)
     new_cosmology = pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,tuning_z_values,extra_sigma_G_values,generator,white_noise=False,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff)
     #new_cosmology = []
@@ -362,7 +368,7 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     #That means we need to store skewers all the way down to z=0.
     #Not possible atm as we'd run out of memory, but can be done once running on >1 node.
     if add_DLAs:
-        pixel_object.add_DLA_table()
+        pixel_object.add_DLA_table(seed)
 
     #Add physical skewers to the object.
     pixel_object.compute_physical_skewers()
