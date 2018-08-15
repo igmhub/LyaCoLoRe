@@ -8,8 +8,7 @@ import multiprocessing
 import time
 import argparse
 
-import utils
-import catalog
+from pyacolore import utils, catalog
 
 ################################################################################
 

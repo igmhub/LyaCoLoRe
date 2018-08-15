@@ -8,11 +8,7 @@ import multiprocessing
 import time
 import glob
 
-import simulation_data
-import Pk1D
-import tuning
-import independent
-import utils
+from pyacolore import simulation_data, Pk1D, tuning, independent, utils
 
 lya = utils.lya_rest
 

@@ -2,14 +2,7 @@ import numpy as np
 from astropy.io import fits
 import time
 
-import utils
-import read_files
-import convert
-import RSD
-import DLA
-import independent
-import absorber
-import metals
+from . import utils, read_files, convert, RSD, DLA, independent, absorber, metals
 
 lya = utils.lya_rest
 
@@ -1032,13 +1025,13 @@ class SimulationData:
         return means
 
     #Function to add DLAs to a set of skewers.
-    def add_DLA_table(self):
+    def add_DLA_table(self,seed):
 
         dla_bias = 2.0
         #If extrapolate_z_down is set to a value below the skewer, then we extrapolate down to that value.
         #Otherwise, we start placing DLAs at the start of the skewer.
         extrapolate_z_down = None
-        DLA_table = DLA.add_DLA_table_to_object(self,dla_bias=dla_bias,extrapolate_z_down=extrapolate_z_down)
+        DLA_table = DLA.add_DLA_table_to_object(self,dla_bias=dla_bias,extrapolate_z_down=extrapolate_z_down,seed=seed)
         self.DLA_table = DLA_table
 
         return
