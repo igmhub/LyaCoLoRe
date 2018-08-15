@@ -1,7 +1,5 @@
 from . import absorber
 
-
-
 """
 This is a dictionary containing names of the added metals, their corresponding restframe wavelength, and optical depth.
 The values are taken as the ones used in desisim, and Si lines were chosen as in Bautista et al. 2017 https://arxiv.org/pdf/1702.00176.pdf
