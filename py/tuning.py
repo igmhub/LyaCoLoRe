@@ -2,9 +2,7 @@ import numpy as np
 from astropy.io import fits
 import matplotlib.pyplot as plt
 
-import convert
-import Pk1D
-import utils
+from . import convert, Pk1D, utils
 
 ################################################################################
 """

@@ -1,6 +1,6 @@
 import numpy as np
 
-import utils
+from . import utils
 
 lya = utils.lya_rest
 

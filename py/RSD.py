@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import scipy.interpolate as sciint
 import math
 
-import utils
+from . import utils
 
 #Function to add linear RSDs from the velocity skewers.
 #delete?
