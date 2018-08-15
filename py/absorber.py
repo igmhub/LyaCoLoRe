@@ -1,6 +1,6 @@
 import numpy as np
 
-import utils
+from . import utils
 
 # Class storing information related to a particular absorber
 class AbsorberData:
