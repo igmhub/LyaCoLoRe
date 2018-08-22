@@ -1,6 +1,6 @@
 import numpy as np
 
-from . import general
+from . import utils
 
 def get_Pk1D(skewer_rows,IVAR_rows,R_hMpc,z,z_value,z_width=0.2,N_processes=1):
 
@@ -24,7 +24,7 @@ def get_Pk1D(skewer_rows,IVAR_rows,R_hMpc,z,z_value,z_width=0.2,N_processes=1):
     R_hMpc = R_hMpc[j_lower:j_upper]
 
     #convert to kms
-    dkms_dhMpc = general.get_dkms_dhMpc(z_value)
+    dkms_dhMpc = utils.get_dkms_dhMpc(z_value)
     R_kms = dkms_dhMpc*R_hMpc
 
     #ft the skewers
@@ -155,7 +155,7 @@ def get_cf1D(skewer_rows,R_hMpc,N_processes=1):
         N_tasks = len(tasks)
         N_tasks_digits = int(np.log10(N_tasks)) + 1
 
-        general.progress_bar(N_complete,N_tasks,start_time)
+        utils.progress_bar(N_complete,N_tasks,start_time)
 
     #Define an error-tracking function.
     def log_error(retval):

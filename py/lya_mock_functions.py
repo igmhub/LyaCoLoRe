@@ -112,18 +112,3 @@ class MockMaker(object):
 
         return delta, var_delta
 
-    def get_lya_skewers(self,Ns=10,new_seed=None):
-        """Return Ns Lyman alpha skewers (wavelength, flux).
-
-          If new_seed is set, it will reset random generator with it."""
-        if new_seed:
-            self.gen = np.random.RandomState(new_seed)
-        # get redshift for all cells in the skewer
-        z = self.get_redshifts()
-        delta, var_delta = self.get_gaussian_fields(Ns)
-        #var_delta = np.var(delta)
-        density = self.get_density(var_delta,z,delta)
-        tau = get_tau(z,density)
-        flux = np.exp(-tau)
-        wave = 1215.67*(1+z)
-        return wave, flux

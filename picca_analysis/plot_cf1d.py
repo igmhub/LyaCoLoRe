@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from astropy.io import fits
 import sys
 import plot_functions
+import utils
 
 N_bins = 50
 r_min = 0.0 #Mpc/h
@@ -29,7 +30,7 @@ N_cells_cf1d = LL_cf1d.shape[0]
 master = fits.open(master_filepath)
 Z_colore = master[2].data['Z']
 R_colore = master[2].data['R']
-lya = 1215.67
+lya = utils.lya_rest
 LL_colore = np.log10(lya*(1+Z_colore))
 
 R_cf1d = np.interp(LL_cf1d,LL_colore,R_colore)

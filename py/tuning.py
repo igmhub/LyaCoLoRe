@@ -2,9 +2,7 @@ import numpy as np
 from astropy.io import fits
 import matplotlib.pyplot as plt
 
-from . import convert
-from . import Pk1D
-from . import general
+from . import convert, Pk1D, utils
 
 ################################################################################
 """
@@ -97,22 +95,22 @@ class measurement:
         return
     @classmethod
     def combine_measurements(cls,m1,m2):
-        if general.confirm_identical(m1.parameter_ID,m2.parameter_ID,item_name='parameter_ID'):
+        if utils.confirm_identical(m1.parameter_ID,m2.parameter_ID,item_name='parameter_ID'):
             parameter_ID = m1.parameter_ID
             n = m1.n
             k1 = m1.k1
             alpha = m1.alpha
             beta = m1.beta
             sigma_G = m1.sigma_G
-        if general.confirm_identical(m1.z_value,m2.z_value,item_name='z_value'):
+        if utils.confirm_identical(m1.z_value,m2.z_value,item_name='z_value'):
             z_value = m1.z_value
-        if general.confirm_identical(m1.z_width,m2.z_width,item_name='z_width'):
+        if utils.confirm_identical(m1.z_width,m2.z_width,item_name='z_width'):
             z_width = m1.z_width
         N_skewers = m1.N_skewers + m2.N_skewers
         pixels = m1.pixels + m2.pixels
         mean_F = (m1.mean_F*m1.N_skewers + m2.mean_F*m2.N_skewers)/(m1.N_skewers + m2.N_skewers)
         k_kms_check = True
-        if general.confirm_identical(m1.k_kms,m2.k_kms,item_name='k_kms',array=True):
+        if utils.confirm_identical(m1.k_kms,m2.k_kms,item_name='k_kms',array=True):
             k_kms = m1.k_kms
         Pk_kms = (m1.Pk_kms*m1.N_skewers + m2.Pk_kms*m2.N_skewers)/(m1.N_skewers + m2.N_skewers)
         #May need to work on this?

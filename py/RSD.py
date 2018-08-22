@@ -3,9 +3,7 @@ import matplotlib.pyplot as plt
 import scipy.interpolate as sciint
 import math
 
-from . import general
-
-lya = 1215.67
+from . import utils
 
 #Function to add linear RSDs from the velocity skewers.
 #delete?
@@ -117,7 +115,7 @@ def add_skewer_RSDs(initial_tau,initial_density,velocity_skewer_dz,z,r_hMpc,ther
     final_tau = np.zeros(initial_tau.shape)
 
     #Convert radial distance to a velocity.
-    dkms_dhMpc = general.get_dkms_dhMpc(z)
+    dkms_dhMpc = utils.get_dkms_dhMpc(z)
     x_kms = r_hMpc * dkms_dhMpc
 
     #Calculate the temperature in every cell if we want to include thermal effects.
@@ -143,7 +141,7 @@ def add_skewer_RSDs(initial_tau,initial_density,velocity_skewer_dz,z,r_hMpc,ther
                 cell_size = (x_kms[j] - x_kms[j-1])
 
             new_r_hMpc = np.interp(new_z_cell,z,r_hMpc)
-            new_x_kms_cell = new_r_hMpc * general.get_dkms_dhMpc(new_z_cell)
+            new_x_kms_cell = new_r_hMpc * utils.get_dkms_dhMpc(new_z_cell)
             #new_x_kms_cell = x_kms_cell
 
             j_upper = np.searchsorted(x_kms,new_x_kms_cell)
@@ -163,8 +161,8 @@ def add_skewer_RSDs(initial_tau,initial_density,velocity_skewer_dz,z,r_hMpc,ther
 
                 #If at least one limit is within the skewer, determine which cells we determine weights for.
                 if x_upper_limit > x_kms[0] and x_lower_limit < x_kms[-1]:
-                    j_upper_limit = general.NN_sorted(x_kms,x_upper_limit)
-                    j_lower_limit = general.NN_sorted(x_kms,x_lower_limit)
+                    j_upper_limit = utils.NN_sorted(x_kms,x_upper_limit)
+                    j_lower_limit = utils.NN_sorted(x_kms,x_lower_limit)
                     j_values = np.array(list(range(j_lower_limit,j_upper_limit+1)))
                 else:
                     j_values = np.array([])

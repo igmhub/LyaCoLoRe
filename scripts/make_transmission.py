@@ -10,7 +10,7 @@ import time
 import os
 import argparse
 
-from pyacolore import general, independent, stats, convert, pixelise, input, DLA, RSD
+from pyacolore import utils, independent, stats, convert, simulation_data, DLA, RSD
 
 ################################################################################
 
@@ -98,16 +98,19 @@ parser.add_argument('--seed', type = int, default = 123, required=False,
 
 ################################################################################
 
+print('setup arguments from parser')
+
 args = parser.parse_args()
 
 #Define global variables.
-lya = 1215.67
+lya = utils.lya_rest
 
-original_file_location = args.in_dir
-new_base_file_location = args.out_dir
-master_location = args.master_dir
-if not master_location:
-    master_location = new_base_file_location
+base_in_dir = args.in_dir
+base_out_dir = args.out_dir
+if args.master_dir:
+    master_file = args.master_dir+'/master.fits'
+else:
+    master_file = base_out_dir+'/master.fits'
 N_side = args.nside
 pixels = args.pixels
 if not pixels:
@@ -137,26 +140,27 @@ if np.log2(N_side)-int(np.log2(N_side)) != 0:
 else:
     N_pix = 12*N_side**2
 
-#Define the original file structure
-original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
-file_numbers = list(range(0,32))
-input_format = 'gaussian_colore'
+#colore skewers filename (except number that will be added later)
+colore_base_filename = base_in_dir+'/out_srcs_s1_' 
 
-#Set file structure
-new_file_structure = '{}/{}/'               #pixel number//100, pixel number
-new_filename_structure = '{}-{}-{}.fits'    #file type, nside, pixel number
+def get_file_name(base_dir,base_name,nside,pixel):
+    return base_dir+'/{}-{}-{}.fits'.format(base_name,nside,pixel)
+
+def get_dir_name(base_dir,pixel):
+    return base_dir+'/{}/{}/'.format(pixel//100,pixel)
 
 #Calculate the minimum value of z that we are interested in.
 #i.e. the z value for which lambda_min cooresponds to the lya wavelength.
 z_min = lambda_min/lya - 1
 
 #Get the simulation parameters from the parameter file.
-simulation_parameters = general.get_simulation_parameters(original_file_location,parameter_filename)
+simulation_parameters = utils.get_simulation_parameters(base_in_dir,parameter_filename)
 
 # TODO: Modify this to accomodate other density types.
 #If density type is not lognormal, then crash.
 if simulation_parameters['dens_type'] != 0:
     error('Density is not lognormal. Non-lognormal densities are not currently supported.')
+input_format='gaussian_colore'
 
 ################################################################################
 
@@ -164,7 +168,7 @@ if simulation_parameters['dens_type'] != 0:
 Construct the MOCKID_lookup from the master file.
 """
 # TODO: potential issue with differnt values of nside being used in make_master.py
-master = fits.open(master_location+'/master.fits')
+master = fits.open(master_file)
 master_data = master[1].data
 master.close()
 
@@ -195,7 +199,7 @@ def log_result(retval):
     N_complete = len(results)
     N_tasks = len(tasks)
 
-    general.progress_bar(N_complete,N_tasks,start_time)
+    utils.progress_bar(N_complete,N_tasks,start_time)
 
 #Define an error-tracking function.
 def log_error(retval):
@@ -207,12 +211,16 @@ print('\nWorking on per-HEALPix pixel initial Gaussian skewer files...')
 start_time = time.time()
 
 #Define the pixelisation process.
-def pixelise_gaussian_skewers(pixel,original_file_location,original_filename_structure,input_format,MOCKID_lookup,z_min,new_base_file_location,new_file_structure,N_side):
-    #Define the save location for the pixel, according to the new file structure.
-    location = new_base_file_location + '/' + new_file_structure.format(pixel//100,pixel)
+def pixelise_gaussian_skewers(pixel,colore_base_filename,MOCKID_lookup,z_min,base_out_dir,N_side):
+
+    #Define the output directory the pixel, according to the new file structure.
+    location = get_dir_name(base_out_dir,pixel)
+
+    #at some point we might want to read physical density
+    input_format='gaussian_colore'
 
     #Make file into an object
-    pixel_object = pixelise.make_gaussian_pixel_object(pixel,original_file_location,original_filename_structure,input_format,MOCKID_lookup,IVAR_cutoff=IVAR_cutoff)
+    pixel_object = simulation_data.make_gaussian_pixel_object(pixel,colore_base_filename,input_format,MOCKID_lookup,IVAR_cutoff=IVAR_cutoff)
 
     # TODO: These could be made beforehand and passed to the function? Or is there already enough being passed?
     #Make some useful headers
@@ -226,8 +234,8 @@ def pixelise_gaussian_skewers(pixel,original_file_location,original_filename_str
     header['SIGMA_G'] = pixel_object.SIGMA_G
 
     #Gaussian CoLoRe
-    filename = new_filename_structure.format('gaussian-colore',N_side,pixel)
-    pixel_object.save_as_gaussian_colore(location,filename,header)
+    filename = get_file_name(location,'gaussian-colore',N_side,pixel)
+    pixel_object.save_as_gaussian_colore(filename,header)
 
     #Calculate the means of the pixel's gaussian skewers.
     #WARNING: this currently just uses all of the cells but this may be too slow once we've added small scale power?
@@ -240,7 +248,7 @@ def pixelise_gaussian_skewers(pixel,original_file_location,original_filename_str
 #what's the sharing doing here?
 #manager = multiprocessing.Manager()
 #shared_MOCKID_lookup = manager.dict(MOCKID_lookup)
-tasks = [(pixel,original_file_location,original_filename_structure,input_format,MOCKID_lookup,z_min,new_base_file_location,new_file_structure,N_side) for pixel in pixel_list]
+tasks = [(pixel,colore_base_filename,MOCKID_lookup,z_min,base_out_dir,N_side) for pixel in pixel_list]
 
 #Run the multiprocessing pool
 if __name__ == '__main__':
@@ -312,15 +320,16 @@ We may now calculate the density and flux fields, and save the relevant files.
 print('\nWorking on per-HEALPix pixel final skewer files...')
 start_time = time.time()
 
-def produce_final_skewers(new_base_file_location,new_file_structure,new_filename_structure,pixel,N_side,input_format,zero_mean_delta,lambda_min,measured_SIGMA_G):
-    location = new_base_file_location + '/' + new_file_structure.format(pixel//100,pixel)
+def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,measured_SIGMA_G):
+    location = get_dir_name(base_out_dir,pixel)
     mean_F_data = np.array(list(zip(tuning_z_values,desired_mean_F)))
 
     #We work from the gaussian colore files made in 'pixelise gaussian skewers'.
-    gaussian_filename = new_filename_structure.format('gaussian-colore',N_side,pixel)
+    gaussian_filename = get_file_name(location,'gaussian-colore',N_side,pixel)
 
     #Make a pixel object from it.
-    pixel_object = pixelise.SimulationData.get_gaussian_skewers_object(location+gaussian_filename,None,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
+    file_number=None
+    pixel_object = simulation_data.SimulationData.get_gaussian_skewers_object(gaussian_filename,file_number,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
 
     if add_Lyb:
         pixel_object.setup_Lyb_absorber()
@@ -339,8 +348,8 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
     if transmission_only == False:
         #lognorm CoLoRe
         pixel_object.compute_physical_skewers()
-        filename = new_filename_structure.format('physical-colore',N_side,pixel)
-        pixel_object.save_as_physical_colore(location,filename,header)
+        filename = get_file_name(location,'physical-colore',N_side,pixel)
+        pixel_object.save_as_physical_colore(filename,header)
 
     #Trim the skewers (remove low lambda cells)
     pixel_object.trim_skewers(lambda_min,min_catalog_z,extra_cells=1)
@@ -379,16 +388,16 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
 
     if transmission_only == False:
         #Picca Gaussian
-        filename = new_filename_structure.format('picca-gaussian',N_side,pixel)
-        pixel_object.save_as_picca_gaussian(location,filename,header)
+        filename = get_file_name(location,'picca-gaussian',N_side,pixel)
+        pixel_object.save_as_picca_gaussian(filename,header)
 
         #Picca density
-        filename = new_filename_structure.format('picca-density',N_side,pixel)
-        pixel_object.save_as_picca_density(location,filename,header)
+        filename = get_file_name(location,'picca-density',N_side,pixel)
+        pixel_object.save_as_picca_density(filename,header)
 
         #picca flux
-        filename = new_filename_structure.format('picca-flux-noRSD',N_side,pixel)
-        pixel_object.save_as_picca_flux(location,filename,header,mean_F_data=mean_F_data)
+        filename = get_file_name(location,'picca-flux-noRSD',N_side,pixel)
+        pixel_object.save_as_picca_flux(filename,header,mean_F_data=mean_F_data)
 
     #Add thermal RSDs to the tau skewers.
     #Add RSDs from the velocity skewers provided by CoLoRe.
@@ -396,31 +405,22 @@ def produce_final_skewers(new_base_file_location,new_file_structure,new_filename
         pixel_object.add_all_RSDs(alphas,beta,thermal=include_thermal_effects)
 
     #transmission
-    filename = new_filename_structure.format('transmission',N_side,pixel)
-    pixel_object.save_as_transmission(location,filename,header)
+    filename = get_file_name(location,'transmission',N_side,pixel)
+    pixel_object.save_as_transmission(filename,header)
 
     if transmission_only == False:
-        #Picca Gaussian
-        #filename = new_filename_structure.format('picca-gaussian',N_side,pixel)
-        #pixel_object.save_as_picca_gaussian(location,filename,header)
-
-        #Picca density
-        #filename = new_filename_structure.format('picca-density',N_side,pixel)
-        #pixel_object.save_as_picca_density(location,filename,header)
-
-        #picca flux
-        filename = new_filename_structure.format('picca-flux',N_side,pixel)
-        pixel_object.save_as_picca_flux(location,filename,header,mean_F_data=mean_F_data)
+        #picca flux, with RSD
+        filename = get_file_name(location,'picca-flux',N_side,pixel)
+        pixel_object.save_as_picca_flux(filename,header,mean_F_data=mean_F_data)
     else:
         #If transmission_only is not False, remove the gaussian-colore file.
-        os.remove(location+gaussian_filename)
+        os.remove(gaussian_filename)
 
     means = pixel_object.get_means()
-
     return [new_cosmology,means]
 
 #define the tasks
-tasks = [(new_base_file_location,new_file_structure,new_filename_structure,pixel,N_side,input_format,zero_mean_delta,lambda_min,measured_SIGMA_G) for pixel in pixel_list]
+tasks = [(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,measured_SIGMA_G) for pixel in pixel_list]
 
 #Run the multiprocessing pool
 if __name__ == '__main__':
@@ -445,10 +445,9 @@ print('Updating master file\'s cosmology...')
 #First check that the new cosmologies are all the same.
 # TODO: some kind of system to check consistency here?
 new_cosmology = results[0][0]
-master_filename = master_location + '/master.fits'
 
 #Reorganise the data.
-master = fits.open(master_filename)
+master = fits.open(master_file)
 try:
 
     test = master[3].data
@@ -475,7 +474,7 @@ except IndexError:
 
     #Make the .fits file.
     hdulist = fits.HDUList([prihdu,hdu_ID,hdu_cosmology_colore,hdu_cosmology_expanded])
-    hdulist.writeto(master_filename,overwrite=True)
+    hdulist.writeto(master_file,overwrite=True)
     hdulist.close()
 
 print('Process complete!\n')
@@ -498,7 +497,7 @@ means = stats.combine_means(means_list)
 statistics = stats.means_to_statistics(means)
 
 #Save the statistics data as a new fits file.
-functions.write_statistics(new_base_file_location,N_side,statistics,new_cosmology)
+functions.write_statistics(base_out_dir,N_side,statistics,new_cosmology)
 
 print('\nTime to make statistics file: {:4.0f}s.\n'.format(time.time()-start_time))
 """

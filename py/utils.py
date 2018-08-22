@@ -4,7 +4,7 @@ import time
 import os
 import healpy as hp
 
-lya = 1215.67
+lya_rest = 1215.67
 
 #Define a function to print a progress bar.
 def progress_bar(N_complete,N_tasks,start_time):
@@ -194,7 +194,7 @@ def NN_sorted(arr,val):
 
     return i
 
-#This should probably go in a general function file
+#transform differential length (in Mpc/h) to differential velocity (in km/s)
 def get_dkms_dhMpc(z,Om=0.3147):
 
     E_z = np.sqrt(Om*(1+z)**3 + (1-Om))
