@@ -8,9 +8,9 @@ import multiprocessing
 import time
 import glob
 
-from pyacolore import pixelise, Pk1D, tuning, independent, general
+from pyacolore import simulation_data, Pk1D, tuning, independent, utils
 
-lya = 1215.67
+lya = utils.lya_rest
 
 N_processes = 64
 lambda_min = 3550.0
@@ -57,7 +57,7 @@ def log_result(retval):
     N_complete = len(results)
     N_tasks = len(tasks)
 
-    general.progress_bar(N_complete,N_tasks,start_time)
+    utils.progress_bar(N_complete,N_tasks,start_time)
 
 #Define an error-tracking function.
 def log_error(retval):
@@ -176,7 +176,7 @@ def measure_pixel_segment(pixel,z_value,ID,lookup):
     gaussian_filename = new_filename_structure.format('gaussian-colore',N_side,pixel)
 
     #Make a pixel object from it.
-    data = pixelise.SimulationData.get_gaussian_skewers_object(location+gaussian_filename,None,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
+    data = simulation_data.SimulationData.get_gaussian_skewers_object(location+gaussian_filename,None,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
 
     #Determine the sigma_G to add
     extra_sigma_G = np.sqrt(sigma_G_required**2 - measured_SIGMA_G**2)
@@ -314,7 +314,7 @@ for z_value in z_values:
         plt.plot(best.k_kms,get_model_Pk_kms(best.k_kms,0.064,3.55),label='model default: A_F={:2.2f}, B_F={:2.2f}'.format(0.064,3.55),color=(0.5,0.5,0.5))
         plt.axvline(x=max_k,c=(0.,0.,0.),label='max fitting k value')
         #plt.fill_between(k_kms,0.9*model_Pk_kms_default,1.1*model_Pk_kms_default,label='model default +/- 10%',color=(0.5,0.5,0.5),alpha=0.5)
-        #plt.plot(k_kms,independent.power_kms(z_value,k_kms,cell_size*general.get_dkms_dhMpc(z_value),False),label='added')
+        #plt.plot(k_kms,independent.power_kms(z_value,k_kms,cell_size*utils.get_dkms_dhMpc(z_value),False),label='added')
         plt.semilogy()
         plt.semilogx()
         plt.ylabel('Pk1D')

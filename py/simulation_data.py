@@ -2,12 +2,12 @@ import numpy as np
 from astropy.io import fits
 import time
 
-from . import general, input, convert, RSD, DLA, independent, absorber, metals
+from . import utils, read_files, convert, RSD, DLA, independent, absorber, metals
 
-lya = 1215.67
+lya = utils.lya_rest
 
-#Function to create a SimulationData object given a specific pixel, information about the complete simulation, and the location/filenames of data files.
-def make_gaussian_pixel_object(pixel,original_file_location,original_filename_structure,input_format,MOCKID_lookup,lambda_min=0,IVAR_cutoff=lya):
+#Function to create a SimulationData object given a specific pixel, information about the complete simulation, and the filenames.
+def make_gaussian_pixel_object(pixel,base_filename,input_format,MOCKID_lookup,lambda_min=0,IVAR_cutoff=lya):
 
     #Determine which file numbers we need to look at for the current pixel.
     relevant_keys = [key for key in MOCKID_lookup.keys() if key[1]==pixel]
@@ -23,7 +23,7 @@ def make_gaussian_pixel_object(pixel,original_file_location,original_filename_st
         #If there are some relevant quasars, open the data file and make it into a SimulationData object.
         #We use SimulationData.get_reduced_data to avoid loading all of the file's data into the object.
         if N_relevant_qso > 0:
-            filename = original_file_location + '/' + original_filename_structure.format(file_number)
+            filename = base_filename+'{}.fits'.format(file_number)
             working = SimulationData.get_gaussian_skewers_object(filename,file_number,input_format,MOCKIDs=relevant_MOCKIDs,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff)
 
         #Combine the data from the working file with that from the files already looked at.
@@ -75,14 +75,13 @@ class SimulationData:
         self.V = V
         self.A = A
 
-        #self.absorbers = []
-        #self.absorbers.append(absorber.AbsorberData(name='Lya',rest_wave=1215.67,flux_transform_m=1.0))
-        #self.absorbers.append(absorber.AbsorberData(name='Lyb',rest_wave=1024.0,flux_transform_m=0.1))
-        #self.absorbers.append(absorber.AbsorberData(name='SiII',rest_wave=1205.0,flux_transform_m=0.05))
-
-        self.lya_absorber=absorber.AbsorberData(name='Lya',rest_wave=1215.67,flux_transform_m=1.0)
+        # these will store the absorbing fields (Lya, Lyb, metals...)
+        self.lya_absorber=absorber.AbsorberData(name='Lya',rest_wave=lya,flux_transform_m=1.0)
         self.lyb_absorber=None
         self.metals=None
+
+        # these will store the DLA (if asked for)
+        self.DLA_table=None
 
         return
 
@@ -106,17 +105,15 @@ class SimulationData:
         start = time.time()
         times = [0.]
 
-        lya = 1215.67
-
         h = fits.open(filename)
 
-        h_MOCKID = input.get_MOCKID(h,input_format,file_number)
-        h_R, h_Z, h_D, h_V = input.get_COSMO(h,input_format)
-        h_lya_lambdas = input.get_lya_lambdas(h,input_format)
+        h_MOCKID = read_files.get_MOCKID(h,input_format,file_number)
+        h_R, h_Z, h_D, h_V = read_files.get_COSMO(h,input_format)
+        h_lya_lambdas = read_files.get_lya_lambdas(h,input_format)
 
         times += [time.time()-start-np.sum(times[:-1])]
 
-        if MOCKIDs != None:
+        if MOCKIDs is not None:
             #Work out which rows in the hdulist we are interested in.
             rows = []
             s = set(MOCKIDs)
@@ -158,7 +155,7 @@ class SimulationData:
                 SIGMA_G = h[4].header['SIGMA_G']
 
             #Derive the MOCKID and LOGLAM_MAP.
-            MOCKID = input.get_MOCKID(h,input_format,file_number)
+            MOCKID = read_files.get_MOCKID(h,input_format,file_number)
             LOGLAM_MAP = np.log10(lya*(1+Z))
 
             #Calculate the Gaussian skewers.
@@ -174,7 +171,7 @@ class SimulationData:
             MJD = np.zeros(N_qso)
             FIBER = np.zeros(N_qso)
 
-            IVAR_rows = general.make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP)
+            IVAR_rows = utils.make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP)
 
         elif input_format == 'gaussian_colore':
 
@@ -204,7 +201,7 @@ class SimulationData:
             if MOCKIDs != None:
                 MOCKID = MOCKIDs
             else:
-                MOCKID = input.get_MOCKID(h,input_format,file_number)
+                MOCKID = read_files.get_MOCKID(h,input_format,file_number)
             LOGLAM_MAP = np.log10(lya*(1+Z))
 
             #Set the remaining variables to None
@@ -217,7 +214,7 @@ class SimulationData:
             MJD = np.zeros(N_qso)
             FIBER = np.zeros(N_qso)
 
-            IVAR_rows = general.make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP)
+            IVAR_rows = utils.make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP)
 
         elif input_format == 'picca_density':
 
@@ -355,7 +352,7 @@ class SimulationData:
         new_R = np.arange(Rmin,Rmax,cell_size)
         new_N_cells = new_R.shape[0]
 
-        NGPs = general.get_NGPs(old_R,new_R).astype(int)
+        NGPs = utils.get_NGPs(old_R,new_R).astype(int)
         expanded_GAUSSIAN_DELTA_rows = np.zeros((self.N_qso,new_N_cells))
 
         for i in range(self.N_qso):
@@ -375,7 +372,7 @@ class SimulationData:
         self.VEL_rows = self.VEL_rows[:,NGPs]
 
         #Make new IVAR rows.
-        self.IVAR_rows = general.make_IVAR_rows(IVAR_cutoff,self.Z_QSO,self.LOGLAM_MAP)
+        self.IVAR_rows = utils.make_IVAR_rows(IVAR_cutoff,self.Z_QSO,self.LOGLAM_MAP)
 
         #For each skewer, determine the last relevant cell
         first_relevant_cells = np.zeros(self.N_qso)
@@ -398,7 +395,7 @@ class SimulationData:
 
         # TODO: dv is not constant at the moment - how to deal with this
         #Generate extra variance, either white noise or correlated.
-        dkms_dhMpc = general.get_dkms_dhMpc(0.)
+        dkms_dhMpc = utils.get_dkms_dhMpc(0.)
         dv_kms = cell_size * dkms_dhMpc
         extra_var = independent.get_gaussian_fields(generator,self.N_cells,dv_kms=dv_kms,N_skewers=self.N_qso,white_noise=white_noise,n=n,k1=k1)
 
@@ -409,7 +406,7 @@ class SimulationData:
 
         extra_var *= extra_sigma_G
 
-        mask = general.make_IVAR_rows(lya,self.Z_QSO,self.LOGLAM_MAP)
+        mask = utils.make_IVAR_rows(lya,self.Z_QSO,self.LOGLAM_MAP)
         extra_var *= mask
 
 
@@ -614,7 +611,7 @@ class SimulationData:
         return cls(N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,R,Z,D,V,LOGLAM_MAP,A)
 
     #Function to save data as a Gaussian colore file.
-    def save_as_gaussian_colore(self,location,filename,header,overwrite=False):
+    def save_as_gaussian_colore(self,filename,header,overwrite=False):
 
         #Organise the data into colore-format arrays.
         colore_1_data = []
@@ -645,13 +642,13 @@ class SimulationData:
 
         #Combine the HDUs into an HDUlist and save as a new file. Close the HDUlist.
         hdulist = fits.HDUList([prihdu, hdu_CATALOG, hdu_GAUSSIAN, hdu_VEL, hdu_COSMO])
-        hdulist.writeto(location+filename,overwrite=overwrite)
+        hdulist.writeto(filename,overwrite=overwrite)
         hdulist.close
 
         return
 
     #Function to save data as a picca density file.
-    def save_as_picca_gaussian(self,location,filename,header,overwrite=False,zero_mean_delta=False,min_number_cells=2,mean_DELTA=None):
+    def save_as_picca_gaussian(self,filename,header,overwrite=False,zero_mean_delta=False,min_number_cells=2,mean_DELTA=None):
 
         lya_lambdas = 10**self.LOGLAM_MAP
 
@@ -669,7 +666,7 @@ class SimulationData:
 
         #If desired, enforce that the Delta rows have zero mean.
         if zero_mean_delta == True:
-            relevant_GAUSSIAN_DELTA_rows = general.normalise_deltas(relevant_GAUSSIAN_DELTA_rows,mean_DELTA)
+            relevant_GAUSSIAN_DELTA_rows = utils.normalise_deltas(relevant_GAUSSIAN_DELTA_rows,mean_DELTA)
 
         #Organise the data into picca-format arrays.
         picca_0 = relevant_GAUSSIAN_DELTA_rows.T
@@ -693,13 +690,13 @@ class SimulationData:
 
         #Combine the HDUs into and HDUlist and save as a new file. Close the HDUlist.
         hdulist = fits.HDUList([hdu_DELTA, hdu_iv, hdu_LOGLAM_MAP, hdu_CATALOG])
-        hdulist.writeto(location+filename,overwrite=overwrite)
+        hdulist.writeto(filename,overwrite=overwrite)
         hdulist.close()
 
         return
 
     #Function to save data as a Lognormal colore file.
-    def save_as_physical_colore(self,location,filename,header):
+    def save_as_physical_colore(self,filename,header):
 
         #Organise the data into colore-format arrays.
         colore_1_data = []
@@ -731,13 +728,13 @@ class SimulationData:
 
         #Combine the HDUs into an HDUlist and save as a new file. Close the HDUlist.
         hdulist = fits.HDUList([prihdu, hdu_CATALOG, hdu_DELTA, hdu_VEL, hdu_COSMO])
-        hdulist.writeto(location+filename)
+        hdulist.writeto(filename)
         hdulist.close
 
         return
 
     #Function to save data as a picca density file.
-    def save_as_picca_density(self,location,filename,header,zero_mean_delta=False,min_number_cells=2,mean_DELTA=None):
+    def save_as_picca_density(self,filename,header,zero_mean_delta=False,min_number_cells=2,mean_DELTA=None):
 
         lya_lambdas = 10**self.LOGLAM_MAP
 
@@ -755,7 +752,7 @@ class SimulationData:
 
         #If desired, enforce that the Delta rows have zero mean.
         if zero_mean_delta == True:
-            relevant_DENSITY_DELTA_rows = general.normalise_deltas(relevant_DENSITY_DELTA_rows,mean_DELTA)
+            relevant_DENSITY_DELTA_rows = utils.normalise_deltas(relevant_DENSITY_DELTA_rows,mean_DELTA)
 
         #Organise the data into picca-format arrays.
         picca_0 = relevant_DENSITY_DELTA_rows.T
@@ -779,7 +776,7 @@ class SimulationData:
 
         #Combine the HDUs into and HDUlist and save as a new file. Close the HDUlist.
         hdulist = fits.HDUList([hdu_DELTA, hdu_iv, hdu_LOGLAM_MAP, hdu_CATALOG])
-        hdulist.writeto(location+filename)
+        hdulist.writeto(filename)
         hdulist.close()
 
         return
@@ -803,7 +800,7 @@ class SimulationData:
         return F_grid
 
     #Function to save data as a transmission file.
-    def save_as_transmission(self,location,filename,header):
+    def save_as_transmission(self,filename,header):
         
         # define common wavelength grid to be written in files (in Angstroms)
         wave_min=3550
@@ -843,9 +840,10 @@ class SimulationData:
         #Combine the HDUs into an HDUlist (including DLAs and metals, if they have been computed)
         list_hdu = [prihdu, hdu_METADATA, hdu_WAVELENGTH, hdu_TRANSMISSION]
 
-        if hasattr(self,'DLA_table') == True:
+        if self.DLA_table is not None:
             hdu_DLAs = fits.hdu.BinTableHDU(data=self.DLA_table,header=header,name='DLA')
             list_hdu.append(hdu_DLAs)
+
         if self.metals is not None:
             # compute metals' transmission on grid of wavelengths
             F_grid_met = np.ones_like(F_grid_Lya)
@@ -858,13 +856,13 @@ class SimulationData:
 
         #Save as a new file. Close the HDUlist.
         hdulist = fits.HDUList(list_hdu)
-        hdulist.writeto(location+filename)
+        hdulist.writeto(filename)
         hdulist.close()
 
         return
 
     #Function to save data as a picca flux file.
-    def save_as_picca_flux(self,location,filename,header,min_number_cells = 2,mean_F_data=None):
+    def save_as_picca_flux(self,filename,header,min_number_cells = 2,mean_F_data=None):
 
         lya_lambdas = 10**self.LOGLAM_MAP
 
@@ -918,13 +916,13 @@ class SimulationData:
 
         #Combine the HDUs into and HDUlist and save as a new file. Close the HDUlist.
         hdulist = fits.HDUList([hdu_F, hdu_iv, hdu_LOGLAM_MAP, hdu_CATALOG])
-        hdulist.writeto(location+filename)
+        hdulist.writeto(filename)
         hdulist.close()
 
         return
 
     #Function to save data as a picca velocity file.
-    def save_as_picca_velocity(self,location,filename,header,zero_mean_delta=False,min_number_cells=2,overwrite=False):
+    def save_as_picca_velocity(self,filename,header,zero_mean_delta=False,min_number_cells=2,overwrite=False):
 
         lya_lambdas = 10**self.LOGLAM_MAP
 
@@ -962,7 +960,7 @@ class SimulationData:
 
         #Combine the HDUs into and HDUlist and save as a new file. Close the HDUlist.
         hdulist = fits.HDUList([hdu_VEL, hdu_iv, hdu_LOGLAM_MAP, hdu_CATALOG])
-        hdulist.writeto(location+filename,overwrite=overwrite)
+        hdulist.writeto(filename,overwrite=overwrite)
         hdulist.close()
 
         return
@@ -974,7 +972,7 @@ class SimulationData:
         lya_lambdas = 10**self.LOGLAM_MAP
 
         #Determine the first cell which corresponds to a lya_line at wavelength > lambda_min
-        first_relevant_cell = general.get_first_relevant_index(lambda_min,lya_lambdas)
+        first_relevant_cell = utils.get_first_relevant_index(lambda_min,lya_lambdas)
 
         #Determine the furthest cell which is still relevant: i.e. the one in which at least one QSO has non-zero value of IVAR.
         furthest_QSO_index = np.argmax(self.Z_QSO)
@@ -1033,6 +1031,7 @@ class SimulationData:
         #If extrapolate_z_down is set to a value below the skewer, then we extrapolate down to that value.
         #Otherwise, we start placing DLAs at the start of the skewer.
         extrapolate_z_down = None
-        DLA.add_DLA_table_to_object(self,dla_bias=dla_bias,extrapolate_z_down=extrapolate_z_down,seed=seed)
+        DLA_table = DLA.add_DLA_table_to_object(self,dla_bias=dla_bias,extrapolate_z_down=extrapolate_z_down,seed=seed)
+        self.DLA_table = DLA_table
 
         return

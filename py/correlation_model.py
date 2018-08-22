@@ -3,7 +3,8 @@ from astropy.io import fits
 import mcfit
 import matplotlib.pyplot as plt
 import sys
-import plot_functions
+
+from . import plot_functions
 
 def visual_fit(filename,b_values,beta_values,model,data_parameters,z,compute_b_beta=False):
 

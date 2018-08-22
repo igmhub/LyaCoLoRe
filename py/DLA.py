@@ -79,9 +79,9 @@ def dNdz(z, Nmin=19.5, Nmax=22.):
 def get_N(z, Nmin=19.5, Nmax=22.0, nsamp=100):
     """ Get random column densities for a given z
     """
-   
+
     # number of DLAs we want to generate
-    Nz = len(z) 
+    Nz = len(z)
     nn = np.linspace(Nmin,Nmax,nsamp)
     probs = np.zeros([Nz,nsamp])
     if use_pyigm:
@@ -89,8 +89,8 @@ def get_N(z, Nmin=19.5, Nmax=22.0, nsamp=100):
         probs_low = auxfN[:,1:]
         probs_high = auxfN[:,:-1]
     else:
-        probs_low = dnHD_dz_cumlgN(z,nn[:-1]).T 
-        probs_high = dnHD_dz_cumlgN(z,nn[1:]).T 
+        probs_low = dnHD_dz_cumlgN(z,nn[:-1]).T
+        probs_high = dnHD_dz_cumlgN(z,nn[1:]).T
     probs[:,1:] = probs_high-probs_low
     NHI = np.zeros(Nz)
     for i in range(Nz):
@@ -174,7 +174,10 @@ def add_DLA_table_to_object(object,dla_bias=2.0,extrapolate_z_down=None,Nmin=19.
     #Make the data into a table HDU
     dla_table = astropy.table.Table([MOCKIDs,dla_z,dla_rsd_dz,dla_NHI],names=('MOCKID','Z_DLA','DZ_DLA','N_HI_DLA'))
 
+    ##Only include DLAs where the DLA is at lower z than the QSO
+    #DLA_Z_QSOs = object.Z_QSO[kskw]
+    #DLA_table = DLA_table[DLA_table['Z_DLA']<DLA_Z_QSOs]
+
     #print('DLA table',dla_table)
 
-    object.DLA_table = dla_table
-
+    return dla_table

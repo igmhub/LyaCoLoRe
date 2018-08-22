@@ -1,7 +1,4 @@
 import numpy as np
-from astropy.io import fits
-
-lya = 1215.67
 
 #Function to generate random Gaussian skewers with a given standard deviation.
 def get_gaussian_skewers(generator,N_cells,sigma_G=1.0,N_skewers=1):
