@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import numpy as np
 import matplotlib.pyplot as plt
 from astropy.io import fits
@@ -9,11 +11,7 @@ import time
 import glob
 from iminuit import Minuit
 
-import pixelise
-import Pk1D
-import tuning
-import independent
-import general
+from pyacolore import convert, Pk1D, utils, independent, tuning, simulation_data
 
 lya = 1215.67
 
@@ -60,7 +58,7 @@ def measure_pixel_segment(pixel,z_value,alpha,beta,sigma_G_required,n,k1,A0):
     gaussian_filename = new_filename_structure.format('gaussian-colore',N_side,pixel)
 
     #Make a pixel object from it.
-    data = pixelise.simulation_data.get_gaussian_skewers_object(location+gaussian_filename,None,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
+    data = simulation_data.SimulationData.get_gaussian_skewers_object(location+gaussian_filename,None,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
 
     #Determine the sigma_G to add
     extra_sigma_G = np.sqrt(sigma_G_required**2 - measured_SIGMA_G**2)
@@ -81,9 +79,8 @@ def measure_pixel_segment(pixel,z_value,alpha,beta,sigma_G_required,n,k1,A0):
 
     #Convert to flux
     data.compute_physical_skewers()
-    data.compute_tau_skewers(alpha=np.ones(data.Z.shape[0])*alpha,beta=beta)
+    data.compute_tau_skewers(data.lya_absorber,alpha=np.ones(data.Z.shape[0])*alpha,beta=beta)
     #data.add_RSDs(np.ones(data.Z.shape[0])*alpha,beta,thermal=False)
-    data.compute_flux_skewers()
 
     #Trim the skewers again to get rid of the additional cells
     lambda_min_val = lya*(1 + z_value - z_width/2)
