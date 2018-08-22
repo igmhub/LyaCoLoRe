@@ -1,6 +1,7 @@
 import numpy as np
 from astropy.io import fits
 import matplotlib.pyplot as plt
+import glob
 
 from . import convert, Pk1D, utils
 
@@ -43,6 +44,10 @@ class measurement:
         self.Pk_kms = Pk_kms
         self.cf = cf
         return
+    def get_details(self):
+        details = (self.z_value,self.z_width,self.N_skewers,
+                self.n,self.k1,self.alpha,self.beta,self.sigma_G,self.pixels)
+        return details
     def add_Pk1D_measurement(self,pixel_object):
         F = pixel_object.lya_absorber.transmission()
         mean_F = np.average(F)
@@ -83,8 +88,8 @@ class measurement:
         chi2 = np.sum(((self.Pk_kms - model_Pk_kms)**2)/denom)
         self.Pk_kms_chi2 = chi2
         return
-    def add_mean_F_chi2(self,min_k=None,max_k=None,eps=0.1):
-        model_mean_F = get_mean_F_model(self.z_value)
+    def add_mean_F_chi2(self,min_k=None,max_k=None,eps=0.1,mean_F_model='Becker13'):
+        model_mean_F = get_mean_F_model(self.z_value,model=mean_F_model)
         denom = (eps * model_mean_F)**2
         chi2 = np.sum(((self.mean_F - model_mean_F)**2)/denom)
         self.mean_F_chi2 = chi2
@@ -117,74 +122,56 @@ class measurement:
         cf = None
         return measurement(parameter_ID,z_value,z_width,N_skewers,n,k1,alpha,beta,sigma_G,pixels=pixels,mean_F=mean_F,k_kms=k_kms,Pk_kms=Pk_kms,cf=cf)
     @classmethod
-    def load_measurement(cls,filepath):
-        h = fits.open(filepath)
-        parameter_ID = h[1].header['parameter_ID']
-        z_value = h[1].header['z_value']
-        z_width = h[1].header['z_width']
-        N_skewers = h[1].header['N_skewers']
+    def load_measurement(cls,hdu):
+        parameter_ID = hdu.header['param_ID']
+        z_value = hdu.header['z_value']
+        z_width = hdu.header['z_width']
+        N_skewers = hdu.header['N_skw']
 
-        n = h[1].header['n']
-        k1 = h[1].header['k1']
-        alpha = h[1].header['alpha']
-        beta = h[1].header['beta']
-        sigma_G = h[1].header['sigma_G']
+        n = hdu.header['n']
+        k1 = hdu.header['k1']
+        alpha = hdu.header['alpha']
+        beta = hdu.header['beta']
+        sigma_G = hdu.header['sigma_G']
 
-        pixels = h[1].header['pixels']
+        #Not sure how to do this...
+        N_pix = hdu.header['N_pix']
+        if hdu.header['pixels'] == 'multiple':
+            pixels = ['']*N_pix
+        else:
+            pixels = [hdu.header['pixels']]
 
-        mean_F = h[1].header['mean_F']
-        k_kms = h[1].header['k_kms']
-        Pk_kms = h[1].header['Pk_kms']
-        cf = h[1].header['cf']
-        h.close()
+        mean_F = hdu.header['mean_F']
+        k_kms = hdu.data['k_kms']
+        Pk_kms = hdu.data['Pk_kms']
+        cf = hdu.header['cf']
         return cls(parameter_ID,z_value,z_width,N_skewers,n,k1,alpha,beta,sigma_G,pixels=pixels,mean_F=mean_F,k_kms=k_kms,Pk_kms=Pk_kms,cf=cf)
-    def save(self,filepath):
+    def make_HDU(self):
         header = fits.Header()
-        header['parameter_ID'] = self.parameter_ID
+        header['param_ID'] = self.parameter_ID
         header['z_value'] = self.z_value
         header['z_width'] = self.z_width
-        header['N_skewers'] = self.N_skewers
+        header['N_skw'] = self.N_skewers
         header['n'] = self.n
         header['k1'] = self.k1
         header['alpha'] = self.alpha
         header['beta'] = self.beta
         header['sigma_G'] = self.sigma_G
+        header['N_pix'] = len(self.pixels)
+        if len(self.pixels) > 1:
+            header['pixels'] = 'multiple'
+        else:
+            header['pixels'] = self.pixels[0]
         header['mean_F'] = self.mean_F
         header['cf'] = self.cf
 
         Pk_data = list(zip(self.k_kms,self.Pk_kms))
         dtype = [('k_kms', 'f8'), ('Pk_kms', 'f8')]
         measurement_1 = np.array(Pk_data,dtype=dtype)
-        #Construct HDUs from the data arrays.
-        prihdr = fits.Header()
-        prihdu = fits.PrimaryHDU(header=prihdr)
-        cols_Pk1D = fits.ColDefs(measurement_1)
-        hdu_Pk1D = fits.BinTableHDU.from_columns(cols_Pk1D,header=header,name='Pk1D')
-
-        #Combine the HDUs into an HDUlist
-        hdulist = fits.HDUList([prihdu, hdu_Pk1D])
-
-        #Save as a new file. Close the HDUlist.
-        hdulist.writeto(filepath)
-        hdulist.close()
-        return
-    """
-    def add_Pk1D_error(self,max_k=None):
-        model_Pk_kms = P1D_z_kms_PD2013(self.k_kms,self.z_value)
-        if max_k:
-            max_j = np.searchsorted(self.k_kms,max_k)
-        else:
-            max_j = -1
-        Pk_kms_errors = (self.Pk_kms[:max_j] - model_Pk_kms[:max_j])/model_Pk_kms[:max_j]
-        average_error = np.average(Pk_kms_errors)
-        self.Pk_kms_error = average_error
-        return
-    def add_mean_F_error(self):
-        model_mean_F = get_mean_F_model(self.z_value)
-        mean_F_error = (self.mean_F - model_mean_F)/model_mean_F
-        self.mean_F_error = mean_F_error
-        return
-    """
+        cols = fits.ColDefs(measurement_1)
+        hdu = fits.BinTableHDU.from_columns(cols,header=header,name='Pk1D')
+        return hdu
+    # TODO: functions to make plots
 
 class measurement_set:
     def __init__(self,measurements=[]):
@@ -243,7 +230,7 @@ class measurement_set:
                         c_m = measurement.combine_measurements(c_m,m)
                 combined_measurements += [c_m]
         return measurement_set(combined_measurements)
-    def optimize_s_parameters(self,plot_optimal=False):
+    def optimize_s_parameters(self,plot_optimal=False,mean_F_model='Becker13'):
 
         best_measurements = []
 
@@ -265,6 +252,7 @@ class measurement_set:
                 z_s_set = s_set.z_filter(z_value)
                 best = z_s_set.get_best_measurement()
                 print('->-> chi2 Pk1D {:2.2f}, mean_F {:2.2f}, total {:2.2f}'.format(best.Pk_kms_chi2,best.mean_F_chi2,best.total_chi2))
+                print('->-> alpha {:2.2f}, beta {:2.2f}, sigma_G {:2.2f}'.format(best.alpha,best.beta,best.sigma_G))
                 total_chi2 += best.total_chi2
                 fixed_s_best_measurements += [best]
             if total_chi2 < min_chi2:
@@ -273,8 +261,11 @@ class measurement_set:
             print(' ')
         s_optimized_set = measurement_set(measurements=best_measurements)
         print('number measurements in optimised is:',len(s_optimized_set.measurements))
-        for m in s_optimized_set.measurements:
-            print(m.z_value,m.total_chi2)
+        for best in s_optimized_set.measurements:
+            print(best.z_value)
+            print('->-> chi2 Pk1D {:2.2f}, mean_F {:2.2f}, total {:2.2f}'.format(best.Pk_kms_chi2,best.mean_F_chi2,best.total_chi2))
+            print('->-> alpha {:2.2f}, beta {:2.2f}, sigma_G {:2.2f}'.format(best.alpha,best.beta,best.sigma_G))
+            print('->-> n {:2.2f}, k1 {:2.6f}'.format(best.n,best.k1))
         if plot_optimal:
             plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
             for m in s_optimized_set.measurements:
@@ -286,8 +277,8 @@ class measurement_set:
             plt.xlabel('k / kms-1')
             plt.legend()
             plt.grid()
-            plt.savefig('Pk1D_002.pdf')
-            #plt.show()
+            plt.savefig('Pk1D_010.pdf')
+            plt.show()
 
             plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
             mean_F = []
@@ -303,13 +294,13 @@ class measurement_set:
                 z += [m.z_value]
             plt.errorbar(z,mean_F,fmt='o',label='measured')
             theory_z = np.linspace(1.8,4.0,100)
-            plt.plot(theory_z,get_mean_F_model(theory_z),label='theory')
+            plt.plot(theory_z,get_mean_F_model(theory_z,model=mean_F_model),label='theory')
             plt.ylabel('mean F')
             plt.xlabel('z')
             plt.legend()
             plt.grid()
-            plt.savefig('mean_F_002.pdf')
-            #plt.show()
+            plt.savefig('mean_F_010.pdf')
+            plt.show()
 
             plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
             plt.plot(z,alpha,marker='o',label='alpha')
@@ -319,8 +310,8 @@ class measurement_set:
             plt.xlabel('z')
             plt.legend()
             plt.grid()
-            plt.savefig('parameters_002.pdf')
-            #plt.show()
+            plt.savefig('parameters_010.pdf')
+            plt.show()
 
         n_grids = len(z_values) * 3
         n_values = np.sort(list(set([spv[0] for spv in s_parameter_values_list])))
@@ -361,7 +352,7 @@ class measurement_set:
                                    ha="center", va="center", color=(0,0,0))
             ax.set_title('Pk chi2 values, z={}'.format(z_value))
             plt.savefig('colour_z{}_{}.pdf'.format(z_value,'Pk'))
-            #plt.show()
+            plt.show()
 
             fig, ax = plt.subplots(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
             im = ax.imshow(colour_grids[k*3+1,:,:],cmap='YlGn',vmin=0,vmax=np.max(colour_grids))
@@ -383,7 +374,7 @@ class measurement_set:
                                    ha="center", va="center", color=(0,0,0))
             ax.set_title('mean F chi2 values, z={}'.format(z_value))
             plt.savefig('colour_z{}_{}.pdf'.format(z_value,'mean_F'))
-            #plt.show()
+            plt.show()
 
             fig, ax = plt.subplots(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
             im = ax.imshow(colour_grids[k*3+2,:,:],cmap='YlGn',vmin=0,vmax=np.max(colour_grids))
@@ -405,9 +396,178 @@ class measurement_set:
                                    ha="center", va="center", color=(0,0,0))
             ax.set_title('Total chi2 values, z={}'.format(z_value))
             plt.savefig('colour_z{}_{}.pdf'.format(z_value,'total'))
-            #plt.show()
+            plt.show()
+
+        if len(z_values) > 1:
+            collapsed_z_colour_grids = np.zeros((3,len(n_values),len(k1_values)))
+            for j,z_value in enumerate(z_values):
+                collapsed_z_colour_grids[0,:,:] += colour_grids[3*j+0,:,:]
+                collapsed_z_colour_grids[1,:,:] += colour_grids[3*j+1,:,:]
+                collapsed_z_colour_grids[2,:,:] += colour_grids[3*j+2,:,:]
+
+            fig, ax = plt.subplots(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
+            im = ax.imshow(collapsed_z_colour_grids[0,:,:],cmap='YlGn',vmin=0,vmax=np.max(colour_grids))
+            # Create colorbar
+            cbar = ax.figure.colorbar(im, ax=ax)
+            cbar.ax.set_ylabel("chi2", rotation=-90, va="bottom")
+            # We want to show all ticks...
+            ax.set_xticks(np.arange(len(n_values)))
+            ax.set_yticks(np.arange(len(k1_values)))
+            # ... and label them with the respective list entries
+            ax.set_xticklabels(n_values)
+            ax.set_yticklabels(k1_values)
+            # Rotate the tick labels and set their alignment.
+            plt.setp(ax.get_xticklabels(), ha="right")
+            # Loop over data dimensions and create text annotations.
+            for i in range(len(n_values)):
+                for j in range(len(k1_values)):
+                    text = ax.text(j, i, round(collapsed_z_colour_grids[0,i,j],2),
+                                   ha="center", va="center", color=(0,0,0))
+            ax.set_title('Pk chi2 values, all z values')
+            plt.savefig('colour_{}.pdf'.format('Pk'))
+            plt.show()
+
+            fig, ax = plt.subplots(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
+            im = ax.imshow(collapsed_z_colour_grids[1,:,:],cmap='YlGn',vmin=0,vmax=np.max(colour_grids))
+            # Create colorbar
+            cbar = ax.figure.colorbar(im, ax=ax)
+            cbar.ax.set_ylabel("chi2", rotation=-90, va="bottom")
+            # We want to show all ticks...
+            ax.set_xticks(np.arange(len(n_values)))
+            ax.set_yticks(np.arange(len(k1_values)))
+            # ... and label them with the respective list entries
+            ax.set_xticklabels(n_values)
+            ax.set_yticklabels(k1_values)
+            # Rotate the tick labels and set their alignment.
+            plt.setp(ax.get_xticklabels(), ha="right")
+            # Loop over data dimensions and create text annotations.
+            for i in range(len(n_values)):
+                for j in range(len(k1_values)):
+                    text = ax.text(j, i, round(collapsed_z_colour_grids[1,i,j],2),
+                                   ha="center", va="center", color=(0,0,0))
+            ax.set_title('mean F chi2 values, all z values')
+            plt.savefig('colour_{}.pdf'.format('mean_F'))
+            plt.show()
+
+            fig, ax = plt.subplots(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
+            im = ax.imshow(collapsed_z_colour_grids[2,:,:],cmap='YlGn',vmin=0,vmax=np.max(colour_grids))
+            # Create colorbar
+            cbar = ax.figure.colorbar(im, ax=ax)
+            cbar.ax.set_ylabel("chi2", rotation=-90, va="bottom")
+            # We want to show all ticks...
+            ax.set_xticks(np.arange(len(n_values)))
+            ax.set_yticks(np.arange(len(k1_values)))
+            # ... and label them with the respective list entries
+            ax.set_xticklabels(n_values)
+            ax.set_yticklabels(k1_values)
+            # Rotate the tick labels and set their alignment.
+            plt.setp(ax.get_xticklabels(), ha="right")
+            # Loop over data dimensions and create text annotations.
+            for i in range(len(n_values)):
+                for j in range(len(k1_values)):
+                    text = ax.text(j, i, round(collapsed_z_colour_grids[2,i,j],2),
+                                   ha="center", va="center", color=(0,0,0))
+            ax.set_title('Total chi2 values, all z values')
+            plt.savefig('colour_{}.pdf'.format('total'))
+            plt.show()
 
         return s_optimized_set
+    def save(self,filepath,existing='overwrite'):
+        #Make a list of HDUs from the current set of measurements.
+        list_of_hdus = []
+        for m in self.measurements:
+            list_of_hdus += [m.make_HDU()]
+
+        #Check if a file already exists. If so, follow the chosen path, if not, make a new file.
+        if len(glob.glob(filepath)) > 0:
+            if existing == 'combine':
+                #Open the existing file and get the list of what parameter sets it includes.
+                hdulist = fits.open(filepath)
+                existing_parameters_list = []
+                for existing_hdu in hdulist[1:]:
+                    m = measurement.load_measurement(existing_hdu)
+                    existing_parameters_list += [m.get_details()]
+                    print('#####')
+                    print(existing_parameters_list)
+
+                for i,hdu in enumerate(list_of_hdus):
+                    details = measurement.load_measurement(hdu).get_details()
+                    print(details)
+                    if details in existing_parameters_list:
+                        print('measurement with parameters {} already included in {}, existing measurement retained'.format(details,filepath))
+                    else:
+                        hdulist.append(hdu)
+            elif existing == 'overwrite':
+                prihdr = fits.Header()
+                prihdu = fits.PrimaryHDU(header=prihdr)
+                hdulist = fits.HDUList([prihdu]+list_of_hdus)
+            else:
+                raise ValueError('File already exists, specified behaviour not recognised')
+        else:
+            prihdr = fits.Header()
+            prihdu = fits.PrimaryHDU(header=prihdr)
+            hdulist = fits.HDUList([prihdu]+list_of_hdus)
+        hdulist.writeto(filepath,overwrite=True)
+        hdulist.close()
+        return
+
+def measure_pixel_segment(pixel,z_value,alpha,beta,sigma_G_required,n,k1,A0):
+    #print('start',pixel,z_value,alpha,beta,sigma_G_required,n,k1)
+
+    location = base_file_location + '/' + new_file_structure.format(pixel//100,pixel)
+
+    # TODO: this is a problem
+    measured_SIGMA_G = 1.17
+
+    #We work from the gaussian colore files made in 'pixelise gaussian skewers'.
+    gaussian_filename = new_filename_structure.format('gaussian-colore',N_side,pixel)
+
+    #Make a pixel object from it.
+    data = pixelise.simulation_data.get_gaussian_skewers_object(location+gaussian_filename,None,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
+
+    #Determine the sigma_G to add
+    extra_sigma_G = np.sqrt(sigma_G_required**2 - measured_SIGMA_G**2)
+
+    #trim skewers
+    data.trim_skewers(lambda_min,min_cat_z,extra_cells=1)
+
+    #We extend the ranges of lambda a little to make sure RSDs are all accounted for.
+    extra = 0.1
+    lambda_min_val = lya*(1 + z_value - z_width*(1+extra)/2)
+    lambda_max_val = lya*(1 + z_value + z_width*(1+extra)/2)
+    data.trim_skewers(lambda_min_val,min_cat_z,lambda_max=lambda_max_val,whole_lambda_range=True)
+
+    #add small scale fluctuations
+    seed = int(str(N_side) + str(pixel))
+    generator = np.random.RandomState(seed)
+    data.add_small_scale_gaussian_fluctuations(cell_size,data.Z,np.ones(data.Z.shape[0])*extra_sigma_G,generator,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n=n,k1=k1,A0=A0) #n=0.7, k1=0.001 default
+
+    #Convert to flux
+    data.compute_physical_skewers()
+    data.compute_tau_skewers(alpha=np.ones(data.Z.shape[0])*alpha,beta=beta)
+    data.add_RSDs(np.ones(data.Z.shape[0])*alpha,beta,thermal=False)
+    data.compute_flux_skewers()
+
+    #Trim the skewers again to get rid of the additional cells
+    lambda_min_val = lya*(1 + z_value - z_width/2)
+    lambda_max_val = lya*(1 + z_value + z_width/2)
+    data.trim_skewers(lambda_min_val,min_cat_z,lambda_max=lambda_max_val,whole_lambda_range=True)
+
+    #Convert back to small cells for cf measurement
+    #need a new function to merge cells back together
+
+    ID = 0
+    measurement = tuning.measurement(ID,z_value,z_width,data.N_qso,n,k1,alpha,beta,sigma_G_required,pixels=[pixel])
+    #print('measure mean_F',z_value)
+    measurement.add_mean_F_measurement(data)
+    #print('measure Pk1D',z_value)
+    measurement.add_Pk1D_measurement(data)
+    #print('measure chi2s',z_value)
+    measurement.add_mean_F_chi2(eps=0.1)
+    measurement.add_Pk1D_chi2(max_k=max_k)
+    measurement.add_total_chi2()
+
+    return measurement
 
 
 
@@ -441,7 +601,7 @@ def P1D_z_kms_PD2013(k_kms,z,A_F=0.064,B_F=3.55):
 #Equation from F-R2012, equation 2.11
 def get_mean_F_model(z,model='Becker13'):
     if model == 'Becker13':
-        mean_F = np.exp(-0.751*(((1+z)/4.5)**2.9)-0.132)
+        mean_F = np.exp(-0.751*(((1+z)/4.5)**2.9)+0.132)
     elif model == 'FontRibera12':
         mean_F = np.exp((np.log(0.8))*(((1+z)/3.25)**3.2))
     return mean_F
