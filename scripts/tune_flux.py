@@ -110,7 +110,10 @@ for i,z_value in enumerate(z_values):
 
 """
 #s_multipliers = np.linspace(0.7,1.3,5)
-t_multipliers = np.linspace(0.4,1.6,7)
+a_multipliers = np.linspace(0.4,1.6,7)
+b_multipliers = np.linspace(0.4,1.6,7)
+sG_multipliers = np.linspace(0.4,1.6,7)
+
 n_multipliers = np.linspace(1.15,1.75,5)
 k1_multipliers = np.linspace(0.25,0.85,5)
 
@@ -121,9 +124,10 @@ lookup = {}
 
 import itertools
 for i,z_value in enumerate(z_values):
-    a = [alpha_values[i]] * t_multipliers
-    b = [beta_values[i]] * t_multipliers
-    sG = [sigma_G_values[i]] * t_multipliers
+
+    a = [alpha_values[i]] * a_multipliers
+    b = [beta_values[i]] * b_multipliers
+    sG = [sigma_G_values[i]] * sG_multipliers
 
     n = [n_values[i]] * n_multipliers
     k1 = [k1_values[i]] * k1_multipliers
