@@ -141,7 +141,7 @@ else:
     N_pix = 12*N_side**2
 
 #colore skewers filename (except number that will be added later)
-colore_base_filename = base_in_dir+'/out_srcs_s1_' 
+colore_base_filename = base_in_dir+'/out_srcs_s1_'
 
 def get_file_name(base_dir,base_name,nside,pixel):
     return base_dir+'/{}-{}-{}.fits'.format(base_name,nside,pixel)
@@ -383,7 +383,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
     pixel_object.compute_physical_skewers()
 
     #Add tau skewers to the object, starting with Lyman-alpha
-    alphas=np.interp(pixel_object.Z,tuning_z_values,tuning_alphas)
+    alphas = np.interp(pixel_object.Z,tuning_z_values,tuning_alphas)
     pixel_object.compute_all_tau_skewers(alphas,beta)
 
     if transmission_only == False:
