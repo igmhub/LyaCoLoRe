@@ -93,7 +93,7 @@ class SimulationData:
 
     def setup_metal_absorbers(self):
 
-        # get a dictionary with multiple absorbers, one for each metal line 
+        # get a dictionary with multiple absorbers, one for each metal line
         self.metals=metals.get_metal_dict()
 
         return
@@ -341,7 +341,7 @@ class SimulationData:
         return
 
     #Function to add small scale gaussian fluctuations.
-    def add_small_scale_gaussian_fluctuations(self,cell_size,sigma_G_z_values,extra_sigma_G_values,generator,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n=0.7,k1=0.001):
+    def add_small_scale_gaussian_fluctuations(self,cell_size,sigma_G_z_values,extra_sigma_G_values,generator,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n=0.7,k1=0.001,A0=58.6):
 
         # TODO: Is NGP really the way to go?
 
@@ -397,7 +397,7 @@ class SimulationData:
         #Generate extra variance, either white noise or correlated.
         dkms_dhMpc = utils.get_dkms_dhMpc(0.)
         dv_kms = cell_size * dkms_dhMpc
-        extra_var = independent.get_gaussian_fields(generator,self.N_cells,dv_kms=dv_kms,N_skewers=self.N_qso,white_noise=white_noise,n=n,k1=k1)
+        extra_var = independent.get_gaussian_fields(generator,self.N_cells,dv_kms=dv_kms,N_skewers=self.N_qso,white_noise=white_noise,n=n,k1=k1,A0=A0)
 
         #Normalise the extra variance to have unit variance
         k_kms = np.fft.rfftfreq(self.N_cells)*2*np.pi/dv_kms
@@ -493,7 +493,7 @@ class SimulationData:
         # optical depth for Ly_b
         if self.lyb_absorber is not None:
             self.compute_tau_skewers(self.lyb_absorber,alpha,beta)
-    
+
         # loop over metals in dictionary
         if self.metals is not None:
             for metal in iter(self.metals.values()):
@@ -536,11 +536,13 @@ class SimulationData:
 
         F = absorber.transmission()
         if not z_value:
-            mean_F = np.average(F,axis=0)
+            mean_F = np.average(F,axis=0,weights=self.IVAR_rows)
 
         elif not z_width:
             j_value_upper = np.searchsorted(self.Z,z_value)
-            j_value_lower = j_value_upper - 1
+
+            j_value_lower = max(j_value_upper - 1,0)
+            relevant_rows = [i for i in range(self.N_qso) if np.sum(self.IVAR_rows[j_value_lower,j_value_upper]) == 2]
 
             if j_value_lower > -1:
                 weight_upper = (z_value - self.Z[j_value_lower])/(self.Z[j_value_upper] - self.Z[j_value_lower])
@@ -554,12 +556,12 @@ class SimulationData:
             weights[:,0] *= weight_lower
             weights[:,1] *= weight_upper
 
-            mean_F = np.average(F[:,j_value_lower:j_value_upper+1],weights=weights)
+            mean_F = np.average(F[relevant_rows,j_value_lower:j_value_upper+1],weights=weights)
 
         else:
             j_value_upper = np.searchsorted(self.Z,z_value + z_width/2.)
             j_value_lower = np.max(0,np.searchsorted(self.Z,z_value - z_width/2.) - 1)
-            mean_F = np.average(F[j_value_lower:j_value_upper+1])
+            mean_F = np.average(F[j_value_lower:j_value_upper+1],weights=self.IVAR_rows[j_value_lower:j_value_upper+1])
             #print(self.N_qso)
             #print(j_value_lower,j_value_upper)
         return mean_F
@@ -783,7 +785,7 @@ class SimulationData:
 
     #Compute transmission for a particular absorber, on a particular grid
     def compute_grid_transmission(self,absorber,wave_grid):
-        #Get transmission on each cell, from tau stored in absorber 
+        #Get transmission on each cell, from tau stored in absorber
         F_skewer = absorber.transmission()
         #Get rest-frame wavelength for this particular absorber
         rest_wave = absorber.rest_wave
@@ -801,21 +803,21 @@ class SimulationData:
 
     #Function to save data as a transmission file.
     def save_as_transmission(self,filename,header):
-        
+
         # define common wavelength grid to be written in files (in Angstroms)
         wave_min=3550
         wave_max=6500
         wave_step=0.2
         wave_grid=np.arange(wave_min,wave_max,wave_step)
 
-        # now we should loop over the different absorbers, combine them and 
+        # now we should loop over the different absorbers, combine them and
         # write them in HDUs. I suggest to have two HDU:
         # - TRANSMISSION will contain both Lya and Lyb
         # - METALS will contain all metal absorption
 
         # compute Lyman alpha transmission on grid of wavelengths
         F_grid_Lya = self.compute_grid_transmission(self.lya_absorber,wave_grid)
-        
+
         # compute Lyman beta transmission on grid of wavelengths
         if self.lyb_absorber is None:
             F_grid_Lyb = np.ones_like(F_grid_Lya)
@@ -848,7 +850,7 @@ class SimulationData:
             # compute metals' transmission on grid of wavelengths
             F_grid_met = np.ones_like(F_grid_Lya)
             for metal in iter(self.metals.values()):
-                F_i=self.compute_grid_transmission(metal,wave_grid) 
+                F_i=self.compute_grid_transmission(metal,wave_grid)
                 F_grid_met *= F_i
 
             hdu_METALS = fits.ImageHDU(data=F_grid_met,header=header,name='METALS')
