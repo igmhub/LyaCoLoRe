@@ -25,7 +25,7 @@ class tuning_parameters:
 
 
 class measurement:
-    def __init__(self,parameter_ID,z_value,z_width,N_skewers,n,k1,alpha,beta,sigma_G,pixels=[],mean_F=None,k_kms=None,Pk_kms=None,cf=None):
+    def __init__(self,parameter_ID,z_value,z_width,N_skewers,n,k1,alpha,beta,sigma_G,pixels=[],mean_F=None,k_kms=None,Pk_kms=None,sigma_F=None,cf=None):
         self.parameter_ID = parameter_ID
         self.z_value = z_value
         self.z_width = z_width
@@ -42,6 +42,7 @@ class measurement:
         self.mean_F = mean_F
         self.k_kms = k_kms
         self.Pk_kms = Pk_kms
+        self.sigma_F = sigma_F
         self.cf = cf
         return
     def get_details(self):
@@ -63,8 +64,12 @@ class measurement:
         #print(self.z_value,self.z_width)
         self.mean_F = pixel_object.get_mean_flux(pixel_object.lya_absorber,z_value=self.z_value,z_width=self.z_width)
         return
+    def add_sigma_F_measurement(self,pixel_object):
+        #print(self.z_value,self.z_width)
+        self.sigma_F = np.trapz(self.Pk_kms,self.k_kms)
+        return
     def add_Pk1D_chi2(self,min_k=None,max_k=None,denom="krange10"):
-        model_Pk_kms = P1D_z_kms_PD2013(self.k_kms,self.z_value)
+        model_Pk_kms = P1D_z_kms_PD2013(self.z_value,self.k_kms)
         if min_k:
             min_j = max(np.searchsorted(self.k_kms,min_k) - 1,0)
         else:
@@ -94,6 +99,13 @@ class measurement:
         chi2 = np.sum(((self.mean_F - model_mean_F)**2)/denom)
         self.mean_F_chi2 = chi2
         return
+    def add_sigma_F_chi2(self,min_k=None,max_k=None,eps=0.1,l_hMpc=0.25):
+        model_sigma_F = get_sigma_dF_P1D(self.z_value,l_hMpc=l_hMpc)
+        denom = (eps * model_sigma_F)**2
+        chi2 = np.sum(((self.sigma_F - model_sigma_F)**2)/denom)
+        self.sigma_F_chi2 = chi2
+        print(self.z_value,model_sigma_F,self.sigma_F)
+        return
     def add_total_chi2(self):
         chi2 = self.Pk_kms_chi2 + self.mean_F_chi2
         self.total_chi2 = chi2
@@ -118,9 +130,10 @@ class measurement:
         if utils.confirm_identical(m1.k_kms,m2.k_kms,item_name='k_kms',array=True):
             k_kms = m1.k_kms
         Pk_kms = (m1.Pk_kms*m1.N_skewers + m2.Pk_kms*m2.N_skewers)/(m1.N_skewers + m2.N_skewers)
+        sigma_F = np.trapz(Pk_kms,k_kms)
         #May need to work on this?
         cf = None
-        return measurement(parameter_ID,z_value,z_width,N_skewers,n,k1,alpha,beta,sigma_G,pixels=pixels,mean_F=mean_F,k_kms=k_kms,Pk_kms=Pk_kms,cf=cf)
+        return measurement(parameter_ID,z_value,z_width,N_skewers,n,k1,alpha,beta,sigma_G,pixels=pixels,mean_F=mean_F,k_kms=k_kms,Pk_kms=Pk_kms,sigma_F=sigma_F,cf=cf)
     @classmethod
     def load_measurement(cls,hdu):
         parameter_ID = hdu.header['param_ID']
@@ -270,7 +283,7 @@ class measurement_set:
             plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
             for m in s_optimized_set.measurements:
                 plt.errorbar(m.k_kms,m.Pk_kms,fmt='o',label='measured, z={}'.format(m.z_value))
-                plt.plot(m.k_kms,P1D_z_kms_PD2013(m.k_kms,m.z_value),label='theory, z={}'.format(m.z_value))
+                plt.plot(m.k_kms,P1D_z_kms_PD2013(m.z_value,m.k_kms),label='theory, z={}'.format(m.z_value))
             plt.semilogy()
             plt.semilogx()
             plt.ylabel('Pk1D')
@@ -578,7 +591,7 @@ Below: old tuning, no-RSD, theoretical based Method
 
 #Function to return the P1D from Palanque-Delabrouille et al. (2013)
 #copied from lyaforecast
-def P1D_z_kms_PD2013(k_kms,z,A_F=0.064,B_F=3.55):
+def P1D_z_kms_PD2013(z,k_kms,A_F=0.064,B_F=3.55):
     """Fitting formula for 1D P(z,k) from Palanque-Delabrouille et al. (2013).
         Wavenumbers and power in units of km/s. Corrected to be flat at low-k"""
     # numbers from Palanque-Delabrouille (2013)
@@ -739,7 +752,7 @@ def get_flux_stats(sigma_G,alpha,beta,D,mean_only=False,int_lim_fac=10.0):
     return mean_F, sigma_dF
 
 #Function to integrate under the 1D power spectrum to return the value of sigma_dF at a given redshift.
-def get_sigma_dF_P1D(z,l_hMpc=0.25,Om=0.3):
+def get_sigma_dF_P1D(z,l_hMpc=0.25,Om=0.3147):
     #Choose log spaced values of k
     k_hMpc_max = 100.0/l_hMpc
     k_hMpc = np.logspace(-5,np.log10(k_hMpc_max),10**5)

@@ -92,14 +92,17 @@ def measure_pixel_segment(pixel,z_value,alpha,beta,sigma_G_required,n,k1,A0):
 
     ID = 0
     measurement = tuning.measurement(ID,z_value,z_width,data.N_qso,n,k1,alpha,beta,sigma_G_required,pixels=[pixel])
-    #print('measure mean_F',z_value)
+
     measurement.add_mean_F_measurement(data)
-    #print('measure Pk1D',z_value)
     measurement.add_Pk1D_measurement(data)
-    #print('measure chi2s',z_value)
+    measurement.add_sigma_F_measurement(data)
+
     measurement.add_mean_F_chi2(eps=0.1)
     measurement.add_Pk1D_chi2(max_k=max_k)
+    measurement.add_sigma_F_chi2(eps=0.1)
     measurement.add_total_chi2()
+
+    print(tuning.get_flux_stats(sigma_G_required,alpha,beta,np.interp(z_value,data.Z,data.D)))
 
     return measurement
 
@@ -157,13 +160,21 @@ def f(alpha,beta,sigma_G,n,k1,A0):
     Pk_kms_chi2 = 0.
     mean_F_chi2 = 0.
     overall_chi2 = 0.
+
+    sigma_F_chi2 = 0.
+
     for m in combined_pixels_set.measurements:
         m.add_mean_F_chi2(eps=0.05)
         m.add_Pk1D_chi2(max_k=max_k)
+        m.add_sigma_F_chi2(eps=0.05)
         m.add_total_chi2()
         Pk_kms_chi2 += m.Pk_kms_chi2
         mean_F_chi2 += m.mean_F_chi2
         overall_chi2 += m.total_chi2
+
+        sigma_F_chi2 += m.sigma_F_chi2
+
+    chi2 = mean_F_chi2 + sigma_F_chi2
 
     """
     combined_z_pixels_set = measurement_set.combine_zs()
@@ -171,16 +182,19 @@ def f(alpha,beta,sigma_G,n,k1,A0):
     if len(combined_z_pixels_set.measurements) == 1:
         m = combined_z_pixels_set.measurements[0]
     """
-    print('chi2: Pk {:2.4f}, mean F {:2.4f}, overall {:2.4f}'.format(Pk_kms_chi2,mean_F_chi2,overall_chi2))
+
+    #print('chi2: Pk {:2.4f}, mean F {:2.4f}, overall {:2.4f}'.format(Pk_kms_chi2,mean_F_chi2,overall_chi2))
+    print('chi2: sF {:2.4f}, mean F {:2.4f}, overall {:2.4f}'.format(sigma_F_chi2,mean_F_chi2,overall_chi2))
     print(' ')
-    return overall_chi2
+
+    return chi2
 
 t_kwargs = {'alpha' : 1.12,     'error_alpha' : 0.05,   'limit_alpha' : (0., 10.),  'fix_alpha' : False,
             'beta' : 1.65,      'error_beta' : 0.05,    'limit_beta' : (0., 10.),   'fix_beta' : True,
             'sigma_G' : 4.44,   'error_sigma_G' : 0.05, 'limit_sigma_G' : (0., 20.),'fix_sigma_G' : False,
             }
 
-s_kwargs = {'n' : 0.9157,       'error_n' : 0.05,       'limit_n' : (0., 10.),      'fix_n' : True,
+s_kwargs = {'n'  : 0.0,      'error_n' : 0.05,       'limit_n' : (0., 10.),      'fix_n' : True, #0.9157
             'k1' : 0.003464,    'error_k1' : 0.00005,   'limit_k1' : (0., 0.1),     'fix_k1' : True,
             'A0' : 58.6,        'error_A0' : 0.1,       'limit_A0' : (0., 200.),    'fix_A0' : True,
             }
