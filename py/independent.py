@@ -18,7 +18,7 @@ def get_gaussian_skewers(generator,N_cells,sigma_G=1.0,N_skewers=1):
 
 #Function to generate random Gaussian fields at a given redshift.
 #From lya_mock_functions
-def get_gaussian_fields(generator,N_cells,z=0.0,dv_kms=10.0,N_skewers=1,white_noise=True,n=0.7,k1=0.001,A0=58.6):
+def get_gaussian_fields(generator,N_cells,z=0.0,dv_kms=10.0,N_skewers=1,white_noise=False,n=0.7,k1=0.001,A0=58.6):
 
     # number of Fourier modes
     NF = int(N_cells/2+1)
@@ -28,6 +28,7 @@ def get_gaussian_fields(generator,N_cells,z=0.0,dv_kms=10.0,N_skewers=1,white_no
 
     # get power evaluated at each k_kms
     P_kms = power_kms(z,k_kms,dv_kms,white_noise=white_noise,n=n,k1=k1,A0=A0)
+    #print(P_kms)
 
     # generate random Fourier modes
     modes = np.empty([N_skewers,NF], dtype=complex)
@@ -52,7 +53,7 @@ def power_amplitude(z,A0=58.6):
 
 #Function to return a gaussian P1D in k.
 #From lya_mock_functions
-def power_kms(z_c,k_kms,dv_kms,white_noise,n=0.7,k1=0.001,A0=58.6):
+def power_kms(z_c,k_kms,dv_kms,white_noise=False,n=0.7,k1=0.001,A0=58.6):
     """Return Gaussian P1D at different wavenumbers k_kms (in s/km), fixed z_c.
 
       Other arguments:

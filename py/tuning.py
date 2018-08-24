@@ -65,8 +65,22 @@ class measurement:
         self.mean_F = pixel_object.get_mean_flux(pixel_object.lya_absorber,z_value=self.z_value,z_width=self.z_width)
         return
     def add_sigma_F_measurement(self,pixel_object):
-        #print(self.z_value,self.z_width)
-        self.sigma_F = np.trapz(self.Pk_kms,self.k_kms)
+        sF = pixel_object.get_sigma_dF(pixel_object.lya_absorber,z_value=self.z_value,z_width=self.z_width)
+
+        Om = 0.3147
+        l_hMpc = 0.25
+        E_z = np.sqrt(Om*(1+self.z_value)**3 + (1-Om))
+        dkms_dhMpc = 100. * E_z / (1+self.z_value)
+
+        # transform to h/Mpc
+        k_hMpc = self.k_kms * dkms_dhMpc
+        Pk_hMpc = self.Pk_kms / dkms_dhMpc
+
+        # compute Fourier transform of Top-Hat filter of size l_hMpc
+        W_hMpc = np.sinc((k_hMpc*l_hMpc)/(2*np.pi))
+
+        self.sigma_F = np.sqrt((1/np.pi)*np.trapz((W_hMpc**2)*Pk_hMpc,k_hMpc))
+        #print('cells: {:2.4f}, hMpc: {:2.4f}, kms: {:2.4f}'.format(sF,self.sigma_F,np.sqrt((1/np.pi)*np.trapz((W_hMpc**2)*self.Pk_kms,self.k_kms))))
         return
     def add_Pk1D_chi2(self,min_k=None,max_k=None,denom="krange10"):
         model_Pk_kms = P1D_z_kms_PD2013(self.z_value,self.k_kms)
@@ -104,7 +118,7 @@ class measurement:
         denom = (eps * model_sigma_F)**2
         chi2 = np.sum(((self.sigma_F - model_sigma_F)**2)/denom)
         self.sigma_F_chi2 = chi2
-        print(self.z_value,model_sigma_F,self.sigma_F)
+        #print(self.z_value,model_sigma_F,self.sigma_F)
         return
     def add_total_chi2(self):
         chi2 = self.Pk_kms_chi2 + self.mean_F_chi2
@@ -130,7 +144,7 @@ class measurement:
         if utils.confirm_identical(m1.k_kms,m2.k_kms,item_name='k_kms',array=True):
             k_kms = m1.k_kms
         Pk_kms = (m1.Pk_kms*m1.N_skewers + m2.Pk_kms*m2.N_skewers)/(m1.N_skewers + m2.N_skewers)
-        sigma_F = np.trapz(Pk_kms,k_kms)
+        sigma_F = np.sqrt(((m1.sigma_F**2)*m1.N_skewers + (m2.sigma_F**2)*m2.N_skewers)/(m1.N_skewers + m2.N_skewers))
         #May need to work on this?
         cf = None
         return measurement(parameter_ID,z_value,z_width,N_skewers,n,k1,alpha,beta,sigma_G,pixels=pixels,mean_F=mean_F,k_kms=k_kms,Pk_kms=Pk_kms,sigma_F=sigma_F,cf=cf)
