@@ -352,7 +352,7 @@ class SimulationData:
         new_R = np.arange(Rmin,Rmax,cell_size)
         new_N_cells = new_R.shape[0]
 
-        NGPs = utils.get_NGPs(old_R,new_R).astype(int)
+        NGPs = utils.get_NGPs(old_R,new_R)
         expanded_GAUSSIAN_DELTA_rows = np.zeros((self.N_qso,new_N_cells))
 
         for i in range(self.N_qso):
@@ -371,8 +371,9 @@ class SimulationData:
         # TODO: What to do with this?
         self.VEL_rows = self.VEL_rows[:,NGPs]
 
-        #Make new IVAR rows.
-        self.IVAR_rows = utils.make_IVAR_rows(IVAR_cutoff,self.Z_QSO,self.LOGLAM_MAP)
+        #Can either make new IVAR rows, or just use NGPs on the old ones.
+        #self.IVAR_rows = utils.make_IVAR_rows(IVAR_cutoff,self.Z_QSO,self.LOGLAM_MAP)
+        self.IVAR_rows = self.IVAR_rows[:,NGPs]
 
         #For each skewer, determine the last relevant cell
         first_relevant_cells = np.zeros(self.N_qso)
@@ -392,7 +393,6 @@ class SimulationData:
         extra_var = np.zeros(expanded_GAUSSIAN_DELTA_rows.shape)
         extra_sigma_G = np.interp(self.Z,sigma_G_z_values,extra_sigma_G_values)
 
-
         # TODO: dv is not constant at the moment - how to deal with this
         #Generate extra variance, either white noise or correlated.
         dkms_dhMpc = utils.get_dkms_dhMpc(0.)
@@ -401,33 +401,30 @@ class SimulationData:
 
         #Normalise the extra variance to have unit variance
         k_kms = np.fft.rfftfreq(self.N_cells)*2*np.pi/dv_kms
-        mean_P = np.average(independent.power_kms(0.,k_kms,dv_kms,white_noise))
+        mean_P = np.average(independent.power_kms(0.,k_kms,dv_kms,white_noise=white_noise,n=n,k1=k1,A0=A0))
         extra_var /= np.sqrt(mean_P/dv_kms)
 
         extra_var *= extra_sigma_G
 
+        #print('extra var\'s sigma',np.std(extra_var))
+
         mask = utils.make_IVAR_rows(lya,self.Z_QSO,self.LOGLAM_MAP)
         extra_var *= mask
 
+        expanded_GAUSSIAN_DELTA_rows += amplitude*extra_var
 
+        #print('final skewers\'s sigma',np.std(expanded_GAUSSIAN_DELTA_rows))
 
         """
         # TODO: Improve this
         #1 by 1? Or just N_skewers=N_qso?
         extra_variance = get_gaussian_fields(z,self.N_cells,sigma_G=extra_sigma_G,dv_kms=10.0,N_skewers=self.N_qso,white_noise=white_noise)
         final_GAUSSIAN_DELTA_rows = expanded_GAUSSIAN_DELTA_rows + amplitude*extra_variance
-        """
 
-        """
         for j in range(self.N_cells):
             relevant_QSOs = [i for i in range(self.N_qso) if first_relevant_cells[i]<=j and last_relevant_cells[i]>=j]
             extra_var[relevant_QSOs,j] = generator.normal(scale=extra_sigma_G[j],size=len(relevant_QSOs))
-        """
 
-
-        expanded_GAUSSIAN_DELTA_rows += amplitude*extra_var
-
-        """
         for i in range(self.N_qso):
             first_relevant_cell = first_relevant_cells[i].astype('int32')
             last_relevant_cell = last_relevant_cells[i].astype('int32')
@@ -453,6 +450,7 @@ class SimulationData:
 
                 expanded_GAUSSIAN_DELTA_rows[i,first_relevant_cell:last_relevant_cell] += amplitude*extra_var
             """
+
         self.GAUSSIAN_DELTA_rows = expanded_GAUSSIAN_DELTA_rows
         self.SIGMA_G = np.sqrt(extra_sigma_G**2 + (self.SIGMA_G)**2)
 
@@ -473,8 +471,8 @@ class SimulationData:
 
         # scale optical depth for this particular absorber (=1 for Lya)
         absorber_alpha = alpha*absorber.flux_transform_m
-	#print('absorber',absorber.name,'has m =',absorber.flux_transform_m)
-	#print('absorber',absorber.name,'has first alphas =',absorber_alpha[0:5])
+	    #print('absorber',absorber.name,'has m =',absorber.flux_transform_m)
+	    #print('absorber',absorber.name,'has first alphas =',absorber_alpha[0:5])
 
         absorber.tau = convert.density_to_tau(self.DENSITY_DELTA_rows+1,absorber_alpha,beta)
 
@@ -502,7 +500,7 @@ class SimulationData:
         return
 
 
-    #Function to add thermal RSDs from the velocity skewers.
+    #Function to add RSDs from the velocity skewers, with an option to include thermal effects too.
     def add_RSDs(self,absorber,alpha,beta,thermal=False):
 
         density = 1 + self.DENSITY_DELTA_rows
@@ -565,6 +563,36 @@ class SimulationData:
             #print(self.N_qso)
             #print(j_value_lower,j_value_upper)
         return mean_F
+
+    #Function to measure sigma dF.
+    def get_sigma_dF(self,absorber,z_value=None,z_width=None,mean_F=None):
+
+        if not mean_F:
+            mean_F = self.get_mean_flux(absorber,z_value=z_value,z_width=z_width)
+
+        F = absorber.transmission()
+        dF = F/mean_F
+
+        if not z_value:
+            # TODO: there's no weighting in here?
+            sigma_dF = np.std(dF,axis=0)
+
+        elif not z_width:
+            j_value_upper = np.searchsorted(self.Z,z_value)
+
+            j_value_lower = max(j_value_upper - 1,0)
+            relevant_rows = [i for i in range(self.N_qso) if np.sum(self.IVAR_rows[j_value_lower,j_value_upper]) == 2]
+
+            sigma_dF = np.std(dF[relevant_rows,j_value_lower:j_value_upper+1])
+
+        else:
+            j_value_upper = np.searchsorted(self.Z,z_value + z_width/2.)
+            j_value_lower = np.max(0,np.searchsorted(self.Z,z_value - z_width/2.) - 1)
+
+            sigma_dF = np.std(dF[:,j_value_lower:j_value_upper+1])
+
+        #print('gsd return',sigma_dF)
+        return sigma_dF
 
     #Method to combine data from two objects into one.
     # TODO: add something to check that we can just take values from 1 of the objects
