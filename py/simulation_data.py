@@ -399,21 +399,40 @@ class SimulationData:
         dv_kms = cell_size * dkms_dhMpc
         extra_var = independent.get_gaussian_fields(generator,self.N_cells,dv_kms=dv_kms,N_skewers=self.N_qso,white_noise=white_noise,n=n,k1=k1,A0=A0)
 
+        from . import Pk1D
+        k_kms_ev, Pk_kms_ev, _ = Pk1D.get_Pk1D(extra_var,np.ones_like(extra_var),self.R,self.Z)
+        #print('original extra var\'s std',np.std(extra_var))
+        #print('original extra var\'s Pk sigma',np.sqrt((1/np.pi)*np.trapz(Pk_kms_ev,k_kms_ev)))
+        #print('original extra var\'s simple sigma',np.sqrt(np.average(extra_var**2)-np.average(extra_var)**2))
+        #print(' ')
+
         #Normalise the extra variance to have unit variance
         k_kms = np.fft.rfftfreq(self.N_cells)*2*np.pi/dv_kms
-        mean_P = np.average(independent.power_kms(0.,k_kms,dv_kms,white_noise=white_noise,n=n,k1=k1,A0=A0))
-        extra_var /= np.sqrt(mean_P/dv_kms)
+        Pk_kms = independent.power_kms(0.,k_kms,dv_kms,white_noise=white_noise,n=n,k1=k1,A0=A0,smooth=True)
+        mean_P = np.average(Pk_kms)
+        sigma_G_extra_var = np.sqrt((1/np.pi)*np.trapz(Pk_kms,k_kms))
+        #print('sigma_G to norm with',sigma_G_extra_var)
+        #print(' ')
+        extra_var /= sigma_G_extra_var #np.sqrt(mean_P/dv_kms)
+
+        k_kms_ev, Pk_kms_ev, _ = Pk1D.get_Pk1D(extra_var,np.ones_like(extra_var),self.R,self.Z)
+        #print('normed extra var\'s std',np.std(extra_var))
+        #print('normed extra var\'s Pk sigma',np.sqrt((1/np.pi)*np.trapz(Pk_kms_ev,k_kms_ev)))
+        #print(' ')
 
         extra_var *= extra_sigma_G
 
-        #print('extra var\'s sigma',np.std(extra_var))
+        k_kms_ev, Pk_kms_ev, _ = Pk1D.get_Pk1D(extra_var,np.ones_like(extra_var),self.R,self.Z)
+        #print('final extra var\'s std',np.std(extra_var))
+        #print('final extra var\'s Pk sigma',np.sqrt((1/np.pi)*np.trapz(Pk_kms_ev,k_kms_ev)))
+        #print(' ')
 
         mask = utils.make_IVAR_rows(lya,self.Z_QSO,self.LOGLAM_MAP)
         extra_var *= mask
 
         expanded_GAUSSIAN_DELTA_rows += amplitude*extra_var
 
-        #print('final skewers\'s sigma',np.std(expanded_GAUSSIAN_DELTA_rows))
+        #print('final skewers\'s std',np.std(expanded_GAUSSIAN_DELTA_rows))
 
         """
         # TODO: Improve this
@@ -471,8 +490,8 @@ class SimulationData:
 
         # scale optical depth for this particular absorber (=1 for Lya)
         absorber_alpha = alpha*absorber.flux_transform_m
-	    #print('absorber',absorber.name,'has m =',absorber.flux_transform_m)
-	    #print('absorber',absorber.name,'has first alphas =',absorber_alpha[0:5])
+        #print('absorber',absorber.name,'has m =',absorber.flux_transform_m)
+        #print('absorber',absorber.name,'has first alphas =',absorber_alpha[0:5])
 
         absorber.tau = convert.density_to_tau(self.DENSITY_DELTA_rows+1,absorber_alpha,beta)
 
@@ -499,7 +518,7 @@ class SimulationData:
 
         return
 
-
+    # TODO: this doesn't use alpha or beta, so can get rid of them
     #Function to add RSDs from the velocity skewers, with an option to include thermal effects too.
     def add_RSDs(self,absorber,alpha,beta,thermal=False):
 
@@ -557,8 +576,8 @@ class SimulationData:
             mean_F = np.average(F[relevant_rows,j_value_lower:j_value_upper+1],weights=weights)
 
         else:
-            j_value_upper = np.searchsorted(self.Z,z_value + z_width/2.)
-            j_value_lower = np.max(0,np.searchsorted(self.Z,z_value - z_width/2.) - 1)
+            j_value_upper = np.searchsorted(self.Z,z_value + z_width/2.) - 1
+            j_value_lower = np.max(0,np.searchsorted(self.Z,z_value - z_width/2.))
             mean_F = np.average(F[j_value_lower:j_value_upper+1],weights=self.IVAR_rows[j_value_lower:j_value_upper+1])
             #print(self.N_qso)
             #print(j_value_lower,j_value_upper)
