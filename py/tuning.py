@@ -56,12 +56,11 @@ class measurement:
         IVAR = pixel_object.IVAR_rows
         R_hMpc = pixel_object.R
         z = pixel_object.Z
-        k_kms, Pk_kms, var_kms = Pk1D.get_Pk1D(delta_F,IVAR,R_hMpc,z,self.z_value,z_width=self.z_width)
+        k_kms, Pk_kms, var_kms = Pk1D.get_Pk1D(delta_F,IVAR,R_hMpc,z,z_value=self.z_value,z_width=self.z_width)
         self.k_kms = k_kms
         self.Pk_kms = Pk_kms
         return
     def add_mean_F_measurement(self,pixel_object):
-        #print(self.z_value,self.z_width)
         self.mean_F = pixel_object.get_mean_flux(pixel_object.lya_absorber,z_value=self.z_value,z_width=self.z_width)
         return
     def add_sigma_F_measurement(self,pixel_object):
@@ -77,9 +76,9 @@ class measurement:
         Pk_hMpc = self.Pk_kms / dkms_dhMpc
 
         # compute Fourier transform of Top-Hat filter of size l_hMpc
-        W_hMpc = np.sinc((k_hMpc*l_hMpc)/(2*np.pi))
+        #W_hMpc = np.sinc((k_hMpc*l_hMpc)/(2*np.pi))
 
-        self.sigma_F = np.sqrt((1/np.pi)*np.trapz((W_hMpc**2)*Pk_hMpc,k_hMpc))
+        self.sigma_F = np.sqrt((1/np.pi)*np.trapz(Pk_hMpc,k_hMpc)) #(W_hMpc**2)*
         #print('cells: {:2.4f}, hMpc: {:2.4f}, kms: {:2.4f}'.format(sF,self.sigma_F,np.sqrt((1/np.pi)*np.trapz((W_hMpc**2)*self.Pk_kms,self.k_kms))))
         return
     def add_Pk1D_chi2(self,min_k=None,max_k=None,denom="krange10"):

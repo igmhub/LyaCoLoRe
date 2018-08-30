@@ -2,22 +2,27 @@ import numpy as np
 
 from . import utils
 
-def get_Pk1D(skewer_rows,IVAR_rows,R_hMpc,z,z_value,z_width=0.2,N_processes=1):
+def get_Pk1D(skewer_rows,IVAR_rows,R_hMpc,z,z_value=0.0,z_width=None):
 
-    #Find relevant chunk of the skewers
-    z_min = z_value - z_width/2.
-    z_max = z_value + z_width/2.
+    if z_width:
+        #Find relevant chunk of the skewers
+        z_min = z_value - z_width/2.
+        z_max = z_value + z_width/2.
 
-    j_lower = np.searchsorted(z,z_min)
-    j_upper = np.searchsorted(z,z_max) - 1
-    N_cells_chunk = j_upper - j_lower + 1
+        j_lower = np.searchsorted(z,z_min)
+        j_upper = np.searchsorted(z,z_max) - 1
+        N_cells_chunk = j_upper - j_lower + 1
+    else:
+        j_lower = 0
+        j_upper = skewer_rows.shape[1]
+        N_cells_chunk = skewer_rows.shape[1]
 
     #if skewer contains entire chunk, keep, otherwise discard
     N_qso = skewer_rows.shape[0]
     skewer_rows_chunk = []
     for i in range(N_qso):
-        if np.sum(IVAR_rows[i][j_lower:j_upper]) == N_cells_chunk:
-            skewer_rows_chunk.append(skewer_rows[i][j_lower:j_upper])
+        if np.sum(IVAR_rows[i][j_lower:j_upper+1]) == N_cells_chunk:
+            skewer_rows_chunk.append(skewer_rows[i][j_lower:j_upper+1])
     skewer_rows_chunk = np.array(skewer_rows_chunk)
 
     #trim R to the chunk now being considered
@@ -27,17 +32,15 @@ def get_Pk1D(skewer_rows,IVAR_rows,R_hMpc,z,z_value,z_width=0.2,N_processes=1):
     dkms_dhMpc = utils.get_dkms_dhMpc(z_value)
     R_kms = dkms_dhMpc*R_hMpc
 
-    #ft the skewers
-    pk_rows = np.fft.rfft(skewer_rows,axis=1)
-
-    # TODO: is this right?
-    pk_rows = abs(pk_rows)
-
     #get the cell width (this is not constant in kms)
-    dv_kms = dkms_dhMpc*(R_hMpc[-1] - R_hMpc[0])/N_cells_chunk
+    dv_kms = dkms_dhMpc*(R_hMpc[-1] - R_hMpc[0])/(N_cells_chunk - 1)
 
     #get the k frequencies
     k_kms = np.fft.rfftfreq(N_cells_chunk)*2*np.pi/dv_kms
+
+    #ft the skewers
+    ft_rows = np.fft.rfft(skewer_rows_chunk,axis=1) / np.sqrt(N_cells_chunk/dv_kms)
+    pk_rows = np.abs(ft_rows)**2
 
     #calculate mean and variance
     pk_kms = np.average(pk_rows,axis=0)
