@@ -173,9 +173,11 @@ master_data = master[1].data
 master.close()
 
 #Make a MOCKID lookup.
-pixel_list = list(sorted(set([pixel for pixel in master_data['PIXNUM'] if pixel in pixels])))
+pixel_list = list(sorted(set(pixels).intersection(set(master_data['PIXNUM']))))
+#pixel_list = list(sorted(set([pixel for pixel in master_data['PIXNUM'] if pixel in pixels])))
 MOCKID_lookup = {}
 for pixel in pixel_list:
+    print(pixel)
     #pixel_indices = [i for i in range(len(master_data['PIXNUM'])) if master_data['PIXNUM'][i]==pixel]
     pixel_indices = (master_data['PIXNUM']==pixel)
     pixel_MOCKIDs = master_data['MOCKID'][pixel_indices]
