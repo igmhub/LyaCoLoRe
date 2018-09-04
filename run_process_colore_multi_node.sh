@@ -1,7 +1,8 @@
 # specify number of nodes and cores to use
-NNODES=64
+QUEUE='regular'
+NNODES=48
 NCORES=64
-TIME="00:10:00" #hh:mm:ss
+TIME="02:00:00" #hh:mm:ss
 
 # specify process parameters
 NSIDE=16
@@ -11,7 +12,7 @@ LAMBDA_MIN=3550.0
 MIN_CAT_Z=1.8
 
 # specify process flags
-FLAGS="--add-RSDs --add-DLAs"
+FLAGS="--add-RSDs --add-DLAs --add-Lyb --add-metals"
 
 # specify details of colore output
 COLORE_NGRID=4096
@@ -19,18 +20,19 @@ COLORE_NODES=32
 R_SMOOTH=2.0
 
 # full path to proces_colore executable (parallel version)
-PROCESS_PATH="/global/homes/j/jfarr/Projects/LyaCoLoRe/example_scripts/"
+PROCESS_PATH="/global/homes/j/jfarr/Projects/LyaCoLoRe/scripts/"
 
 # full path to folder where input will be taken from
 INPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/output_G_hZsmooth_${COLORE_NGRID}_${COLORE_NODES}_sr${R_SMOOTH}_bm1_biasG18_picos/"
+#INPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test_input/"
 echo "input will be taken from "$INPUT_PATH
-INPUT_FILES=`ls -1 ${INPUT_PATH}/out_srcs_*.fits`
-NFILES=`echo $files | wc -w`
+INPUT_FILES=`ls -1 ${INPUT_PATH}/out_srcs_s1_*.fits`
+NFILES=`echo $INPUT_FILES | wc -w`
 echo "${NFILES} input files have been found"
 
 # full path to folder where output will be written
-OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_${COLORE_NGRID}_${COLORE_NODES}_sr${R_SMOOTH}_bm1_biasG18_picos_nside${NSIDE}/"
-OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test/"
+#OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_${COLORE_NGRID}_${COLORE_NODES}_sr${R_SMOOTH}_bm1_biasG18_picos_nside${NSIDE}_RSD_lya_lyb/"
+OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v3.3/"
 echo "output will written to "$OUTPUT_PATH
 if [ ! -d $OUTPUT_PATH ] ; then
     mkdir -p $OUTPUT_PATH
@@ -57,7 +59,7 @@ date
 cat > $RUN_FILE <<EOF
 #!/bin/bash -l
 
-#SBATCH --partition debug
+#SBATCH --partition ${QUEUE}
 #SBATCH --nodes ${NNODES}
 #SBATCH --time ${TIME}
 #SBATCH --job-name process_colore
