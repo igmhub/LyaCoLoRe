@@ -22,7 +22,7 @@ IVAR_cutoff = 1150.0
 
 #Get the starting values of alpha, beta and sigma_G from file
 #Decide which z values we are going to tune
-z_values = [2.5]
+z_values = [3.0]
 z_width = 0.2
 
 cell_size = 0.25 #Mpc/h
@@ -207,13 +207,15 @@ def f(alpha,beta,sigma_G,n,k1,A0):
 
     sigma_F_chi2 = 0.
 
+    D = 0.4172239560422373 #at z=2.0
+    #D = 0.35947529665680117 #at z=2.5
     #D = 0.3154712096325505 #at z=3
-    D = 0.35947529665680117 #at z=2.5
+
     predicted_flux_stats = tuning.get_flux_stats(sigma_G,alpha,beta,D)
 
     for m in combined_pixels_set.measurements:
         m.add_mean_F_chi2(eps=0.05)
-        m.add_Pk1D_chi2(max_k=max_k)
+        m.add_Pk1D_chi2(max_k=max_k,denom="krange10_smooth")
         m.add_sigma_F_chi2(eps=0.05)
         m.add_total_chi2()
         Pk_kms_chi2 += m.Pk_kms_chi2
@@ -247,9 +249,9 @@ def f(alpha,beta,sigma_G,n,k1,A0):
 
     return chi2
 
-t_kwargs = {'alpha' : 0.82,    'error_alpha' : 0.05,   'limit_alpha' : (0., 10.),  'fix_alpha' : False,
+t_kwargs = {'alpha' : 0.57,    'error_alpha' : 0.05,   'limit_alpha' : (0., 10.),  'fix_alpha' : False,
             'beta' : 1.65,      'error_beta' : 0.05,    'limit_beta' : (0., 10.),   'fix_beta' : True,
-            'sigma_G' : 4.85,  'error_sigma_G' : 0.05, 'limit_sigma_G' : (0., 20.),'fix_sigma_G' : False,
+            'sigma_G' : 5.1,  'error_sigma_G' : 0.05, 'limit_sigma_G' : (0., 20.),'fix_sigma_G' : False,
             }
 
 s_kwargs = {'n'  : 0.7,       'error_n' : 0.05,       'limit_n' : (0., 10.),      'fix_n' : False, #0.9157
@@ -296,15 +298,15 @@ plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
 for m in final_measurements.measurements:
     plt.plot(m.k_kms,m.Pk_kms,label='z = {}'.format(m.z_value))
     model_Pk_kms = tuning.P1D_z_kms_PD2013(m.z_value,m.k_kms)
-    plt.plot(m.k_kms,model_Pk_kms,label='model')
+    plt.plot(m.k_kms,model_Pk_kms,label='DR9 fitting function')
     plt.fill_between(m.k_kms,model_Pk_kms*1.1,model_Pk_kms*0.9,color=[0.5,0.5,0.5],alpha=0.5,label='model +/- 10%')
-    plt.title('z={}: alpha={:2.2f}, beta={:2.2f}, sigma_G={:2.2f}, mean_F={:2.3f}, mean_F model={:2.3f}'.format(m.z_value,m.alpha,m.beta,m.sigma_G,m.mean_F,tuning.get_mean_F_model(m.z_value)))
+    plt.title('z={}: alpha={:2.2f}, beta={:2.2f}, sigma_G={:2.2f}, n={:2.2f}, k1={:2.4f}, mean_F={:2.3f} ({:2.3f})'.format(m.z_value,m.alpha,m.beta,m.sigma_G,m.n,m.k1,m.mean_F,tuning.get_mean_F_model(m.z_value)))
     plt.axvline(x=max_k,color='k')
     plt.semilogy()
     plt.semilogx()
     plt.grid()
     plt.legend()
-    #plt.savefig('Pk1D_z2.0.pdf')
+    plt.savefig('Pk1D_z{}.pdf'.format(m.z_value))
     plt.show()
 
 """
