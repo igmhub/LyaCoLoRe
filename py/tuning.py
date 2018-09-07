@@ -87,21 +87,33 @@ class measurement:
             min_j = max(np.searchsorted(self.k_kms,min_k) - 1,0)
         else:
             min_j = 0
+            min_k = 0.
         if max_k:
             max_j = np.searchsorted(self.k_kms,max_k)
         else:
             max_j = -1
+            max_k = self.k_kms[-1]
+        A = 10**6
         if denom == "uniform5":
             denom = (0.05 * model_Pk_kms)**2
         elif denom == "uniform10":
             denom = (0.10 * model_Pk_kms)**2
         elif denom == "krange5":
-            eps = 10**6 * np.ones(self.k_kms.shape)
-            eps[min_j:max_j] *= 0.05 / 10**6
+            eps = A * np.ones(self.k_kms.shape)
+            eps[min_j:max_j] *= 0.05 / A
             denom = (eps * model_Pk_kms)**2
         elif denom == "krange10":
-            eps = 10**6 * np.ones(self.k_kms.shape)
-            eps[min_j:max_j] *= 0.1 / 10**6
+            eps = A * np.ones(self.k_kms.shape)
+            eps[min_j:max_j] *= 0.1 / A
+            denom = (eps * model_Pk_kms)**2
+        elif denom == "krange10_smooth":
+            eps = A * np.ones(self.k_kms.shape)
+            eps[min_j:max_j] *= 0.1 / A
+            smooth_width = (max_k - min_k)/5.
+            lower_smooth = A + (0.1 - A)*np.exp(-((self.k_kms - min_k)**2)/(2*smooth_width**2))
+            upper_smooth = A + (0.1 - A)*np.exp(-((self.k_kms - max_k)**2)/(2*smooth_width**2))
+            eps[:min_j] = lower_smooth[:min_j]
+            eps[max_j:] = upper_smooth[max_j:]
             denom = (eps * model_Pk_kms)**2
         chi2 = np.sum(((self.Pk_kms - model_Pk_kms)**2)/denom)
         self.Pk_kms_chi2 = chi2
