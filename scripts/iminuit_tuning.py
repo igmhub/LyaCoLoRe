@@ -15,7 +15,7 @@ from pyacolore import convert, Pk1D, utils, independent, tuning, simulation_data
 
 lya = 1215.67
 
-N_processes = 4
+N_processes = 32
 lambda_min = 3550.0
 min_cat_z = 1.8
 IVAR_cutoff = 1150.0
@@ -30,8 +30,8 @@ cell_size = 0.25 #Mpc/h
 max_k = 0.005 #skm-1
 
 #Open up the Gaussian colore files
-base_file_location = '/Users/jfarr/Projects/test_data/test/'
-#base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_nside16_RSD'
+#base_file_location = '/Users/jfarr/Projects/test_data/test/'
+base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_nside16_RSD'
 N_side = 16
 
 new_file_structure = '{}/{}/'               #pixel number//100, pixel number
@@ -42,8 +42,11 @@ input_format = 'gaussian_colore'
 #get pixels from those directories created by make_master.py
 dirs = glob.glob(base_file_location+new_file_structure.format('*','*'))
 pixels = []
-for dir in dirs[:4]:
-    pixels += [int(dir[len(dir)-dir[-2::-1].find('/')-1:-1])]
+for dir in dirs[:32]:
+    ending = dir[len(dir)-dir[-2::-1].find('/')-1:-1]
+    print(ending)
+    if ending != 'logs':
+        pixels += [int(ending)]
 
 # TODO: want to move this to tuning.py eventually
 def measure_pixel_segment(pixel,z_value,alpha,beta,sigma_G_required,n,k1,A0):
@@ -262,7 +265,7 @@ s_kwargs = {'n'  : 0.7,       'error_n' : 0.05,       'limit_n' : (0., 10.),    
 minuit = Minuit(f,**t_kwargs,**s_kwargs)
 
 minuit.print_param()
-minuit.migrad() #ncall=20
+minuit.migrad(ncall=1) #ncall=20
 minuit.print_param()
 
 alpha = minuit.values['alpha']
