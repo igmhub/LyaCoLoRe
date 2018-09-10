@@ -115,6 +115,10 @@ class measurement:
             eps[:min_j] = lower_smooth[:min_j]
             eps[max_j:] = upper_smooth[max_j:]
             denom = (eps * model_Pk_kms)**2
+        elif denom == "npower":
+            k0 = 0.01
+            eps = 0.1 * (1/(1 + (k/k0)**n))
+        self.Pk_kms_chi2_eps = eps
         chi2 = np.sum(((self.Pk_kms - model_Pk_kms)**2)/denom)
         self.Pk_kms_chi2 = chi2
         return

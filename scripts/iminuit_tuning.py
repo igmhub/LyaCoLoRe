@@ -299,11 +299,18 @@ for m in final_measurements.measurements:
     plt.plot(m.k_kms,m.Pk_kms,label='z = {}'.format(m.z_value))
     model_Pk_kms = tuning.P1D_z_kms_PD2013(m.z_value,m.k_kms)
     plt.plot(m.k_kms,model_Pk_kms,label='DR9 fitting function')
-    plt.fill_between(m.k_kms,model_Pk_kms*1.1,model_Pk_kms*0.9,color=[0.5,0.5,0.5],alpha=0.5,label='model +/- 10%')
+    eps = m.Pk_kms_chi2_eps
+    plt.fill_between(m.k_kms,model_Pk_kms*1.1,model_Pk_kms*0.9,color=[0.5,0.5,0.5],alpha=0.5,label='DR9 +/- 10%')
+    lower = model_Pk_kms * (1. - eps)
+    upper = model_Pk_kms * (1. + eps)
+    plt.fill_between(m.k_kms,upper,lower,color=[0.5,0.5,0.5],alpha=0.5,label='chi2 weighting')
     plt.title('z={}: alpha={:2.2f}, beta={:2.2f}, sigma_G={:2.2f}, n={:2.2f}, k1={:2.4f}, mean_F={:2.3f} ({:2.3f})'.format(m.z_value,m.alpha,m.beta,m.sigma_G,m.n,m.k1,m.mean_F,tuning.get_mean_F_model(m.z_value)))
     plt.axvline(x=max_k,color='k')
     plt.semilogy()
     plt.semilogx()
+    ylim_lower = min(min(model_Pk_kms),min(m.Pk_kms)) * 0.95
+    ylim_upper = max(max(model_Pk_kms),max(m.Pk_kms)) * 1.05
+    plt.ylim(ylim_lower,ylim_upper)
     plt.grid()
     plt.legend()
     plt.savefig('Pk1D_z{}.pdf'.format(m.z_value))
