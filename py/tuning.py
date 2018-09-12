@@ -109,15 +109,17 @@ class measurement:
         elif denom == "krange10_smooth":
             eps = A * np.ones(self.k_kms.shape)
             eps[min_j:max_j] *= 0.1 / A
-            smooth_width = (max_k - min_k)/5.
+            smooth_width = (max_k - min_k)/0.01
             lower_smooth = A + (0.1 - A)*np.exp(-((self.k_kms - min_k)**2)/(2*smooth_width**2))
             upper_smooth = A + (0.1 - A)*np.exp(-((self.k_kms - max_k)**2)/(2*smooth_width**2))
             eps[:min_j] = lower_smooth[:min_j]
             eps[max_j:] = upper_smooth[max_j:]
             denom = (eps * model_Pk_kms)**2
         elif denom == "npower":
-            k0 = 0.01
-            eps = 0.1 * (1/(1 + (k/k0)**n))
+            k0 = 0.005
+            n = 10.
+            eps = 0.1 * ((1 + (self.k_kms/k0)**n))
+            denom = (eps * model_Pk_kms)**2
         self.Pk_kms_chi2_eps = eps
         chi2 = np.sum(((self.Pk_kms - model_Pk_kms)**2)/denom)
         self.Pk_kms_chi2 = chi2

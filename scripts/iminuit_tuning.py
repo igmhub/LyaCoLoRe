@@ -44,7 +44,6 @@ dirs = glob.glob(base_file_location+new_file_structure.format('*','*'))
 pixels = []
 for dir in dirs[:32]:
     ending = dir[len(dir)-dir[-2::-1].find('/')-1:-1]
-    print(ending)
     if ending != 'logs':
         pixels += [int(ending)]
 
@@ -218,7 +217,7 @@ def f(alpha,beta,sigma_G,n,k1,A0):
 
     for m in combined_pixels_set.measurements:
         m.add_mean_F_chi2(eps=0.05)
-        m.add_Pk1D_chi2(max_k=max_k,denom="krange10_smooth")
+        m.add_Pk1D_chi2(max_k=max_k,denom="npower")
         m.add_sigma_F_chi2(eps=0.05)
         m.add_total_chi2()
         Pk_kms_chi2 += m.Pk_kms_chi2
@@ -252,20 +251,20 @@ def f(alpha,beta,sigma_G,n,k1,A0):
 
     return chi2
 
-t_kwargs = {'alpha' : 0.57,    'error_alpha' : 0.05,   'limit_alpha' : (0., 10.),  'fix_alpha' : False,
+t_kwargs = {'alpha' : 1.67,    'error_alpha' : 0.05,   'limit_alpha' : (0., 10.),  'fix_alpha' : False,
             'beta' : 1.65,      'error_beta' : 0.05,    'limit_beta' : (0., 10.),   'fix_beta' : True,
-            'sigma_G' : 5.1,  'error_sigma_G' : 0.05, 'limit_sigma_G' : (0., 20.),'fix_sigma_G' : False,
+            'sigma_G' : 6.39,  'error_sigma_G' : 0.05, 'limit_sigma_G' : (0., 20.),'fix_sigma_G' : False,
             }
 
-s_kwargs = {'n'  : 0.7,       'error_n' : 0.05,       'limit_n' : (0., 10.),      'fix_n' : False, #0.9157
-            'k1' : 0.001,    'error_k1' : 0.00005,   'limit_k1' : (0., 0.1),     'fix_k1' : False, #0.003464
+s_kwargs = {'n'  : 1.361,       'error_n' : 0.05,       'limit_n' : (0., 10.),      'fix_n' : False, #0.9157
+            'k1' : 0.0346,    'error_k1' : 0.00005,   'limit_k1' : (0., 0.1),     'fix_k1' : False, #0.003464
             'A0' : 58.6,        'error_A0' : 0.1,       'limit_A0' : (0., 200.),    'fix_A0' : True,
             }
 
 minuit = Minuit(f,**t_kwargs,**s_kwargs)
 
 minuit.print_param()
-minuit.migrad(ncall=1) #ncall=20
+minuit.migrad() #ncall=20
 minuit.print_param()
 
 alpha = minuit.values['alpha']
@@ -294,7 +293,7 @@ plt.plot(z_values,model_mean_F,label='model',marker='o')
 plt.fill_between(z_values,model_mean_F*1.1,model_mean_F*0.9,color=[0.5,0.5,0.5],alpha=0.5)
 plt.grid()
 plt.legend()
-plt.show()
+#plt.show()
 
 #Plot the power spectra
 plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
@@ -302,11 +301,14 @@ for m in final_measurements.measurements:
     plt.plot(m.k_kms,m.Pk_kms,label='z = {}'.format(m.z_value))
     model_Pk_kms = tuning.P1D_z_kms_PD2013(m.z_value,m.k_kms)
     plt.plot(m.k_kms,model_Pk_kms,label='DR9 fitting function')
+    m.add_Pk1D_chi2(max_k=max_k,denom="npower")
     eps = m.Pk_kms_chi2_eps
     plt.fill_between(m.k_kms,model_Pk_kms*1.1,model_Pk_kms*0.9,color=[0.5,0.5,0.5],alpha=0.5,label='DR9 +/- 10%')
-    lower = model_Pk_kms * (1. - eps)
+    lower = np.maximum(np.ones_like(model_Pk_kms)*10**(-6),model_Pk_kms * (1. - eps))
     upper = model_Pk_kms * (1. + eps)
-    plt.fill_between(m.k_kms,upper,lower,color=[0.5,0.5,0.5],alpha=0.5,label='chi2 weighting')
+    plt.plot(m.k_kms,upper,c='k',linestyle='dashed')
+    plt.plot(m.k_kms,lower,c='k',linestyle='dashed')
+    plt.fill_between(m.k_kms,upper,lower,color=[0.8,0.8,0.8],alpha=0.5,label='chi2 weighting')
     plt.title('z={}: alpha={:2.2f}, beta={:2.2f}, sigma_G={:2.2f}, n={:2.2f}, k1={:2.4f}, mean_F={:2.3f} ({:2.3f})'.format(m.z_value,m.alpha,m.beta,m.sigma_G,m.n,m.k1,m.mean_F,tuning.get_mean_F_model(m.z_value)))
     plt.axvline(x=max_k,color='k')
     plt.semilogy()
@@ -316,6 +318,8 @@ for m in final_measurements.measurements:
     plt.ylim(ylim_lower,ylim_upper)
     plt.grid()
     plt.legend()
+    plt.ylabel(r'$P_{1D}$')
+    plt.xlabel(r'$k\ /\ (kms^{-1})^{-1}$')
     plt.savefig('Pk1D_z{}.pdf'.format(m.z_value))
     plt.show()
 
