@@ -117,7 +117,7 @@ class measurement:
             denom = (eps * model_Pk_kms)**2
         elif denom == "npower":
             k0 = 0.005
-            n = 10.
+            n = 2.
             eps = 0.1 * ((1 + (self.k_kms/k0)**n))
             denom = (eps * model_Pk_kms)**2
         self.Pk_kms_chi2_eps = eps
