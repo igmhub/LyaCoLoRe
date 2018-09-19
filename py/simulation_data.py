@@ -391,7 +391,9 @@ class SimulationData:
             last_relevant_cells[i] = last_relevant_cell
 
         extra_var = np.zeros(expanded_GAUSSIAN_DELTA_rows.shape)
-        extra_sigma_G = np.interp(self.Z,sigma_G_z_values,extra_sigma_G_values)
+
+        #Interpolate the extra sigma_G values using logs.
+        extra_sigma_G = np.exp(np.interp(np.log(self.Z),np.log(sigma_G_z_values),np.log(extra_sigma_G_values)))
 
         # TODO: dv is not constant at the moment - how to deal with this
         #Generate extra variance, either white noise or correlated.
@@ -911,7 +913,7 @@ class SimulationData:
         return
 
     #Function to save data as a picca flux file.
-    def save_as_picca_flux(self,filename,header,min_number_cells = 2,mean_F_data=None):
+    def save_as_picca_flux(self,filename,header,min_number_cells=2,mean_F_data=None,rebin_size_hMpc=None):
 
         lya_lambdas = 10**self.LOGLAM_MAP
 
@@ -943,10 +945,29 @@ class SimulationData:
 
         relevant_delta_F = ((relevant_F)/relevant_mean_F - 1)*relevant_IVAR
 
-        #Organise the data into picca-format arrays.
-        picca_0 = relevant_delta_F.T
-        picca_1 = relevant_IVAR.T
-        picca_2 = relevant_LOGLAM_MAP
+        if rebin_size_hMpc:
+            grid_start = self.R[0]
+            rebin_map = np.array((self.R - self.R[0])//rebin_size_hMpc,dtype='int')
+            new_relevant_delta_F = np.zeros((self.N_qso,max(rebin_map)))
+            new_relevant_IVAR = np.zeros((self.N_qso,max(rebin_map)))
+            new_Z = np.zeros(max(rebin_map))
+            for j in range(max(rebin_map)):
+                j_lo = np.argmax(rebin_map==j)
+                j_hi = np.argmin(rebin_map==j)
+                new_relevant_delta_F[:,j] = np.average(relevant_delta_F[:,j_lo:j_hi],axis=1)
+                new_relevant_IVAR[:,j] = (relevant_IVAR[:,j_lo:j_hi] == j_hi - j_lo)
+                new_Z[j] = np.average(self.Z[j_lo:j_hi])
+            new_relevant_LOGLAM_MAP = np.log(lya*(1+new_Z))
+
+            picca_0 = new_relevant_delta_F.T
+            picca_1 = new_relevant_IVAR.T
+            picca_2 = new_relevant_LOGLAM_MAP
+
+        else:
+            #Organise the data into picca-format arrays.
+            picca_0 = relevant_delta_F.T
+            picca_1 = relevant_IVAR.T
+            picca_2 = relevant_LOGLAM_MAP
 
         picca_3_data = []
         for i in range(self.N_qso):

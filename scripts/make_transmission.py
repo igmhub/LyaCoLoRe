@@ -309,6 +309,7 @@ desired_mean_F = tune_small_scale_fluctuations['mean_F']
 tuning_alphas = tune_small_scale_fluctuations['alpha']
 
 #Determine the desired sigma_G by sampling
+# TODO: maybe fit here to the data
 extra_sigma_G_values = np.sqrt(desired_sigma_G_values**2 - measured_SIGMA_G**2)
 
 ################################################################################
