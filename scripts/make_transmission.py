@@ -10,7 +10,7 @@ import time
 import os
 import argparse
 
-from pyacolore import utils, independent, stats, convert, simulation_data, DLA, RSD
+from pyacolore import utils, independent, stats, convert, simulation_data, DLA, RSD, tuning
 
 ################################################################################
 
@@ -66,7 +66,7 @@ parser.add_argument('--min-cat-z', type = float, default = 1.8, required=False,
 parser.add_argument('--param-file', type = str, default = 'out_params.cfg', required=False,
                     help = 'output parameter file name')
 
-parser.add_argument('--tuning-file', type = str, default = 'input_files/tune_small_scale_fluctuations.fits', required=False,
+parser.add_argument('--tuning-file', type = str, default = 'input_files/tuning_data.fits', required=False,
                     help = 'file name for data about tuning sigma_G/alpha')
 
 parser.add_argument('--add-DLAs', action="store_true", default = True, required=False,
@@ -95,6 +95,9 @@ parser.add_argument('--nskewers', type = int, default = None, required=False,
 
 parser.add_argument('--seed', type = int, default = 123, required=False,
                     help = 'specify seed to generate random numbers')
+
+parser.add_argument('--fit-function-to-tuning-data', action="store_true", default = False, required=False,
+                    help = 'fit a function of the form A0 * (z^A1) + A2 to the tuning data')
 
 ################################################################################
 
@@ -132,6 +135,7 @@ tuning_file = args.tuning_file
 transmission_only = args.transmission_only
 N_skewers = args.nskewers
 global_seed = args.seed
+fit_function_to_tuning_data = args.fit_function_to_tuning_data
 
 # TODO: print to confirm the arguments. e.g. "DLAs will be added"
 
@@ -293,24 +297,37 @@ if retune_small_scale_fluctuations == True:
 
     # TODO: this needs to be written.
     import tune_flux_parameters
-    tune_small_scale_fluctuations = tune_flux_parameters.tune()
+    tuning_data = tune_flux_parameters.tune()
 
 else:
     #Otherwise, load the data from the fits file that has been pre-computed.
     print('\nLoading how much extra power to add from file...')
     h = fits.open(tuning_file)
-    tune_small_scale_fluctuations = h['DATA'].data
+
+    #If we want to fit the function to tuning data, try loading it from file.
+    #Otherwise, do the fit now.
+    if fit_function_to_tuning_data:
+        try:
+            tuning_data = h['FIT DATA'].data
+        except KeyError:
+            tuning_data = h['DATA'].data
+            new_z = np.linspace(0.0,4.0,4001)
+            tuning_alphas = tuning.fit_function_to_data(tuning_z_values,tuning_alphas,new_z)
+            tuning_betas = tuning.fit_function_to_data(tuning_z_values,tuning_betas,new_z)
+            tuning_sigma_Gs = tuning.fit_function_to_data(tuning_z_values,tuning_sigma_Gs,new_z)
+            tuning_z_values = new_z
     h.close()
     print('Process complete!')
 
-tuning_z_values = tune_small_scale_fluctuations['z']
-desired_sigma_G_values = tune_small_scale_fluctuations['sigma_G']
-desired_mean_F = tune_small_scale_fluctuations['mean_F']
-tuning_alphas = tune_small_scale_fluctuations['alpha']
+tuning_z_values = tuning_data['z']
+tuning_alphas = tuning_data['alpha']
+tuning_betas = tuning_data['beta']
+tuning_sigma_Gs = tuning_data['sigma_G']
+desired_mean_F = tuning.get_mean_F_model(tuning_z_values)
 
 #Determine the desired sigma_G by sampling
 # TODO: maybe fit here to the data
-extra_sigma_G_values = np.sqrt(desired_sigma_G_values**2 - measured_SIGMA_G**2)
+extra_sigma_G_values = np.sqrt(tuning_sigma_Gs**2 - measured_SIGMA_G**2)
 
 ################################################################################
 
@@ -371,7 +388,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
 
     #Remove the 'SIGMA_G' header as SIGMA_G now varies with z, so can't be stored in a header.
     del header['SIGMA_G']
-    pixel_object.SIGMA_G = np.interp(pixel_object.Z,tuning_z_values,desired_sigma_G_values)
+    pixel_object.SIGMA_G = np.interp(pixel_object.Z,tuning_z_values,tuning_sigma_Gs)
 
     #Add a table with DLAs in to the pixel object.
     # TODO: in future, we want DLAs all the way down to z=0.
@@ -384,8 +401,9 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
     pixel_object.compute_physical_skewers()
 
     #Add tau skewers to the object, starting with Lyman-alpha
-    alphas = np.interp(pixel_object.Z,tuning_z_values,tuning_alphas)
-    pixel_object.compute_all_tau_skewers(alphas,beta)
+    alphas = np.exp(np.interp(np.log(pixel_object.Z),np.log(tuning_z_values),np.log(tuning_alphas)))
+    betas = np.exp(np.interp(np.log(pixel_object.Z),np.log(tuning_z_values),np.log(tuning_betas)))
+    pixel_object.compute_all_tau_skewers(alphas,betas)
 
     if transmission_only == False:
         #Picca Gaussian
