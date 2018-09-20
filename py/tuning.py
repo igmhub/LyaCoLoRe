@@ -613,7 +613,22 @@ def measure_pixel_segment(pixel,z_value,alpha,beta,sigma_G_required,n,k1,A0):
 
     return measurement
 
+def fit_function_to_data(x,y,new_x):
 
+    from iminuit import Minuit
+
+    def fitting_function(x,A0,A1,A2):
+        return A0 * (x ** A1) + A2
+
+    def least_squares(A0,A1,A2):
+        return np.sum((y - fitting_function(x,A0,A1,A2))**2)
+
+    m = Minuit(least_squares,A0=1.,A1=1.,A2=1.,error_A0=0.1,error_A1=0.1,error_A2=0.1,errordef=1)
+    fmin,param = m.migrad()
+
+    new_y = fitting_function(new_x,**m.values)
+
+    return new_y
 
 ################################################################################
 """
