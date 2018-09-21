@@ -298,31 +298,52 @@ if retune_small_scale_fluctuations == True:
     # TODO: this needs to be written.
     import tune_flux_parameters
     tuning_data = tune_flux_parameters.tune()
+    tuning_z_values = tuning_data['z']
+    tuning_alphas = tuning_data['alpha']
+    tuning_betas = tuning_data['beta']
+    tuning_sigma_Gs = tuning_data['sigma_G']
+
 
 else:
     #Otherwise, load the data from the fits file that has been pre-computed.
     print('\nLoading how much extra power to add from file...')
     h = fits.open(tuning_file)
 
-    #If we want to fit the function to tuning data, try loading it from file.
-    #Otherwise, do the fit now.
+    #If we want to use fitted tuning data, then do so. Otherwise use raw data.
     if fit_function_to_tuning_data:
         try:
+            #Try to find fitted data stored. If found, use it.
             tuning_data = h['FIT DATA'].data
+            tuning_z_values = tuning_data['z']
+            tuning_alphas = tuning_data['alpha']
+            tuning_betas = tuning_data['beta']
+            tuning_sigma_Gs = tuning_data['sigma_G']
+
         except KeyError:
+            #Otherwise, open the raw data and fit it.
             tuning_data = h['DATA'].data
             new_z = np.linspace(0.0,4.0,4001)
+
+            tuning_z_values = tuning_data['z']
+            tuning_alphas = tuning_data['alpha']
+            tuning_betas = tuning_data['beta']
+            tuning_sigma_Gs = tuning_data['sigma_G']
+
             tuning_alphas = tuning.fit_function_to_data(tuning_z_values,tuning_alphas,new_z)
             tuning_betas = tuning.fit_function_to_data(tuning_z_values,tuning_betas,new_z)
             tuning_sigma_Gs = tuning.fit_function_to_data(tuning_z_values,tuning_sigma_Gs,new_z)
             tuning_z_values = new_z
+
+    else:
+        tuning_data = h['DATA'].data
+        tuning_z_values = tuning_data['z']
+        tuning_alphas = tuning_data['alpha']
+        tuning_betas = tuning_data['beta']
+        tuning_sigma_Gs = tuning_data['sigma_G']
+
     h.close()
     print('Process complete!')
 
-tuning_z_values = tuning_data['z']
-tuning_alphas = tuning_data['alpha']
-tuning_betas = tuning_data['beta']
-tuning_sigma_Gs = tuning_data['sigma_G']
 desired_mean_F = tuning.get_mean_F_model(tuning_z_values)
 
 #Determine the desired sigma_G by sampling
