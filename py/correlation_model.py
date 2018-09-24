@@ -4,65 +4,6 @@ import mcfit
 import matplotlib.pyplot as plt
 import sys
 
-from . import plot_functions
-
-def visual_fit(filename,b_values,beta_values,model,data_parameters,z,compute_b_beta=False):
-
-    mubin_boundaries = [0.0,1.0]
-    mubins = []
-    for i in range(len(mubin_boundaries)-1):
-        mubins += [(mubin_boundaries[i],mubin_boundaries[i+1])]
-    #mubins = [(0.0,0.33),(0.33,0.67),(0.67,1.0)]
-    mubins = [(0.0,0.33),(0.33,0.67),(0.67,1.0)]
-    #find a more sophisticated way to do this
-    colours = ['r',(0.5,0.5,0.5),'b']
-
-    #mubins = [(0.0,1.0)]
-    #colours = ['r']
-
-    N_bins = len(mubins)
-
-    plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
-
-    for i,bin in enumerate(mubins):
-        mumin = bin[0]
-        mumax = bin[1]
-
-        #Wedgize the data
-        r,xi_wed,err_wed,cut,_ = plot_functions.get_plot_data(mumin,mumax,filename)
-
-        data_label = 'data, {}<$\mu$<{}'.format(mumin,mumax)
-        plt.errorbar(r[cut],xi_wed[cut]*(r[cut]**2),yerr=err_wed[cut]*(r[cut]**2),fmt='o',label=data_label,c=colours[i])
-
-    quantity1 = data_parameters['quantities'][0]
-    quantity2 = data_parameters['quantities'][1]
-
-    #TODO: implement compute_b_beta. Need to have different flags for each quantity?
-    for b1 in b_values[quantity1]:
-        for beta1 in beta_values[quantity1]:
-            for b2 in b_values[quantity2]:
-                for beta2 in beta_values[quantity2]:
-
-                    r_model,xi_model_values = get_model_xi(model,[b1,b2],[beta1,beta2],data_parameters,z,mubins,b_from_z=False)
-
-                    for i,key in enumerate(xi_model_values.keys()):
-                        #model_label = 'b_{}={}, beta_{}={}, b_{}={}, beta_{}={}, mu={}'.format(quantity1,b1,quantity1,beta1,quantity2,b2,quantity2,beta2,key)
-                        model_label = 'model, $\mu$={}'.format(key)
-                        plt.plot(r_model,xi_model_values[key]*(r_model**2),label=model_label,c=colours[i])
-                        #plt.plot(r[cut],(xi_wed[cut])/(np.interp(r[cut],r_model,xi_model_values[key])),label='(RATIO): '+model_label)
-
-    plt.axhline(y=0,color='gray',ls=':')
-    plt.xlabel(r'$r / Mpc h^{-1}$')
-    plt.ylabel(r'$r^2 \xi(r)$')
-    plt.grid()
-    plt.legend()
-    plt.xlim(0,200)
-    #Make this more sensible filename
-    plt.savefig('fit_picca_visual.pdf')
-    plt.show()
-
-    return
-
 def get_model_xi(model,bs,betas,data_parameters,z,mubins,b_from_z=False):
 
     b1 = bs[0]
