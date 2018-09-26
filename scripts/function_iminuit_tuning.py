@@ -14,7 +14,7 @@ from pyacolore import convert, Pk1D, utils, independent, tuning, simulation_data
 
 lya = 1215.67
 
-N_processes = 32
+N_processes = 4
 lambda_min = 3550.0
 min_cat_z = 1.8
 IVAR_cutoff = 1150.0
@@ -29,7 +29,7 @@ cell_size = 0.25 #Mpc/h
 max_k = 0.005 #skm-1
 
 #Open up the Gaussian colore files
-base_file_location = '/Users/jfarr/Projects/test_data/test/'
+#base_file_location = '/Users/jfarr/Projects/test_data/test/'
 base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_newNz_mpz0_nside16'
 N_side = 16
 
@@ -41,7 +41,7 @@ input_format = 'gaussian_colore'
 #get pixels from those directories created by make_master.py
 dirs = glob.glob(base_file_location+new_file_structure.format('*','*'))
 pixels = []
-for dir in dirs[:32]:
+for dir in dirs[:4]:
     ending = dir[len(dir)-dir[-2::-1].find('/')-1:-1]
     if ending != 'logs':
         pixels += [int(ending)]
@@ -60,6 +60,9 @@ def measure_pixel_segment(pixel,C0,C1,C2,D0,D1,D2,n,k1):
     #Make a pixel object from it.
     data = simulation_data.SimulationData.get_gaussian_skewers_object(location+gaussian_filename,None,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
 
+    #trim skewers
+    data.trim_skewers(lambda_min,min_cat_z,extra_cells=1)
+
     #Expand the C and D parameters into functions of z.
     alpha = C0 * (data.Z**C1) + C2
     beta = np.ones_like(alpha) * 1.65
@@ -68,16 +71,17 @@ def measure_pixel_segment(pixel,C0,C1,C2,D0,D1,D2,n,k1):
     #Determine the sigma_G to add
     extra_sigma_G = np.sqrt(sigma_G_required**2 - measured_SIGMA_G**2)
 
-    #trim skewers
-    data.trim_skewers(lambda_min,min_cat_z,extra_cells=1)
-
     #add small scale fluctuations
     seed = int(str(N_side) + str(pixel))
     generator = np.random.RandomState(seed)
-    data.add_small_scale_gaussian_fluctuations(cell_size,data.Z,extra_sigma_G,generator,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n=n,k1=k1,A0=A0)
+    data.add_small_scale_gaussian_fluctuations(cell_size,data.Z,extra_sigma_G,generator,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n=n,k1=k1)
 
     #Copmute the physical skewers
     data.compute_physical_skewers()
+
+    #Update the alpha and beta lengths.
+    alpha = C0 * (data.Z**C1) + C2
+    beta = np.ones_like(alpha) * 1.65
 
     #Compute the tau skewers and add RSDs
     data.compute_tau_skewers(data.lya_absorber,alpha=alpha,beta=beta)
@@ -86,7 +90,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,D0,D1,D2,n,k1):
     measurements = []
     for z_value in z_values:
         ID = n
-        measurement = tuning.measurement(ID,z_value,z_width,data.N_qso,n,k1,alpha,beta,sigma_G_required,pixels=[pixel])
+        measurement = tuning.function_measurement(ID,z_value,z_width,data.N_qso,n,k1,alpha,beta,sigma_G_required,pixels=[pixel])
         measurement.add_mean_F_measurement(data)
         measurement.add_Pk1D_measurement(data)
         measurement.add_sigma_F_measurement(data)
@@ -122,7 +126,7 @@ def f(C0,C1,C2,D0,D1,D2,n,k1,A0):
     ################################################################################
 
 
-    print('looking at params: a={:2.4f}, b={:2.4f}, sG={:2.4f}, n={:2.4f}, k1={:2.6f}, A0={:2.4f}'.format(alpha,beta,sigma_G,n,k1,A0))
+    print('looking at params: C=({:2.4f},{:2.4f},{:2.4f}), D=({:2.4f},{:2.4f},{:2.4f}), n={:2.4f}, k1={:2.6f}'.format(C0,C1,C2,D0,D1,D2,n,k1))
 
     tasks = [(pixel,C0,C1,C2,D0,D1,D2,n,k1) for pixel in pixels]
 
@@ -152,7 +156,7 @@ def f(C0,C1,C2,D0,D1,D2,n,k1,A0):
     #D = 0.35947529665680117 #at z=2.5
     #D = 0.3154712096325505 #at z=3
 
-    predicted_flux_stats = tuning.get_flux_stats(sigma_G,alpha,beta,D)
+    #predicted_flux_stats = tuning.get_flux_stats(sigma_G,alpha,beta,D)
 
     for m in combined_pixels_set.measurements:
 
@@ -191,14 +195,14 @@ def f(C0,C1,C2,D0,D1,D2,n,k1,A0):
 
     return chi2
 
-a_kwargs = {'C0' : 1.0,     'error_C0' : 0.05,  'fix_C0' : False, #'limit_C0' : (0., 20.),
-            'C1' : 1.0,     'error_C1' : 0.05,  'fix_C1' : False, #'limit_C1' : (0., 20.),
-            'C2' : 1.0,     'error_C2' : 0.05,  'fix_C2' : False, #'limit_C2' : (0., 20.),
+a_kwargs = {'C0' : 100.0,     'error_C0' : 0.05,  'fix_C0' : False, #'limit_C0' : (0., 20.),
+            'C1' : -4.6,     'error_C1' : 0.05,  'fix_C1' : False, #'limit_C1' : (0., 20.),
+            'C2' : 1.65,     'error_C2' : 0.05,  'fix_C2' : False, #'limit_C2' : (0., 20.),
             }
 
-sG_kwargs = {'D0' : 1.0,     'error_D0' : 0.05,  'fix_D0' : False, #'limit_D0' : (0., 20.), 
-             'D1' : 1.0,     'error_D1' : 0.05,  'fix_D1' : False, #'limit_D1' : (0., 20.),
-             'D2' : 1.0,     'error_D2' : 0.05,  'fix_D2' : False, #'limit_D2' : (0., 20.),
+sG_kwargs = {'D0' : 50.0,     'error_D0' : 0.05,  'fix_D0' : False, #'limit_D0' : (0., 20.), 
+             'D1' : -0.07,     'error_D1' : 0.05,  'fix_D1' : False, #'limit_D1' : (0., 20.),
+             'D2' : -43.8,     'error_D2' : 0.05,  'fix_D2' : False, #'limit_D2' : (0., 20.),
              }
 
 s_kwargs = {'n'  : 0.7,     'error_n' : 0.05,   'limit_n' : (0., 10.),   'fix_n' : False,
@@ -206,7 +210,7 @@ s_kwargs = {'n'  : 0.7,     'error_n' : 0.05,   'limit_n' : (0., 10.),   'fix_n'
             'A0' : 58.6,    'error_A0' : 0.1,   'limit_A0' : (0., 200.), 'fix_A0' : True,
             }
 
-minuit = Minuit(f,**t_kwargs,**s_kwargs)
+minuit = Minuit(f,**a_kwargs,**sG_kwargs,**s_kwargs)
 
 minuit.print_param()
 minuit.migrad() #ncall=20
