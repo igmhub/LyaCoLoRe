@@ -2,7 +2,8 @@ import numpy as np
 from astropy.io import fits
 import matplotlib.pyplot as plt
 import sys
-import process_functions as pf
+
+from pyacolore import utils,tuning
 
 lya = 1215.67
 IVAR_cutoff = 1150.0
@@ -15,11 +16,12 @@ def read_file(basedir,quantity,nside,pix):
     if quantity == 'flux':
         filename = dirname+'/transmission-'+suffix
         transmission = fits.open(filename)
-        data_rows = transmission[3].data.T
+        data_rows = transmission[3].data
         z_qso = transmission[1].data['Z_noRSD']
+        loglam = np.log10(transmission['WAVELENGTH'].data)
         transmission.close()
-        filename = dirname+'/picca-{}-'.format(quantity)+suffix
-        picca = fits.open(filename)
+        #filename = dirname+'/picca-{}-'.format(quantity)+suffix
+        #picca = fits.open(filename)
     else:
         # file with delta for picca
         filename = dirname+'/picca-{}-'.format(quantity)+suffix
@@ -28,10 +30,11 @@ def read_file(basedir,quantity,nside,pix):
         data_rows = picca[0].data.T
         z_qso = picca[3].data['Z']
 
-    #ivar_rows = picca[1].data.T
-    loglam = picca[2].data
-    picca.close()
-    ivar_rows = pf.make_IVAR_rows(IVAR_cutoff,z_qso,loglam)
+        #ivar_rows = picca[1].data.T
+        loglam = picca[2].data
+        picca.close()
+    
+    ivar_rows = utils.make_IVAR_rows(IVAR_cutoff,z_qso,loglam)
 
     zs = (10**loglam)/lya - 1.0
 
@@ -54,7 +57,7 @@ def get_means(data_rows,ivar_rows):
     return weights,mean,mean2
 
 # main folder where the processed files are
-basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_nside16/'
+basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_newNz_mpz0_nside16/'
 #basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test/'
 #basedir = '/Users/James/Projects/test_data/process_output_G_hZ_4096_32_sr2.0_bm1_nside16/'
 
@@ -63,8 +66,8 @@ if len(sys.argv)>1:
 else:
     quantity = 'flux'
 nside = 16
-N_pixels = 3072
-pixels = np.sort(np.random.choice(list(range(12*nside**2)),size=N_pixels))
+N_pixels = 32
+#pixels = np.sort(np.random.choice(list(range(12*nside**2)),size=N_pixels))
 #pixels = np.array([1064,1096,1127,1128,1159,1160,1191,1192,1193,1223,1224,1225,1254,1255,1256,1257,1286,1287,1288,1289])
 pixels = np.array(list(range(N_pixels)))
 
@@ -120,25 +123,32 @@ if quantity != 'flux':
 plt.title('{} stats: mean and sigma, rest frame cut at {}A'.format(quantity,IVAR_cutoff))
 plt.xlabel('z')
 
-predicted_data = fits.open('input_files/tune_small_scale_fluctuations.fits')
-z_predicted = predicted_data[1].data['z']
+predicted_data = fits.open('input_files/tuning_data.fits')
+z_predicted = predicted_data[2].data['z']
 if quantity == 'gaussian':
-    sigma_G_predicted = predicted_data[1].data['sigma_G']
+    sigma_G_predicted = predicted_data[2].data['sigma_G']
     plt.plot(z_predicted,np.zeros(z_predicted.shape),label='predicted mean')
     plt.plot(z_predicted,sigma_G_predicted,label='predicted sigma')
 if quantity == 'gaussian-RSD':
-    sigma_G_predicted = predicted_data[1].data['sigma_G']
+    sigma_G_predicted = predicted_data[2].data['sigma_G']
     plt.plot(z_predicted,np.zeros(z_predicted.shape),label='predicted mean')
     plt.plot(z_predicted,sigma_G_predicted,label='predicted sigma')
 if quantity == 'gaussian-noRSD':
-    sigma_G_predicted = predicted_data[1].data['sigma_G']
+    sigma_G_predicted = predicted_data[2].data['sigma_G']
     plt.plot(z_predicted,np.zeros(z_predicted.shape),label='predicted mean')
     plt.plot(z_predicted,sigma_G_predicted,label='predicted sigma')
 elif quantity == 'flux':
-    mean_F_predicted = predicted_data[1].data['mean_F']
-    sigma_dF_predicted = predicted_data[1].data['sigma_dF']
 
-    sigma_F_predicted = sigma_dF_predicted*mean_F_predicted
+    mean_F_predicted = tuning.get_mean_F_model(z_predicted)
+    sigma_dF_predicted = []
+    for z_value in z_predicted:
+        sigma_dF_predicted += [tuning.get_sigma_dF_P1D(z_value,l_hMpc=0.25)]
+    sigma_dF_predicted = np.array(sigma_dF_predicted)
+
+    #mean_F_predicted = predicted_data[1].data['mean_F']
+    #sigma_dF_predicted = predicted_data[1].data['sigma_dF']
+
+    #sigma_F_predicted = sigma_dF_predicted*mean_F_predicted
 
     plt.plot(z_predicted,mean_F_predicted,label='predicted mean_F')
     #plt.plot(z_predicted,sigma_F_predicted,label='predicted sigma_F')
