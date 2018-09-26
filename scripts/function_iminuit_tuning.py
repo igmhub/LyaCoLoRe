@@ -85,12 +85,12 @@ def measure_pixel_segment(pixel,C0,C1,C2,D0,D1,D2,n,k1):
 
     #Compute the tau skewers and add RSDs
     data.compute_tau_skewers(data.lya_absorber,alpha=alpha,beta=beta)
-    data.add_RSDs(data.lya_absorber,np.ones(data.Z.shape[0])*alpha,beta,thermal=False)
+    data.add_RSDs(data.lya_absorber,alpha,beta,thermal=False)
 
     measurements = []
     for z_value in z_values:
         ID = n
-        measurement = tuning.function_measurement(ID,z_value,z_width,data.N_qso,n,k1,alpha,beta,sigma_G_required,pixels=[pixel])
+        measurement = tuning.measurement(ID,z_value,z_width,data.N_qso,n,k1,C0,C1,C2,beta,D0,D1,D2,pixels=[pixel])
         measurement.add_mean_F_measurement(data)
         measurement.add_Pk1D_measurement(data)
         measurement.add_sigma_F_measurement(data)
@@ -101,7 +101,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,D0,D1,D2,n,k1):
 
     return measurements
 
-def f(C0,C1,C2,D0,D1,D2,n,k1,A0):
+def f(C0,C1,C2,D0,D1,D2,n,k1):
 
     ################################################################################
 
@@ -200,14 +200,13 @@ a_kwargs = {'C0' : 100.0,     'error_C0' : 0.05,  'fix_C0' : False, #'limit_C0' 
             'C2' : 1.65,     'error_C2' : 0.05,  'fix_C2' : False, #'limit_C2' : (0., 20.),
             }
 
-sG_kwargs = {'D0' : 50.0,     'error_D0' : 0.05,  'fix_D0' : False, #'limit_D0' : (0., 20.), 
+sG_kwargs = {'D0' : 50.0,     'error_D0' : 0.05,  'fix_D0' : False, #'limit_D0' : (0., 20.),
              'D1' : -0.07,     'error_D1' : 0.05,  'fix_D1' : False, #'limit_D1' : (0., 20.),
              'D2' : -43.8,     'error_D2' : 0.05,  'fix_D2' : False, #'limit_D2' : (0., 20.),
              }
 
 s_kwargs = {'n'  : 0.7,     'error_n' : 0.05,   'limit_n' : (0., 10.),   'fix_n' : False,
             'k1' : 0.001,   'error_k1' : 0.0005,'limit_k1' : (0., 0.1),  'fix_k1' : False,
-            'A0' : 58.6,    'error_A0' : 0.1,   'limit_A0' : (0., 200.), 'fix_A0' : True,
             }
 
 minuit = Minuit(f,**a_kwargs,**sG_kwargs,**s_kwargs)
@@ -217,11 +216,16 @@ minuit.migrad() #ncall=20
 minuit.print_param()
 
 C0 = minuit.values['C0']
+C1 = minuit.values['C1']
+C2 = minuit.values['C2']
 beta = minuit.values['beta']
-sigma_G = minuit.values['sigma_G']
+D0 = minuit.values['D0']
+D1 = minuit.values['D1']
+D2 = minuit.values['D2']
 n = minuit.values['n']
 k1 = minuit.values['k1']
-A0 = minuit.values['A0']
+
+print(minuit.values)
 
 #Want to do a final run here
 final_measurements = []
