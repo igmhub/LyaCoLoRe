@@ -14,7 +14,7 @@ from pyacolore import convert, Pk1D, utils, independent, tuning, simulation_data
 
 lya = 1215.67
 
-N_processes = 4
+N_processes = 32
 lambda_min = 3550.0
 min_cat_z = 1.8
 IVAR_cutoff = 1150.0
@@ -30,7 +30,7 @@ max_k = 0.005 #skm-1
 
 #Open up the Gaussian colore files
 base_file_location = '/Users/jfarr/Projects/test_data/test/'
-#base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_nside16_RSD'
+base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_newNz_mpz0_nside16'
 N_side = 16
 
 new_file_structure = '{}/{}/'               #pixel number//100, pixel number
@@ -41,7 +41,7 @@ input_format = 'gaussian_colore'
 #get pixels from those directories created by make_master.py
 dirs = glob.glob(base_file_location+new_file_structure.format('*','*'))
 pixels = []
-for dir in dirs[:4]:
+for dir in dirs[:32]:
     ending = dir[len(dir)-dir[-2::-1].find('/')-1:-1]
     if ending != 'logs':
         pixels += [int(ending)]
@@ -142,12 +142,13 @@ def measure_pixel_segment(pixel,z_value,alpha,beta,sigma_G_required,n,k1,A0):
     measurement.add_sigma_F_measurement(data)
     #print(measurement.sigma_F)
 
-    measurement.add_mean_F_chi2(eps=0.1)
+    measurement.add_mean_F_chi2(eps=0.05)
     measurement.add_Pk1D_chi2(max_k=max_k)
     measurement.add_sigma_F_chi2(eps=0.1)
     measurement.add_total_chi2()
 
     #print(tuning.get_flux_stats(sigma_G_required,alpha,beta,np.interp(z_value,data.Z,data.D)))
+
 
     return measurement
 
@@ -210,7 +211,7 @@ def f(alpha,beta,sigma_G,n,k1,A0):
 
     for m in combined_pixels_set.measurements:
         m.add_mean_F_chi2(eps=0.05)
-        m.add_Pk1D_chi2(max_k=max_k,denom="npower")
+        m.add_Pk1D_chi2(max_k=max_k)#,denom="npower")
         m.add_sigma_F_chi2(eps=0.05)
         m.add_total_chi2()
         Pk_kms_chi2 += m.Pk_kms_chi2
@@ -249,8 +250,8 @@ t_kwargs = {'alpha' : 0.82,    'error_alpha' : 0.05,   'limit_alpha' : (0., 20.)
             'sigma_G' : 4.82,  'error_sigma_G' : 0.05, 'limit_sigma_G' : (0., 20.),'fix_sigma_G' : False,
             }
 
-s_kwargs = {'n'  : 0.7,       'error_n' : 0.05,       'limit_n' : (0., 10.),      'fix_n' : False,
-            'k1' : 0.001,    'error_k1' : 0.0005,   'limit_k1' : (0., 0.1),     'fix_k1' : False,
+s_kwargs = {'n'  : 0.7,       'error_n' : 0.05,       'limit_n' : (0., 10.),      'fix_n' : True,
+            'k1' : 0.001,    'error_k1' : 0.0005,   'limit_k1' : (0., 0.1),     'fix_k1' : True,
             'A0' : 58.6,        'error_A0' : 0.1,       'limit_A0' : (0., 200.),    'fix_A0' : True,
             }
 
@@ -296,7 +297,7 @@ for m in final_measurements.measurements:
     plt.plot(m.k_kms,m.Pk_kms,label='z = {}'.format(m.z_value))
     model_Pk_kms = tuning.P1D_z_kms_PD2013(m.z_value,m.k_kms)
     plt.plot(m.k_kms,model_Pk_kms,label='DR9 fitting function')
-    m.add_Pk1D_chi2(max_k=max_k,denom="npower")
+    m.add_Pk1D_chi2(max_k=max_k)#,denom="npower")
     eps = m.Pk_kms_chi2_eps
     plt.fill_between(m.k_kms,model_Pk_kms*1.1,model_Pk_kms*0.9,color=[0.5,0.5,0.5],alpha=0.5,label='DR9 +/- 10%')
     lower = np.maximum(np.ones_like(model_Pk_kms)*10**(-6),model_Pk_kms * (1. - eps))
