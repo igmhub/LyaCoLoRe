@@ -29,10 +29,10 @@ for z_value in z_values:
         pixel100 = pixel//100
         filename = basedir + '/' + str(pixel100) + '/' + str(pixel) + '/transmission-16-' + str(pixel) + '.fits'
         h = fits.open(filename)
-        lambda = h[2].data
+        lambdas = h[2].data
         z_qso = h[1].data['Z_noRSD']
 
-        z = lambda/lya - 1
+        z = lambdas/lya - 1
         qsos = IVAR_cutoff*(1 + z_qso) > lya*(1 + z_value + z_width/2.)
         z_indices = abs(z - z_value) < z_width/2.
 
