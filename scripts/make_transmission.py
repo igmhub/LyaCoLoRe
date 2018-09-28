@@ -308,6 +308,8 @@ else:
     #Otherwise, load the data from the fits file that has been pre-computed.
     print('\nLoading how much extra power to add from file...')
     h = fits.open(tuning_file)
+    n = h[1].header['n']
+    k1 = h[1].header['k1']
 
     #If we want to use fitted tuning data, then do so. Otherwise use raw data.
     if fit_function_to_tuning_data:
@@ -359,7 +361,7 @@ We may now calculate the density and flux fields, and save the relevant files.
 print('\nWorking on per-HEALPix pixel final skewer files...')
 start_time = time.time()
 
-def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,measured_SIGMA_G):
+def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,measured_SIGMA_G,n,k1):
     location = get_dir_name(base_out_dir,pixel)
     mean_F_data = np.array(list(zip(tuning_z_values,desired_mean_F)))
 
@@ -404,7 +406,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
 
     #Add small scale power to the gaussian skewers:
     generator = np.random.RandomState(seed)
-    new_cosmology = pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,tuning_z_values,extra_sigma_G_values,generator,white_noise=False,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff)
+    new_cosmology = pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,tuning_z_values,extra_sigma_G_values,generator,white_noise=False,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff,n=n,k1=k1)
     #new_cosmology = []
 
     #Remove the 'SIGMA_G' header as SIGMA_G now varies with z, so can't be stored in a header.
@@ -460,7 +462,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
     return [new_cosmology,means]
 
 #define the tasks
-tasks = [(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,measured_SIGMA_G) for pixel in pixel_list]
+tasks = [(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,measured_SIGMA_G,n,k1) for pixel in pixel_list]
 
 #Run the multiprocessing pool
 if __name__ == '__main__':

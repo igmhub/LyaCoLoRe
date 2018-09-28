@@ -580,7 +580,7 @@ class SimulationData:
         else:
             j_value_upper = np.searchsorted(self.Z,z_value + z_width/2.) - 1
             j_value_lower = np.max(0,np.searchsorted(self.Z,z_value - z_width/2.))
-            mean_F = np.average(F[j_value_lower:j_value_upper+1],weights=self.IVAR_rows[j_value_lower:j_value_upper+1])
+            mean_F = np.average(F[j_value_lower:j_value_upper+1,:],weights=self.IVAR_rows[j_value_lower:j_value_upper+1,:])
             #print(self.N_qso)
             #print(j_value_lower,j_value_upper)
         return mean_F
@@ -854,10 +854,10 @@ class SimulationData:
     def save_as_transmission(self,filename,header):
 
         # define common wavelength grid to be written in files (in Angstroms)
-        wave_min=3550
-        wave_max=6500
-        wave_step=0.2
-        wave_grid=np.arange(wave_min,wave_max,wave_step)
+        wave_min = 3550.
+        wave_max = 6500.
+        wave_step = 0.2
+        wave_grid = np.arange(wave_min,wave_max,wave_step)
 
         # now we should loop over the different absorbers, combine them and
         # write them in HDUs. I suggest to have two HDU:
