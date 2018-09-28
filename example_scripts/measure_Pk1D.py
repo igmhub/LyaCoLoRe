@@ -7,6 +7,7 @@ from pyacolore import Pk1D, tuning, utils
 lya = utils.lya_rest
 
 pixels = list(range(10))
+file_type = 'transmission'
 z_values = [2.0,2.5,3.0]
 z_width = 0.2
 IVAR_cutoff = 1150.
@@ -24,38 +25,60 @@ plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
 for z_value in z_values:
 
     print('loading data for z={}...'.format(z_value))
-    F_skewers_list = []
+    skewers_list = []
 
     for pixel in pixels:
         print('data from pixel {}'.format(pixel),end='\r')
         pixel100 = pixel//100
-        filename = basedir + '/' + str(pixel100) + '/' + str(pixel) + '/transmission-16-' + str(pixel) + '.fits'
-        h = fits.open(filename)
-        lambdas = h[2].data
-        z_qso = h[1].data['Z_noRSD']
 
-        z = lambdas/lya - 1
-        qsos = IVAR_cutoff*(1 + z_qso) > lya*(1 + z_value + z_width/2.)
-        z_indices = abs(z - z_value) < z_width/2.
+        if file_type == 'transmission':
+            filename = basedir + '/' + str(pixel100) + '/' + str(pixel) + '/transmission-16-' + str(pixel) + '.fits'
+            h = fits.open(filename)
+            lambdas = h[2].data
+            z_qso = h[1].data['Z']
+            pixel_skewers = h[3].data
+            h.close()
 
-        pixel_F_skewers = h[3].data
-        pixel_F_skewers = pixel_F_skewers[:,z_indices]
-        pixel_F_skewers = pixel_F_skewers[qsos,:]
-        F_skewers_list += [pixel_F_skewers]
+            z = lambdas/lya - 1
+            qsos = IVAR_cutoff*(1 + z_qso) > lya*(1 + z_value + z_width/2.)
+            z_indices = abs(z - z_value) < z_width/2.
 
-        h.close()
+            pixel_skewers = pixel_skewers[:,z_indices]
+            pixel_skewers = pixel_skewers[qsos,:]
+            skewers_list += [pixel_skewers]
+
+        elif file_type == 'picca-flux':
+            filename = basedir + '/' + str(pixel100) + '/' + str(pixel) + '/picca-flux-16-' + str(pixel) + '.fits'
+            h = fits.open(filename)
+            log_lambdas = h[2].data
+            z_qso = h[3].data['Z']
+            pixel_skewers = h[0].data.T
+            h.close()
+
+            z = (10**log_lambdas)/lya - 1
+            qsos = IVAR_cutoff*(1 + z_qso) > lya*(1 + z_value + z_width/2.)
+            z_indices = abs(z - z_value) < z_width/2.
+
+            pixel_skewers = pixel_skewers[:,z_indices]
+            pixel_skewers = pixel_skewers[qsos,:]
+            skewers_list += [pixel_skewers]
 
     print(' ')
 
-    F_skewers = F_skewers_list[0]
-    for pixel_F_skewers in F_skewers_list[1:]:
-        F_skewers = np.concatenate((F_skewers,pixel_F_skewers),axis=0)
+    skewers = skewers_list[0]
+    for pixel_skewers in skewers_list[1:]:
+        skewers = np.concatenate((skewers,pixel_skewers),axis=0)
 
-    mean_F = np.average(F_skewers,axis=0)
 
-    delta_F_skewers = np.zeros(F_skewers.shape)
-    for j in range(mean_F.shape[0]):
-        delta_F_skewers[:,j] = F_skewers[:,j]/mean_F[j] - 1
+    if file_type == 'transmission':
+        mean_F = np.average(F_skewers,axis=0)
+
+        delta_F_skewers = np.zeros(F_skewers.shape)
+        for j in range(mean_F.shape[0]):
+            delta_F_skewers[:,j] = F_skewers[:,j]/mean_F[j] - 1
+
+    elif file_type == 'picca-flux':
+        delta_F_skewers = skewers
 
     R_hMpc_fine = np.interp(z,z_mid,R_hMpc_mid)[z_indices]
     z_fine = z[z_indices]
@@ -68,7 +91,7 @@ for z_value in z_values:
     pk_kms_list += [pk_kms]
 
     plt.plot(k_kms,pk_kms,label='z={}'.format(z_value))
-    
+
     #Why is there a 0 k value?
     indices = k_kms > 0
     k_kms_model = np.logspace(np.log10(min(k_kms[indices])),np.log10(max(k_kms)),10**4)
