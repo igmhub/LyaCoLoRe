@@ -66,7 +66,7 @@ if len(sys.argv)>1:
 else:
     quantity = 'flux'
 nside = 16
-N_pixels = 32
+N_pixels = 3072
 #pixels = np.sort(np.random.choice(list(range(12*nside**2)),size=N_pixels))
 #pixels = np.array([1064,1096,1127,1128,1159,1160,1191,1192,1193,1223,1224,1225,1254,1255,1256,1257,1286,1287,1288,1289])
 pixels = np.array(list(range(N_pixels)))
@@ -98,6 +98,19 @@ overall_mean = sum_mean/sum_weights
 overall_mean2 = sum_mean2/sum_weights
 overall_var = overall_mean2 - overall_mean**2
 overall_sigma = np.sqrt(overall_var)
+
+data_list = []
+for i in range(zs.shape[0]):
+    data_list += [(zs[i],overall_mean[i],overall_sigma[i])]
+data = np.array(data_list,dtype=[('z','f4'),('mean','f4'),('sigma','f4')])
+prihdr = fits.Header()
+prihdu = fits.PrimaryHDU(header=prihdr)
+cols_DATA = fits.ColDefs(data)
+hdu_DATA = fits.BinTableHDU.from_columns(cols_DATA,name='DATA')
+list_hdu = [prihdu, hdu_DATA]
+hdulist = fits.HDUList(list_hdu)
+hdulist.writeto('mean_data.fits')
+hdulist.close()
 
 err = np.sqrt(overall_var/sum_weights)
 
