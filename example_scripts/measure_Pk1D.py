@@ -6,12 +6,13 @@ from pyacolore import Pk1D, tuning, utils
 
 lya = utils.lya_rest
 
-pixels = list(range(10))
+pixels = list(range(128))
 file_type = 'transmission'
-z_values = [2.0,2.5,3.0]
+z_values = [2.0,2.25,2.5,2.75,3.0,3.25]
+colours = ['C0','C1','C2','C3','C4','C5']
 z_width = 0.2
 IVAR_cutoff = 1150.
-basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_newNz_mpz0_nside16/'
+basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v3/v3.0/'
 
 master = fits.open(basedir + '/master.fits')
 R_hMpc_mid = master[3].data['R']
@@ -22,7 +23,7 @@ k_kms_list = []
 pk_kms_list = []
 
 plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
-for z_value in z_values:
+for k,z_value in enumerate(z_values):
 
     print('loading data for z={}...'.format(z_value))
     skewers_list = []
@@ -63,7 +64,7 @@ for z_value in z_values:
             pixel_skewers = pixel_skewers[qsos,:]
             skewers_list += [pixel_skewers]
 
-    print(' ')
+    print('')
 
     skewers = skewers_list[0]
     for pixel_skewers in skewers_list[1:]:
@@ -71,11 +72,11 @@ for z_value in z_values:
 
 
     if file_type == 'transmission':
-        mean_F = np.average(F_skewers,axis=0)
+        mean_F = np.average(skewers,axis=0)
 
-        delta_F_skewers = np.zeros(F_skewers.shape)
+        delta_F_skewers = np.zeros(skewers.shape)
         for j in range(mean_F.shape[0]):
-            delta_F_skewers[:,j] = F_skewers[:,j]/mean_F[j] - 1
+            delta_F_skewers[:,j] = skewers[:,j]/mean_F[j] - 1
 
     elif file_type == 'picca-flux':
         delta_F_skewers = skewers
@@ -90,17 +91,24 @@ for z_value in z_values:
     k_kms_list += [k_kms]
     pk_kms_list += [pk_kms]
 
-    plt.plot(k_kms,pk_kms,label='z={}'.format(z_value))
+    plt.plot(k_kms,pk_kms,label='z={}'.format(z_value),c=colours[k])
 
     #Why is there a 0 k value?
     indices = k_kms > 0
     k_kms_model = np.logspace(np.log10(min(k_kms[indices])),np.log10(max(k_kms)),10**4)
     pk_kms_model = tuning.P1D_z_kms_PD2013(z_value,k_kms_model)
-    plt.plot(k_kms_model,pk_kms_model,label='z={} DR9'.format(z_value))
+    plt.plot(k_kms_model,pk_kms_model,label='z={} DR9'.format(z_value),c=colours[k],linestyle=':')
+    plt.fill_between(k_kms_model,pk_kms_model*1.1,pk_kms_model*0.9,color=colours[k],alpha=0.25)
     print('done!\n')
 
+plt.axvline(x=0.005,c=(0.5,0.5,0.5))
 plt.semilogx()
 plt.semilogy()
 plt.legend()
 plt.grid()
+plt.xlabel(r'k / kms$^{-1}$')
+plt.ylabel('P1D')
+plt.xlim(xmax=10**-1)
+plt.ylim(ymin=10**0)
+plt.savefig('P1D_v3.0.pdf')
 plt.show()
