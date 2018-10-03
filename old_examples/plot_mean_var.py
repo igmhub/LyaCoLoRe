@@ -1,12 +1,52 @@
 import numpy as np
 from astropy.io import fits
 import matplotlib.pyplot as plt
+from multiprocessing import Pool
+import multiprocessing
 import sys
+import time
 
 from pyacolore import utils,tuning
 
 lya = 1215.67
 IVAR_cutoff = 1150.0
+N_processes = 32
+# main folder where the processed files are
+basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_newNz_mpz0_nside16/'
+#basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test/'
+#basedir = '/Users/James/Projects/test_data/process_output_G_hZ_4096_32_sr2.0_bm1_nside16/'
+
+if len(sys.argv)>1:
+    quantity = sys.argv[1]
+else:
+    quantity = 'flux'
+nside = 16
+N_pixels = 3072
+#pixels = np.sort(np.random.choice(list(range(12*nside**2)),size=N_pixels))
+#pixels = np.array([1064,1096,1127,1128,1159,1160,1191,1192,1193,1223,1224,1225,1254,1255,1256,1257,1286,1287,1288,1289])
+pixels = np.array(list(range(N_pixels)))
+
+
+################################################################################
+
+"""
+Define the multiprocessing tracking functions
+"""
+
+#Define a progress-tracking function.
+def log_result(retval):
+
+    results.append(retval)
+    N_complete = len(results)
+    N_tasks = len(tasks)
+
+    utils.progress_bar(N_complete,N_tasks,start_time)
+
+#Define an error-tracking function.
+def log_error(retval):
+    print('Error:',retval)
+
+################################################################################
 
 def read_file(basedir,quantity,nside,pix):
     pix_100 = int(pix/100)
@@ -33,7 +73,7 @@ def read_file(basedir,quantity,nside,pix):
         #ivar_rows = picca[1].data.T
         loglam = picca[2].data
         picca.close()
-    
+
     ivar_rows = utils.make_IVAR_rows(IVAR_cutoff,z_qso,loglam)
 
     zs = (10**loglam)/lya - 1.0
@@ -56,33 +96,42 @@ def get_means(data_rows,ivar_rows):
         mean2=np.sum((data_rows**2)*ivar_rows,axis=0)/weights
     return weights,mean,mean2
 
-# main folder where the processed files are
-basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_newNz_mpz0_nside16/'
-#basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test/'
-#basedir = '/Users/James/Projects/test_data/process_output_G_hZ_4096_32_sr2.0_bm1_nside16/'
-
-if len(sys.argv)>1:
-    quantity = sys.argv[1]
-else:
-    quantity = 'flux'
-nside = 16
-N_pixels = 3072
-#pixels = np.sort(np.random.choice(list(range(12*nside**2)),size=N_pixels))
-#pixels = np.array([1064,1096,1127,1128,1159,1160,1191,1192,1193,1223,1224,1225,1254,1255,1256,1257,1286,1287,1288,1289])
-pixels = np.array(list(range(N_pixels)))
-
-# will combine pixel statistics
-sum_mean=None
-sum_weights=None
-sum_var=None
-
-for i,pix in enumerate(pixels):
-    print('Looking at pixel {}: ({} out of {})'.format(pix,i+1,pixels.shape[0]))
+def measure_pixel(pixel):
+    #print('Looking at pixel {}: ({} out of {})'.format(pix,i+1,pixels.shape[0]))
     # read file for particular pixel
     zs,data_rows,ivar_rows=read_file(basedir,quantity,nside,pix)
 
     # compute statistics for pixel
     weights,mean,mean2 = get_means(data_rows,ivar_rows)
+
+    return (weights, mean, mean2)
+
+
+tasks = pixel_list
+
+#Run the multiprocessing pool
+if __name__ == '__main__':
+    pool = Pool(processes = N_processes)
+    results = []
+    start_time = time.time()
+
+    for task in tasks:
+        pool.apply_async(measure_pixel,task,callback=log_result,error_callback=log_error)
+
+    pool.close()
+    pool.join()
+
+print('\nTime to make Gaussian pixel files: {:4.0f}s.\n'.format(time.time()-start_time))
+
+# will combine pixel statistics
+sum_mean = None
+sum_weights = None
+sum_var = None
+
+for result in results:
+    weights = result[0]
+    mean = result[1]
+    mean2 = result[2]
 
     # accumulate stats
     if sum_mean is None:
