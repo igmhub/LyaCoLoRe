@@ -1,7 +1,11 @@
 import numpy as np
 from astropy.io import fits
+from multiprocessing import Pool
+import multiprocessing
+import sys
+import time
 
-from pyacolore import utils
+from pyacolore import tuning,utils
 
 lya = utils.lya_rest
 
@@ -10,6 +14,8 @@ basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_h
 min_number_cells = 2
 rebin_size_hMpc = 3.5
 N_processes = 32
+
+pixel_list = list(range(3072))
 
 def load_transmission_file(filename):
 
@@ -46,8 +52,8 @@ def renorm_picca_flux(basedir,pixel,IVAR_cutoff,min_number_cells,rebin_size_hMpc
     pf_filename = basedir + '/{}/{}/picca-flux-16-{}.fits'.format(pixel//100,pixel,pixel)
     h = fits.open(pf_filename)
 
-    initial_delta_F = h[0].data
-    IVAR = h[1].data
+    initial_delta_F = h[0].data.T
+    IVAR = h[1].data.T
     LOGLAM_MAP = h[2].data
 
     N_qso = initial_delta_F.shape[0]
@@ -57,7 +63,7 @@ def renorm_picca_flux(basedir,pixel,IVAR_cutoff,min_number_cells,rebin_size_hMpc
 
     #Get the data for the mean_F originally used (i.e. from model).
     #Use it to go from delta_F to F.
-    inital_mean_F = tuning.get_mean_F_model(Z)
+    initial_mean_F = tuning.get_mean_F_model(Z)
     F = np.zeros(initial_delta_F.shape)
     for j in range(N_cells):
         F[:,j] = (initial_delta_F[:,j] + 1) * initial_mean_F[j]
@@ -65,14 +71,19 @@ def renorm_picca_flux(basedir,pixel,IVAR_cutoff,min_number_cells,rebin_size_hMpc
     #Load tha actual mean_F data.
     mean_data = fits.open('mean_data.fits')
     new_mean_F_zs = mean_data[1].data['z']
-    new_mean_F = mean_data[1].data['mean_F']
+    new_mean_F = mean_data[1].data['mean']
     mean_data.close()
 
+    #HACK
+    new_mean_F += 10 ** -10
+
     #Make new, proper delta_F rows.
-    new_mean_F = np.interp(z,new_mean_F_zs,new_mean_F)
+    new_mean_F = np.interp(Z,new_mean_F_zs,new_mean_F)
     new_delta_F = np.zeros(initial_delta_F.shape)
     for j in range(N_cells):
         new_delta_F[:,j] = (F[:,j]/new_mean_F[j]) - 1
+
+    new_delta_F *= IVAR
 
     #If needs be, rebin.
     if rebin_size_hMpc:
@@ -80,10 +91,10 @@ def renorm_picca_flux(basedir,pixel,IVAR_cutoff,min_number_cells,rebin_size_hMpc
         #Open the gaussian colore file to get R.
         gc_filename = basedir + '/{}/{}/gaussian-colore-16-{}.fits'.format(pixel//100,pixel,pixel)
         gc = fits.open(gc_filename)
-        z_gc = gc[4].data['Z']
+        Z_gc = gc[4].data['Z']
         R_gc = gc[4].data['R']
         gc.close()
-        R = np.interp(z,z_gc,R_gc)
+        R = np.interp(Z,Z_gc,R_gc)
 
         #Rebin the relevant quantities
         grid_start = R[0]
@@ -91,13 +102,14 @@ def renorm_picca_flux(basedir,pixel,IVAR_cutoff,min_number_cells,rebin_size_hMpc
         rebin_new_delta_F = np.zeros((N_qso,max(rebin_map)))
         rebin_IVAR = np.zeros((N_qso,max(rebin_map)))
         rebin_Z = np.zeros(max(rebin_map))
+        j_hi = -1
         for j in range(max(rebin_map)):
-            j_lo = np.argmax(rebin_map==j)
-            j_hi = np.argmin(rebin_map==j)
-            rebin_new_delta_F[:,j] = np.average(new_delta_F[:,j_lo:j_hi],axis=1)
-            rebin_IVAR[:,j] = (IVAR[:,j_lo:j_hi] == j_hi - j_lo)
-            rebin_Z[j] = np.average(z[j_lo:j_hi])
-        rebin_LOGLAM_MAP = np.log(lya*(1+new_Z))
+            j_lo = j_hi + 1 #np.argmax(rebin_map==j)
+            j_hi = np.searchsorted(rebin_map,j+1) - 1
+            rebin_new_delta_F[:,j] = np.average(new_delta_F[:,j_lo:j_hi+1],axis=1)
+            rebin_IVAR[:,j] = (np.sum(IVAR[:,j_lo:j_hi+1]) == j_hi+1 - j_lo)
+            rebin_Z[j] = np.average(Z[j_lo:j_hi+1])        
+        rebin_LOGLAM_MAP = np.log10(lya*(1+rebin_Z))
 
         picca_0 = rebin_new_delta_F.T
         picca_1 = rebin_IVAR.T
@@ -113,7 +125,7 @@ def renorm_picca_flux(basedir,pixel,IVAR_cutoff,min_number_cells,rebin_size_hMpc
 
         new_pf_filename = basedir + '/{}/{}/picca-flux-renorm-16-{}.fits'.format(pixel//100,pixel,pixel)
 
-    picca_3_data = h[3].data
+    picca_3 = h[3].data
     header = h[0].header
 
     #Make the data into suitable HDUs.
@@ -125,7 +137,7 @@ def renorm_picca_flux(basedir,pixel,IVAR_cutoff,min_number_cells,rebin_size_hMpc
 
     #Combine the HDUs into and HDUlist and save as a new file. Close the HDUlist.
     hdulist = fits.HDUList([hdu_F, hdu_iv, hdu_LOGLAM_MAP, hdu_CATALOG])
-    hdulist.writeto(new_pf_filename)
+    hdulist.writeto(new_pf_filename,overwrite=True)
     hdulist.close()
 
     return
