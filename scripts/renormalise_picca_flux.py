@@ -55,6 +55,7 @@ def renorm_picca_flux(basedir,pixel,IVAR_cutoff,min_number_cells,rebin_size_hMpc
     initial_delta_F = h[0].data.T
     IVAR = h[1].data.T
     LOGLAM_MAP = h[2].data
+    Z_QSO = h[3].data['Z']
 
     N_qso = initial_delta_F.shape[0]
     N_cells = initial_delta_F.shape[1]
@@ -108,12 +109,22 @@ def renorm_picca_flux(basedir,pixel,IVAR_cutoff,min_number_cells,rebin_size_hMpc
             j_hi = np.searchsorted(rebin_map,j+1) - 1
             rebin_new_delta_F[:,j] = np.average(new_delta_F[:,j_lo:j_hi+1],axis=1)
             rebin_IVAR[:,j] = (np.sum(IVAR[:,j_lo:j_hi+1]) == j_hi+1 - j_lo)
-            rebin_Z[j] = np.average(Z[j_lo:j_hi+1])        
+            rebin_Z[j] = np.average(Z[j_lo:j_hi+1])
         rebin_LOGLAM_MAP = np.log10(lya*(1+rebin_Z))
+
+        rebin_IVAR = utils.make_IVAR_rows(IVAR_cutoff,Z_QSO,rebin_LOGLAM_MAP)
+
+        valid_cells = np.sum(rebin_IVAR,axis=1)
+        relevant_QSOs = valid_cells > min_number_cells
+
+        rebin_new_delta_F = rebin_new_delta_F[relevant_QSOs,:]
+        rebin_IVAR = rebin_IVAR[relevant_QSOs,:]
+        catalog = h[3].data[relevant_QSOs]
 
         picca_0 = rebin_new_delta_F.T
         picca_1 = rebin_IVAR.T
         picca_2 = rebin_LOGLAM_MAP
+        picca_3 = catalog
 
         new_pf_filename = basedir + '/{}/{}/picca-flux-renorm-rebin-16-{}.fits'.format(pixel//100,pixel,pixel)
 
@@ -122,10 +133,10 @@ def renorm_picca_flux(basedir,pixel,IVAR_cutoff,min_number_cells,rebin_size_hMpc
         picca_0 = new_delta_F.T
         picca_1 = IVAR.T
         picca_2 = LOGLAM_MAP
+        picca_3 = catalog
 
         new_pf_filename = basedir + '/{}/{}/picca-flux-renorm-16-{}.fits'.format(pixel//100,pixel,pixel)
 
-    picca_3 = h[3].data
     header = h[0].header
 
     #Make the data into suitable HDUs.
