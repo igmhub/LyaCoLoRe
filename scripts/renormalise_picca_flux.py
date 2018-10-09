@@ -9,11 +9,13 @@ from pyacolore import tuning,utils
 
 lya = utils.lya_rest
 
+quantity = 'gaussian'
 IVAR_cutoff = 1150.
-basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_newNz_mpz0_nside16'
+basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_newNz_mpz0_nside16/'
+outdir = basedir
 min_number_cells = 2
 rebin_size_hMpc = 3.5
-N_processes = 32
+N_processes = 64
 
 pixel_list = list(range(3072))
 
@@ -43,13 +45,13 @@ def save_picca_flux_file():
 
     return
 
-def renorm_picca_flux(basedir,pixel,IVAR_cutoff,min_number_cells,rebin_size_hMpc):
+def renorm_picca_flux(basedir,pixel,IVAR_cutoff,min_number_cells,rebin_size_hMpc,outdir):
 
     #F, LAMBDA, CATALOG = load_transmission_file(filename)
     #Catalog dtype = [('RA', 'f8'), ('DEC', 'f8'), ('Z', 'f8'), ('Z_noRSD', 'f8'), ('MOCKID', int)]
 
     #Open the original picca flux file and extract the data.
-    pf_filename = basedir + '/{}/{}/picca-flux-16-{}.fits'.format(pixel//100,pixel,pixel)
+    pf_filename = basedir + '/{}/{}/picca-{}-16-{}.fits'.format(pixel//100,pixel,quantity,pixel)
     h = fits.open(pf_filename)
 
     initial_delta_F = h[0].data.T
@@ -62,6 +64,8 @@ def renorm_picca_flux(basedir,pixel,IVAR_cutoff,min_number_cells,rebin_size_hMpc
 
     Z = (10**h[2].data)/lya - 1
 
+
+    """
     #Get the data for the mean_F originally used (i.e. from model).
     #Use it to go from delta_F to F.
     initial_mean_F = tuning.get_mean_F_model(Z)
@@ -83,7 +87,9 @@ def renorm_picca_flux(basedir,pixel,IVAR_cutoff,min_number_cells,rebin_size_hMpc
     new_delta_F = np.zeros(initial_delta_F.shape)
     for j in range(N_cells):
         new_delta_F[:,j] = (F[:,j]/new_mean_F[j]) - 1
+    """
 
+    new_delta_F = initial_delta_F
     new_delta_F *= IVAR
 
     #If needs be, rebin.
@@ -126,7 +132,7 @@ def renorm_picca_flux(basedir,pixel,IVAR_cutoff,min_number_cells,rebin_size_hMpc
         picca_2 = rebin_LOGLAM_MAP
         picca_3 = catalog
 
-        new_pf_filename = basedir + '/{}/{}/picca-flux-renorm-rebin-16-{}.fits'.format(pixel//100,pixel,pixel)
+        new_pf_filename = outdir + '/{}/{}/picca-{}-renorm-rebin-16-{}.fits'.format(pixel//100,pixel,quantity,pixel)
 
     else:
         #Organise the data into picca-format arrays.
@@ -135,7 +141,7 @@ def renorm_picca_flux(basedir,pixel,IVAR_cutoff,min_number_cells,rebin_size_hMpc
         picca_2 = LOGLAM_MAP
         picca_3 = catalog
 
-        new_pf_filename = basedir + '/{}/{}/picca-flux-renorm-16-{}.fits'.format(pixel//100,pixel,pixel)
+        new_pf_filename = outdir + '/{}/{}/picca-{}-renorm-16-{}.fits'.format(pixel//100,pixel,quantity,pixel)
 
     header = h[0].header
 
@@ -175,7 +181,7 @@ def log_error(retval):
 ################################################################################
 
 #define the tasks
-tasks = [(basedir,pixel,IVAR_cutoff,min_number_cells,rebin_size_hMpc) for pixel in pixel_list]
+tasks = [(basedir,pixel,IVAR_cutoff,min_number_cells,rebin_size_hMpc,outdir) for pixel in pixel_list]
 
 #Run the multiprocessing pool
 if __name__ == '__main__':
