@@ -10,10 +10,10 @@ from pyacolore import utils,tuning
 
 lya = 1215.67
 IVAR_cutoff = 1150.0
-N_processes = 32
+N_processes = 64
 # main folder where the processed files are
 basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_newNz_mpz0_nside16/'
-#basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test/'
+basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v3/v3.0/'
 #basedir = '/Users/James/Projects/test_data/process_output_G_hZ_4096_32_sr2.0_bm1_nside16/'
 
 if len(sys.argv)>1:
@@ -37,6 +37,21 @@ Define the multiprocessing tracking functions
 def log_result(retval):
 
     results.append(retval)
+    """
+    weights = retval[0]
+    mean = retval[1]
+    mean2 = retval[2]
+
+    # accumulate stats
+    if sum_mean is None:
+        sum_mean = mean*weights
+        sum_mean2 = mean2*weights
+        sum_weights = weights
+    else:
+        sum_mean += mean*weights
+        sum_mean2 += mean2*weights
+        sum_weights += weights
+    """
     N_complete = len(results)
     N_tasks = len(tasks)
 
@@ -81,7 +96,7 @@ def read_file(basedir,quantity,nside,pix):
     return zs,data_rows,ivar_rows
 
 def get_means(data_rows,ivar_rows):
-    print(data_rows.shape,ivar_rows.shape)
+    #print(data_rows.shape,ivar_rows.shape)
     N_skewers=data_rows.shape[0]
     N_cells=data_rows.shape[1]
     # add tiny value to not have 0/0
@@ -96,7 +111,7 @@ def get_means(data_rows,ivar_rows):
         mean2=np.sum((data_rows**2)*ivar_rows,axis=0)/weights
     return weights,mean,mean2
 
-def measure_pixel(pixel):
+def measure_pixel(basedir,quantity,pix):
     #print('Looking at pixel {}: ({} out of {})'.format(pix,i+1,pixels.shape[0]))
     # read file for particular pixel
     zs,data_rows,ivar_rows=read_file(basedir,quantity,nside,pix)
@@ -104,15 +119,18 @@ def measure_pixel(pixel):
     # compute statistics for pixel
     weights,mean,mean2 = get_means(data_rows,ivar_rows)
 
-    return (weights, mean, mean2)
+    return (zs, weights, mean, mean2)
 
 
-tasks = pixel_list
+tasks = [(basedir,quantity,pixel) for pixel in pixels]
 
 #Run the multiprocessing pool
 if __name__ == '__main__':
     pool = Pool(processes = N_processes)
     results = []
+    sum_mean = None
+    sum_weights = None
+    sum_var = None
     start_time = time.time()
 
     for task in tasks:
@@ -121,7 +139,7 @@ if __name__ == '__main__':
     pool.close()
     pool.join()
 
-print('\nTime to make Gaussian pixel files: {:4.0f}s.\n'.format(time.time()-start_time))
+print('\nTime to measure files: {:4.0f}s.\n'.format(time.time()-start_time))
 
 # will combine pixel statistics
 sum_mean = None
@@ -129,9 +147,10 @@ sum_weights = None
 sum_var = None
 
 for result in results:
-    weights = result[0]
-    mean = result[1]
-    mean2 = result[2]
+    zs = result[0]
+    weights = result[1]
+    mean = result[2]
+    mean2 = result[3]
 
     # accumulate stats
     if sum_mean is None:
@@ -158,7 +177,7 @@ cols_DATA = fits.ColDefs(data)
 hdu_DATA = fits.BinTableHDU.from_columns(cols_DATA,name='DATA')
 list_hdu = [prihdu, hdu_DATA]
 hdulist = fits.HDUList(list_hdu)
-hdulist.writeto('mean_data.fits')
+hdulist.writeto('mean_data_v3.0.fits')
 hdulist.close()
 
 err = np.sqrt(overall_var/sum_weights)
