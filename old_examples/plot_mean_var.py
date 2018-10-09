@@ -19,7 +19,7 @@ basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v3/v3.0/'
 if len(sys.argv)>1:
     quantity = sys.argv[1]
 else:
-    quantity = 'flux'
+    quantity = 'transmission'
 nside = 16
 N_pixels = 3072
 #pixels = np.sort(np.random.choice(list(range(12*nside**2)),size=N_pixels))
@@ -68,7 +68,7 @@ def read_file(basedir,quantity,nside,pix):
     dirname = basedir+'/'+str(pix_100)+'/'+str(pix)+'/'
     suffix = str(nside)+'-'+str(pix)+'.fits'
 
-    if quantity == 'flux':
+    if quantity == 'transmission':
         filename = dirname+'/transmission-'+suffix
         transmission = fits.open(filename)
         data_rows = transmission[3].data
@@ -177,7 +177,11 @@ cols_DATA = fits.ColDefs(data)
 hdu_DATA = fits.BinTableHDU.from_columns(cols_DATA,name='DATA')
 list_hdu = [prihdu, hdu_DATA]
 hdulist = fits.HDUList(list_hdu)
-hdulist.writeto('mean_data_v3.0.fits')
+if quantity == 'transmission':
+    descriptor = quantity
+else:
+    descriptor = 'picca_' + quantity
+hdulist.writeto('mean_data_{}_v3.0.fits'.format(descriptor))
 hdulist.close()
 
 err = np.sqrt(overall_var/sum_weights)
