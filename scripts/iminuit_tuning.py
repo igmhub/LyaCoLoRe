@@ -30,7 +30,7 @@ max_k = 0.005 #skm-1
 
 #Open up the Gaussian colore files
 base_file_location = '/Users/jfarr/Projects/test_data/test/'
-base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_newNz_mpz0_nside16'
+base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_newNz_mpz0_nside16_old_process'
 N_side = 16
 
 new_file_structure = '{}/{}/'               #pixel number//100, pixel number
@@ -152,7 +152,7 @@ def measure_pixel_segment(pixel,z_value,alpha,beta,sigma_G_required,n,k1,A0):
 
     return measurement
 
-def f(alpha,beta,sigma_G,n,k1,A0):
+def f(alpha,beta,sigma_G,n,k1,A0,return_measurements=False):
 
     ################################################################################
 
@@ -243,19 +243,25 @@ def f(alpha,beta,sigma_G,n,k1,A0):
     #print('chi2: sF {:2.4f}, mean F {:2.4f}, overall {:2.4f}'.format(sigma_F_chi2,mean_F_chi2,overall_chi2))
     print(' ')
 
-    return chi2
+    if return_measurements:
+        return chi2, combined_pixels_set
+    else:
+        return chi2
 
-t_kwargs = {'alpha' : 0.82,    'error_alpha' : 0.05,   'limit_alpha' : (0., 20.),  'fix_alpha' : False,
+t_kwargs = {'alpha' : 3.08,    'error_alpha' : 0.05,   'limit_alpha' : (0., 30.),  'fix_alpha' : False,
             'beta' : 1.65,      'error_beta' : 0.05,    'limit_beta' : (0., 20.),   'fix_beta' : True,
-            'sigma_G' : 4.82,  'error_sigma_G' : 0.05, 'limit_sigma_G' : (0., 20.),'fix_sigma_G' : False,
+            'sigma_G' : 7.58,  'error_sigma_G' : 0.05, 'limit_sigma_G' : (0., 20.),'fix_sigma_G' : False,
             }
 
-s_kwargs = {'n'  : 0.7,       'error_n' : 0.05,       'limit_n' : (0., 10.),      'fix_n' : True,
-            'k1' : 0.001,    'error_k1' : 0.0005,   'limit_k1' : (0., 0.1),     'fix_k1' : True,
+s_kwargs = {'n'  : 1.52,       'error_n' : 0.05,       'limit_n' : (0., 10.),      'fix_n' : False,
+            'k1' : 0.0166,    'error_k1' : 0.0005,   'limit_k1' : (0., 0.1),     'fix_k1' : False,
             'A0' : 58.6,        'error_A0' : 0.1,       'limit_A0' : (0., 200.),    'fix_A0' : True,
             }
 
-minuit = Minuit(f,**t_kwargs,**s_kwargs)
+other_kwargs = {'return_measurements'  : False,    'fix_return_measurements' : True,
+            }
+
+minuit = Minuit(f,**t_kwargs,**s_kwargs,**other_kwargs)
 
 minuit.print_param()
 minuit.migrad() #ncall=20
@@ -269,11 +275,12 @@ k1 = minuit.values['k1']
 A0 = minuit.values['A0']
 
 #Want to do a final run here
-final_measurements = []
-for pixel in pixels:
-    final_measurements += [measure_pixel_segment(pixel,z_value,alpha,beta,sigma_G,n,k1,A0)]
-final_measurements = tuning.measurement_set(measurements=final_measurements)
-final_measurements = final_measurements.combine_pixels()
+#final_measurements = []
+final_chi2,final_measurements = f(alpha=alpha,beta=beta,sigma_G=sigma_G,n=n,k1=k1,A0=A0,return_measurements=True)
+#for pixel in pixels:
+#    final_measurements += [measure_pixel_segment(pixel,z_value,alpha,beta,sigma_G,n,k1,A0)]
+#final_measurements = tuning.measurement_set(measurements=final_measurements)
+#final_measurements = final_measurements.combine_pixels()
 
 
 """
@@ -317,7 +324,7 @@ for m in final_measurements.measurements:
     plt.ylabel(r'$P_{1D}$',fontsize=12)
     plt.xlabel(r'$k\ /\ (kms^{-1})^{-1}$',fontsize=12)
     plt.savefig('Pk1D_z{}.pdf'.format(m.z_value))
-    plt.show()
+    #plt.show()
 
 """
 t20_kwargs = {'alpha20' : 0.57,    'error_alpha20' : 0.05,   'limit_alpha20' : (0., 10.),  'fix_alpha20' : False,
