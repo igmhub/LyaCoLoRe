@@ -1,6 +1,9 @@
 import numpy as np
 from astropy.io import fits
 import matplotlib.pyplot as plt
+from scipy.interpolate import interp2d
+from mpl_toolkits.mplot3d import Axes3D
+from colorsys import hsv_to_rgb
 import glob
 
 basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_newNz_mpz0/'
@@ -61,3 +64,30 @@ plt.xlabel('RA',fontsize=15)
 plt.ylabel('DEC',fontsize=15)
 plt.savefig('ra_dec.pdf')
 plt.show()
+
+fig = plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
+ax = fig.gca(projection='3d')
+RA_centres = axis[0][:-1]/2. + axis[0][1:]/2.
+DEC_centres = axis[1][:-1]/2. + axis[1][1:]/2.
+PHI = RA_centres*np.pi/180.
+THETA = (DEC_centres + 90.)*np.pi/180.
+print(PHI.min(),PHI.max())
+print(THETA.min(),THETA.max())
+x = np.outer(np.cos(THETA), np.sin(PHI))
+y = np.outer(np.sin(THETA), np.sin(PHI))
+z = np.outer(np.ones_like(THETA), np.cos(PHI))
+
+interpolated_density = interp2d(THETA, PHI, density)
+def f(theta, phi):
+  return hsv_to_rgb(interpolated_density(theta,phi), 1, 1)
+
+colours = np.empty(x.shape, dtype=object)
+for i in range(len(x)):
+    for j in range(len(y)):
+        theta = arctan2(y[i,j], x[i,j])
+        phi = arccos(z[i,j])
+        colours[i,j] = f(theta, phi)
+
+ax.plot_surface(x, y, z, rstride=1, cstride=1,
+                           facecolors=colours,
+                           linewidth=0, antialiased=True)
