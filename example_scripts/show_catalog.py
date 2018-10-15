@@ -48,7 +48,7 @@ for i,f in enumerate(nz_files):
 plt.legend(fontsize=15)
 plt.grid()
 plt.xlabel('z',fontsize=15)
-plt.savefig('nz.pdf')
+#plt.savefig('nz.pdf')
 plt.show()
 
 ang_bins = (200,100)
@@ -62,7 +62,7 @@ cbar.set_label(r'$\#$')
 cbar.update_ticks()
 plt.xlabel('RA',fontsize=15)
 plt.ylabel('DEC',fontsize=15)
-plt.savefig('ra_dec.pdf')
+#plt.savefig('ra_dec.pdf')
 plt.show()
 
 fig = plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
@@ -73,21 +73,25 @@ PHI = RA_centres*np.pi/180.
 THETA = (DEC_centres + 90.)*np.pi/180.
 print(PHI.min(),PHI.max())
 print(THETA.min(),THETA.max())
-x = np.outer(np.cos(THETA), np.sin(PHI))
-y = np.outer(np.sin(THETA), np.sin(PHI))
-z = np.outer(np.ones_like(THETA), np.cos(PHI))
 
-interpolated_density = interp2d(THETA, PHI, density)
+#These need to be flipped around
+x = np.outer(np.sin(PHI), np.cos(THETA))
+y = np.outer(np.sin(PHI), np.sin(THETA))
+z = np.outer(np.cos(PHI), np.ones_like(THETA))
+
+density = ang_hist/(ang_hist.max())
+interpolated_density = interp2d(THETA,PHI,density)
 def f(theta, phi):
-  return hsv_to_rgb(interpolated_density(theta,phi), 1, 1)
+  return hsv_to_rgb(float(interpolated_density(theta,phi)), 1, 1)
 
 colours = np.empty(x.shape, dtype=object)
-for i in range(len(x)):
-    for j in range(len(y)):
-        theta = arctan2(y[i,j], x[i,j])
-        phi = arccos(z[i,j])
-        colours[i,j] = f(theta, phi)
+for i in range(x.shape[0]):
+    for j in range(x.shape[1]):
+        theta = np.arctan2(y[i,j], x[i,j])
+        phi = np.arccos(z[i,j])
+        colours[i,j] = f(phi,theta)
 
 ax.plot_surface(x, y, z, rstride=1, cstride=1,
                            facecolors=colours,
                            linewidth=0, antialiased=True)
+plt.show()
