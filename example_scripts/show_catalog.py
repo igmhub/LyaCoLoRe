@@ -11,8 +11,9 @@ N_files = 32
 z_norm = 2.0
 nz_files = ['/global/homes/j/jfarr/Projects/run_CoLoRe/input_files/Nz_qso_130618_2_colore1.txt',
             '/global/homes/j/jfarr/Projects/run_CoLoRe/input_files/Nz_qso_130618_2_colore1_hZs.txt',
+            '/global/homes/j/jfarr/Projects/run_CoLoRe/input_files/Nz_qso_130618_2_colore1.txt',
             ]
-nz_names = ['DESI n(z)','CoLoRe input']
+nz_names = ['DESI n(z)','CoLoRe input','old CoLoRe input']
 
 fi = glob.glob(basedir+'/out_srcs_s1_*.fits')
 fi = fi[:N_files]
