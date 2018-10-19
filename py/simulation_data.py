@@ -356,8 +356,7 @@ class SimulationData:
         NGPs = utils.get_NGPs(old_R,new_R)
         expanded_GAUSSIAN_DELTA_rows = np.zeros((self.N_qso,new_N_cells))
 
-        for i in range(self.N_qso):
-            expanded_GAUSSIAN_DELTA_rows[i,:] = self.GAUSSIAN_DELTA_rows[i,NGPs]
+        expanded_GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows[:,NGPs]
 
         #Redefine the necessary variables (N_cells, Z, D etc)
         self.N_cells = new_N_cells
