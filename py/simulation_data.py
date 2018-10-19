@@ -342,7 +342,8 @@ class SimulationData:
 
     #Function to add small scale gaussian fluctuations.
     def add_small_scale_gaussian_fluctuations(self,cell_size,sigma_G_z_values,extra_sigma_G_values,generator,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n=0.7,k1=0.001,A0=58.6):
-
+        times = []
+        start = time.time(); times += [start]
         # TODO: Is NGP really the way to go?
 
         #Add small scale fluctuations
@@ -374,7 +375,7 @@ class SimulationData:
         #Can either make new IVAR rows, or just use NGPs on the old ones.
         #self.IVAR_rows = utils.make_IVAR_rows(IVAR_cutoff,self.Z_QSO,self.LOGLAM_MAP)
         self.IVAR_rows = self.IVAR_rows[:,NGPs]
-
+        times += [time.time()]
         #For each skewer, determine the last relevant cell
         first_relevant_cells = np.zeros(self.N_qso)
         last_relevant_cells = np.zeros(self.N_qso)
@@ -389,7 +390,7 @@ class SimulationData:
 
             first_relevant_cells[i] = first_relevant_cell
             last_relevant_cells[i] = last_relevant_cell
-
+        times += [time.time()]
         extra_var = np.zeros(expanded_GAUSSIAN_DELTA_rows.shape)
 
         #Interpolate the extra sigma_G values using logs.
@@ -401,13 +402,13 @@ class SimulationData:
         dv_kms = cell_size * dkms_dhMpc
         extra_var = independent.get_gaussian_fields(generator,self.N_cells,dv_kms=dv_kms,N_skewers=self.N_qso,white_noise=white_noise,n=n,k1=k1,A0=A0)
 
-        from . import Pk1D
-        k_kms_ev, Pk_kms_ev, _ = Pk1D.get_Pk1D(extra_var,np.ones_like(extra_var),self.R,self.Z)
+        #from . import Pk1D
+        #k_kms_ev, Pk_kms_ev, _ = Pk1D.get_Pk1D(extra_var,np.ones_like(extra_var),self.R,self.Z)
         #print('original extra var\'s std',np.std(extra_var))
         #print('original extra var\'s Pk sigma',np.sqrt((1/np.pi)*np.trapz(Pk_kms_ev,k_kms_ev)))
         #print('original extra var\'s simple sigma',np.sqrt(np.average(extra_var**2)-np.average(extra_var)**2))
         #print(' ')
-
+        times += [time.time()]
         #Normalise the extra variance to have unit variance
         k_kms = np.fft.rfftfreq(self.N_cells)*2*np.pi/dv_kms
         Pk_kms = independent.power_kms(0.,k_kms,dv_kms,white_noise=white_noise,n=n,k1=k1,A0=A0,smooth=True)
@@ -417,14 +418,14 @@ class SimulationData:
         #print(' ')
         extra_var /= sigma_G_extra_var #np.sqrt(mean_P/dv_kms)
 
-        k_kms_ev, Pk_kms_ev, _ = Pk1D.get_Pk1D(extra_var,np.ones_like(extra_var),self.R,self.Z)
+        #k_kms_ev, Pk_kms_ev, _ = Pk1D.get_Pk1D(extra_var,np.ones_like(extra_var),self.R,self.Z)
         #print('normed extra var\'s std',np.std(extra_var))
         #print('normed extra var\'s Pk sigma',np.sqrt((1/np.pi)*np.trapz(Pk_kms_ev,k_kms_ev)))
         #print(' ')
 
         extra_var *= extra_sigma_G
-
-        k_kms_ev, Pk_kms_ev, _ = Pk1D.get_Pk1D(extra_var,np.ones_like(extra_var),self.R,self.Z)
+        times += [time.time()]
+        #k_kms_ev, Pk_kms_ev, _ = Pk1D.get_Pk1D(extra_var,np.ones_like(extra_var),self.R,self.Z)
         #print('final extra var\'s std',np.std(extra_var))
         #print('final extra var\'s Pk sigma',np.sqrt((1/np.pi)*np.trapz(Pk_kms_ev,k_kms_ev)))
         #print(' ')
@@ -433,7 +434,7 @@ class SimulationData:
         extra_var *= mask
 
         expanded_GAUSSIAN_DELTA_rows += amplitude*extra_var
-
+        times += [time.time()]
         #print('final skewers\'s std',np.std(expanded_GAUSSIAN_DELTA_rows))
 
         """
@@ -477,7 +478,8 @@ class SimulationData:
 
         dtype = [('R', 'f8'), ('Z', 'f8'), ('D', 'f8'), ('V', 'f8')]
         new_cosmology = np.array(list(zip(self.R,self.Z,self.D,self.V)),dtype=dtype)
-
+        times += [time.time()]
+        #print(np.array(times)-start)
         return new_cosmology
 
     #Function to add physical skewers to the object via a lognormal transformation.
@@ -525,7 +527,7 @@ class SimulationData:
     def add_RSDs(self,absorber,alpha,beta,thermal=False):
 
         density = 1 + self.DENSITY_DELTA_rows
-        new_tau = RSD.add_skewer_RSDs(absorber.tau,density,self.VEL_rows,self.Z,self.R,thermal=thermal)
+        new_tau = RSD.add_skewer_RSDs(absorber.tau,density,self.VEL_rows,self.Z,self.R,self.Z_QSO,thermal=thermal)
 
         #Overwrite the tau skewers and set a flag to True.
         absorber.tau = new_tau
@@ -578,9 +580,16 @@ class SimulationData:
             mean_F = np.average(F[relevant_rows,j_value_lower:j_value_upper+1],weights=weights)
 
         else:
+            #print('finding chunk')
             j_value_upper = np.searchsorted(self.Z,z_value + z_width/2.) - 1
-            j_value_lower = np.max(0,np.searchsorted(self.Z,z_value - z_width/2.))
-            mean_F = np.average(F[j_value_lower:j_value_upper+1,:],weights=self.IVAR_rows[j_value_lower:j_value_upper+1,:])
+            j_value_lower = np.max([0,np.searchsorted(self.Z,z_value - z_width/2.)])
+            #print(j_value_lower,j_value_upper)
+            #print(F.shape)
+            #print(np.max(self.Z_QSO))
+            #print(self.IVAR_rows[:,j_value_lower:j_value_upper+1])
+            #print(self.IVAR_rows[:,j_value_lower:j_value_upper+1].shape)
+            mean_F = np.average(F[:,j_value_lower:j_value_upper+1],weights=self.IVAR_rows[:,j_value_lower:j_value_upper+1])
+            #print('mean calc')
             #print(self.N_qso)
             #print(j_value_lower,j_value_upper)
         return mean_F
@@ -601,14 +610,14 @@ class SimulationData:
         elif not z_width:
             j_value_upper = np.searchsorted(self.Z,z_value)
 
-            j_value_lower = max(j_value_upper - 1,0)
+            j_value_lower = np.max([j_value_upper - 1,0])
             relevant_rows = [i for i in range(self.N_qso) if np.sum(self.IVAR_rows[j_value_lower,j_value_upper]) == 2]
 
             sigma_dF = np.std(dF[relevant_rows,j_value_lower:j_value_upper+1])
 
         else:
             j_value_upper = np.searchsorted(self.Z,z_value + z_width/2.)
-            j_value_lower = np.max(0,np.searchsorted(self.Z,z_value - z_width/2.) - 1)
+            j_value_lower = np.max([0,np.searchsorted(self.Z,z_value - z_width/2.) - 1])
 
             sigma_dF = np.std(dF[:,j_value_lower:j_value_upper+1])
 

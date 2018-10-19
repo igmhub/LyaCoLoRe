@@ -220,7 +220,7 @@ class measurement:
 class function_measurement:
     def __init__(self,parameter_ID,z_value,z_width,N_skewers,n,k1,C0,C1,C2,beta,D0,D1,D2,pixels=[],mean_F=None,k_kms=None,Pk_kms=None,sigma_F=None,cf=None):
         self.parameter_ID = parameter_ID
-        self.z_value = z_values
+        self.z_value = z_value
         self.z_width = z_width
         self.N_skewers = N_skewers
 

@@ -14,7 +14,7 @@ from pyacolore import convert, Pk1D, utils, independent, tuning, simulation_data
 
 lya = 1215.67
 
-N_processes = 4
+N_processes = 1
 lambda_min = 3550.0
 min_cat_z = 1.8
 IVAR_cutoff = 1150.0
@@ -41,14 +41,15 @@ input_format = 'gaussian_colore'
 #get pixels from those directories created by make_master.py
 dirs = glob.glob(base_file_location+new_file_structure.format('*','*'))
 pixels = []
-for dir in dirs[:4]:
+for dir in dirs[:1]:
     ending = dir[len(dir)-dir[-2::-1].find('/')-1:-1]
     if ending != 'logs':
         pixels += [int(ending)]
 
 # TODO: want to move this to tuning.py eventually
 def measure_pixel_segment(pixel,C0,C1,C2,D0,D1,D2,n,k1):
-
+    start = time.time()
+    print('start')
     location = base_file_location + '/' + new_file_structure.format(pixel//100,pixel)
 
     # TODO: this is a problem
@@ -59,7 +60,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,D0,D1,D2,n,k1):
 
     #Make a pixel object from it.
     data = simulation_data.SimulationData.get_gaussian_skewers_object(location+gaussian_filename,None,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
-
+    print('{:3.2f} checkpoint sim_dat'.format(time.time()-start))
     #trim skewers
     data.trim_skewers(lambda_min,min_cat_z,extra_cells=1)
 
@@ -82,24 +83,30 @@ def measure_pixel_segment(pixel,C0,C1,C2,D0,D1,D2,n,k1):
     #Update the alpha and beta lengths.
     alpha = C0 * (data.Z**C1) + C2
     beta = np.ones_like(alpha) * 1.65
-
+    print('{:3.2f} checkpoint ssgf'.format(time.time()-start))
     #Compute the tau skewers and add RSDs
     data.compute_tau_skewers(data.lya_absorber,alpha=alpha,beta=beta)
     data.add_RSDs(data.lya_absorber,alpha,beta,thermal=False)
-
+    print('{:3.2f} checkpoint RSD'.format(time.time()-start))
     measurements = []
     for z_value in z_values:
+        #print(pixel,z_value)
         ID = n
-        measurement = tuning.measurement(ID,z_value,z_width,data.N_qso,n,k1,C0,C1,C2,beta,D0,D1,D2,pixels=[pixel])
+        measurement = tuning.function_measurement(ID,z_value,z_width,data.N_qso,n,k1,C0,C1,C2,beta,D0,D1,D2,pixels=[pixel])
+        #print('measurement object made')
         measurement.add_mean_F_measurement(data)
+        #print('measured mean')
         measurement.add_Pk1D_measurement(data)
+        #print('measured P1D')
         measurement.add_sigma_F_measurement(data)
+        #print('measured sigma')
         measurement.add_mean_F_chi2(eps=0.05)
         measurement.add_Pk1D_chi2(max_k=max_k)
         measurement.add_sigma_F_chi2(eps=0.1)
         measurement.add_total_chi2()
         measurements += [measurement]
-
+        #print(' ')
+    print('{:3.2f} checkpoint measurements'.format(time.time()-start))
     return measurements
 
 def f(C0,C1,C2,D0,D1,D2,n,k1):
@@ -143,7 +150,11 @@ def f(C0,C1,C2,D0,D1,D2,n,k1):
         pool.close()
         pool.join()
 
-    measurement_set = tuning.measurement_set(measurements=results)
+    measurements = []
+    for result in results:
+        measurements += result
+
+    measurement_set = tuning.measurement_set(measurements=measurements)
     combined_pixels_set = measurement_set.combine_pixels()
 
     Pk_kms_chi2 = 0.
@@ -152,6 +163,7 @@ def f(C0,C1,C2,D0,D1,D2,n,k1):
 
     sigma_F_chi2 = 0.
 
+    print('checkpoint')
     for m in combined_pixels_set.measurements:
 
         m.add_mean_F_chi2(eps=0.05)

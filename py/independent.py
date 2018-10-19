@@ -1,4 +1,5 @@
 import numpy as np
+import time
 
 #Function to generate random Gaussian skewers with a given standard deviation.
 def get_gaussian_skewers(generator,N_cells,sigma_G=1.0,N_skewers=1):
@@ -19,7 +20,8 @@ def get_gaussian_skewers(generator,N_cells,sigma_G=1.0,N_skewers=1):
 #Function to generate random Gaussian fields at a given redshift.
 #From lya_mock_functions
 def get_gaussian_fields(generator,N_cells,z=0.0,dv_kms=10.0,N_skewers=1,white_noise=False,n=0.7,k1=0.001,A0=58.6):
-
+    times = []
+    start = time.time(); times += [start]
     # number of Fourier modes
     NF = int(N_cells/2+1)
 
@@ -28,25 +30,25 @@ def get_gaussian_fields(generator,N_cells,z=0.0,dv_kms=10.0,N_skewers=1,white_no
 
     # get power evaluated at each k_kms
     P_kms = power_kms(z,k_kms,dv_kms,white_noise=white_noise,n=n,k1=k1,A0=A0,smooth=True)
-
+    times += [time.time()]
     # generate random Fourier modes
     modes = np.empty([N_skewers,NF], dtype=complex)
     modes[:].real = np.reshape(generator.normal(size=N_skewers*NF),[N_skewers,NF])
     modes[:].imag = np.reshape(generator.normal(size=N_skewers*NF),[N_skewers,NF])
-
+    times += [time.time()]
     # normalize to desired power (and enforce real for i=0, i=NF-1)
     modes[:,0] = modes[:,0].real * np.sqrt(P_kms[0])
     modes[:,-1] = modes[:,-1].real * np.sqrt(P_kms[-1])
     modes[:,1:-1] *= np.sqrt(0.5*P_kms[1:-1])
-
+    times += [time.time()]
     # inverse FFT to get (normalized) delta field
     delta = np.fft.irfft(modes,n=N_cells) * np.sqrt(N_cells/dv_kms)
 
     #check
-    pk_rows = np.fft.rfft(delta,axis=1) / np.sqrt(N_cells/dv_kms)
-    pk_rows = np.abs(pk_rows)**2
-    pk_measured = np.average(pk_rows,axis=0)
-
+    #pk_rows = np.fft.rfft(delta,axis=1) / np.sqrt(N_cells/dv_kms)
+    #pk_rows = np.abs(pk_rows)**2
+    #pk_measured = np.average(pk_rows,axis=0)
+    times += [time.time()]
     #print('sigma of Pk added (no smoothing)',np.sqrt((1/np.pi)*np.trapz(power_kms(z,k_kms,dv_kms,white_noise=white_noise,n=n,k1=k1,A0=A0,smooth=False),k_kms)))
     #print('sigma of Pk added (smoothing)',np.sqrt((1/np.pi)*np.trapz(power_kms(z,k_kms,dv_kms,white_noise=white_noise,n=n,k1=k1,A0=A0,smooth=True),k_kms)))
     #print('sigma measured inside get gaussian fields',np.sqrt((1/np.pi)*np.trapz(pk_measured,k_kms)))
@@ -55,7 +57,7 @@ def get_gaussian_fields(generator,N_cells,z=0.0,dv_kms=10.0,N_skewers=1,white_no
 
     #print(P_kms)
     #print(pk_measured)
-
+    #print(np.array(times)-start)
     return delta
 
 #Function to return a gaussian P1D in k.
