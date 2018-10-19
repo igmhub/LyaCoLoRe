@@ -108,7 +108,7 @@ def J(x,a,sigma):
     return J
 
 #
-def add_skewer_RSDs(initial_tau,initial_density,velocity_skewer_dz,z,r_hMpc,thermal=False):
+def add_skewer_RSDs(initial_tau,initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False):
 
     N_qso = initial_tau.shape[0]
     N_cells = initial_tau.shape[1]
@@ -126,7 +126,9 @@ def add_skewer_RSDs(initial_tau,initial_density,velocity_skewer_dz,z,r_hMpc,ther
     #total = 0
 
     for i in range(N_qso):
-        for j in range(N_cells):
+        j_upper = np.searchsorted(z,z_qso[i])
+        #for j in range(N_cells):
+        for j in range(j_upper):
             #Add the dz from the velocity skewers to get a 'new_z' for each cell
             z_cell = z[j]
             dz_cell = velocity_skewer_dz[i,j]
