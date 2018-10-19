@@ -21,7 +21,7 @@ IVAR_cutoff = 1150.0
 
 #Get the starting values of alpha, beta and sigma_G from file
 #Decide which z values we are going to sample at
-z_values = [2.0,2.25,2.5,2.75,3.0,3.25]
+z_values = [2.0,2.2,2.4,2.6,2.8,3.0,3.2]
 z_width = 0.2
 
 cell_size = 0.25 #Mpc/h
@@ -30,7 +30,7 @@ max_k = 0.005 #skm-1
 
 #Open up the Gaussian colore files
 #base_file_location = '/Users/jfarr/Projects/test_data/test/'
-base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_newNz_mpz0_nside16'
+base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_newNz_mpz0_seed1003_123_nside16/'
 N_side = 16
 
 new_file_structure = '{}/{}/'               #pixel number//100, pixel number
@@ -98,6 +98,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,D0,D1,D2,n,k1):
         measurement.add_Pk1D_chi2(max_k=max_k)
         measurement.add_sigma_F_chi2(eps=0.1)
         measurement.add_total_chi2()
+        measurements += [measurement]
 
     return measurements
 
@@ -125,7 +126,6 @@ def f(C0,C1,C2,D0,D1,D2,n,k1):
 
     ################################################################################
 
-
     print('looking at params: C=({:2.4f},{:2.4f},{:2.4f}), D=({:2.4f},{:2.4f},{:2.4f}), n={:2.4f}, k1={:2.6f}'.format(C0,C1,C2,D0,D1,D2,n,k1))
 
     tasks = [(pixel,C0,C1,C2,D0,D1,D2,n,k1) for pixel in pixels]
@@ -152,12 +152,6 @@ def f(C0,C1,C2,D0,D1,D2,n,k1):
 
     sigma_F_chi2 = 0.
 
-    D = 0.4172239560422373 #at z=2.0
-    #D = 0.35947529665680117 #at z=2.5
-    #D = 0.3154712096325505 #at z=3
-
-    #predicted_flux_stats = tuning.get_flux_stats(sigma_G,alpha,beta,D)
-
     for m in combined_pixels_set.measurements:
 
         m.add_mean_F_chi2(eps=0.05)
@@ -167,14 +161,6 @@ def f(C0,C1,C2,D0,D1,D2,n,k1):
         Pk_kms_chi2 += m.Pk_kms_chi2
         mean_F_chi2 += m.mean_F_chi2
         overall_chi2 += m.total_chi2
-
-        print(' ')
-        print('z={}, mean F'.format(m.z_value))
-        print('measured: {:2.4f}, model: {:2.4f}, predict: {:2.4f}'.format(m.mean_F,tuning.get_mean_F_model(m.z_value),predicted_flux_stats[0]))
-        #print(' ')
-        #print('sigma F')
-        #print('measured: {:2.4f}, model: {:2.4f}, predict: {:2.4f}'.format(m.sigma_F,tuning.get_sigma_dF_P1D(m.z_value),predicted_flux_stats[1]))
-        #print(' ')
 
         sigma_F_chi2 += m.sigma_F_chi2
 
@@ -195,14 +181,20 @@ def f(C0,C1,C2,D0,D1,D2,n,k1):
 
     return chi2
 
-a_kwargs = {'C0' : 100.0,     'error_C0' : 0.05,  'fix_C0' : False, #'limit_C0' : (0., 20.),
+#Parameters defined by:
+#   alpha = C0 * (Z**C1) + C2
+#   beta = np.ones_like(alpha) * 1.65
+#   sigma_G_required = D0 * (Z**D1) + D2
+
+
+a_kwargs = {'C0' : 100.0,     'error_C0' : 0.5,  'fix_C0' : False, #'limit_C0' : (0., 20.),
             'C1' : -4.6,     'error_C1' : 0.05,  'fix_C1' : False, #'limit_C1' : (0., 20.),
             'C2' : 1.65,     'error_C2' : 0.05,  'fix_C2' : False, #'limit_C2' : (0., 20.),
             }
 
-sG_kwargs = {'D0' : 50.0,     'error_D0' : 0.05,  'fix_D0' : False, #'limit_D0' : (0., 20.),
-             'D1' : -0.07,     'error_D1' : 0.05,  'fix_D1' : False, #'limit_D1' : (0., 20.),
-             'D2' : -43.8,     'error_D2' : 0.05,  'fix_D2' : False, #'limit_D2' : (0., 20.),
+sG_kwargs = {'D0' : 50.0,     'error_D0' : 0.5,  'fix_D0' : False, #'limit_D0' : (0., 20.),
+             'D1' : -0.07,     'error_D1' : 0.01,  'fix_D1' : False, #'limit_D1' : (0., 20.),
+             'D2' : -43.8,     'error_D2' : 0.5,  'fix_D2' : False, #'limit_D2' : (0., 20.),
              }
 
 s_kwargs = {'n'  : 0.7,     'error_n' : 0.05,   'limit_n' : (0., 10.),   'fix_n' : False,
