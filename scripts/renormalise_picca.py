@@ -9,13 +9,13 @@ from pyacolore import tuning,utils
 
 lya = utils.lya_rest
 
-quantity = 'gaussian'
+quantity = 'flux'
 IVAR_cutoff = 1150.
-basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_newNz_mpz0_nside16/'
+basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_newNz_mpz0_seed1003_123_nside16/'
 outdir = basedir
-mean_data_filename = 'mean_data.fits'
+mean_data_filename = 'mean_data_picca_flux_1150.0_v4.0.fits'
 min_number_cells = 2
-rebin_size_hMpc = 3.5
+rebin_size_hMpc = 2.3637
 N_processes = 64
 
 pixel_list = list(range(3072))
@@ -31,13 +31,16 @@ def renormalise(basedir,pixel,IVAR_cutoff,min_number_cells,rebin_size_hMpc,outdi
     initial_delta = h[0].data.T
     IVAR = h[1].data.T
     LOGLAM_MAP = h[2].data
-    Z_QSO = h[3].data['Z']
+    catalog = h[3].data
 
+    h.close()
+
+    Z_QSO = catalog['Z']
     N_qso = initial_delta.shape[0]
     N_cells = initial_delta.shape[1]
 
-    Z = (10**h[2].data)/lya - 1
-
+    Z = (10**LOGLAM_MAP)/lya - 1
+    
     #Load tha initial mean data.
     mean_data = fits.open(mean_data_filename)
     measured_mean_zs = mean_data[1].data['z']
@@ -52,8 +55,8 @@ def renormalise(basedir,pixel,IVAR_cutoff,min_number_cells,rebin_size_hMpc,outdi
     new_delta = np.zeros(initial_delta.shape)
     for j in range(N_cells):
         new_delta[:,j] = (1 + initial_delta[:,j])/(1 + measured_mean[j]) - 1
-
-    new_delta = initial_delta
+    
+    #new_delta = initial_delta
     new_delta *= IVAR
 
     #If needs be, rebin.
@@ -89,14 +92,14 @@ def renormalise(basedir,pixel,IVAR_cutoff,min_number_cells,rebin_size_hMpc,outdi
 
         rebin_new_delta = rebin_new_delta[relevant_QSOs,:]
         rebin_IVAR = rebin_IVAR[relevant_QSOs,:]
-        catalog = h[3].data[relevant_QSOs]
+        relevant_catalog = catalog[relevant_QSOs]
 
         picca_0 = rebin_new_delta.T
         picca_1 = rebin_IVAR.T
         picca_2 = rebin_LOGLAM_MAP
-        picca_3 = catalog
+        picca_3 = relevant_catalog
 
-        new_pf_filename = outdir + '/{}/{}/picca-{}-renorm-rebin-16-{}.fits'.format(pixel//100,pixel,quantity,pixel)
+        new_pf_filename = outdir + '/{}/{}/picca-{}-renorm-rebin-2.3637-16-{}.fits'.format(pixel//100,pixel,quantity,pixel)
 
     else:
         #Organise the data into picca-format arrays.
@@ -113,9 +116,8 @@ def renormalise(basedir,pixel,IVAR_cutoff,min_number_cells,rebin_size_hMpc,outdi
     hdu_delta = fits.PrimaryHDU(data=picca_0,header=header)
     hdu_iv = fits.ImageHDU(data=picca_1,header=header,name='IV')
     hdu_LOGLAM_MAP = fits.ImageHDU(data=picca_2,header=header,name='LOGLAM_MAP')
-    cols_CATALOG = fits.ColDefs(picca_3)
-    hdu_CATALOG = fits.BinTableHDU.from_columns(cols_CATALOG,header=header,name='CATALOG')
-
+    hdu_CATALOG = fits.BinTableHDU(data=picca_3,header=header,name='CATALOG')
+    
     #Combine the HDUs into and HDUlist and save as a new file. Close the HDUlist.
     hdulist = fits.HDUList([hdu_delta, hdu_iv, hdu_LOGLAM_MAP, hdu_CATALOG])
     hdulist.writeto(new_pf_filename,overwrite=True)
