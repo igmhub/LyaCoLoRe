@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.interpolate as sciint
+from scipy.sparse import dok_matrix
 import math
 
 from . import utils
@@ -234,7 +235,8 @@ def add_skewer_RSDs(initial_tau,initial_density,velocity_skewer_dz,z,r_hMpc,z_qs
 
     else:
         for k in range(N_qso):
-            final_tau[k,:] = weights[k,:,:] @ initial_tau[k,:].T
+            skewer_weights = weights[k]
+            final_tau[k,:] = skewer_weights.dot(initial_tau[k,:].T)
 
     return final_tau
 
@@ -243,7 +245,9 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False)
 
     N_qso = velocity_skewer_dz.shape[0]
     N_cells = velocity_skewer_dz.shape[1]
-    weights = np.zeros((N_qso,N_cells,N_cells)) #depth,row,col = qso,real_cell,z_cell
+
+    weights = {}
+    #weights = np.zeros((N_qso,N_cells,N_cells)) #depth,row,col = qso,real_cell,z_cell
 
     #Convert radial distance to a velocity.
     dkms_dhMpc = utils.get_dkms_dhMpc(z)
@@ -257,6 +261,7 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False)
     #total = 0
 
     for i in range(N_qso):
+        skw_weights = dok_matrix((N_cells,N_cells))
         j_upper = np.searchsorted(z,z_qso[i])
         #for j in range(N_cells):
         for j in range(j_upper):
@@ -323,7 +328,7 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False)
                     weight = J(top,cell_size/2.,sigma_kms) - J(bot,cell_size/2.,sigma_kms)
 
                     #cell_weights[j_value-j_values[0]] += weight
-                    weights[i,j_value,j] += weight
+                    skw_weights[j_value,j] += weight
 
             #If we do not want to include thermal effects, we only allocate to the cell above and the cell below.
             else:
@@ -333,7 +338,7 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False)
                     w_lower = 0.
                     if abs(x_kms[0] - new_x_kms_cell) < abs(x_kms[1] - x_kms[0]):
                         w_upper = 1. - abs(x_kms[0] - new_x_kms_cell)/abs(x_kms[1] - x_kms[0])
-                        weights[i,j_upper,j] += w_upper
+                        skw_weights[j_upper,j] += w_upper
                     else:
                         w_upper = 0.
 
@@ -343,7 +348,7 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False)
                     w_upper = 0.
                     if abs(x_kms[-1] - new_x_kms_cell) < abs(x_kms[-1] - x_kms[-2]):
                         w_lower = 1. - abs(x_kms[-1] - new_x_kms_cell)/abs(x_kms[-1] - x_kms[-2])
-                        weights[i,j_lower,j] += w_lower
+                        skw_weights[j_lower,j] += w_lower
                     else:
                         w_lower = 0.
 
@@ -355,10 +360,9 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False)
                     w_upper = abs(new_x_kms_cell - x_kms_lower)/(x_kms_upper - x_kms_lower)
                     w_lower = abs(new_x_kms_cell - x_kms_upper)/(x_kms_upper - x_kms_lower)
 
-                    weights[i,j_upper,j] += w_upper
-                    weights[i,j_lower,j] += w_lower
+                    skw_weights[j_upper,j] += w_upper
+                    skw_weights[j_lower,j] += w_lower
 
-            #final_tau[i,j_values] += cell_weights*initial_tau[i,j]
-
+        weights[i] = skw_weights
 
     return weights
