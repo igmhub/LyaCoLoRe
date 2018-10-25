@@ -49,8 +49,9 @@ for dir in dirs:
 
 
 # TODO: want to move this to tuning.py eventually
-def measure_pixel_segment(pixel,C0,C1,C2,D0,D1,D2,n,k1,return_RSD_weights=False):
+def measure_pixel_segment(pixel,C0,C1,C2,D0,D1,D2,n,k1,RSD_weights,return_RSD_weights=False):
     start = time.time()
+    #print(RSD_weights)
     print('start')
     location = base_file_location + '/' + new_file_structure.format(pixel//100,pixel)
 
@@ -91,8 +92,6 @@ def measure_pixel_segment(pixel,C0,C1,C2,D0,D1,D2,n,k1,return_RSD_weights=False)
 
     if return_RSD_weights:
         RSD_weights = data.get_RSD_weights(data.lya_absorber,alpha,beta,thermal=False)
-    else:
-        RSD_weights = shared_RSD_weights_dict[pixel]
 
     data.add_RSDs(data.lya_absorber,alpha,beta,thermal=False,weights=RSD_weights)
 
@@ -126,8 +125,9 @@ def measure_pixel_segment(pixel,C0,C1,C2,D0,D1,D2,n,k1,return_RSD_weights=False)
 print('getting the weights for the RSDs')
 RSD_weights_dict = {}
 for pixel in pixels:
-    RSD_weights_pixel,_ = measure_pixel_segment(pixel,100,-4.6,1.65,50.,-0.07,-43.8,0.7,0.001,return_RSD_weights=True)
+    RSD_weights_pixel = measure_pixel_segment(pixel,100,-4.6,1.65,50.,-0.07,-43.8,0.7,0.001,None,return_RSD_weights=True)
     RSD_weights_dict[pixel] = RSD_weights_pixel
+print('done!')
 
 def f(C0,C1,C2,D0,D1,D2,n,k1):
 
@@ -155,10 +155,10 @@ def f(C0,C1,C2,D0,D1,D2,n,k1):
 
     print('looking at params: C=({:2.4f},{:2.4f},{:2.4f}), D=({:2.4f},{:2.4f},{:2.4f}), n={:2.4f}, k1={:2.6f}'.format(C0,C1,C2,D0,D1,D2,n,k1))
 
-    tasks = [(pixel,C0,C1,C2,D0,D1,D2,n,k1) for pixel in pixels]
-
-    manager = multiprocessing.Manager()
-    shared_RSD_weights_dict = manager.dict(RSD_weights_dict)
+    tasks = [(pixel,C0,C1,C2,D0,D1,D2,n,k1,RSD_weights_dict[pixel]) for pixel in pixels]
+    #print(RSD_weights_dict)
+    #manager = multiprocessing.Manager()
+    #shared_RSD_weights_dict = manager.dict(RSD_weights_dict)
 
     #Run the multiprocessing pool
     if __name__ == '__main__':
