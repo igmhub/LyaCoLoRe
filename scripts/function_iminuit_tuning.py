@@ -41,13 +41,15 @@ input_format = 'gaussian_colore'
 #get pixels from those directories created by make_master.py
 dirs = glob.glob(base_file_location+new_file_structure.format('*','*'))
 pixels = []
-for dir in dirs[:1]:
+dirs = dirs[:1]
+for dir in dirs:
     ending = dir[len(dir)-dir[-2::-1].find('/')-1:-1]
     if ending != 'logs':
         pixels += [int(ending)]
 
+
 # TODO: want to move this to tuning.py eventually
-def measure_pixel_segment(pixel,C0,C1,C2,D0,D1,D2,n,k1):
+def measure_pixel_segment(pixel,C0,C1,C2,D0,D1,D2,n,k1,return_RSD_weights=False):
     start = time.time()
     print('start')
     location = base_file_location + '/' + new_file_structure.format(pixel//100,pixel)
@@ -86,7 +88,14 @@ def measure_pixel_segment(pixel,C0,C1,C2,D0,D1,D2,n,k1):
     print('{:3.2f} checkpoint ssgf'.format(time.time()-start))
     #Compute the tau skewers and add RSDs
     data.compute_tau_skewers(data.lya_absorber,alpha=alpha,beta=beta)
-    data.add_RSDs(data.lya_absorber,alpha,beta,thermal=False)
+
+    if return_RSD_weights:
+        RSD_weights = data.get_RSD_weights(data.lya_absorber,alpha,beta,thermal=False)
+    else:
+        RSD_weights = shared_RSD_weights_dict[pixel]
+
+    data.add_RSDs(data.lya_absorber,alpha,beta,thermal=False,weights=RSD_weights)
+
     print('{:3.2f} checkpoint RSD'.format(time.time()-start))
     measurements = []
     for z_value in z_values:
@@ -107,7 +116,18 @@ def measure_pixel_segment(pixel,C0,C1,C2,D0,D1,D2,n,k1):
         measurements += [measurement]
         #print(' ')
     print('{:3.2f} checkpoint measurements'.format(time.time()-start))
-    return measurements
+
+    if return_RSD_weights:
+        return RSD_weights
+    else:
+        return measurements
+
+#Get the weights for the RSDs
+print('getting the weights for the RSDs')
+RSD_weights_dict = {}
+for pixel in pixels:
+    RSD_weights_pixel,_ = measure_pixel_segment(pixel,100,-4.6,1.65,50.,-0.07,-43.8,0.7,0.001,return_RSD_weights=True)
+    RSD_weights_dict[pixel] = RSD_weights_pixel
 
 def f(C0,C1,C2,D0,D1,D2,n,k1):
 
@@ -136,6 +156,9 @@ def f(C0,C1,C2,D0,D1,D2,n,k1):
     print('looking at params: C=({:2.4f},{:2.4f},{:2.4f}), D=({:2.4f},{:2.4f},{:2.4f}), n={:2.4f}, k1={:2.6f}'.format(C0,C1,C2,D0,D1,D2,n,k1))
 
     tasks = [(pixel,C0,C1,C2,D0,D1,D2,n,k1) for pixel in pixels]
+
+    manager = multiprocessing.Manager()
+    shared_RSD_weights_dict = manager.dict(RSD_weights_dict)
 
     #Run the multiprocessing pool
     if __name__ == '__main__':
@@ -198,7 +221,6 @@ def f(C0,C1,C2,D0,D1,D2,n,k1):
 #   beta = np.ones_like(alpha) * 1.65
 #   sigma_G_required = D0 * (Z**D1) + D2
 
-
 a_kwargs = {'C0' : 100.0,     'error_C0' : 0.5,  'fix_C0' : False, #'limit_C0' : (0., 20.),
             'C1' : -4.6,     'error_C1' : 0.05,  'fix_C1' : False, #'limit_C1' : (0., 20.),
             'C2' : 1.65,     'error_C2' : 0.05,  'fix_C2' : False, #'limit_C2' : (0., 20.),
@@ -237,6 +259,9 @@ for pixel in pixels:
     final_measurements += [measure_pixel_segment(pixel,z_value,alpha,beta,sigma_G,n,k1,A0)]
 final_measurements = tuning.measurement_set(measurements=final_measurements)
 final_measurements = final_measurements.combine_pixels()
+
+#Want to implement below, as in non-function tuning
+#final_chi2,final_measurements = f(alpha=alpha,beta=beta,sigma_G=sigma_G,n=n,k1=k1,A0=A0,return_measurements=True)
 
 
 """

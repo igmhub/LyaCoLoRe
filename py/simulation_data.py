@@ -521,12 +521,19 @@ class SimulationData:
 
         return
 
-    # TODO: this doesn't use alpha or beta, so can get rid of them
-    #Function to add RSDs from the velocity skewers, with an option to include thermal effects too.
-    def add_RSDs(self,absorber,alpha,beta,thermal=False):
+    def get_RSD_weights(self,absorber,alpha,beta,thermal=False):
 
         density = 1 + self.DENSITY_DELTA_rows
-        new_tau = RSD.add_skewer_RSDs(absorber.tau,density,self.VEL_rows,self.Z,self.R,self.Z_QSO,thermal=thermal)
+        RSD_weights = RSD.get_weights(density,self.VEL_rows,self.Z,self.R,self.Z_QSO,thermal=thermal)
+
+        return RSD_weights
+
+    # TODO: this doesn't use alpha or beta, so can get rid of them
+    #Function to add RSDs from the velocity skewers, with an option to include thermal effects too.
+    def add_RSDs(self,absorber,alpha,beta,thermal=False,weights=None):
+
+        density = 1 + self.DENSITY_DELTA_rows
+        new_tau = RSD.add_skewer_RSDs(absorber.tau,density,self.VEL_rows,self.Z,self.R,self.Z_QSO,thermal=thermal,weights=weights)
 
         #Overwrite the tau skewers and set a flag to True.
         absorber.tau = new_tau
