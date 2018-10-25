@@ -13,7 +13,7 @@ quantity = 'gaussian'
 IVAR_cutoff = 1150.
 basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_newNz_mpz0_nside16/'
 outdir = basedir
-mean_data_filename = 'mean_data.fits'
+mean_data_filename = 'mean_data_{}_cut{}_v4.0.fits'.format(quantity,IVAR_cutoff)
 min_number_cells = 2
 rebin_size_hMpc = 3.5
 N_processes = 64
@@ -25,8 +25,8 @@ def renormalise(basedir,pixel,IVAR_cutoff,min_number_cells,rebin_size_hMpc,outdi
     #Catalog dtype = [('RA', 'f8'), ('DEC', 'f8'), ('Z', 'f8'), ('Z_noRSD', 'f8'), ('MOCKID', int)]
 
     #Open the original picca flux file and extract the data.
-    pf_filename = basedir + '/{}/{}/picca-{}-16-{}.fits'.format(pixel//100,pixel,quantity,pixel)
-    h = fits.open(pf_filename)
+    p_filename = basedir + '/{}/{}/picca-{}-16-{}.fits'.format(pixel//100,pixel,quantity,pixel)
+    h = fits.open(p_filename)
 
     initial_delta = h[0].data.T
     IVAR = h[1].data.T
