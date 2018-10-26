@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.interpolate as sciint
-from scipy.sparse import dok_matrix
+from scipy.sparse import dok_matrix,csc_matrix
 import math
 
 from . import utils
@@ -262,9 +262,14 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False)
 
     for i in range(N_qso):
         skw_weights = dok_matrix((N_cells,N_cells))
-        j_upper = np.searchsorted(z,z_qso[i])
+
+        indices = []
+        data = []
+        indptr = [0]
+
+        j_limit = np.searchsorted(z,z_qso[i])
         #for j in range(N_cells):
-        for j in range(j_upper):
+        for j in range(j_limit):
             #Add the dz from the velocity skewers to get a 'new_z' for each cell
             z_cell = z[j]
             dz_cell = velocity_skewer_dz[i,j]
@@ -330,6 +335,11 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False)
                     #cell_weights[j_value-j_values[0]] += weight
                     skw_weights[j_value,j] += weight
 
+                    indices += [j_value]
+                    data += [weight]
+
+                indptr += [(indptr[-1]+len(j_values))]
+
             #If we do not want to include thermal effects, we only allocate to the cell above and the cell below.
             else:
                 #If it has moved off the low-z end of the skewer, lower weight is 0
@@ -339,6 +349,9 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False)
                     if abs(x_kms[0] - new_x_kms_cell) < abs(x_kms[1] - x_kms[0]):
                         w_upper = 1. - abs(x_kms[0] - new_x_kms_cell)/abs(x_kms[1] - x_kms[0])
                         skw_weights[j_upper,j] += w_upper
+                        indices += [j_upper]
+                        data += [w_upper]
+                        indptr += [(indptr[-1]+1)]
                     else:
                         w_upper = 0.
 
@@ -349,6 +362,9 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False)
                     if abs(x_kms[-1] - new_x_kms_cell) < abs(x_kms[-1] - x_kms[-2]):
                         w_lower = 1. - abs(x_kms[-1] - new_x_kms_cell)/abs(x_kms[-1] - x_kms[-2])
                         skw_weights[j_lower,j] += w_lower
+                        indices += [j_lower]
+                        data += [w_lower]
+                        indptr += [(indptr[-1]+1)]
                     else:
                         w_lower = 0.
 
@@ -363,6 +379,14 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False)
                     skw_weights[j_upper,j] += w_upper
                     skw_weights[j_lower,j] += w_lower
 
+                    indices += [j_lower,j_upper]
+                    data += [w_lower,w_upper]
+                    indptr += [(indptr[-1] + 2)]
+
         weights[i] = skw_weights
+        csc_weights = csc_matrix((data, indices, indptr), shape=(N_cells,N_cells))
+
+        print(weights[i])
+        print(csc_weights)
 
     return weights
