@@ -333,7 +333,7 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False)
                     weight = J(top,cell_size/2.,sigma_kms) - J(bot,cell_size/2.,sigma_kms)
 
                     #cell_weights[j_value-j_values[0]] += weight
-                    skw_weights[j_value,j] += weight
+                    #skw_weights[j_value,j] += weight
 
                     indices += [j_value]
                     data += [weight]
@@ -348,12 +348,13 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False)
                     w_lower = 0.
                     if abs(x_kms[0] - new_x_kms_cell) < abs(x_kms[1] - x_kms[0]):
                         w_upper = 1. - abs(x_kms[0] - new_x_kms_cell)/abs(x_kms[1] - x_kms[0])
-                        skw_weights[j_upper,j] += w_upper
+                        #skw_weights[j_upper,j] += w_upper
                         indices += [j_upper]
                         data += [w_upper]
                         indptr += [(indptr[-1]+1)]
                     else:
                         w_upper = 0.
+                        indptr += [(indptr[-1])]
 
                 #If it has moved off the high-z end of the skewer, upper weight is 0
                 #Only include a lower weight if it is within 1 cell's width.
@@ -361,12 +362,13 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False)
                     w_upper = 0.
                     if abs(x_kms[-1] - new_x_kms_cell) < abs(x_kms[-1] - x_kms[-2]):
                         w_lower = 1. - abs(x_kms[-1] - new_x_kms_cell)/abs(x_kms[-1] - x_kms[-2])
-                        skw_weights[j_lower,j] += w_lower
+                        #skw_weights[j_lower,j] += w_lower
                         indices += [j_lower]
                         data += [w_lower]
                         indptr += [(indptr[-1]+1)]
                     else:
                         w_lower = 0.
+                        indptr += [(indptr[-1])]
 
                 #Otherwise, split the contribution between the new neighbours, distance weighted.
                 else:
@@ -376,17 +378,16 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False)
                     w_upper = abs(new_x_kms_cell - x_kms_lower)/(x_kms_upper - x_kms_lower)
                     w_lower = abs(new_x_kms_cell - x_kms_upper)/(x_kms_upper - x_kms_lower)
 
-                    skw_weights[j_upper,j] += w_upper
-                    skw_weights[j_lower,j] += w_lower
+                    #skw_weights[j_upper,j] += w_upper
+                    #skw_weights[j_lower,j] += w_lower
 
                     indices += [j_lower,j_upper]
                     data += [w_lower,w_upper]
                     indptr += [(indptr[-1] + 2)]
 
-        weights[i] = skw_weights
+        #weights[i] = skw_weights
+        indptr += [indptr[-1]]*(N_cells + 1 - len(indptr))
         csc_weights = csc_matrix((data, indices, indptr), shape=(N_cells,N_cells))
-
-        print(weights[i])
-        print(csc_weights)
+        weights[i] = csc_weights
 
     return weights
