@@ -48,6 +48,29 @@ for dir in dirs:
         pixels += [int(ending)]
 
 
+################################################################################
+
+"""
+Define the multiprocessing tracking functions
+"""
+
+#Define a progress-tracking function.
+def log_result(retval):
+
+    results.append(retval)
+    N_complete = len(results)
+    N_tasks = len(tasks)
+
+    #general.progress_bar(N_complete,N_tasks,start_time)
+    return retval
+
+#Define an error-tracking function.
+def log_error(retval):
+    print('Error:',retval)
+
+################################################################################
+
+
 # TODO: want to move this to tuning.py eventually
 def measure_pixel_segment(pixel,C0,C1,C2,D0,D1,D2,n,k1,RSD_weights,return_RSD_weights=False):
     start = time.time()
@@ -92,41 +115,51 @@ def measure_pixel_segment(pixel,C0,C1,C2,D0,D1,D2,n,k1,RSD_weights,return_RSD_we
 
     if return_RSD_weights:
         RSD_weights = data.get_RSD_weights(data.lya_absorber,alpha,beta,thermal=False)
-
-    data.add_RSDs(data.lya_absorber,alpha,beta,thermal=False,weights=RSD_weights)
-
-    print('{:3.2f} checkpoint RSD'.format(time.time()-start))
-    measurements = []
-    for z_value in z_values:
-        #print(pixel,z_value)
-        ID = n
-        measurement = tuning.function_measurement(ID,z_value,z_width,data.N_qso,n,k1,C0,C1,C2,beta,D0,D1,D2,pixels=[pixel])
-        #print('measurement object made')
-        measurement.add_mean_F_measurement(data)
-        #print('measured mean')
-        measurement.add_Pk1D_measurement(data)
-        #print('measured P1D')
-        measurement.add_sigma_F_measurement(data)
-        #print('measured sigma')
-        measurement.add_mean_F_chi2(eps=0.05)
-        measurement.add_Pk1D_chi2(max_k=max_k)
-        measurement.add_sigma_F_chi2(eps=0.1)
-        measurement.add_total_chi2()
-        measurements += [measurement]
-        #print(' ')
-    print('{:3.2f} checkpoint measurements'.format(time.time()-start))
-
-    if return_RSD_weights:
-        return RSD_weights
+        print('{:3.2f} checkpoint RSDs measured'.format(time.time()-start))
+        return (pixel,RSD_weights)
     else:
+        data.add_RSDs(data.lya_absorber,alpha,beta,thermal=False,weights=RSD_weights)
+        print('{:3.2f} checkpoint RSDs applied'.format(time.time()-start))
+        measurements = []
+        for z_value in z_values:
+            #print(pixel,z_value)
+            ID = n
+            measurement = tuning.function_measurement(ID,z_value,z_width,data.N_qso,n,k1,C0,C1,C2,beta,D0,D1,D2,pixels=[pixel])
+            #print('measurement object made')
+            measurement.add_mean_F_measurement(data)
+            #print('measured mean')
+            measurement.add_Pk1D_measurement(data)
+            #print('measured P1D')
+            measurement.add_sigma_F_measurement(data)
+            #print('measured sigma')
+            measurement.add_mean_F_chi2(eps=0.05)
+            measurement.add_Pk1D_chi2(max_k=max_k)
+            measurement.add_sigma_F_chi2(eps=0.1)
+            measurement.add_total_chi2()
+            measurements += [measurement]
+            #print(' ')
+        print('{:3.2f} checkpoint measurements'.format(time.time()-start))
         return measurements
 
 #Get the weights for the RSDs
 print('getting the weights for the RSDs')
+tasks = [(pixel,100,-4.6,1.65,50.,-0.07,-43.8,0.7,0.001,None,return_RSD_weights=True) for pixel in pixels]
+
+if __name__ == '__main__':
+    pool = Pool(processes = N_processes)
+    start_time = time.time()
+    results = []
+
+    for task in tasks:
+        pool.apply_async(measure_pixel_segment,task,callback=log_result,error_callback=log_error)
+        #results += [result]
+
+    pool.close()
+    pool.join()
+
 RSD_weights_dict = {}
-for pixel in pixels:
-    RSD_weights_pixel = measure_pixel_segment(pixel,100,-4.6,1.65,50.,-0.07,-43.8,0.7,0.001,None,return_RSD_weights=True)
-    RSD_weights_dict[pixel] = RSD_weights_pixel
+for result in results:
+    RSD_weights_dict[result[0]] = result[1]
 print('done!')
 
 def f(C0,C1,C2,D0,D1,D2,n,k1):
