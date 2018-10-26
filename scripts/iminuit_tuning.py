@@ -21,7 +21,7 @@ IVAR_cutoff = 1150.0
 
 #Get the starting values of alpha, beta and sigma_G from file
 #Decide which z values we are going to tune
-z_value = 2.5
+z_value = 3.0
 z_width = 0.2
 
 cell_size = 0.25 #Mpc/h
@@ -30,7 +30,7 @@ max_k = 0.005 #skm-1
 
 #Open up the Gaussian colore files
 base_file_location = '/Users/jfarr/Projects/test_data/test/'
-base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_newNz_mpz0_nside16_old_process'
+base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_newNz_mpz0_seed1003_123_nside16/'
 N_side = 16
 
 new_file_structure = '{}/{}/'               #pixel number//100, pixel number
@@ -248,13 +248,13 @@ def f(alpha,beta,sigma_G,n,k1,A0,return_measurements=False):
     else:
         return chi2
 
-t_kwargs = {'alpha' : 3.08,    'error_alpha' : 0.05,   'limit_alpha' : (0., 30.),  'fix_alpha' : False,
+t_kwargs = {'alpha' : 2.30,    'error_alpha' : 0.05,   'limit_alpha' : (0., 30.),  'fix_alpha' : True,
             'beta' : 1.65,      'error_beta' : 0.05,    'limit_beta' : (0., 20.),   'fix_beta' : True,
-            'sigma_G' : 7.58,  'error_sigma_G' : 0.05, 'limit_sigma_G' : (0., 20.),'fix_sigma_G' : False,
+            'sigma_G' : 6.86,  'error_sigma_G' : 0.05, 'limit_sigma_G' : (0., 20.),'fix_sigma_G' : True,
             }
 
-s_kwargs = {'n'  : 1.52,       'error_n' : 0.05,       'limit_n' : (0., 10.),      'fix_n' : False,
-            'k1' : 0.0166,    'error_k1' : 0.0005,   'limit_k1' : (0., 0.1),     'fix_k1' : False,
+s_kwargs = {'n'  : 1.52,       'error_n' : 0.05,       'limit_n' : (0., 10.),      'fix_n' : True,
+            'k1' : 0.0166,    'error_k1' : 0.0005,   'limit_k1' : (0., 0.1),     'fix_k1' : True,
             'A0' : 58.6,        'error_A0' : 0.1,       'limit_A0' : (0., 200.),    'fix_A0' : True,
             }
 
@@ -323,8 +323,8 @@ for m in final_measurements.measurements:
     plt.legend(fontsize=12)
     plt.ylabel(r'$P_{1D}$',fontsize=12)
     plt.xlabel(r'$k\ /\ (kms^{-1})^{-1}$',fontsize=12)
-    plt.savefig('Pk1D_z{}.pdf'.format(m.z_value))
-    #plt.show()
+    #plt.savefig('Pk1D_z{}.pdf'.format(m.z_value))
+    plt.show()
 
 """
 t20_kwargs = {'alpha20' : 0.57,    'error_alpha20' : 0.05,   'limit_alpha20' : (0., 10.),  'fix_alpha20' : False,

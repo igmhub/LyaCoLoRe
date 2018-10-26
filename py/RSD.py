@@ -261,7 +261,8 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False)
     #total = 0
 
     for i in range(N_qso):
-        skw_weights = dok_matrix((N_cells,N_cells))
+        #skw_weights = dok_matrix((N_cells,N_cells))
+        print(i,N_qso,end='\r')
 
         indices = []
         data = []
