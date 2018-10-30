@@ -14,7 +14,7 @@ from pyacolore import convert, Pk1D, utils, independent, tuning, simulation_data
 
 lya = 1215.67
 
-N_files = 32
+N_files = 1
 N_processes = N_files
 lambda_min = 3550.0
 min_cat_z = 1.8
@@ -233,7 +233,12 @@ def f(C0,C1,C2,D0,D1,D2,n,k1,return_measurements=False):
         Pk_kms_chi2 += m.Pk_kms_chi2
         mean_F_chi2 += m.mean_F_chi2
         overall_chi2 += m.total_chi2
+        print(m.z_value)
+        print(m.mean_F)
+        print(m.k_kms)
+        print(m.Pk_kms)
 
+        print(m.get_details())
         sigma_F_chi2 += m.sigma_F_chi2
 
     #chi2 = mean_F_chi2 + sigma_F_chi2

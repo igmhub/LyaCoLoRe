@@ -283,7 +283,7 @@ class SimulationData:
             last_relevant_cell = np.searchsorted(lambdas,lambda_max) - 1
         else:
             last_relevant_cell = -1 % self.N_cells
-
+        
         #If we want to keep any extra_cells, we subtract from the first_relevant_cell.
         first_relevant_cell -= extra_cells
 
