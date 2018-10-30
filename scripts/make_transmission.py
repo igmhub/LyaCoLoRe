@@ -367,6 +367,7 @@ print('\nWorking on per-HEALPix pixel final skewer files...')
 start_time = time.time()
 
 def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,measured_SIGMA_G,n,k1):
+    # TODO: initially want to use model mean F, then want to post process to use actual mean
     location = get_dir_name(base_out_dir,pixel)
     mean_F_data = np.array(list(zip(tuning_z_values,desired_mean_F)))
 
@@ -407,7 +408,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
 
     filename = get_file_name(location,'picca-gaussian-colorecell',N_side,pixel)
     pixel_object.save_as_picca_gaussian(filename,header)
-    
+
     #Get seed to generate random numbers for this particular pixel
     #seed = 10**(len(str(12*N_side**2))) + pixel + global_seed
     seed = int(str(N_side) + str(pixel)) + global_seed
@@ -446,6 +447,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
         pixel_object.save_as_picca_density(filename,header)
 
         #picca flux
+        # TODO: Issue with mean_F_data
         filename = get_file_name(location,'picca-flux-noRSD',N_side,pixel)
         pixel_object.save_as_picca_flux(filename,header,mean_F_data=mean_F_data)
 
@@ -467,7 +469,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
         os.remove(gaussian_filename)
 
     means = pixel_object.get_means()
-    
+
     return [new_cosmology,means]
 
 #define the tasks
