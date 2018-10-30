@@ -64,7 +64,7 @@ def dnHD_dz_cumlgN(z,logN):
     y = interp2d(tab['col1'],tab['col2'],tab['col3'],fill_value=None)
     return y(z,logN)
 
-def dNdz(z, Nmin=20.0, Nmax=22.):
+def dNdz(z, Nmin=20.0, Nmax=22.5):
     """ Get the column density distribution as a function of z,
     for a given range in N"""
     if use_pyigm:
@@ -76,7 +76,7 @@ def dNdz(z, Nmin=20.0, Nmax=22.):
     else:
         return dnHD_dz_cumlgN(z,Nmax)-dnHD_dz_cumlgN(z,Nmin)
 
-def get_N(z, Nmin=20.0, Nmax=22.0, nsamp=100):
+def get_N(z, Nmin=20.0, Nmax=22.5, nsamp=100):
     """ Get random column densities for a given z
     """
 
@@ -97,7 +97,7 @@ def get_N(z, Nmin=20.0, Nmax=22.0, nsamp=100):
         NHI[i] = np.random.choice(nn,size=1,p=probs[i]/np.sum(probs[i]))+(nn[1]-nn[0])*np.random.random(size=1)
     return NHI
 
-def add_DLA_table_to_object(object,dla_bias=2.0,extrapolate_z_down=None,Nmin=20.0,Nmax=22.,seed=123):
+def add_DLA_table_to_object(object,dla_bias=2.0,extrapolate_z_down=None,Nmin=20.0,Nmax=22.5,seed=123):
 
     #Hopefully this sets the seed for all random generators used
     np.random.seed(seed)
