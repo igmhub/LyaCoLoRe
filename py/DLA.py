@@ -64,7 +64,7 @@ def dnHD_dz_cumlgN(z,logN):
     y = interp2d(tab['col1'],tab['col2'],tab['col3'],fill_value=None)
     return y(z,logN)
 
-def dNdz(z, Nmin=19.5, Nmax=22.):
+def dNdz(z, Nmin=20.0, Nmax=22.):
     """ Get the column density distribution as a function of z,
     for a given range in N"""
     if use_pyigm:
@@ -76,7 +76,7 @@ def dNdz(z, Nmin=19.5, Nmax=22.):
     else:
         return dnHD_dz_cumlgN(z,Nmax)-dnHD_dz_cumlgN(z,Nmin)
 
-def get_N(z, Nmin=19.5, Nmax=22.0, nsamp=100):
+def get_N(z, Nmin=20.0, Nmax=22.0, nsamp=100):
     """ Get random column densities for a given z
     """
 
@@ -85,9 +85,9 @@ def get_N(z, Nmin=19.5, Nmax=22.0, nsamp=100):
     nn = np.linspace(Nmin,Nmax,nsamp)
     probs = np.zeros([Nz,nsamp])
     if use_pyigm:
-        auxfN = np.cumsum(fN_default.evaluate(nn,z), axis=0).T
-        probs_low = auxfN[:,1:]
-        probs_high = auxfN[:,:-1]
+        auxfN = fN_default.evaluate(nn,z) 
+        # Above we got logprob in a grid NHI,z (note the order, we will transpose) 
+        probs = (10**auxfN/np.sum(10**auxfN, axis=0)).T # The probability is the function divided by the sum for a given z
     else:
         probs_low = dnHD_dz_cumlgN(z,nn[:-1]).T
         probs_high = dnHD_dz_cumlgN(z,nn[1:]).T
@@ -97,7 +97,7 @@ def get_N(z, Nmin=19.5, Nmax=22.0, nsamp=100):
         NHI[i] = np.random.choice(nn,size=1,p=probs[i]/np.sum(probs[i]))+(nn[1]-nn[0])*np.random.random(size=1)
     return NHI
 
-def add_DLA_table_to_object(object,dla_bias=2.0,extrapolate_z_down=None,Nmin=19.5,Nmax=22.,seed=123):
+def add_DLA_table_to_object(object,dla_bias=2.0,extrapolate_z_down=None,Nmin=20.0,Nmax=22.,seed=123):
 
     #Hopefully this sets the seed for all random generators used
     np.random.seed(seed)
