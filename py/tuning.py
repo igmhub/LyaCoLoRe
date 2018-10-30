@@ -244,7 +244,7 @@ class function_measurement:
         return
     def get_details(self):
         details = (self.z_value,self.z_width,self.N_skewers,
-                self.n,self.k1,self.alpha,self.beta,self.sigma_G,self.pixels)
+                self.n,self.k1,self.C0,self.C1,self.C2,self.D0,self.D1,self.D2,self.beta,self.pixels)
         return details
     def add_Pk1D_measurement(self,pixel_object):
         F = pixel_object.lya_absorber.transmission()
@@ -472,7 +472,7 @@ class measurement_set:
                 c_m = z_parameter_set[0]
                 if len(z_parameter_set) > 1:
                     for m in z_parameter_set[1:]:
-                        c_m = measurement.combine_measurements(c_m,m)
+                        c_m = function_measurement.combine_measurements(c_m,m)
                 combined_measurements += [c_m]
         return measurement_set(combined_measurements)
     def optimize_s_parameters(self,plot_optimal=False,mean_F_model='Becker13'):

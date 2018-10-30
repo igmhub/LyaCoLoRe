@@ -9,17 +9,17 @@ import time
 from pyacolore import utils,tuning
 
 lya = 1215.67
-IVAR_cutoff = 1150.0
+IVAR_cutoff = 1150.
 N_processes = 64
 # main folder where the processed files are
-basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_newNz_mpz0_nside16/'
-basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v3/v3.0/'
+basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_newNz_mpz0_seed1003_123_nside16/'
+#basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v3/v3.0/'
 #basedir = '/Users/James/Projects/test_data/process_output_G_hZ_4096_32_sr2.0_bm1_nside16/'
 
 if len(sys.argv)>1:
     quantity = sys.argv[1]
 else:
-    quantity = 'transmission'
+    quantity = 'transmission'#'flux-renorm-rebin'
 nside = 16
 N_pixels = 3072
 #pixels = np.sort(np.random.choice(list(range(12*nside**2)),size=N_pixels))
@@ -80,6 +80,7 @@ def read_file(basedir,quantity,nside,pix):
     else:
         # file with delta for picca
         filename = dirname+'/picca-{}-'.format(quantity)+suffix
+        #filename = dirname+'/picca-{}-renorm-rebin-'.format(quantity)+suffix
         #print('picca flux file',filename)
         picca = fits.open(filename)
         data_rows = picca[0].data.T
@@ -181,7 +182,7 @@ if quantity == 'transmission':
     descriptor = quantity
 else:
     descriptor = 'picca_' + quantity
-hdulist.writeto('mean_data_{}_v3.0.fits'.format(descriptor))
+hdulist.writeto('mean_data_{}_{}_v4.0.fits'.format(descriptor,IVAR_cutoff))
 hdulist.close()
 
 err = np.sqrt(overall_var/sum_weights)

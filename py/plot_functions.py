@@ -5,7 +5,7 @@ from picca import wedgize
 import sys
 from numpy import linalg
 import mcfit
-from . import correlation_model
+from pyacolore import correlation_model
 
 
 # TODO: write this
@@ -130,6 +130,10 @@ def get_parameters_from_filename(file_path):
     default_xcf_parameters = {'correlation': 'xcf', 'nside': 16, 'sr': 2.0, 'rpmax': 200.0, 'rpmin': -200.0, 'rtmax': 200.0, 'np': 100, 'nt': 50, 'nr': 25, 'rmax': 200.0, 'zmin': 0.0, 'zmax': 4.0, 'quantities': 'Gq', 'bm': '3'}
     parameter_dtypes = {'correlation': 'str', 'nside': 'int', 'sr': 'float', 'rpmax': 'float', 'rpmin': 'float', 'rtmax': 'float', 'np': 'int', 'nt': 'int', 'nr': 'int', 'rmax': 'float', 'zmin': 'float', 'zmax': 'float', 'quantities': 'str', 'bm': 'int'}
 
+
+    #default_cf_parameters = {'correlation': 'cf', 'nside': 16, 'sr': 2.0, 'rpmax': 160.0, 'rpmin': 0.0, 'rtmax': 160.0, 'np': 40, 'nt': 40, 'nr': 20, 'rmax': 160.0, 'zmin': 0.0, 'zmax':4.0, 'quantities': 'GG', 'bm': '3'}
+
+
     last_slash = file_path[::-1].find('/')
     filename = file_path[len(file_path)-last_slash:]
 
@@ -249,7 +253,7 @@ def plot_per_bin(mubins,filenames,add_CAMB,plot_label_parameters,CAMB_sr=None,sc
 
         if add_CAMB == True:
             for i,sr in enumerate(CAMB_sr):
-                r_CAMB,xi_CAMB_plot_label_CAMB = get_CAMB_xi(CAMB_location+CAMB_filename_format.format(sr),scale_CAMB[i],sr)
+                r_CAMB,xi_CAMB,plot_label_CAMB = get_CAMB_xi(CAMB_location+CAMB_filename_format.format(sr),scale_CAMB[i],sr)
                 plt.plot(r_CAMB,xi_CAMB*(r_CAMB**2),label=plot_label_CAMB)
 
         #save figure
@@ -263,7 +267,7 @@ def plot_per_file(mubins,filenames,add_CAMB,plot_label_parameters,CAMB_sr=None,s
         plt.figure()
         plt.axhline(y=0,color='gray',ls=':')
         plt.xlabel('r [Mpc/h]')
-        plt.ylabel('xi(r)')
+        plt.ylabel(r'$r^2 \xi(r)$')
         plt.grid(True, which='both')
 
         plot_title = ''
@@ -281,7 +285,8 @@ def plot_per_file(mubins,filenames,add_CAMB,plot_label_parameters,CAMB_sr=None,s
 
         if add_CAMB == True:
             for i,sr in enumerate(CAMB_sr):
-                add_CAMB_xi(CAMB_location+CAMB_filename.format(sr),scale_CAMB[i],sr)
+                r_CAMB,xi_CAMB,plot_label_CAMB = get_CAMB_xi(CAMB_location+CAMB_filename_format.format(sr),scale_CAMB[i],sr)
+                plt.plot(r_CAMB,xi_CAMB*(r_CAMB**2),label=plot_label_CAMB)
 
         #save figure
         plt.legend(loc=3)
@@ -294,7 +299,7 @@ def visual_fit(filename,b_values,beta_values,model,data_parameters,z,compute_b_b
     for i in range(len(mubin_boundaries)-1):
         mubins += [(mubin_boundaries[i],mubin_boundaries[i+1])]
     #mubins = [(0.0,0.33),(0.33,0.67),(0.67,1.0)]
-    mubins = [(0.0,0.33),(0.33,0.67),(0.67,1.0)]
+    mubins = [(0.0,0.5),(0.5,0.8),(0.8,1.0)]
     #find a more sophisticated way to do this
     colours = ['r',(0.5,0.5,0.5),'b']
 

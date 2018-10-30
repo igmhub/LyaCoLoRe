@@ -149,7 +149,6 @@ def measure_pixel_segment(pixel,z_value,alpha,beta,sigma_G_required,n,k1,A0):
 
     #print(tuning.get_flux_stats(sigma_G_required,alpha,beta,np.interp(z_value,data.Z,data.D)))
 
-
     return measurement
 
 def f(alpha,beta,sigma_G,n,k1,A0,return_measurements=False):
@@ -226,6 +225,9 @@ def f(alpha,beta,sigma_G,n,k1,A0,return_measurements=False):
         print('measured: {:2.4f}, model: {:2.4f}, predict: {:2.4f}'.format(m.sigma_F,tuning.get_sigma_dF_P1D(m.z_value),predicted_flux_stats[1]))
         print(' ')
 
+        print(m.k_kms)
+        print(m.Pk_kms)
+        print(m.get_details())
         sigma_F_chi2 += m.sigma_F_chi2
 
     #chi2 = mean_F_chi2 + sigma_F_chi2

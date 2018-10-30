@@ -177,7 +177,12 @@ master_data = master[1].data
 master.close()
 
 #Make a MOCKID lookup.
-pixel_list = list(sorted(set([pixel for pixel in master_data['PIXNUM'] if pixel in pixels])))
+#pixel_list = list(sorted(set([pixel for pixel in master_data['PIXNUM'] if pixel in pixels])))
+
+master_data_pixel_set = set(master_data['PIXNUM'])
+pixels_set = set(pixels)
+pixel_list = list(sorted(master_data_pixel_set.intersection(pixels_set)))
+
 MOCKID_lookup = {}
 for pixel in pixel_list:
     #pixel_indices = [i for i in range(len(master_data['PIXNUM'])) if master_data['PIXNUM'][i]==pixel]
@@ -215,7 +220,7 @@ print('\nWorking on per-HEALPix pixel initial Gaussian skewer files...')
 start_time = time.time()
 
 #Define the pixelisation process.
-def pixelise_gaussian_skewers(pixel,colore_base_filename,MOCKID_lookup,z_min,base_out_dir,N_side):
+def pixelise_gaussian_skewers(pixel,colore_base_filename,z_min,base_out_dir,N_side):
 
     #Define the output directory the pixel, according to the new file structure.
     location = get_dir_name(base_out_dir,pixel)
@@ -224,7 +229,7 @@ def pixelise_gaussian_skewers(pixel,colore_base_filename,MOCKID_lookup,z_min,bas
     input_format='gaussian_colore'
 
     #Make file into an object
-    pixel_object = simulation_data.make_gaussian_pixel_object(pixel,colore_base_filename,input_format,MOCKID_lookup,IVAR_cutoff=IVAR_cutoff)
+    pixel_object = simulation_data.make_gaussian_pixel_object(pixel,colore_base_filename,input_format,shared_MOCKID_lookup,IVAR_cutoff=IVAR_cutoff)
 
     # TODO: These could be made beforehand and passed to the function? Or is there already enough being passed?
     #Make some useful headers
@@ -250,9 +255,9 @@ def pixelise_gaussian_skewers(pixel,colore_base_filename,MOCKID_lookup,z_min,bas
 
 #Set up the multiprocessing pool parameters and make a list of tasks.
 #what's the sharing doing here?
-#manager = multiprocessing.Manager()
-#shared_MOCKID_lookup = manager.dict(MOCKID_lookup)
-tasks = [(pixel,colore_base_filename,MOCKID_lookup,z_min,base_out_dir,N_side) for pixel in pixel_list]
+manager = multiprocessing.Manager()
+shared_MOCKID_lookup = manager.dict(MOCKID_lookup)
+tasks = [(pixel,colore_base_filename,z_min,base_out_dir,N_side) for pixel in pixel_list]
 
 #Run the multiprocessing pool
 if __name__ == '__main__':
@@ -400,6 +405,9 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
         print('\nwarning: no objects left in pixel {} after trimming.'.format(pixel))
         return pixel
 
+    filename = get_file_name(location,'picca-gaussian-colorecell',N_side,pixel)
+    pixel_object.save_as_picca_gaussian(filename,header)
+    
     #Get seed to generate random numbers for this particular pixel
     #seed = 10**(len(str(12*N_side**2))) + pixel + global_seed
     seed = int(str(N_side) + str(pixel)) + global_seed
@@ -459,6 +467,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
         os.remove(gaussian_filename)
 
     means = pixel_object.get_means()
+    
     return [new_cosmology,means]
 
 #define the tasks

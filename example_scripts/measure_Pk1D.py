@@ -12,7 +12,7 @@ z_values = [2.0,2.25,2.5,2.75,3.0,3.25]
 colours = ['C0','C1','C2','C3','C4','C5']
 z_width = 0.2
 IVAR_cutoff = 1150.
-basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v3/v3.0/'
+basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_newNz_mpz0_nside16/'
 
 master = fits.open(basedir + '/master.fits')
 R_hMpc_mid = master[3].data['R']
@@ -110,5 +110,5 @@ plt.xlabel(r'k / kms$^{-1}$')
 plt.ylabel('P1D')
 plt.xlim(xmax=10**-1)
 plt.ylim(ymin=10**0)
-plt.savefig('P1D_v3.0.pdf')
+plt.savefig('P1D_v4.0_big.pdf')
 plt.show()
