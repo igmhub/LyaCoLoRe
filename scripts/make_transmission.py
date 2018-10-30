@@ -410,8 +410,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
     pixel_object.save_as_picca_gaussian(filename,header)
 
     #Get seed to generate random numbers for this particular pixel
-    #seed = 10**(len(str(12*N_side**2))) + pixel + global_seed
-    seed = int(str(N_side) + str(pixel)) + global_seed
+    seed = int(pixel * 10**5 + global_seed)
 
     #Add small scale power to the gaussian skewers:
     generator = np.random.RandomState(seed)
