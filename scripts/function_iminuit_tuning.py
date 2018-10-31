@@ -12,9 +12,9 @@ from iminuit import Minuit
 
 from pyacolore import convert, Pk1D, utils, independent, tuning, simulation_data
 
-lya = 1215.67
+lya = utils.lya_rest
 
-N_files = 32
+N_files = 1
 N_processes = N_files
 lambda_min = 3550.0
 min_cat_z = 1.8
@@ -49,7 +49,6 @@ for dir in dirs:
     ending = dir[len(dir)-dir[-2::-1].find('/')-1:-1]
     if ending != 'logs':
         pixels += [int(ending)]
-print(pixels)
 
 ################################################################################
 
@@ -142,7 +141,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,D0,D1,D2,n,k1,RSD_weights,prep=False):
         return measurements
 
 #Pre-prep for future processings by getting RSD maps and independent skewers
-print('producing preparatory data')
+print('producing preparatory data (RSD maps)')
 tasks = [(pixel,104.5,-4.62,1.654,54.6,-0.068,-43.81,1.52,0.0166,None,True) for pixel in pixels]
 
 if __name__ == '__main__':
@@ -164,7 +163,7 @@ print('done!')
 
 
 def f(C0,C1,C2,D0,D1,D2,n,k1,return_measurements=False):
-    """
+    
     ################################################################################
 
     """
@@ -173,12 +172,7 @@ def f(C0,C1,C2,D0,D1,D2,n,k1,return_measurements=False):
 
     #Define a progress-tracking function.
     def log_result(retval):
-
         results.append(retval)
-        N_complete = len(results)
-        N_tasks = len(tasks)
-
-        #general.progress_bar(N_complete,N_tasks,start_time)
         return retval
 
     #Define an error-tracking function.
@@ -186,7 +180,7 @@ def f(C0,C1,C2,D0,D1,D2,n,k1,return_measurements=False):
         print('Error:',retval)
 
     ################################################################################
-    """
+    
     print('starting at',time.ctime())
     print('looking at params: C=({:2.4f},{:2.4f},{:2.4f}), D=({:2.4f},{:2.4f},{:2.4f}), n={:2.4f}, k1={:2.6f}'.format(C0,C1,C2,D0,D1,D2,n,k1))
 
@@ -217,7 +211,6 @@ def f(C0,C1,C2,D0,D1,D2,n,k1,return_measurements=False):
 
     sigma_F_chi2 = 0.
 
-    print('checkpoint')
     for m in combined_pixels_set.measurements:
 
         m.add_mean_F_chi2(eps=0.05)
@@ -272,6 +265,7 @@ s_kwargs = {'n'  : 1.52,     'error_n' : 0.05,   'limit_n' : (0., 10.),   'fix_n
             }
 
 other_kwargs = {'return_measurements'  : False,    'fix_return_measurements' : True,
+                'errordef'             : 1,
             }
 
 minuit = Minuit(f,**a_kwargs,**sG_kwargs,**s_kwargs,**other_kwargs)
