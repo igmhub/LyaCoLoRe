@@ -91,7 +91,7 @@ def get_N(z, Nmin=20.0, Nmax=22.5, nsamp=100):
     else:
         probs_low = dnHD_dz_cumlgN(z,nn[:-1]).T
         probs_high = dnHD_dz_cumlgN(z,nn[1:]).T
-    probs[:,1:] = probs_high-probs_low
+        probs[:,1:] = probs_high-probs_low
     NHI = np.zeros(Nz)
     for i in range(Nz):
         NHI[i] = np.random.choice(nn,size=1,p=probs[i]/np.sum(probs[i]))+(nn[1]-nn[0])*np.random.random(size=1)
