@@ -283,7 +283,7 @@ class SimulationData:
             last_relevant_cell = np.searchsorted(lambdas,lambda_max) - 1
         else:
             last_relevant_cell = -1 % self.N_cells
-        
+
         #If we want to keep any extra_cells, we subtract from the first_relevant_cell.
         first_relevant_cell -= extra_cells
 
@@ -345,7 +345,7 @@ class SimulationData:
         times = []
         start = time.time(); times += [start]
         # TODO: Is NGP really the way to go?
-        #print('extra_sigma_G',extra_sigma_G_values)
+
         #Add small scale fluctuations
         old_R = self.R
         Rmax = np.max(old_R)
@@ -372,7 +372,6 @@ class SimulationData:
         self.VEL_rows = self.VEL_rows[:,NGPs]
 
         #Can either make new IVAR rows, or just use NGPs on the old ones.
-        #self.IVAR_rows = utils.make_IVAR_rows(IVAR_cutoff,self.Z_QSO,self.LOGLAM_MAP)
         self.IVAR_rows = self.IVAR_rows[:,NGPs]
         times += [time.time()]
         #For each skewer, determine the last relevant cell
@@ -401,40 +400,23 @@ class SimulationData:
         dv_kms = cell_size * dkms_dhMpc
         extra_var = independent.get_gaussian_fields(generator,self.N_cells,dv_kms=dv_kms,N_skewers=self.N_qso,white_noise=white_noise,n=n,k1=k1,A0=A0)
 
-        #from . import Pk1D
-        #k_kms_ev, Pk_kms_ev, _ = Pk1D.get_Pk1D(extra_var,np.ones_like(extra_var),self.R,self.Z)
-        #print('original extra var\'s std',np.std(extra_var))
-        #print('original extra var\'s Pk sigma',np.sqrt((1/np.pi)*np.trapz(Pk_kms_ev,k_kms_ev)))
-        #print('original extra var\'s simple sigma',np.sqrt(np.average(extra_var**2)-np.average(extra_var)**2))
-        #print(' ')
         times += [time.time()]
+
         #Normalise the extra variance to have unit variance
         k_kms = np.fft.rfftfreq(self.N_cells)*2*np.pi/dv_kms
         Pk_kms = independent.power_kms(0.,k_kms,dv_kms,white_noise=white_noise,n=n,k1=k1,A0=A0,smooth=True)
         mean_P = np.average(Pk_kms)
         sigma_G_extra_var = np.sqrt((1/np.pi)*np.trapz(Pk_kms,k_kms))
-        #print('sigma_G to norm with',sigma_G_extra_var)
-        #print(' ')
         extra_var /= sigma_G_extra_var #np.sqrt(mean_P/dv_kms)
-
-        #k_kms_ev, Pk_kms_ev, _ = Pk1D.get_Pk1D(extra_var,np.ones_like(extra_var),self.R,self.Z)
-        #print('normed extra var\'s std',np.std(extra_var))
-        #print('normed extra var\'s Pk sigma',np.sqrt((1/np.pi)*np.trapz(Pk_kms_ev,k_kms_ev)))
-        #print(' ')
 
         extra_var *= extra_sigma_G
         times += [time.time()]
-        #k_kms_ev, Pk_kms_ev, _ = Pk1D.get_Pk1D(extra_var,np.ones_like(extra_var),self.R,self.Z)
-        #print('final extra var\'s std',np.std(extra_var))
-        #print('final extra var\'s Pk sigma',np.sqrt((1/np.pi)*np.trapz(Pk_kms_ev,k_kms_ev)))
-        #print(' ')
 
         mask = utils.make_IVAR_rows(lya,self.Z_QSO,self.LOGLAM_MAP)
         extra_var *= mask
 
         expanded_GAUSSIAN_DELTA_rows += amplitude*extra_var
         times += [time.time()]
-        #print('final skewers\'s std',np.std(expanded_GAUSSIAN_DELTA_rows))
 
         """
         # TODO: Improve this
@@ -477,8 +459,10 @@ class SimulationData:
 
         dtype = [('R', 'f8'), ('Z', 'f8'), ('D', 'f8'), ('V', 'f8')]
         new_cosmology = np.array(list(zip(self.R,self.Z,self.D,self.V)),dtype=dtype)
+
         times += [time.time()]
         #print(np.array(times)-start)
+
         return new_cosmology
 
     #Function to add physical skewers to the object via a lognormal transformation.

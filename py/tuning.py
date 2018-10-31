@@ -54,7 +54,6 @@ class measurement:
     def add_Pk1D_measurement(self,pixel_object):
         F = pixel_object.lya_absorber.transmission()
         mean_F = np.average(F)
-        print('mean F in measuring Pk1D:',mean_F)
         delta_F = F/mean_F - 1
         IVAR = pixel_object.IVAR_rows
         R_hMpc = pixel_object.R
@@ -263,9 +262,9 @@ class function_measurement:
         self.Pk_kms = Pk_kms
         return
     def add_mean_F_measurement(self,pixel_object):
-        
+
         self.mean_F = pixel_object.get_mean_flux(pixel_object.lya_absorber,z_value=self.z_value,z_width=self.z_width)
-        
+
         return
     def add_sigma_F_measurement(self,pixel_object):
         sF = pixel_object.get_sigma_dF(pixel_object.lya_absorber,z_value=self.z_value,z_width=self.z_width)
