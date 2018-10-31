@@ -15,25 +15,25 @@ def get_Pk1D(skewer_rows,IVAR_rows,R_hMpc,z,z_value=0.0,z_width=None,units='km/s
     else:
         j_lower = 0
         j_upper = skewer_rows.shape[1]
-        N_cells_chunk = skewer_rows.shape[1]
+        N_cells_chunk = skewer_rows.shape[1] 
 
- 
     #if skewer contains entire chunk, keep, otherwise discard
     N_qso = skewer_rows.shape[0]
-    print('Pk1D receives',N_qso,'quasars')
+    #print('Pk1D receives',N_qso,'quasars')
     skewer_rows_chunk = []
     for i in range(N_qso):
         if np.sum(IVAR_rows[i][j_lower:j_upper+1]) == N_cells_chunk:
             skewer_rows_chunk.append(skewer_rows[i][j_lower:j_upper+1])
     skewer_rows_chunk = np.array(skewer_rows_chunk)
-    print('Pk1D actual array shape',skewer_rows_chunk.shape)
-    #print(skewer_rows_chunk[0,:])
-    print('sum of trim method',np.sum((IVAR_rows[:,j_lower] == 1) * (IVAR_rows[:,j_upper+1] == 1)))
-    print('sum of corrected trim method',np.sum((IVAR_rows[:,j_lower] == 1) * (IVAR_rows[:,j_upper] == 1)))
+    #print('Pk1D actual array shape',skewer_rows_chunk.shape)
+    #print('sum of trim method',np.sum((IVAR_rows[:,j_lower] == 1) * (IVAR_rows[:,j_upper+1] == 1)))
+    #print('sum of corrected trim method',np.sum((IVAR_rows[:,j_lower] == 1) * (IVAR_rows[:,j_upper] == 1)))
 
     #trim R to the chunk now being considered
     R_hMpc = R_hMpc[j_lower:j_upper]
-
+    z = z[j_lower:j_upper]
+    #print('z range',min(z),max(z))
+    #print('R size',(R_hMpc[-1]-R_hMpc[0])/(R_hMpc.shape[0]))
     if units == 'km/s':
         #convert to kms
         dkms_dhMpc = utils.get_dkms_dhMpc(z_value)
@@ -80,7 +80,8 @@ def get_Pk1D(skewer_rows,IVAR_rows,R_hMpc,z,z_value=0.0,z_width=None,units='km/s
 
     else:
         print('Units not recognised. Please choose from \'km/s\' and \'Mpc/h\'.')
-
+    #print('measured k',k)
+    #print('measured pk',pk)
     return k, pk, var
 
 

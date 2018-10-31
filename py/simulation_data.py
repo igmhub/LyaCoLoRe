@@ -298,7 +298,7 @@ class SimulationData:
         relevant_QSOs = (self.Z_QSO>min_catalog_z)
         #If we want the entirety of the lambda range to be relevant (i.e. with IVAR=1), we must remove skewers that do not have this
         if whole_lambda_range:
-            relevant_QSOs *= (self.IVAR_rows[:,first_relevant_cell] == 1) * (self.IVAR_rows[:,last_relevant_cell + 1] == 1)
+            relevant_QSOs *= (self.IVAR_rows[:,first_relevant_cell] == 1) * (self.IVAR_rows[:,last_relevant_cell] == 1)
 
         #Remove QSOs no longer needed.
         self.N_qso = np.sum(relevant_QSOs)
@@ -345,7 +345,7 @@ class SimulationData:
         times = []
         start = time.time(); times += [start]
         # TODO: Is NGP really the way to go?
-
+        #print('extra_sigma_G',extra_sigma_G_values)
         #Add small scale fluctuations
         old_R = self.R
         Rmax = np.max(old_R)
@@ -589,10 +589,10 @@ class SimulationData:
             #print('finding chunk')
             j_value_upper = np.searchsorted(self.Z,z_value + z_width/2.) - 1
             j_value_lower = np.max([0,np.searchsorted(self.Z,z_value - z_width/2.)])
-            #print(j_value_lower,j_value_upper)
-            #print(F.shape)
-            #print(np.max(self.Z_QSO))
-            #print(self.IVAR_rows[:,j_value_lower:j_value_upper+1])
+            #print('j values',j_value_lower,j_value_upper)
+            #print('F shape',F.shape)
+            #print('max qso z',np.max(self.Z_QSO))
+            #print('ivar rows',self.IVAR_rows[:,j_value_lower:j_value_upper+1])
             #print(self.IVAR_rows[:,j_value_lower:j_value_upper+1].shape)
             mean_F = np.average(F[:,j_value_lower:j_value_upper+1],weights=self.IVAR_rows[:,j_value_lower:j_value_upper+1])
             #print('mean calc')

@@ -14,7 +14,7 @@ from pyacolore import convert, Pk1D, utils, independent, tuning, simulation_data
 
 lya = 1215.67
 
-N_processes = 32
+N_processes = 1
 lambda_min = 3550.0
 min_cat_z = 1.8
 IVAR_cutoff = 1150.0
@@ -41,11 +41,12 @@ input_format = 'gaussian_colore'
 #get pixels from those directories created by make_master.py
 dirs = glob.glob(base_file_location+new_file_structure.format('*','*'))
 pixels = []
-for dir in dirs[:32]:
+for dir in dirs[:1]:
     ending = dir[len(dir)-dir[-2::-1].find('/')-1:-1]
     if ending != 'logs':
         pixels += [int(ending)]
 
+print(pixels)
 # TODO: want to move this to tuning.py eventually
 def measure_pixel_segment(pixel,z_value,alpha,beta,sigma_G_required,n,k1,A0):
     #print('start',pixel,z_value,alpha,beta,sigma_G_required,n,k1)
@@ -61,17 +62,24 @@ def measure_pixel_segment(pixel,z_value,alpha,beta,sigma_G_required,n,k1,A0):
     #Make a pixel object from it.
     data = simulation_data.SimulationData.get_gaussian_skewers_object(location+gaussian_filename,None,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
 
+    print('CoLoRe Gaussian 0:',data.GAUSSIAN_DELTA_rows[0,:])
+    print('CoLoRe Gaussian 1:',data.GAUSSIAN_DELTA_rows[1,:])
+    print('CoLoRe Gaussian 2:',data.GAUSSIAN_DELTA_rows[2,:])
     #Determine the sigma_G to add
     extra_sigma_G = np.sqrt(sigma_G_required**2 - measured_SIGMA_G**2)
 
     #trim skewers
     data.trim_skewers(lambda_min,min_cat_z,extra_cells=1)
-
+    print('Z range',min(data.Z),max(data.Z))
+    print('N_qso',data.N_qso)
+    print('trim to chunk')
     #We extend the ranges of lambda a little to make sure RSDs are all accounted for.
     extra = 0.1
     lambda_min_val = lya*(1 + z_value - z_width*(1+extra)/2)
     lambda_max_val = lya*(1 + z_value + z_width*(1+extra)/2)
     data.trim_skewers(lambda_min_val,min_cat_z,lambda_max=lambda_max_val,whole_lambda_range=True)
+    print('Z range',min(data.Z),max(data.Z))
+    print('N_qso',data.N_qso)
 
     #print('before SSP')
     mean_G = np.average(data.GAUSSIAN_DELTA_rows)
@@ -91,6 +99,7 @@ def measure_pixel_segment(pixel,z_value,alpha,beta,sigma_G_required,n,k1,A0):
 
     #add small scale fluctuations
     seed = int(str(N_side) + str(pixel))
+    print('seed',seed)
     generator = np.random.RandomState(seed)
     data.add_small_scale_gaussian_fluctuations(cell_size,data.Z,np.ones(data.Z.shape[0])*extra_sigma_G,generator,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n=n,k1=k1,A0=A0) #n=0.7, k1=0.001 default
 
@@ -104,6 +113,14 @@ def measure_pixel_segment(pixel,z_value,alpha,beta,sigma_G_required,n,k1,A0):
 
     #Convert to flux
     data.compute_physical_skewers()
+
+    print('Gaussian P1D after SSP seems to match')
+    #k,pk,_=Pk1D.get_Pk1D(data.GAUSSIAN_DELTA_rows,data.IVAR_rows,data.R,data.Z,z_value=3.0,z_width=0.2,units='km/s')
+    #print(k,pk)
+    print('Physical P1D')
+    k,pk,_=Pk1D.get_Pk1D(data.DENSITY_DELTA_rows,data.IVAR_rows,data.R,data.Z,z_value=3.0,z_width=0.2,units='km/s')
+    print(k,pk)
+    print(' ')
 
     #print('physical')
     mean_D = np.average(data.DENSITY_DELTA_rows)
@@ -123,7 +140,9 @@ def measure_pixel_segment(pixel,z_value,alpha,beta,sigma_G_required,n,k1,A0):
     #print('predicted density delta sigma is',sigma_D)
     #print(' ')
 
-    data.compute_tau_skewers(data.lya_absorber,alpha=np.ones(data.Z.shape[0])*alpha,beta=beta)
+    print('first DD skewer',data.DENSITY_DELTA_rows[0,:10])
+    data.compute_tau_skewers(data.lya_absorber,alpha=np.ones(data.Z.shape[0])*alpha,beta=np.ones(data.Z.shape[0])*beta)
+    print('first tau skewer',data.lya_absorber.tau[0,:10])
     data.add_RSDs(data.lya_absorber,np.ones(data.Z.shape[0])*alpha,beta,thermal=False)
 
     #Trim the skewers again to get rid of the additional cells
@@ -134,10 +153,12 @@ def measure_pixel_segment(pixel,z_value,alpha,beta,sigma_G_required,n,k1,A0):
     #Convert back to small cells for cf measurement
     #need a new function to merge cells back together
 
+    print('z={}: alpha={}, sigma_G extra={}'.format(z_value,alpha,extra_sigma_G))
     ID = n
     measurement = tuning.measurement(ID,z_value,z_width,data.N_qso,n,k1,alpha,beta,sigma_G_required,pixels=[pixel])
 
     measurement.add_mean_F_measurement(data)
+    print('measuring Pk1D')
     measurement.add_Pk1D_measurement(data)
     measurement.add_sigma_F_measurement(data)
     #print(measurement.sigma_F)
