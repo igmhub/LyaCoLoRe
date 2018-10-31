@@ -14,7 +14,7 @@ from pyacolore import convert, Pk1D, utils, independent, tuning, simulation_data
 
 lya = 1215.67
 
-N_files = 1
+N_files = 32
 N_processes = N_files
 lambda_min = 3550.0
 min_cat_z = 1.8
@@ -22,8 +22,9 @@ IVAR_cutoff = 1150.0
 
 #Get the starting values of alpha, beta and sigma_G from file
 #Decide which z values we are going to sample at
-z_values = [3.0]#[2.0,2.2,2.4,2.6,2.8,3.0,3.2]
+z_values = [2.0,2.2,2.4,2.6,2.8,3.0,3.2]
 z_width = 0.2
+colours = ['C0','C1','C2','C3','C4','C5','C6']
 
 cell_size = 0.25 #Mpc/h
 
@@ -32,7 +33,7 @@ max_k = 0.005 #skm-1
 #Open up the Gaussian colore files
 #base_file_location = '/Users/jfarr/Projects/test_data/test/'
 base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_newNz_mpz0_seed1003_123_nside16/'
-base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v3/v3.0/'
+#base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v3/v3.0/'
 N_side = 16
 
 new_file_structure = '{}/{}/'               #pixel number//100, pixel number
@@ -48,7 +49,7 @@ for dir in dirs:
     ending = dir[len(dir)-dir[-2::-1].find('/')-1:-1]
     if ending != 'logs':
         pixels += [int(ending)]
-
+print(pixels)
 
 ################################################################################
 
@@ -76,7 +77,7 @@ def log_error(retval):
 # TODO: want to move this to tuning.py eventually
 def measure_pixel_segment(pixel,C0,C1,C2,D0,D1,D2,n,k1,RSD_weights,return_RSD_weights=False):
     start = time.time()
-    #print('start')
+    print('start pixel {} at {}'.format(pixel,time.ctime()))
     location = base_file_location + '/' + new_file_structure.format(pixel//100,pixel)
 
     # TODO: this is a problem
@@ -88,8 +89,17 @@ def measure_pixel_segment(pixel,C0,C1,C2,D0,D1,D2,n,k1,RSD_weights,return_RSD_we
     #Make a pixel object from it.
     data = simulation_data.SimulationData.get_gaussian_skewers_object(location+gaussian_filename,None,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
     #print('{:3.2f} checkpoint sim_dat'.format(time.time()-start))
+
     #trim skewers
     data.trim_skewers(lambda_min,min_cat_z,extra_cells=1)
+
+    #extra = 0.1
+    #lambda_min_val = lya*(1 + 3.0 - z_width*(1+extra)/2)
+    #lambda_max_val = lya*(1 + 3.0 + z_width*(1+extra)/2)
+    #data.trim_skewers(lambda_min_val,min_cat_z,lambda_max=lambda_max_val,whole_lambda_range=True)
+
+    #print('Z range',min(data.Z),max(data.Z))
+    #print('N_qso',data.N_qso)
 
     #Expand the C and D parameters into functions of z.
     alpha = C0 * (data.Z**C1) + C2
@@ -101,12 +111,24 @@ def measure_pixel_segment(pixel,C0,C1,C2,D0,D1,D2,n,k1,RSD_weights,return_RSD_we
 
     #add small scale fluctuations
     seed = int(str(N_side) + str(pixel))
+    #print('seed',seed)
+    #print('(n,k1)',n,k1)
     generator = np.random.RandomState(seed)
-    data.add_small_scale_gaussian_fluctuations(cell_size,data.Z,extra_sigma_G,generator,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n=n,k1=k1)
+    data.add_small_scale_gaussian_fluctuations(cell_size,data.Z,extra_sigma_G,generator,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n=n,k1=k1,A0=58.6)
 
     #Copmute the physical skewers
     data.compute_physical_skewers()
-
+    
+    #print('Gaussian P1D after SSP seems to match')
+    #indices = (data.Z > 2.9)*(data.Z < 3.1)
+    #QSOs = np.sum(data.IVAR_rows[:,indices],axis=1)==np.sum(indices)
+    #k,pk,_=Pk1D.get_Pk1D(data.GAUSSIAN_DELTA_rows,data.IVAR_rows,data.R,data.Z,z_value=3.0,z_width=0.2,units='km/s')
+    #print(k,pk)
+    #print('Physical P1D')
+    #k,pk,_=Pk1D.get_Pk1D(data.DENSITY_DELTA_rows[:,indices][QSOs,:],data.IVAR_rows[:,indices][QSOs,:],data.R[indices],data.Z[indices],z_value=3.0,z_width=0.2,units='km/s')
+    #print(k,pk)
+    #print(' ')
+    #print('first DD skewer',data.DENSITY_DELTA_rows[0,:10])
     #Update the alpha and beta lengths.
     alpha = C0 * (data.Z**C1) + C2
     beta = np.ones_like(alpha) * 1.65
@@ -120,18 +142,24 @@ def measure_pixel_segment(pixel,C0,C1,C2,D0,D1,D2,n,k1,RSD_weights,return_RSD_we
         #print('{:3.2f} checkpoint RSDs measured'.format(time.time()-start))
         return (pixel,RSD_weights)
     else:
+        #print('first tau skewer',data.lya_absorber.tau[0,:10])
+        RSD_weights = RSD_weights_dict[pixel]
         data.add_RSDs(data.lya_absorber,alpha,beta,thermal=False,weights=RSD_weights)
+        #lambda_min_val = lya*(1 + 3.0 - z_width/2)
+        #lambda_max_val = lya*(1 + 3.0 + z_width/2)
+        #data.trim_skewers(lambda_min_val,min_cat_z,lambda_max=lambda_max_val,whole_lambda_range=True)
         #print('{:3.2f} checkpoint RSDs applied'.format(time.time()-start))
         measurements = []
         for z_value in z_values:
-            print('z={}: alpha={}, sigma_G={}'.format(z_value,np.interp(z_value,data.Z,alpha),np.interp(z_value,data.Z,sigma_G_required)))
-
+            #print('z={}: alpha={}, sigma_G={}'.format(z_value,np.interp(z_value,data.Z,alpha),np.interp(z_value,data.Z,sigma_G_required)))
+            #print('data z:',data.Z)
             #print(pixel,z_value)
             ID = n
             measurement = tuning.function_measurement(ID,z_value,z_width,data.N_qso,n,k1,C0,C1,C2,beta,D0,D1,D2,pixels=[pixel])
             #print('measurement object made')
             measurement.add_mean_F_measurement(data)
             #print('measured mean')
+            #print('measuring Pk1D')
             measurement.add_Pk1D_measurement(data)
             #print('measured P1D')
             measurement.add_sigma_F_measurement(data)
@@ -147,7 +175,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,D0,D1,D2,n,k1,RSD_weights,return_RSD_we
 
 #Get the weights for the RSDs
 print('getting the weights for the RSDs')
-tasks = [(pixel,100,-4.6,1.65,50.,-0.07,-43.8,0.7,0.001,None,True) for pixel in pixels]
+tasks = [(pixel,104.5,-4.62,1.654,54.6,-0.068,-43.81,1.52,0.0166,None,True) for pixel in pixels]
 
 if __name__ == '__main__':
     pool = Pool(processes = N_processes)
@@ -192,7 +220,7 @@ def f(C0,C1,C2,D0,D1,D2,n,k1,return_measurements=False):
 
     print('looking at params: C=({:2.4f},{:2.4f},{:2.4f}), D=({:2.4f},{:2.4f},{:2.4f}), n={:2.4f}, k1={:2.6f}'.format(C0,C1,C2,D0,D1,D2,n,k1))
 
-    tasks = [(pixel,C0,C1,C2,D0,D1,D2,n,k1,RSD_weights_dict[pixel]) for pixel in pixels]
+    tasks = [(pixel,C0,C1,C2,D0,D1,D2,n,k1,None) for pixel in pixels]
     #print(RSD_weights_dict)
     #manager = multiprocessing.Manager()
     #shared_RSD_weights_dict = manager.dict(RSD_weights_dict)
@@ -233,12 +261,12 @@ def f(C0,C1,C2,D0,D1,D2,n,k1,return_measurements=False):
         Pk_kms_chi2 += m.Pk_kms_chi2
         mean_F_chi2 += m.mean_F_chi2
         overall_chi2 += m.total_chi2
-        print(m.z_value)
-        print(m.mean_F)
-        print(m.k_kms)
-        print(m.Pk_kms)
+        #print(m.z_value)
+        #print(m.mean_F)
+        #print(m.k_kms)
+        #print(m.Pk_kms)
 
-        print(m.get_details())
+        #print(m.get_details())
         sigma_F_chi2 += m.sigma_F_chi2
 
     #chi2 = mean_F_chi2 + sigma_F_chi2
@@ -266,7 +294,7 @@ def f(C0,C1,C2,D0,D1,D2,n,k1,return_measurements=False):
 #   beta = np.ones_like(alpha) * 1.65
 #   sigma_G_required = D0 * (Z**D1) + D2
 
-fix_all = True
+fix_all = False
 
 a_kwargs = {'C0' : 104.5,     'error_C0' : 1.0,  'fix_C0' : fix_all|False, #'limit_C0' : (0., 20.),
             'C1' : -4.632,     'error_C1' : 0.05,  'fix_C1' : fix_all|False, #'limit_C1' : (0., 20.),
@@ -335,24 +363,26 @@ def plot_mean_F_values(m_set,wait=False):
 def plot_P1D_values(m_set,wait=False):
     plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
     for m in m_set.measurements:
-        plt.plot(m.k_kms,m.Pk_kms,label='z={}'.format(m.z_value))
+        colour = colours[np.searchsorted(z_values,m.z_value)]
+        plt.plot(m.k_kms,m.Pk_kms,label='z={}'.format(m.z_value),c=colour)
         model_Pk_kms = tuning.P1D_z_kms_PD2013(m.z_value,m.k_kms)
-        plt.plot(m.k_kms,model_Pk_kms,label='DR9 z={}'.format(m.z_value))
+        plt.plot(m.k_kms,model_Pk_kms,label='DR9 z={}'.format(m.z_value),c=colour,linestyle=':')
         m.add_Pk1D_chi2(max_k=max_k)#,denom="npower")
         eps = m.Pk_kms_chi2_eps
         plt.fill_between(m.k_kms,model_Pk_kms*1.1,model_Pk_kms*0.9,color=[0.5,0.5,0.5],alpha=0.5)#,label='DR9 +/- 10%')
         lower = np.maximum(np.ones_like(model_Pk_kms)*10**(-6),model_Pk_kms * (1. - eps))
         upper = model_Pk_kms * (1. + eps)
-        plt.plot(m.k_kms,upper,c='k',linestyle='dashed')
-        plt.plot(m.k_kms,lower,c='k',linestyle='dashed')
+        #plt.plot(m.k_kms,upper,c='k',linestyle='dashed')
+        #plt.plot(m.k_kms,lower,c='k',linestyle='dashed')
         #plt.fill_between(m.k_kms,upper,lower,color=[0.8,0.8,0.8],alpha=0.5,label='chi2 weighting')
     plt.title('z={}: C=({:2.4f},{:2.4f},{:2.4f}), D=({:2.4f},{:2.4f},{:2.4f}), n={:2.4f}, k1={:2.6f}'.format(m.z_value,m.C0,m.C1,m.C2,m.D0,m.D1,m.D2,m.n,m.k1),fontsize=12)
-    #plt.axvline(x=0.0152,color='k')
+    plt.axvline(x=max_k,color='k')
     plt.semilogy()
     plt.semilogx()
     ylim_lower = min(model_Pk_kms) * 0.8
     ylim_upper = max(model_Pk_kms) * 1.2
     plt.ylim(ylim_lower,ylim_upper)
+    plt.xlim(xmax=0.02)
     plt.grid()
     plt.legend(fontsize=12)
     plt.ylabel(r'$P_{1D}$',fontsize=12)

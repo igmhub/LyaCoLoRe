@@ -20,6 +20,8 @@ def get_gaussian_skewers(generator,N_cells,sigma_G=1.0,N_skewers=1):
 #Function to generate random Gaussian fields at a given redshift.
 #From lya_mock_functions
 def get_gaussian_fields(generator,N_cells,z=0.0,dv_kms=10.0,N_skewers=1,white_noise=False,n=0.7,k1=0.001,A0=58.6):
+    #print(generator,N_cells,z,dv_kms,N_skewers,white_noise,n,k1,A0)
+
     times = []
     start = time.time(); times += [start]
     # number of Fourier modes
@@ -36,6 +38,9 @@ def get_gaussian_fields(generator,N_cells,z=0.0,dv_kms=10.0,N_skewers=1,white_no
     modes[:].real = np.reshape(generator.normal(size=N_skewers*NF),[N_skewers,NF])
     modes[:].imag = np.reshape(generator.normal(size=N_skewers*NF),[N_skewers,NF])
     times += [time.time()]
+    
+    #print('rand numbers size',modes.shape)
+    #print('start of rand numbers',modes[0,:10])
     # normalize to desired power (and enforce real for i=0, i=NF-1)
     modes[:,0] = modes[:,0].real * np.sqrt(P_kms[0])
     modes[:,-1] = modes[:,-1].real * np.sqrt(P_kms[-1])
@@ -45,9 +50,12 @@ def get_gaussian_fields(generator,N_cells,z=0.0,dv_kms=10.0,N_skewers=1,white_no
     delta = np.fft.irfft(modes,n=N_cells) * np.sqrt(N_cells/dv_kms)
 
     #check
-    #pk_rows = np.fft.rfft(delta,axis=1) / np.sqrt(N_cells/dv_kms)
-    #pk_rows = np.abs(pk_rows)**2
-    #pk_measured = np.average(pk_rows,axis=0)
+    pk_rows = np.fft.rfft(delta,axis=1) / np.sqrt(N_cells/dv_kms)
+    pk_rows = np.abs(pk_rows)**2
+    pk_measured = np.average(pk_rows,axis=0)
+    #print(k_kms)
+    #print(pk_measured)
+
     times += [time.time()]
     #print('sigma of Pk added (no smoothing)',np.sqrt((1/np.pi)*np.trapz(power_kms(z,k_kms,dv_kms,white_noise=white_noise,n=n,k1=k1,A0=A0,smooth=False),k_kms)))
     #print('sigma of Pk added (smoothing)',np.sqrt((1/np.pi)*np.trapz(power_kms(z,k_kms,dv_kms,white_noise=white_noise,n=n,k1=k1,A0=A0,smooth=True),k_kms)))
