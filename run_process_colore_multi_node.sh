@@ -31,7 +31,7 @@ NFILES=`echo $INPUT_FILES | wc -w`
 echo "${NFILES} input files have been found"
 
 # full path to folder where output will be written
-OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_${COLORE_NGRID}_${COLORE_NODES}_sr${R_SMOOTH}_bm1_biasG18_picos_newNz_mpz0_seed${COLORE_SEED}_${LYACOLORE_SEED}_nside${NSIDE}_noRSD/"
+OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_${COLORE_NGRID}_${COLORE_NODES}_sr${R_SMOOTH}_bm1_biasG18_picos_newNz_mpz0_seed${COLORE_SEED}_${LYACOLORE_SEED}_nside${NSIDE}_DLAfix/"
 echo "output will written to "$OUTPUT_PATH
 if [ ! -d $OUTPUT_PATH ] ; then
     mkdir -p $OUTPUT_PATH

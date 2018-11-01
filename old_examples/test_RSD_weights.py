@@ -4,7 +4,10 @@ from astropy.io import fits
 
 from pyacolore import RSD
 
-h = fits.open('example_data/lya_skewers/0/0/gaussian-colore-16-0.fits')
+filename = 'example_data/lya_skewers/0/0/gaussian-colore-16-0.fits'
+filename = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_newNz_mpz0_seed1003_123_nside16/0/0/gaussian-colore-16-0.fits'
+
+h = fits.open(filename)
 
 z_qso = h[1].data['Z_COSMO']
 initial_skewers = h[2].data
