@@ -14,7 +14,7 @@ from pyacolore import convert, Pk1D, utils, independent, tuning, simulation_data
 
 lya = utils.lya_rest
 
-N_files = 1
+N_files = 32
 N_processes = N_files
 lambda_min = 3550.0
 min_cat_z = 1.8
@@ -161,7 +161,6 @@ for result in results:
     RSD_weights_dict[result[0]] = result[1]
 print('done!')
 
-
 def f(C0,C1,C2,D0,D1,D2,n,k1,return_measurements=False):
     
     ################################################################################
@@ -238,6 +237,14 @@ def f(C0,C1,C2,D0,D1,D2,n,k1,return_measurements=False):
     #print('chi2: sF {:2.4f}, mean F {:2.4f}, overall {:2.4f}'.format(sigma_F_chi2,mean_F_chi2,overall_chi2))
     print(' ')
 
+    with open("parameter_log.txt","a") as f:
+        txt = str(time.ctime()+'\n')
+        txt += 'C0:{}, C1:{}, C2:{}, D0:{}, D1:{}, D2:{}, n:{}, k1:{}, beta:1.65\n'.format(C0,C1,C2,D0,D1,D2,n,k1)
+        txt += 'chi2: Pk {:2.4f}, mean F {:2.4f}, overall {:2.4f}\n\n'.format(Pk_kms_chi2,mean_F_chi2,overall_chi2)
+        f.write(txt)
+        f.close()
+        best = chi2
+
     if return_measurements:
         return chi2, combined_pixels_set
     else:
@@ -250,18 +257,20 @@ def f(C0,C1,C2,D0,D1,D2,n,k1,return_measurements=False):
 
 fix_all = False
 
-a_kwargs = {'C0' : 104.5,     'error_C0' : 1.0,  'fix_C0' : fix_all|False, #'limit_C0' : (0., 20.),
-            'C1' : -4.632,     'error_C1' : 0.05,  'fix_C1' : fix_all|False, #'limit_C1' : (0., 20.),
-            'C2' : 1.654,     'error_C2' : 0.05,  'fix_C2' : fix_all|False, #'limit_C2' : (0., 20.),
+#C0:1047.0550473259868, C1:-8.016871975885525, C2:3.3736566547036584, D0:54.26424856969601, D1:-0.05953313788416722, D2:-44.0881982184532, n:9.925864171425609, k1:0.03604653157775685, beta:1.65
+
+a_kwargs = {'C0' : 1047.0550473259868,     'error_C0' : 10.0,  'fix_C0' : fix_all|False, #'limit_C0' : (0., 20.),
+            'C1' : -8.016871975885525,     'error_C1' : 0.1,  'fix_C1' : fix_all|False, #'limit_C1' : (0., 20.),
+            'C2' : 3.3736566547036584,     'error_C2' : 0.1,  'fix_C2' : fix_all|False, #'limit_C2' : (0., 20.),
             }
 
-sG_kwargs = {'D0' : 54.6,     'error_D0' : 1.0,  'fix_D0' : fix_all|False, #'limit_D0' : (0., 20.),
-             'D1' : -0.068,     'error_D1' : 0.01,  'fix_D1' : fix_all|False, #'limit_D1' : (0., 20.),
-             'D2' : -43.81,     'error_D2' : 0.5,  'fix_D2' : fix_all|False, #'limit_D2' : (0., 20.),
+sG_kwargs = {'D0' : 54.26424856969601,     'error_D0' : 1.0,  'fix_D0' : fix_all|False, #'limit_D0' : (0., 20.),
+             'D1' : -0.05953313788416722,     'error_D1' : 0.01,  'fix_D1' : fix_all|False, #'limit_D1' : (0., 20.),
+             'D2' : -44.0881982184532,     'error_D2' : 0.5,  'fix_D2' : fix_all|False, #'limit_D2' : (0., 20.),
              }
 
-s_kwargs = {'n'  : 1.52,     'error_n' : 0.05,   'limit_n' : (0., 10.),   'fix_n' : fix_all|False,
-            'k1' : 0.0166,   'error_k1' : 0.0005,'limit_k1' : (0., 0.1),  'fix_k1' : fix_all|False,
+s_kwargs = {'n'  : 9.925864171425609,     'error_n' : 0.1,   'limit_n' : (0., 10.),   'fix_n' : fix_all|False,
+            'k1' : 0.03604653157775685,   'error_k1' : 0.001,'limit_k1' : (0., 0.1),  'fix_k1' : fix_all|False,
             }
 
 other_kwargs = {'return_measurements'  : False,    'fix_return_measurements' : True,
@@ -307,6 +316,7 @@ def plot_mean_F_values(m_set,wait=False):
     plt.fill_between(z_values,model_mean_F*1.1,model_mean_F*0.9,color=[0.5,0.5,0.5],alpha=0.5)
     plt.grid()
     plt.legend()
+    plt.savefig('mean_F.pdf')
     if wait:
         plt.show()
     else:
@@ -341,7 +351,7 @@ def plot_P1D_values(m_set,wait=False):
     plt.legend(fontsize=12)
     plt.ylabel(r'$P_{1D}$',fontsize=12)
     plt.xlabel(r'$k\ /\ (kms^{-1})^{-1}$',fontsize=12)
-    #plt.savefig('Pk1D_z{}.pdf'.format(m.z_value))
+    plt.savefig('Pk1D.pdf')
     if wait:
         plt.show()
     else:
@@ -371,10 +381,10 @@ def plot_parameter_values(minuit_results,z_min=1.8,z_max=4.0,z_size=0.01):
     plt.legend(fontsize=12)
     plt.ylabel('Parameters',fontsize=12)
     plt.xlabel(r'z',fontsize=12)
-    #plt.savefig('parameters.pdf')
+    plt.savefig('parameters.pdf')
     plt.show()
     return
 
-plot_mean_F_values(final_measurements,wait=True)
-plot_P1D_values(final_measurements,wait=True)
+plot_mean_F_values(final_measurements)
+plot_P1D_values(final_measurements)
 plot_parameter_values(minuit)
