@@ -10,7 +10,7 @@ import time
 import os
 import argparse
 
-from pyacolore import utils, independent, stats, convert, simulation_data, DLA, RSD
+from pyacolore import utils, independent, stats, convert, simulation_data, DLA, RSD, tuning
 
 ################################################################################
 
@@ -66,7 +66,7 @@ parser.add_argument('--min-cat-z', type = float, default = 1.8, required=False,
 parser.add_argument('--param-file', type = str, default = 'out_params.cfg', required=False,
                     help = 'output parameter file name')
 
-parser.add_argument('--tuning-file', type = str, default = 'input_files/tune_small_scale_fluctuations.fits', required=False,
+parser.add_argument('--tuning-file', type = str, default = 'input_files/tuning_data.fits', required=False,
                     help = 'file name for data about tuning sigma_G/alpha')
 
 parser.add_argument('--add-DLAs', action="store_true", default = True, required=False,
@@ -95,6 +95,9 @@ parser.add_argument('--nskewers', type = int, default = None, required=False,
 
 parser.add_argument('--seed', type = int, default = 123, required=False,
                     help = 'specify seed to generate random numbers')
+
+parser.add_argument('--fit-function-to-tuning-data', action="store_true", default = False, required=False,
+                    help = 'fit a function of the form A0 * (z^A1) + A2 to the tuning data')
 
 ################################################################################
 
@@ -132,6 +135,7 @@ tuning_file = args.tuning_file
 transmission_only = args.transmission_only
 N_skewers = args.nskewers
 global_seed = args.seed
+fit_function_to_tuning_data = args.fit_function_to_tuning_data
 
 # TODO: print to confirm the arguments. e.g. "DLAs will be added"
 
@@ -141,7 +145,7 @@ else:
     N_pix = 12*N_side**2
 
 #colore skewers filename (except number that will be added later)
-colore_base_filename = base_in_dir+'/out_srcs_s1_' 
+colore_base_filename = base_in_dir+'/out_srcs_s1_'
 
 def get_file_name(base_dir,base_name,nside,pixel):
     return base_dir+'/{}-{}-{}.fits'.format(base_name,nside,pixel)
@@ -173,8 +177,10 @@ master_data = master[1].data
 master.close()
 
 #Make a MOCKID lookup.
-pixel_list = list(sorted(set(pixels).intersection(set(master_data['PIXNUM']))))
-#pixel_list = list(sorted(set([pixel for pixel in master_data['PIXNUM'] if pixel in pixels])))
+master_data_pixel_set = set(master_data['PIXNUM'])
+pixels_set = set(pixels)
+pixel_list = list(sorted(master_data_pixel_set.intersection(pixels_set)))
+
 MOCKID_lookup = {}
 for pixel in pixel_list:
     print(pixel)
@@ -213,7 +219,7 @@ print('\nWorking on per-HEALPix pixel initial Gaussian skewer files...')
 start_time = time.time()
 
 #Define the pixelisation process.
-def pixelise_gaussian_skewers(pixel,colore_base_filename,MOCKID_lookup,z_min,base_out_dir,N_side):
+def pixelise_gaussian_skewers(pixel,colore_base_filename,z_min,base_out_dir,N_side):
 
     #Define the output directory the pixel, according to the new file structure.
     location = get_dir_name(base_out_dir,pixel)
@@ -222,7 +228,7 @@ def pixelise_gaussian_skewers(pixel,colore_base_filename,MOCKID_lookup,z_min,bas
     input_format='gaussian_colore'
 
     #Make file into an object
-    pixel_object = simulation_data.make_gaussian_pixel_object(pixel,colore_base_filename,input_format,MOCKID_lookup,IVAR_cutoff=IVAR_cutoff)
+    pixel_object = simulation_data.make_gaussian_pixel_object(pixel,colore_base_filename,input_format,shared_MOCKID_lookup,IVAR_cutoff=IVAR_cutoff)
 
     # TODO: These could be made beforehand and passed to the function? Or is there already enough being passed?
     #Make some useful headers
@@ -248,9 +254,9 @@ def pixelise_gaussian_skewers(pixel,colore_base_filename,MOCKID_lookup,z_min,bas
 
 #Set up the multiprocessing pool parameters and make a list of tasks.
 #what's the sharing doing here?
-#manager = multiprocessing.Manager()
-#shared_MOCKID_lookup = manager.dict(MOCKID_lookup)
-tasks = [(pixel,colore_base_filename,MOCKID_lookup,z_min,base_out_dir,N_side) for pixel in pixel_list]
+manager = multiprocessing.Manager()
+shared_MOCKID_lookup = manager.dict(MOCKID_lookup)
+tasks = [(pixel,colore_base_filename,z_min,base_out_dir,N_side) for pixel in pixel_list]
 
 #Run the multiprocessing pool
 if __name__ == '__main__':
@@ -295,23 +301,60 @@ if retune_small_scale_fluctuations == True:
 
     # TODO: this needs to be written.
     import tune_flux_parameters
-    tune_small_scale_fluctuations = tune_flux_parameters.tune()
+    tuning_data = tune_flux_parameters.tune()
+    tuning_z_values = tuning_data['z']
+    tuning_alphas = tuning_data['alpha']
+    tuning_betas = tuning_data['beta']
+    tuning_sigma_Gs = tuning_data['sigma_G']
+
 
 else:
     #Otherwise, load the data from the fits file that has been pre-computed.
     print('\nLoading how much extra power to add from file...')
     h = fits.open(tuning_file)
-    tune_small_scale_fluctuations = h['DATA'].data
+    n = h[1].header['n']
+    k1 = h[1].header['k1']
+
+    #If we want to use fitted tuning data, then do so. Otherwise use raw data.
+    if fit_function_to_tuning_data:
+        try:
+            #Try to find fitted data stored. If found, use it.
+            tuning_data = h['FIT DATA'].data
+            tuning_z_values = tuning_data['z']
+            tuning_alphas = tuning_data['alpha']
+            tuning_betas = tuning_data['beta']
+            tuning_sigma_Gs = tuning_data['sigma_G']
+
+        except KeyError:
+            #Otherwise, open the raw data and fit it.
+            tuning_data = h['DATA'].data
+            new_z = np.linspace(0.0,4.0,4001)
+
+            tuning_z_values = tuning_data['z']
+            tuning_alphas = tuning_data['alpha']
+            tuning_betas = tuning_data['beta']
+            tuning_sigma_Gs = tuning_data['sigma_G']
+
+            tuning_alphas = tuning.fit_function_to_data(tuning_z_values,tuning_alphas,new_z)
+            tuning_betas = tuning.fit_function_to_data(tuning_z_values,tuning_betas,new_z)
+            tuning_sigma_Gs = tuning.fit_function_to_data(tuning_z_values,tuning_sigma_Gs,new_z)
+            tuning_z_values = new_z
+
+    else:
+        tuning_data = h['DATA'].data
+        tuning_z_values = tuning_data['z']
+        tuning_alphas = tuning_data['alpha']
+        tuning_betas = tuning_data['beta']
+        tuning_sigma_Gs = tuning_data['sigma_G']
+
     h.close()
     print('Process complete!')
 
-tuning_z_values = tune_small_scale_fluctuations['z']
-desired_sigma_G_values = tune_small_scale_fluctuations['sigma_G']
-desired_mean_F = tune_small_scale_fluctuations['mean_F']
-tuning_alphas = tune_small_scale_fluctuations['alpha']
+desired_mean_F = tuning.get_mean_F_model(tuning_z_values)
 
 #Determine the desired sigma_G by sampling
-extra_sigma_G_values = np.sqrt(desired_sigma_G_values**2 - measured_SIGMA_G**2)
+# TODO: maybe fit here to the data
+extra_sigma_G_values = np.sqrt(tuning_sigma_Gs**2 - measured_SIGMA_G**2)
 
 ################################################################################
 
@@ -322,7 +365,8 @@ We may now calculate the density and flux fields, and save the relevant files.
 print('\nWorking on per-HEALPix pixel final skewer files...')
 start_time = time.time()
 
-def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,measured_SIGMA_G):
+def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,measured_SIGMA_G,n,k1):
+    # TODO: initially want to use model mean F, then want to post process to use actual mean
     location = get_dir_name(base_out_dir,pixel)
     mean_F_data = np.array(list(zip(tuning_z_values,desired_mean_F)))
 
@@ -361,18 +405,20 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
         print('\nwarning: no objects left in pixel {} after trimming.'.format(pixel))
         return pixel
 
+    filename = get_file_name(location,'picca-gaussian-colorecell',N_side,pixel)
+    pixel_object.save_as_picca_gaussian(filename,header)
+
     #Get seed to generate random numbers for this particular pixel
-    #seed = 10**(len(str(12*N_side**2))) + pixel + global_seed
-    seed = int(str(N_side) + str(pixel)) + global_seed
+    seed = int(pixel * 10**5 + global_seed)
 
     #Add small scale power to the gaussian skewers:
     generator = np.random.RandomState(seed)
-    new_cosmology = pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,tuning_z_values,extra_sigma_G_values,generator,white_noise=False,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff)
+    new_cosmology = pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,tuning_z_values,extra_sigma_G_values,generator,white_noise=False,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff,n=n,k1=k1)
     #new_cosmology = []
 
     #Remove the 'SIGMA_G' header as SIGMA_G now varies with z, so can't be stored in a header.
     del header['SIGMA_G']
-    pixel_object.SIGMA_G = np.interp(pixel_object.Z,tuning_z_values,desired_sigma_G_values)
+    pixel_object.SIGMA_G = np.interp(pixel_object.Z,tuning_z_values,tuning_sigma_Gs)
 
     #Add a table with DLAs in to the pixel object.
     # TODO: in future, we want DLAs all the way down to z=0.
@@ -385,8 +431,9 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
     pixel_object.compute_physical_skewers()
 
     #Add tau skewers to the object, starting with Lyman-alpha
-    alphas=np.interp(pixel_object.Z,tuning_z_values,tuning_alphas)
-    pixel_object.compute_all_tau_skewers(alphas,beta)
+    alphas = np.exp(np.interp(np.log(pixel_object.Z),np.log(tuning_z_values),np.log(tuning_alphas)))
+    betas = np.exp(np.interp(np.log(pixel_object.Z),np.log(tuning_z_values),np.log(tuning_betas)))
+    pixel_object.compute_all_tau_skewers(alphas,betas)
 
     if transmission_only == False:
         #Picca Gaussian
@@ -398,6 +445,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
         pixel_object.save_as_picca_density(filename,header)
 
         #picca flux
+        # TODO: Issue with mean_F_data
         filename = get_file_name(location,'picca-flux-noRSD',N_side,pixel)
         pixel_object.save_as_picca_flux(filename,header,mean_F_data=mean_F_data)
 
@@ -419,10 +467,11 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
         os.remove(gaussian_filename)
 
     means = pixel_object.get_means()
+
     return [new_cosmology,means]
 
 #define the tasks
-tasks = [(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,measured_SIGMA_G) for pixel in pixel_list]
+tasks = [(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,measured_SIGMA_G,n,k1) for pixel in pixel_list]
 
 #Run the multiprocessing pool
 if __name__ == '__main__':

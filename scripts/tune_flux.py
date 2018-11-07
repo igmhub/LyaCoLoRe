@@ -247,7 +247,7 @@ print('after combining, number measuremts is:',len(combined_set.measurements))
 
 #Fit model
 def get_model_Pk_kms(k_kms,A_F,B_F):
-    return tuning.P1D_z_kms_PD2013(k_kms,z_value,A_F=A_F,B_F=B_F)
+    return tuning.P1D_z_kms_PD2013(z_value,k_kms,A_F=A_F,B_F=B_F)
 
 
 optimal_measurements = measurement_set.optimize_s_parameters(plot_optimal=True)

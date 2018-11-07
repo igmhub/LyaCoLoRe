@@ -31,7 +31,7 @@ compute_b_beta = True
 
 #Set the b and beta ranges to explore.
 from numpy import linspace as ls
-b_values =      {'G': ls(1.000,1.000,1), 'D': ls(1.0,1.0,1), 'F': ls(-0.134,-0.134,1), 'q': ls(3.356,3.356,1)}
+b_values =      {'G': ls(1.000,1.000,1), 'D': ls(1.0,1.0,1), 'F': ls(-0.1,-0.1,1), 'q': ls(3.356,3.356,1)}
 beta_values =   {'G': ls(0.,0.,1), 'D': ls(0.0,0.0,1), 'F': ls(1.65,1.65,1), 'q': ls(0.,0.,1)}
 #QSO: 2.1,3.356,0.286; 2.6,4.333,0.225; 3.1,5.412,0.181; 3.6,6.589,0.150
 #Gau: 2.1,1.000,0.969; 2.6,1.000,0.974; 3.1,1.000,0.982; 3.6,1.000,0.987
@@ -48,7 +48,7 @@ for filename in filenames:
         print('WARNING: Z RANGE IS NOT NARROW')
 
     if assessment_method == 'visual':
-        correlation_model.visual_fit(filename,b_values,beta_values,model,data_parameters,z,compute_b_beta=compute_b_beta)
+        plot_functions.visual_fit(filename,b_values,beta_values,model,data_parameters,z,compute_b_beta=compute_b_beta)
         fit = []
     elif assessment_method == 'chi2':
         #Maybe use the fitter2 method? Don't really understand this atm
