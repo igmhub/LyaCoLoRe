@@ -319,7 +319,7 @@ class function_measurement:
             eps[max_j:] = upper_smooth[max_j:]
             denom = (eps * model_Pk_kms)**2
         elif denom == "npower":
-            k0 = 0.005
+            k0 = max_k
             n = 2.
             eps = 0.1 * ((1 + (self.k_kms/k0)**n))
             denom = (eps * model_Pk_kms)**2

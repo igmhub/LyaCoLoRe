@@ -184,9 +184,8 @@ def get_parameters_from_param_file(filepath):
     # TODO: write this
     text_file = open(filepath, "r")
     lines = text_file.read().split('\n')
-
     params = {}
-    for line in lines:
+    for line in lines[:-1]:
         param = line.split(' = ')
         name = param[0]
         val = param[1]
@@ -201,8 +200,9 @@ def get_correlation_objects(locations,cf_exp_filenames=None):
         cf_exp_filenames = []
         for location in locations:
             fi = glob.glob(location+'/cf_exp*.fits.gz')
-            cf_exp_filenames += fi
-            checked_locations += [location]*len(fi)
+            for f in fi:
+                cf_exp_filenames += [f[(len(f)-f[::-1].find('/')):]]
+                checked_locations += [location]
 
     locations = checked_locations
 
@@ -218,7 +218,7 @@ def make_plots(corr_objects,mu_boundaries,plot_system,r_power,include_fits):
 
     mu_bins = bins_from_boundaries(mu_boundaries)
 
-    if plot_system = 'plot_per_bin':
+    if plot_system == 'plot_per_bin':
 
         colours = colours[:len(corr_objects)]
         for mu_bin in mu_bins:
@@ -231,7 +231,7 @@ def make_plots(corr_objects,mu_boundaries,plot_system,r_power,include_fits):
 
             plt.title('{} < mu < {}'.format(mu_bin[0],mu_bin[1]))
 
-    elif plot_system = 'plot_per_file':
+    elif plot_system == 'plot_per_file':
 
         colours = colours[:len(mu_bins)]
         for corr_object in corr_objects:
