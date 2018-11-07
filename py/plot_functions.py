@@ -5,64 +5,104 @@ from picca import wedgize
 import sys
 from numpy import linalg
 import mcfit
-from . import correlation_model
-
+from pyacolore import correlation_model
+import glob
 
 # TODO: write this
 class picca_correlation:
-    def __init__(parameters,correlation_data):
+    def __init__(p,cd,fp):
 
         #picca parameters
-        self.correl_type = correl_type
-        self.N_side = N_side
-        self.N_pixels = N_pixels
-        self.quantity_1 = quantity_1
-        self.quantity_2 = quantity_2
-        self.rpmax = rpmax
-        self.rpmin = rpmin
-        self.rtmax = rtmax
-        self.np = np
-        self.nt = nt
-        self.rmax = rmax
-        self.nr = nr
-        self.zmin = zmin
-        self.zmax = zmax
+        self.correl_type = p['correl_type']
+        self.N_side = p['N_side']
+        self.N_pixels = p['N_pixels']
+        self.quantity_1 = p['quantities'][0]
+        self.quantity_2 = p['quantities'][1]
+        self.rpmin = p['rpmin']
+        self.rpmax = p['rpmax']
+        self.rtmin = p['rtmin']
+        self.rtmax = p['rtmax']
+        self.np = p['np']
+        self.nt = p['nt']
+        self.zmin = p['zmin']
+        self.zmax = p['zmax']
 
+        """
         #input skewer parameters
         self.sr = sr
         self.bm = bm
+        """
 
         #correlation data
-        self.rp = rp
-        self.rt = rt
-        self.z = z
-        self.xi_grid = xi_grid
-        self.cov_grid = cov_grid
+        self.rp = cd['rp']
+        self.rt = cd['rt']
+        self.z = cd['z']
+        self.xi_grid = cd['xi_grid']
+        self.cov_grid = cd['cov_grid']
 
+        """
         #cosmology data
         self.Z_cosmology = Z_cosmology
         self.D_cosmology = D_cosmology
+        """
+
+        #fit parameters
+        self.zeff = fp['zeff']
+        self.bias_LYA = fp['bias_LYA']['value']
+        self.bias_LYA_err = fp['bias_LYA']['error']
+        self.beta_LYA = fp['beta_LYA']['value']
+        self.beta_LYA_err = fp['beta_LYA']['error']
+        self.bias_QSO = fp['bias_QSO']['value']
+        self.bias_QSO_err = fp['bias_QSO']['error']
+        self.beta_QSO = fp['beta_QSO']['value']
+        self.beta_QSO_err = fp['beta_QSO']['error']
+        self.ap = fp['ap']['value']
+        self.ap_err = fp['ap']['error']
+        self.at = fp['at']['value']
+        self.at_err = fp['at']['error']
 
         #xcf_exp_1000_GAUSS_sr2.0_quantityGq_RN_nside16_rpmin-60.0_rpmax60.0_rtmax60.0_np40_nt20_zmin2.0_zmax2.2_bm1_biasG18_picos.fits.gz
         return
 
+    def get_biases_and_betas(self):
+
+        if self.correl_type == 'cf':
+            bias1 = self.bias_LYA
+            bias2 = self.bias_LYA
+            beta1 = self.beta_LYA
+            beta2 = self.beta_LYA
+        elif self.correl_type == 'xcf':
+            bias1 = self.bias_LYA
+            bias2 = self.bias_QSO
+            beta1 = self.beta_LYA
+            beta2 = self.beta_QSO
+        elif self.correl_type == 'co':
+            bias1 = self.bias_QSO
+            bias2 = self.bias_QSO
+            beta1 = self.beta_QSO
+            beta2 = self.beta_QSO
+
+        return bias1,bias2,beta1,beta2
+
     @classmethod
-    def make_correlation_object(cls,location,filename):
+    def make_correlation_object(cls,location,cf_exp_filename):
 
         #get parameters
         #replace with get_parameters_from_param_file when written
-        parameters = get_parameters_from_filename(location+filename)
+        parameters = get_parameters_from_param_file(location+'parameters.txt')
 
         #get correlation data
-        h = fits.open(file_path)
-        correlation_data = h[1].data
+        correlation_data = get_correlation_data_from_cf_exp(location+cf_exp_filename)
 
         #get cosmology data
+        #yet to do this
 
+        #get fit paramters
+        fit_parameters = get_fit_parameters_from_result(location+'/result.h5')
 
-        return cls(parameters,correlation_data)
+        return cls(parameters,correlation_data,fit_parameters)
 
-    def plot_xir2(self,mubin,plot_label):
+    def plot_data(self,mubin,plot_label,r_power,colour):
 
         mumin = mubin[0]
         mumax = mubin[1]
@@ -86,28 +126,140 @@ class picca_correlation:
 
         cut = err_wed>0
 
-        plt.errorbar(r[cut],xi_wed[cut],yerr=err_wed[cut],fmt='o',label=plot_label)
+        r = r[cut]
+        xi_wed = xi_wed[cut]
+        err_wed = err_wed[cut]
+
+        plt.errorbar(r,(r**r_power) * xi_wed,yerr=err_wed,fmt='o',label=plot_label)
+
+        return
+
+    def plot_fit(self,mubin,plot_label,r_power,colour):
+
+        model = 'Slosar11'
+
+        r,xi = get_model_xi(model,self.quantity1,self.quantity2,self.get_biases_and_betas(),self.zeff,mubin)
+
+        plt.plot(r,(r**r_power) * xi,label=plot_label)
 
         return
 
 
+def get_fit_parameters_from_result(filepath):
 
-def get_parameters_from_param_file(location,filename):
+    ff = h5py.File(filepath,'r')
+    fit_parameters = {}
+
+    zeff = ff['best fit'].attrs['zeff']
+    fit_parameters['zeff'] = zeff
+
+    cosmo_pars = ["bias_LYA","beta_LYA","bias_QSO","beta_QSO","ap","at"]
+    for par in cosmo_pars:
+        if par in ff['best fit'].attrs:
+            par_dict = {}
+            value,error = ff['best fit'].attrs[par]
+            par_dict['value'] = value
+            par_dict['error'] = error
+            fit_parameters[par] = {par_dict}
+
+    ff.close()
+
+    return fit_parameters
+
+def get_correlation_data_from_cf_exp(filepath):
+
+    h = fits.open(filepath)
+    correlation_data = {}
+    correlation_data['rp'] = h[1].data['RP']
+    correlation_data['RT'] = h[1].data['RT']
+    correlation_data['z'] = h[1].data['Z']
+    correlation_data['xi_grid'] = h[1].data['DA']
+    correlation_data['cov_grid'] = h[1].data['CO']
+    h.close()
+
+    return correlation_data
+
+def get_parameters_from_param_file(filepath):
 
     # TODO: write this
-    # TODO: in the picca function, make a param file too (use colore method for inspiration)
+    text_file = open(filepath, "r")
+    lines = text_file.read().split('\n')
+    params = {}
+    for line in lines[:-1]:
+        param = line.split(' = ')
+        name = param[0]
+        val = param[1]
+        params[name] = val
+
+    return params
+
+def get_correlation_objects(locations,cf_exp_filenames=None):
+
+    if not cf_exp_filenames:
+        checked_locations = []
+        cf_exp_filenames = []
+        for location in locations:
+            fi = glob.glob(location+'/cf_exp*.fits.gz')
+            for f in fi:
+                cf_exp_filenames += [f[(len(f)-f[::-1].find('/')):]]
+                checked_locations += [location]
+
+    locations = checked_locations
+
+    objects = []
+    for i,location in enumerate(locations):
+        objects += [picca_correlation.make_correlation_object(location,cf_exp_filenames[i])]
+
+    return objects
+
+def make_plots(corr_objects,mu_boundaries,plot_system,r_power,include_fits):
+
+    colours = ['C0','C1','C2','C3','C4','C5','C6']
+
+    mu_bins = bins_from_boundaries(mu_boundaries)
+
+    if plot_system == 'plot_per_bin':
+
+        colours = colours[:len(corr_objects)]
+        for mu_bin in mu_bins:
+            plt.figure()
+
+            for i,corr_object in enumerate(corr_objects):
+                corr_object.plot_data(mu_bin,'',r_power,colours[i])
+                if include_fits:
+                    corr_object.plot_fit(mu_bin,'',r_power,colours[i])
+
+            plt.title('{} < mu < {}'.format(mu_bin[0],mu_bin[1]))
+
+    elif plot_system == 'plot_per_file':
+
+        colours = colours[:len(mu_bins)]
+        for corr_object in corr_objects:
+            plt.figure()
+
+            for i,mu_bin in enumerate(mu_bins):
+                plot_label = '{}<mu<{}'.format(mu_bin[0],mu_bin[1])
+                corr_object.plot_data(mu_bin,plot_label,r_power,colours[i])
+                if include_fits:
+                    plot_label += ' (fit)'
+                    corr_object.plot_fit(mu_bin,plot_label,r_power,colours[i])
+
+            plt.title('{} {}{} ({} pixels @ Nside {})'.format(corr_object.correl_type,corr_object.quantity1,corr_object.quantity2,corr_object.N_pixels,corr_object.N_side))
+
+    plt.show()
 
     return
 
-
-
 def bins_from_boundaries(boundaries):
 
-    bins = []
-    for i in range(len(boundaries)-1):
-        bins += [(boundaries[i],boundaries[i+1])]
+    bins = list(zip(boundaries[:-1],boundaries[1:]))
 
     return bins
+
+
+
+
+
 
 def get_scales(filepaths):
 
@@ -123,12 +275,15 @@ def get_scales(filepaths):
 
     return scales
 
-
 def get_parameters_from_filename(file_path):
 
     default_cf_parameters = {'correlation': 'cf', 'nside': 16, 'sr': 2.0, 'rpmax': 200.0, 'rpmin': 0.0, 'rtmax': 200.0, 'np': 50, 'nt': 50, 'nr': 25, 'rmax': 200.0, 'zmin': 0.0, 'zmax':4.0, 'quantities': 'GG', 'bm': '3'}
     default_xcf_parameters = {'correlation': 'xcf', 'nside': 16, 'sr': 2.0, 'rpmax': 200.0, 'rpmin': -200.0, 'rtmax': 200.0, 'np': 100, 'nt': 50, 'nr': 25, 'rmax': 200.0, 'zmin': 0.0, 'zmax': 4.0, 'quantities': 'Gq', 'bm': '3'}
     parameter_dtypes = {'correlation': 'str', 'nside': 'int', 'sr': 'float', 'rpmax': 'float', 'rpmin': 'float', 'rtmax': 'float', 'np': 'int', 'nt': 'int', 'nr': 'int', 'rmax': 'float', 'zmin': 'float', 'zmax': 'float', 'quantities': 'str', 'bm': 'int'}
+
+
+    #default_cf_parameters = {'correlation': 'cf', 'nside': 16, 'sr': 2.0, 'rpmax': 160.0, 'rpmin': 0.0, 'rtmax': 160.0, 'np': 40, 'nt': 40, 'nr': 20, 'rmax': 160.0, 'zmin': 0.0, 'zmax':4.0, 'quantities': 'GG', 'bm': '3'}
+
 
     last_slash = file_path[::-1].find('/')
     filename = file_path[len(file_path)-last_slash:]
@@ -177,13 +332,13 @@ def get_plot_data(mumin,mumax,file_path):
     xi_grid = data['DA'][:]
     cov_grid = data['CO'][:]
 
-    
+
     #REMOVE NON_DIAGONALS FROM COV MATRIX
     for i in range(cov_grid.shape[0]):
         for j in range(cov_grid.shape[1]):
             if i!=j:
                 cov_grid[i,j]=0
-    
+
     print(xi_grid.shape,cov_grid.shape)
 
     r, xi_wed, cov_wed = b.wedge(xi_grid,cov_grid)
@@ -249,7 +404,7 @@ def plot_per_bin(mubins,filenames,add_CAMB,plot_label_parameters,CAMB_sr=None,sc
 
         if add_CAMB == True:
             for i,sr in enumerate(CAMB_sr):
-                r_CAMB,xi_CAMB_plot_label_CAMB = get_CAMB_xi(CAMB_location+CAMB_filename_format.format(sr),scale_CAMB[i],sr)
+                r_CAMB,xi_CAMB,plot_label_CAMB = get_CAMB_xi(CAMB_location+CAMB_filename_format.format(sr),scale_CAMB[i],sr)
                 plt.plot(r_CAMB,xi_CAMB*(r_CAMB**2),label=plot_label_CAMB)
 
         #save figure
@@ -263,7 +418,7 @@ def plot_per_file(mubins,filenames,add_CAMB,plot_label_parameters,CAMB_sr=None,s
         plt.figure()
         plt.axhline(y=0,color='gray',ls=':')
         plt.xlabel('r [Mpc/h]')
-        plt.ylabel('xi(r)')
+        plt.ylabel(r'$r^2 \xi(r)$')
         plt.grid(True, which='both')
 
         plot_title = ''
@@ -281,8 +436,66 @@ def plot_per_file(mubins,filenames,add_CAMB,plot_label_parameters,CAMB_sr=None,s
 
         if add_CAMB == True:
             for i,sr in enumerate(CAMB_sr):
-                add_CAMB_xi(CAMB_location+CAMB_filename.format(sr),scale_CAMB[i],sr)
+                r_CAMB,xi_CAMB,plot_label_CAMB = get_CAMB_xi(CAMB_location+CAMB_filename_format.format(sr),scale_CAMB[i],sr)
+                plt.plot(r_CAMB,xi_CAMB*(r_CAMB**2),label=plot_label_CAMB)
 
         #save figure
         plt.legend(loc=3)
         plt.savefig('xi_wedges_{}.pdf'.format(plot_title))
+
+def visual_fit(filename,b_values,beta_values,model,data_parameters,z,compute_b_beta=False):
+
+    mubin_boundaries = [0.0,1.0]
+    mubins = []
+    for i in range(len(mubin_boundaries)-1):
+        mubins += [(mubin_boundaries[i],mubin_boundaries[i+1])]
+    #mubins = [(0.0,0.33),(0.33,0.67),(0.67,1.0)]
+    mubins = [(0.0,0.5),(0.5,0.8),(0.8,1.0)]
+    #find a more sophisticated way to do this
+    colours = ['r',(0.5,0.5,0.5),'b']
+
+    #mubins = [(0.0,1.0)]
+    #colours = ['r']
+
+    N_bins = len(mubins)
+
+    plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
+
+    for i,bin in enumerate(mubins):
+        mumin = bin[0]
+        mumax = bin[1]
+
+        #Wedgize the data
+        r,xi_wed,err_wed,cut,_ = get_plot_data(mumin,mumax,filename)
+
+        data_label = 'data, {}<$\mu$<{}'.format(mumin,mumax)
+        plt.errorbar(r[cut],xi_wed[cut]*(r[cut]**2),yerr=err_wed[cut]*(r[cut]**2),fmt='o',label=data_label,c=colours[i])
+
+    quantity1 = data_parameters['quantities'][0]
+    quantity2 = data_parameters['quantities'][1]
+
+    #TODO: implement compute_b_beta. Need to have different flags for each quantity?
+    for b1 in b_values[quantity1]:
+        for beta1 in beta_values[quantity1]:
+            for b2 in b_values[quantity2]:
+                for beta2 in beta_values[quantity2]:
+
+                    r_model,xi_model_values = correlation_model.get_model_xi(model,[b1,b2],[beta1,beta2],data_parameters,z,mubins,b_from_z=False)
+
+                    for i,key in enumerate(xi_model_values.keys()):
+                        #model_label = 'b_{}={}, beta_{}={}, b_{}={}, beta_{}={}, mu={}'.format(quantity1,b1,quantity1,beta1,quantity2,b2,quantity2,beta2,key)
+                        model_label = 'model, $\mu$={}'.format(key)
+                        plt.plot(r_model,xi_model_values[key]*(r_model**2),label=model_label,c=colours[i])
+                        #plt.plot(r[cut],(xi_wed[cut])/(np.interp(r[cut],r_model,xi_model_values[key])),label='(RATIO): '+model_label)
+
+    plt.axhline(y=0,color='gray',ls=':')
+    plt.xlabel(r'$r / Mpc h^{-1}$')
+    plt.ylabel(r'$r^2 \xi(r)$')
+    plt.grid()
+    plt.legend()
+    plt.xlim(0,200)
+    #Make this more sensible filename
+    plt.savefig('fit_picca_visual.pdf')
+    plt.show()
+
+    return

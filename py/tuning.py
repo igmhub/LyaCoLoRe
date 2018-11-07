@@ -5,6 +5,8 @@ import glob
 
 from . import convert, Pk1D, utils
 
+lya = utils.lya_rest
+
 ################################################################################
 """
 Below: new tuning, measurement based
@@ -25,7 +27,7 @@ class tuning_parameters:
 
 
 class measurement:
-    def __init__(self,parameter_ID,z_value,z_width,N_skewers,n,k1,alpha,beta,sigma_G,pixels=[],mean_F=None,k_kms=None,Pk_kms=None,cf=None):
+    def __init__(self,parameter_ID,z_value,z_width,N_skewers,n,k1,alpha,beta,sigma_G,pixels=[],mean_F=None,k_kms=None,Pk_kms=None,sigma_F=None,cf=None):
         self.parameter_ID = parameter_ID
         self.z_value = z_value
         self.z_width = z_width
@@ -42,6 +44,7 @@ class measurement:
         self.mean_F = mean_F
         self.k_kms = k_kms
         self.Pk_kms = Pk_kms
+        self.sigma_F = sigma_F
         self.cf = cf
         return
     def get_details(self):
@@ -55,36 +58,71 @@ class measurement:
         IVAR = pixel_object.IVAR_rows
         R_hMpc = pixel_object.R
         z = pixel_object.Z
-        k_kms, Pk_kms, var_kms = Pk1D.get_Pk1D(delta_F,IVAR,R_hMpc,z,self.z_value,z_width=self.z_width)
+        k_kms, Pk_kms, var_kms = Pk1D.get_Pk1D(delta_F,IVAR,R_hMpc,z,z_value=self.z_value,z_width=self.z_width)
         self.k_kms = k_kms
         self.Pk_kms = Pk_kms
         return
     def add_mean_F_measurement(self,pixel_object):
-        #print(self.z_value,self.z_width)
         self.mean_F = pixel_object.get_mean_flux(pixel_object.lya_absorber,z_value=self.z_value,z_width=self.z_width)
         return
+    def add_sigma_F_measurement(self,pixel_object):
+        sF = pixel_object.get_sigma_dF(pixel_object.lya_absorber,z_value=self.z_value,z_width=self.z_width)
+
+        Om = 0.3147
+        l_hMpc = 0.25
+        E_z = np.sqrt(Om*(1+self.z_value)**3 + (1-Om))
+        dkms_dhMpc = 100. * E_z / (1+self.z_value)
+
+        # transform to h/Mpc
+        k_hMpc = self.k_kms * dkms_dhMpc
+        Pk_hMpc = self.Pk_kms / dkms_dhMpc
+
+        # compute Fourier transform of Top-Hat filter of size l_hMpc
+        #W_hMpc = np.sinc((k_hMpc*l_hMpc)/(2*np.pi))
+
+        self.sigma_F = np.sqrt((1/np.pi)*np.trapz(Pk_hMpc,k_hMpc)) #(W_hMpc**2)*
+        #print('cells: {:2.4f}, hMpc: {:2.4f}, kms: {:2.4f}'.format(sF,self.sigma_F,np.sqrt((1/np.pi)*np.trapz((W_hMpc**2)*self.Pk_kms,self.k_kms))))
+        return
     def add_Pk1D_chi2(self,min_k=None,max_k=None,denom="krange10"):
-        model_Pk_kms = P1D_z_kms_PD2013(self.k_kms,self.z_value)
+        model_Pk_kms = P1D_z_kms_PD2013(self.z_value,self.k_kms)
         if min_k:
             min_j = max(np.searchsorted(self.k_kms,min_k) - 1,0)
         else:
             min_j = 0
+            min_k = 0.
         if max_k:
             max_j = np.searchsorted(self.k_kms,max_k)
         else:
             max_j = -1
+            max_k = self.k_kms[-1]
+        A = 10**6
         if denom == "uniform5":
             denom = (0.05 * model_Pk_kms)**2
         elif denom == "uniform10":
             denom = (0.10 * model_Pk_kms)**2
         elif denom == "krange5":
-            eps = 10**6 * np.ones(self.k_kms.shape)
-            eps[min_j:max_j] *= 0.05 / 10**6
+            eps = A * np.ones(self.k_kms.shape)
+            eps[min_j:max_j] *= 0.05 / A
             denom = (eps * model_Pk_kms)**2
         elif denom == "krange10":
-            eps = 10**6 * np.ones(self.k_kms.shape)
-            eps[min_j:max_j] *= 0.1 / 10**6
+            eps = A * np.ones(self.k_kms.shape)
+            eps[min_j:max_j] *= 0.1 / A
             denom = (eps * model_Pk_kms)**2
+        elif denom == "krange10_smooth":
+            eps = A * np.ones(self.k_kms.shape)
+            eps[min_j:max_j] *= 0.1 / A
+            smooth_width = (max_k - min_k)/0.01
+            lower_smooth = A + (0.1 - A)*np.exp(-((self.k_kms - min_k)**2)/(2*smooth_width**2))
+            upper_smooth = A + (0.1 - A)*np.exp(-((self.k_kms - max_k)**2)/(2*smooth_width**2))
+            eps[:min_j] = lower_smooth[:min_j]
+            eps[max_j:] = upper_smooth[max_j:]
+            denom = (eps * model_Pk_kms)**2
+        elif denom == "npower":
+            k0 = 0.005
+            n = 2.
+            eps = 0.1 * ((1 + (self.k_kms/k0)**n))
+            denom = (eps * model_Pk_kms)**2
+        self.Pk_kms_chi2_eps = eps
         chi2 = np.sum(((self.Pk_kms - model_Pk_kms)**2)/denom)
         self.Pk_kms_chi2 = chi2
         return
@@ -93,6 +131,13 @@ class measurement:
         denom = (eps * model_mean_F)**2
         chi2 = np.sum(((self.mean_F - model_mean_F)**2)/denom)
         self.mean_F_chi2 = chi2
+        return
+    def add_sigma_F_chi2(self,min_k=None,max_k=None,eps=0.1,l_hMpc=0.25):
+        model_sigma_F = get_sigma_dF_P1D(self.z_value,l_hMpc=l_hMpc)
+        denom = (eps * model_sigma_F)**2
+        chi2 = np.sum(((self.sigma_F - model_sigma_F)**2)/denom)
+        self.sigma_F_chi2 = chi2
+        #print(self.z_value,model_sigma_F,self.sigma_F)
         return
     def add_total_chi2(self):
         chi2 = self.Pk_kms_chi2 + self.mean_F_chi2
@@ -118,9 +163,215 @@ class measurement:
         if utils.confirm_identical(m1.k_kms,m2.k_kms,item_name='k_kms',array=True):
             k_kms = m1.k_kms
         Pk_kms = (m1.Pk_kms*m1.N_skewers + m2.Pk_kms*m2.N_skewers)/(m1.N_skewers + m2.N_skewers)
+        sigma_F = np.sqrt(((m1.sigma_F**2)*m1.N_skewers + (m2.sigma_F**2)*m2.N_skewers)/(m1.N_skewers + m2.N_skewers))
         #May need to work on this?
         cf = None
-        return measurement(parameter_ID,z_value,z_width,N_skewers,n,k1,alpha,beta,sigma_G,pixels=pixels,mean_F=mean_F,k_kms=k_kms,Pk_kms=Pk_kms,cf=cf)
+        return measurement(parameter_ID,z_value,z_width,N_skewers,n,k1,alpha,beta,sigma_G,pixels=pixels,mean_F=mean_F,k_kms=k_kms,Pk_kms=Pk_kms,sigma_F=sigma_F,cf=cf)
+    @classmethod
+    def load_measurement(cls,hdu):
+        parameter_ID = hdu.header['param_ID']
+        z_value = hdu.header['z_value']
+        z_width = hdu.header['z_width']
+        N_skewers = hdu.header['N_skw']
+
+        n = hdu.header['n']
+        k1 = hdu.header['k1']
+        alpha = hdu.header['alpha']
+        beta = hdu.header['beta']
+        sigma_G = hdu.header['sigma_G']
+
+        #Not sure how to do this...
+        N_pix = hdu.header['N_pix']
+        if hdu.header['pixels'] == 'multiple':
+            pixels = ['']*N_pix
+        else:
+            pixels = [hdu.header['pixels']]
+
+        mean_F = hdu.header['mean_F']
+        k_kms = hdu.data['k_kms']
+        Pk_kms = hdu.data['Pk_kms']
+        cf = hdu.header['cf']
+        return cls(parameter_ID,z_value,z_width,N_skewers,n,k1,alpha,beta,sigma_G,pixels=pixels,mean_F=mean_F,k_kms=k_kms,Pk_kms=Pk_kms,cf=cf)
+    def make_HDU(self):
+        header = fits.Header()
+        header['param_ID'] = self.parameter_ID
+        header['z_value'] = self.z_value
+        header['z_width'] = self.z_width
+        header['N_skw'] = self.N_skewers
+        header['n'] = self.n
+        header['k1'] = self.k1
+        header['alpha'] = self.alpha
+        header['beta'] = self.beta
+        header['sigma_G'] = self.sigma_G
+        header['N_pix'] = len(self.pixels)
+        if len(self.pixels) > 1:
+            header['pixels'] = 'multiple'
+        else:
+            header['pixels'] = self.pixels[0]
+        header['mean_F'] = self.mean_F
+        header['cf'] = self.cf
+
+        Pk_data = list(zip(self.k_kms,self.Pk_kms))
+        dtype = [('k_kms', 'f8'), ('Pk_kms', 'f8')]
+        measurement_1 = np.array(Pk_data,dtype=dtype)
+        cols = fits.ColDefs(measurement_1)
+        hdu = fits.BinTableHDU.from_columns(cols,header=header,name='Pk1D')
+        return hdu
+    # TODO: functions to make plots
+
+class function_measurement:
+    def __init__(self,parameter_ID,z_value,z_width,N_skewers,n,k1,C0,C1,C2,beta,D0,D1,D2,pixels=[],mean_F=None,k_kms=None,Pk_kms=None,sigma_F=None,cf=None):
+        self.parameter_ID = parameter_ID
+        self.z_value = z_value
+        self.z_width = z_width
+        self.N_skewers = N_skewers
+
+        self.n = n
+        self.k1 = k1
+        self.C0 = C0
+        self.C1 = C1
+        self.C2 = C2
+        self.beta = beta
+        self.D0 = D0
+        self.D1 = D1
+        self.D2 = D2
+
+        self.pixels = pixels
+
+        self.mean_F = mean_F
+        self.k_kms = k_kms
+        self.Pk_kms = Pk_kms
+        self.sigma_F = sigma_F
+        self.cf = cf
+        return
+    def get_details(self):
+        details = (self.z_value,self.z_width,self.N_skewers,
+                self.n,self.k1,self.C0,self.C1,self.C2,self.D0,self.D1,self.D2,self.beta,self.pixels)
+        return details
+    def add_Pk1D_measurement(self,pixel_object):
+        if not self.mean_F:
+            self.add_mean_F_measurement(pixel_object)
+        mean_F = self.mean_F
+        F = pixel_object.lya_absorber.transmission()
+        delta_F = F/mean_F - 1
+        IVAR = pixel_object.IVAR_rows
+        R_hMpc = pixel_object.R
+        z = pixel_object.Z
+        k_kms, Pk_kms, var_kms = Pk1D.get_Pk1D(delta_F,IVAR,R_hMpc,z,z_value=self.z_value,z_width=self.z_width)
+        self.k_kms = k_kms
+        self.Pk_kms = Pk_kms
+        return
+    def add_mean_F_measurement(self,pixel_object):
+
+        self.mean_F = pixel_object.get_mean_flux(pixel_object.lya_absorber,z_value=self.z_value,z_width=self.z_width)
+
+        return
+    def add_sigma_F_measurement(self,pixel_object):
+        sF = pixel_object.get_sigma_dF(pixel_object.lya_absorber,z_value=self.z_value,z_width=self.z_width)
+
+        Om = 0.3147
+        l_hMpc = 0.25
+        E_z = np.sqrt(Om*(1+self.z_value)**3 + (1-Om))
+        dkms_dhMpc = 100. * E_z / (1+self.z_value)
+
+        # transform to h/Mpc
+        k_hMpc = self.k_kms * dkms_dhMpc
+        Pk_hMpc = self.Pk_kms / dkms_dhMpc
+
+        # compute Fourier transform of Top-Hat filter of size l_hMpc
+        #W_hMpc = np.sinc((k_hMpc*l_hMpc)/(2*np.pi))
+
+        self.sigma_F = np.sqrt((1/np.pi)*np.trapz(Pk_hMpc,k_hMpc)) #(W_hMpc**2)*
+        #print('cells: {:2.4f}, hMpc: {:2.4f}, kms: {:2.4f}'.format(sF,self.sigma_F,np.sqrt((1/np.pi)*np.trapz((W_hMpc**2)*self.Pk_kms,self.k_kms))))
+        return
+    def add_Pk1D_chi2(self,min_k=None,max_k=None,denom="krange10"):
+        model_Pk_kms = P1D_z_kms_PD2013(self.z_value,self.k_kms)
+        if min_k:
+            min_j = max(np.searchsorted(self.k_kms,min_k) - 1,0)
+        else:
+            min_j = 0
+            min_k = 0.
+        if max_k:
+            max_j = np.searchsorted(self.k_kms,max_k)
+        else:
+            max_j = -1
+            max_k = self.k_kms[-1]
+        A = 10**6
+        if denom == "uniform5":
+            denom = (0.05 * model_Pk_kms)**2
+        elif denom == "uniform10":
+            denom = (0.10 * model_Pk_kms)**2
+        elif denom == "krange5":
+            eps = A * np.ones(self.k_kms.shape)
+            eps[min_j:max_j] *= 0.05 / A
+            denom = (eps * model_Pk_kms)**2
+        elif denom == "krange10":
+            eps = A * np.ones(self.k_kms.shape)
+            eps[min_j:max_j] *= 0.1 / A
+            denom = (eps * model_Pk_kms)**2
+        elif denom == "krange10_smooth":
+            eps = A * np.ones(self.k_kms.shape)
+            eps[min_j:max_j] *= 0.1 / A
+            smooth_width = (max_k - min_k)/0.01
+            lower_smooth = A + (0.1 - A)*np.exp(-((self.k_kms - min_k)**2)/(2*smooth_width**2))
+            upper_smooth = A + (0.1 - A)*np.exp(-((self.k_kms - max_k)**2)/(2*smooth_width**2))
+            eps[:min_j] = lower_smooth[:min_j]
+            eps[max_j:] = upper_smooth[max_j:]
+            denom = (eps * model_Pk_kms)**2
+        elif denom == "npower":
+            k0 = max_k
+            n = 2.
+            eps = 0.1 * ((1 + (self.k_kms/k0)**n))
+            denom = (eps * model_Pk_kms)**2
+        self.Pk_kms_chi2_eps = eps
+        chi2 = np.sum(((self.Pk_kms - model_Pk_kms)**2)/denom)
+        self.Pk_kms_chi2 = chi2
+        return
+    def add_mean_F_chi2(self,min_k=None,max_k=None,eps=0.1,mean_F_model='Becker13'):
+        model_mean_F = get_mean_F_model(self.z_value,model=mean_F_model)
+        denom = (eps * model_mean_F)**2
+        chi2 = np.sum(((self.mean_F - model_mean_F)**2)/denom)
+        self.mean_F_chi2 = chi2
+        return
+    def add_sigma_F_chi2(self,min_k=None,max_k=None,eps=0.1,l_hMpc=0.25):
+        model_sigma_F = get_sigma_dF_P1D(self.z_value,l_hMpc=l_hMpc)
+        denom = (eps * model_sigma_F)**2
+        chi2 = np.sum(((self.sigma_F - model_sigma_F)**2)/denom)
+        self.sigma_F_chi2 = chi2
+        #print(self.z_value,model_sigma_F,self.sigma_F)
+        return
+    def add_total_chi2(self):
+        chi2 = self.Pk_kms_chi2 + self.mean_F_chi2
+        self.total_chi2 = chi2
+        return
+    @classmethod
+    def combine_measurements(cls,m1,m2):
+        if utils.confirm_identical(m1.parameter_ID,m2.parameter_ID,item_name='parameter_ID'):
+            parameter_ID = m1.parameter_ID
+            n = m1.n
+            k1 = m1.k1
+            C0 = m1.C0
+            C1 = m1.C1
+            C2 = m1.C2
+            beta = m1.beta
+            D0 = m1.D0
+            D1 = m1.D1
+            D2 = m1.D2
+        if utils.confirm_identical(m1.z_value,m2.z_value,item_name='z_value'):
+            z_value = m1.z_value
+        if utils.confirm_identical(m1.z_width,m2.z_width,item_name='z_width'):
+            z_width = m1.z_width
+        N_skewers = m1.N_skewers + m2.N_skewers
+        pixels = m1.pixels + m2.pixels
+        mean_F = (m1.mean_F*m1.N_skewers + m2.mean_F*m2.N_skewers)/(m1.N_skewers + m2.N_skewers)
+        k_kms_check = True
+        if utils.confirm_identical(m1.k_kms,m2.k_kms,item_name='k_kms',array=True):
+            k_kms = m1.k_kms
+        Pk_kms = (m1.Pk_kms*m1.N_skewers + m2.Pk_kms*m2.N_skewers)/(m1.N_skewers + m2.N_skewers)
+        sigma_F = np.sqrt(((m1.sigma_F**2)*m1.N_skewers + (m2.sigma_F**2)*m2.N_skewers)/(m1.N_skewers + m2.N_skewers))
+        #May need to work on this?
+        cf = None
+        return function_measurement(parameter_ID,z_value,z_width,N_skewers,n,k1,C0,C1,C2,beta,D0,D1,D2,pixels=pixels,mean_F=mean_F,k_kms=k_kms,Pk_kms=Pk_kms,sigma_F=sigma_F,cf=cf)
     @classmethod
     def load_measurement(cls,hdu):
         parameter_ID = hdu.header['param_ID']
@@ -227,7 +478,7 @@ class measurement_set:
                 c_m = z_parameter_set[0]
                 if len(z_parameter_set) > 1:
                     for m in z_parameter_set[1:]:
-                        c_m = measurement.combine_measurements(c_m,m)
+                        c_m = function_measurement.combine_measurements(c_m,m)
                 combined_measurements += [c_m]
         return measurement_set(combined_measurements)
     def optimize_s_parameters(self,plot_optimal=False,mean_F_model='Becker13'):
@@ -270,7 +521,7 @@ class measurement_set:
             plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
             for m in s_optimized_set.measurements:
                 plt.errorbar(m.k_kms,m.Pk_kms,fmt='o',label='measured, z={}'.format(m.z_value))
-                plt.plot(m.k_kms,P1D_z_kms_PD2013(m.k_kms,m.z_value),label='theory, z={}'.format(m.z_value))
+                plt.plot(m.k_kms,P1D_z_kms_PD2013(m.z_value,m.k_kms),label='theory, z={}'.format(m.z_value))
             plt.semilogy()
             plt.semilogx()
             plt.ylabel('Pk1D')
@@ -511,65 +762,22 @@ class measurement_set:
         hdulist.close()
         return
 
-def measure_pixel_segment(pixel,z_value,alpha,beta,sigma_G_required,n,k1,A0):
-    #print('start',pixel,z_value,alpha,beta,sigma_G_required,n,k1)
+def fit_function_to_data(x,y,new_x):
 
-    location = base_file_location + '/' + new_file_structure.format(pixel//100,pixel)
+    from iminuit import Minuit
 
-    # TODO: this is a problem
-    measured_SIGMA_G = 1.17
+    def fitting_function(x,A0,A1,A2):
+        return A0 * (x ** A1) + A2
 
-    #We work from the gaussian colore files made in 'pixelise gaussian skewers'.
-    gaussian_filename = new_filename_structure.format('gaussian-colore',N_side,pixel)
+    def least_squares(A0,A1,A2):
+        return np.sum((y - fitting_function(x,A0,A1,A2))**2)
 
-    #Make a pixel object from it.
-    data = pixelise.simulation_data.get_gaussian_skewers_object(location+gaussian_filename,None,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
+    m = Minuit(least_squares,A0=1.,A1=1.,A2=1.,error_A0=0.1,error_A1=0.1,error_A2=0.1,errordef=1)
+    fmin,param = m.migrad()
 
-    #Determine the sigma_G to add
-    extra_sigma_G = np.sqrt(sigma_G_required**2 - measured_SIGMA_G**2)
+    new_y = fitting_function(new_x,**m.values)
 
-    #trim skewers
-    data.trim_skewers(lambda_min,min_cat_z,extra_cells=1)
-
-    #We extend the ranges of lambda a little to make sure RSDs are all accounted for.
-    extra = 0.1
-    lambda_min_val = lya*(1 + z_value - z_width*(1+extra)/2)
-    lambda_max_val = lya*(1 + z_value + z_width*(1+extra)/2)
-    data.trim_skewers(lambda_min_val,min_cat_z,lambda_max=lambda_max_val,whole_lambda_range=True)
-
-    #add small scale fluctuations
-    seed = int(str(N_side) + str(pixel))
-    generator = np.random.RandomState(seed)
-    data.add_small_scale_gaussian_fluctuations(cell_size,data.Z,np.ones(data.Z.shape[0])*extra_sigma_G,generator,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n=n,k1=k1,A0=A0) #n=0.7, k1=0.001 default
-
-    #Convert to flux
-    data.compute_physical_skewers()
-    data.compute_tau_skewers(alpha=np.ones(data.Z.shape[0])*alpha,beta=beta)
-    data.add_RSDs(np.ones(data.Z.shape[0])*alpha,beta,thermal=False)
-    data.compute_flux_skewers()
-
-    #Trim the skewers again to get rid of the additional cells
-    lambda_min_val = lya*(1 + z_value - z_width/2)
-    lambda_max_val = lya*(1 + z_value + z_width/2)
-    data.trim_skewers(lambda_min_val,min_cat_z,lambda_max=lambda_max_val,whole_lambda_range=True)
-
-    #Convert back to small cells for cf measurement
-    #need a new function to merge cells back together
-
-    ID = 0
-    measurement = tuning.measurement(ID,z_value,z_width,data.N_qso,n,k1,alpha,beta,sigma_G_required,pixels=[pixel])
-    #print('measure mean_F',z_value)
-    measurement.add_mean_F_measurement(data)
-    #print('measure Pk1D',z_value)
-    measurement.add_Pk1D_measurement(data)
-    #print('measure chi2s',z_value)
-    measurement.add_mean_F_chi2(eps=0.1)
-    measurement.add_Pk1D_chi2(max_k=max_k)
-    measurement.add_total_chi2()
-
-    return measurement
-
-
+    return new_y
 
 ################################################################################
 """
@@ -578,7 +786,7 @@ Below: old tuning, no-RSD, theoretical based Method
 
 #Function to return the P1D from Palanque-Delabrouille et al. (2013)
 #copied from lyaforecast
-def P1D_z_kms_PD2013(k_kms,z,A_F=0.064,B_F=3.55):
+def P1D_z_kms_PD2013(z,k_kms,A_F=0.064,B_F=3.55):
     """Fitting formula for 1D P(z,k) from Palanque-Delabrouille et al. (2013).
         Wavenumbers and power in units of km/s. Corrected to be flat at low-k"""
     # numbers from Palanque-Delabrouille (2013)
@@ -739,7 +947,7 @@ def get_flux_stats(sigma_G,alpha,beta,D,mean_only=False,int_lim_fac=10.0):
     return mean_F, sigma_dF
 
 #Function to integrate under the 1D power spectrum to return the value of sigma_dF at a given redshift.
-def get_sigma_dF_P1D(z,l_hMpc=0.25,Om=0.3):
+def get_sigma_dF_P1D(z,l_hMpc=0.25,Om=0.3147):
     #Choose log spaced values of k
     k_hMpc_max = 100.0/l_hMpc
     k_hMpc = np.logspace(-5,np.log10(k_hMpc_max),10**5)

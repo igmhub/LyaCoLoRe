@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.interpolate as sciint
+from scipy.sparse import dok_matrix,csc_matrix
 import math
 
 from . import utils
@@ -108,7 +109,7 @@ def J(x,a,sigma):
     return J
 
 #
-def add_skewer_RSDs(initial_tau,initial_density,velocity_skewer_dz,z,r_hMpc,thermal=False):
+def add_skewer_RSDs(initial_tau,initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,weights=None):
 
     N_qso = initial_tau.shape[0]
     N_cells = initial_tau.shape[1]
@@ -125,8 +126,148 @@ def add_skewer_RSDs(initial_tau,initial_density,velocity_skewer_dz,z,r_hMpc,ther
     #count = np.zeros(100)
     #total = 0
 
+    if not weights:
+        for i in range(N_qso):
+            j_upper = np.searchsorted(z,z_qso[i])
+            #for j in range(N_cells):
+            for j in range(j_upper):
+                #Add the dz from the velocity skewers to get a 'new_z' for each cell
+                z_cell = z[j]
+                dz_cell = velocity_skewer_dz[i,j]
+                new_z_cell = z_cell + dz_cell
+
+                x_kms_cell = x_kms[j]
+                if j > 0 and j < N_cells-1:
+                    cell_size = (x_kms[j+1] - x_kms[j-1])/2.
+                elif j == 0:
+                    cell_size = (x_kms[j+1] - x_kms[j])
+                elif j == N_cells:
+                    cell_size = (x_kms[j] - x_kms[j-1])
+
+                new_r_hMpc = np.interp(new_z_cell,z,r_hMpc)
+                new_x_kms_cell = new_r_hMpc * utils.get_dkms_dhMpc(new_z_cell)
+                #new_x_kms_cell = x_kms_cell
+
+                j_upper = np.searchsorted(x_kms,new_x_kms_cell)
+                j_lower = j_upper - 1
+
+                #If we want to include thermal effects, we include contributions to all cells within a chosen x_kms range.
+                if thermal == True:
+                    tau = initial_tau[i,j]
+
+                    #Calculate the dispersion as a result of thermal effects.
+                    sigma_kms = get_sigma_kms(T_K[i,j])
+
+                    #Define the x_kms range over which we will add contributions.
+                    x_kms_rad = cell_size/2. + 5.*sigma_kms
+                    x_upper_limit = new_x_kms_cell + x_kms_rad
+                    x_lower_limit = new_x_kms_cell - x_kms_rad
+
+                    #If at least one limit is within the skewer, determine which cells we determine weights for.
+                    if x_upper_limit > x_kms[0] and x_lower_limit < x_kms[-1]:
+                        j_upper_limit = utils.NN_sorted(x_kms,x_upper_limit)
+                        j_lower_limit = utils.NN_sorted(x_kms,x_lower_limit)
+                        j_values = np.array(list(range(j_lower_limit,j_upper_limit+1)))
+                    else:
+                        j_values = np.array([])
+
+                    #total += 1
+                    #if len(j_values)<100:
+                    #    count[len(j_values)] += 1
+
+                    cell_weights = np.zeros(len(j_values))
+
+                    #For each such cell, find the bottom and top of the cell.
+                    for j_value in j_values:
+                        if j_value > 0 and j_value < N_cells-1:
+                            bot = (x_kms[j_value-1] + x_kms[j_value])/2. - new_x_kms_cell
+                            top = (x_kms[j_value] + x_kms[j_value+1])/2. - new_x_kms_cell
+                        elif j_value == 0:
+                            bot = x_kms[j_value] - (x_kms[j_value+1] - x_kms[j_value])/2. - new_x_kms_cell
+                            top = (x_kms[j_value] + x_kms[j_value+1])/2. - new_x_kms_cell
+                        elif j_value == N_cells-1:
+                            bot = (x_kms[j_value-1] + x_kms[j_value])/2. - new_x_kms_cell
+                            top = x_kms[j_value] + (x_kms[j_value] - x_kms[j_value-1])/2. - new_x_kms_cell
+
+                        #Use the J function to integrate the weight in this range.
+                        # TODO: update this to take into account that consecutive cells may not be precisely the same size
+                        #weight = (0.5)*(math.erf((np.sqrt(2))*sigma_kms*top) - math.erf((np.sqrt(2))*sigma_kms*bot))
+                        weight = J(top,cell_size/2.,sigma_kms) - J(bot,cell_size/2.,sigma_kms)
+
+                        #cell_weights[j_value-j_values[0]] += weight
+                        final_tau[i,j_value] += weight*tau
+
+                #If we do not want to include thermal effects, we only allocate to the cell above and the cell below.
+                else:
+                    tau = initial_tau[i,j]
+                    #If it has moved off the low-z end of the skewer, lower weight is 0
+                    #Only include an upper weight if it is within 1 cell's width.
+                    if j_lower < 0:
+                        w_lower = 0.
+                        if abs(x_kms[0] - new_x_kms_cell) < abs(x_kms[1] - x_kms[0]):
+                            w_upper = 1. - abs(x_kms[0] - new_x_kms_cell)/abs(x_kms[1] - x_kms[0])
+                            final_tau[i,j_upper] += w_upper*tau
+                        else:
+                            w_upper = 0.
+
+                    #If it has moved off the high-z end of the skewer, upper weight is 0
+                    #Only include a lower weight if it is within 1 cell's width.
+                    elif j_upper >= N_cells:
+                        w_upper = 0.
+                        if abs(x_kms[-1] - new_x_kms_cell) < abs(x_kms[-1] - x_kms[-2]):
+                            w_lower = 1. - abs(x_kms[-1] - new_x_kms_cell)/abs(x_kms[-1] - x_kms[-2])
+                            final_tau[i,j_lower] += w_lower*tau
+                        else:
+                            w_lower = 0.
+
+                    #Otherwise, split the contribution between the new neighbours, distance weighted.
+                    else:
+                        x_kms_upper = x_kms[j_upper]
+                        x_kms_lower = x_kms[j_lower]
+
+                        w_upper = abs(new_x_kms_cell - x_kms_lower)/(x_kms_upper - x_kms_lower)
+                        w_lower = abs(new_x_kms_cell - x_kms_upper)/(x_kms_upper - x_kms_lower)
+
+                        final_tau[i,j_upper] += w_upper*tau
+                        final_tau[i,j_lower] += w_lower*tau
+
+                #final_tau[i,j_values] += cell_weights*initial_tau[i,j]
+
+    else:
+        for k in range(N_qso):
+            skewer_weights = weights[k]
+            final_tau[k,:] = skewer_weights.dot(initial_tau[k,:].T)
+
+    return final_tau
+
+#
+def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False):
+
+    N_qso = velocity_skewer_dz.shape[0]
+    N_cells = velocity_skewer_dz.shape[1]
+
+    weights = {}
+    #weights = np.zeros((N_qso,N_cells,N_cells)) #depth,row,col = qso,real_cell,z_cell
+
+    #Convert radial distance to a velocity.
+    dkms_dhMpc = utils.get_dkms_dhMpc(z)
+    x_kms = r_hMpc * dkms_dhMpc
+
+    #Calculate the temperature in every cell if we want to include thermal effects.
+    if thermal == True:
+        T_K = get_T_K(z,initial_density)
+
+    #count = np.zeros(100)
+    #total = 0
+
     for i in range(N_qso):
-        for j in range(N_cells):
+        indices = []
+        data = []
+        indptr = [0]
+
+        #Go through each cell up to the QSO
+        j_limit = np.searchsorted(z,z_qso[i])
+        for j in range(j_limit):
             #Add the dz from the velocity skewers to get a 'new_z' for each cell
             z_cell = z[j]
             dz_cell = velocity_skewer_dz[i,j]
@@ -142,14 +283,12 @@ def add_skewer_RSDs(initial_tau,initial_density,velocity_skewer_dz,z,r_hMpc,ther
 
             new_r_hMpc = np.interp(new_z_cell,z,r_hMpc)
             new_x_kms_cell = new_r_hMpc * utils.get_dkms_dhMpc(new_z_cell)
-            #new_x_kms_cell = x_kms_cell
 
             j_upper = np.searchsorted(x_kms,new_x_kms_cell)
             j_lower = j_upper - 1
 
             #If we want to include thermal effects, we include contributions to all cells within a chosen x_kms range.
             if thermal == True:
-                tau = initial_tau[i,j]
 
                 #Calculate the dispersion as a result of thermal effects.
                 sigma_kms = get_sigma_kms(T_K[i,j])
@@ -166,12 +305,6 @@ def add_skewer_RSDs(initial_tau,initial_density,velocity_skewer_dz,z,r_hMpc,ther
                     j_values = np.array(list(range(j_lower_limit,j_upper_limit+1)))
                 else:
                     j_values = np.array([])
-
-                #total += 1
-                #if len(j_values)<100:
-                #    count[len(j_values)] += 1
-
-                cell_weights = np.zeros(len(j_values))
 
                 #For each such cell, find the bottom and top of the cell.
                 for j_value in j_values:
@@ -190,21 +323,25 @@ def add_skewer_RSDs(initial_tau,initial_density,velocity_skewer_dz,z,r_hMpc,ther
                     #weight = (0.5)*(math.erf((np.sqrt(2))*sigma_kms*top) - math.erf((np.sqrt(2))*sigma_kms*bot))
                     weight = J(top,cell_size/2.,sigma_kms) - J(bot,cell_size/2.,sigma_kms)
 
-                    #cell_weights[j_value-j_values[0]] += weight
-                    final_tau[i,j_value] += weight*tau
+                    indices += [j_value]
+                    data += [weight]
+
+                indptr += [(indptr[-1]+len(j_values))]
 
             #If we do not want to include thermal effects, we only allocate to the cell above and the cell below.
             else:
-                tau = initial_tau[i,j]
                 #If it has moved off the low-z end of the skewer, lower weight is 0
                 #Only include an upper weight if it is within 1 cell's width.
                 if j_lower < 0:
                     w_lower = 0.
                     if abs(x_kms[0] - new_x_kms_cell) < abs(x_kms[1] - x_kms[0]):
                         w_upper = 1. - abs(x_kms[0] - new_x_kms_cell)/abs(x_kms[1] - x_kms[0])
-                        final_tau[i,j_upper] += w_upper*tau
+                        indices += [j_upper]
+                        data += [w_upper]
+                        indptr += [(indptr[-1]+1)]
                     else:
                         w_upper = 0.
+                        indptr += [(indptr[-1])]
 
                 #If it has moved off the high-z end of the skewer, upper weight is 0
                 #Only include a lower weight if it is within 1 cell's width.
@@ -212,9 +349,12 @@ def add_skewer_RSDs(initial_tau,initial_density,velocity_skewer_dz,z,r_hMpc,ther
                     w_upper = 0.
                     if abs(x_kms[-1] - new_x_kms_cell) < abs(x_kms[-1] - x_kms[-2]):
                         w_lower = 1. - abs(x_kms[-1] - new_x_kms_cell)/abs(x_kms[-1] - x_kms[-2])
-                        final_tau[i,j_lower] += w_lower*tau
+                        indices += [j_lower]
+                        data += [w_lower]
+                        indptr += [(indptr[-1]+1)]
                     else:
                         w_lower = 0.
+                        indptr += [(indptr[-1])]
 
                 #Otherwise, split the contribution between the new neighbours, distance weighted.
                 else:
@@ -224,11 +364,12 @@ def add_skewer_RSDs(initial_tau,initial_density,velocity_skewer_dz,z,r_hMpc,ther
                     w_upper = abs(new_x_kms_cell - x_kms_lower)/(x_kms_upper - x_kms_lower)
                     w_lower = abs(new_x_kms_cell - x_kms_upper)/(x_kms_upper - x_kms_lower)
 
-                    final_tau[i,j_upper] += w_upper*tau
-                    final_tau[i,j_lower] += w_lower*tau
+                    indices += [j_lower,j_upper]
+                    data += [w_lower,w_upper]
+                    indptr += [(indptr[-1] + 2)]
 
-            #final_tau[i,j_values] += cell_weights*initial_tau[i,j]
+        indptr += [indptr[-1]]*(N_cells + 1 - len(indptr))
+        csc_weights = csc_matrix((data, indices, indptr), shape=(N_cells,N_cells))
+        weights[i] = csc_weights
 
-    return final_tau
-
-
+    return weights
