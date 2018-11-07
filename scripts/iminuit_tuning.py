@@ -14,14 +14,14 @@ from pyacolore import convert, Pk1D, utils, independent, tuning, simulation_data
 
 lya = 1215.67
 
-N_processes = 1
+N_processes = 32
 lambda_min = 3550.0
 min_cat_z = 1.8
 IVAR_cutoff = 1150.0
 
 #Get the starting values of alpha, beta and sigma_G from file
 #Decide which z values we are going to tune
-z_value = 3.0
+z_value = 1.9
 z_width = 0.2
 
 cell_size = 0.25 #Mpc/h
@@ -41,7 +41,7 @@ input_format = 'gaussian_colore'
 #get pixels from those directories created by make_master.py
 dirs = glob.glob(base_file_location+new_file_structure.format('*','*'))
 pixels = []
-for dir in dirs[:1]:
+for dir in dirs[:32]:
     ending = dir[len(dir)-dir[-2::-1].find('/')-1:-1]
     if ending != 'logs':
         pixels += [int(ending)]
@@ -62,24 +62,24 @@ def measure_pixel_segment(pixel,z_value,alpha,beta,sigma_G_required,n,k1,A0):
     #Make a pixel object from it.
     data = simulation_data.SimulationData.get_gaussian_skewers_object(location+gaussian_filename,None,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
 
-    print('CoLoRe Gaussian 0:',data.GAUSSIAN_DELTA_rows[0,:])
-    print('CoLoRe Gaussian 1:',data.GAUSSIAN_DELTA_rows[1,:])
-    print('CoLoRe Gaussian 2:',data.GAUSSIAN_DELTA_rows[2,:])
+    #print('CoLoRe Gaussian 0:',data.GAUSSIAN_DELTA_rows[0,:])
+    #print('CoLoRe Gaussian 1:',data.GAUSSIAN_DELTA_rows[1,:])
+    #print('CoLoRe Gaussian 2:',data.GAUSSIAN_DELTA_rows[2,:])
     #Determine the sigma_G to add
     extra_sigma_G = np.sqrt(sigma_G_required**2 - measured_SIGMA_G**2)
 
     #trim skewers
     data.trim_skewers(lambda_min,min_cat_z,extra_cells=1)
-    print('Z range',min(data.Z),max(data.Z))
-    print('N_qso',data.N_qso)
-    print('trim to chunk')
+    #print('Z range',min(data.Z),max(data.Z))
+    #print('N_qso',data.N_qso)
+    #print('trim to chunk')
     #We extend the ranges of lambda a little to make sure RSDs are all accounted for.
     extra = 0.1
     lambda_min_val = lya*(1 + z_value - z_width*(1+extra)/2)
     lambda_max_val = lya*(1 + z_value + z_width*(1+extra)/2)
     data.trim_skewers(lambda_min_val,min_cat_z,lambda_max=lambda_max_val,whole_lambda_range=True)
-    print('Z range',min(data.Z),max(data.Z))
-    print('N_qso',data.N_qso)
+    #print('Z range',min(data.Z),max(data.Z))
+    #print('N_qso',data.N_qso)
 
     #print('before SSP')
     mean_G = np.average(data.GAUSSIAN_DELTA_rows)
@@ -99,50 +99,50 @@ def measure_pixel_segment(pixel,z_value,alpha,beta,sigma_G_required,n,k1,A0):
 
     #add small scale fluctuations
     seed = int(str(N_side) + str(pixel))
-    print('seed',seed)
+    #print('seed',seed)
     generator = np.random.RandomState(seed)
     data.add_small_scale_gaussian_fluctuations(cell_size,data.Z,np.ones(data.Z.shape[0])*extra_sigma_G,generator,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n=n,k1=k1,A0=A0) #n=0.7, k1=0.001 default
 
     #print('after SSP')
-    mean_G = np.average(data.GAUSSIAN_DELTA_rows)
+    #mean_G = np.average(data.GAUSSIAN_DELTA_rows)
     #print('gaussian field mean is',mean_G)
-    mean_G2 = np.average(data.GAUSSIAN_DELTA_rows**2)
-    sigma_G_simple = np.sqrt(mean_G2 - mean_G**2)
+    #mean_G2 = np.average(data.GAUSSIAN_DELTA_rows**2)
+    #sigma_G_simple = np.sqrt(mean_G2 - mean_G**2)
     #print('gaussian field simple sigma is',sigma_G_simple)
     #print(' ')
 
     #Convert to flux
     data.compute_physical_skewers()
 
-    print('Gaussian P1D after SSP seems to match')
+    #print('Gaussian P1D after SSP seems to match')
     #k,pk,_=Pk1D.get_Pk1D(data.GAUSSIAN_DELTA_rows,data.IVAR_rows,data.R,data.Z,z_value=3.0,z_width=0.2,units='km/s')
     #print(k,pk)
-    print('Physical P1D')
-    k,pk,_=Pk1D.get_Pk1D(data.DENSITY_DELTA_rows,data.IVAR_rows,data.R,data.Z,z_value=3.0,z_width=0.2,units='km/s')
-    print(k,pk)
-    print(' ')
+    #print('Physical P1D')
+    #k,pk,_=Pk1D.get_Pk1D(data.DENSITY_DELTA_rows,data.IVAR_rows,data.R,data.Z,z_value=3.0,z_width=0.2,units='km/s')
+    #print(k,pk)
+    #print(' ')
 
     #print('physical')
-    mean_D = np.average(data.DENSITY_DELTA_rows)
+    #mean_D = np.average(data.DENSITY_DELTA_rows)
     #print('density delta field mean is',mean_D)
-    mean_D2 = np.average(data.GAUSSIAN_DELTA_rows**2)
-    sigma_D_simple = np.sqrt(mean_D2 - mean_D**2)
+    #mean_D2 = np.average(data.GAUSSIAN_DELTA_rows**2)
+    #sigma_D_simple = np.sqrt(mean_D2 - mean_D**2)
     #print('density delta field simple sigma is',sigma_D_simple)
-    int_lim = sigma_G_simple*10.
-    delta_G_integral = np.linspace(-int_lim,int_lim,10**4)
-    delta_G_integral = np.reshape(delta_G_integral,(1,delta_G_integral.shape[0]))
-    prob_delta_G = (1/((np.sqrt(2*np.pi))*sigma_G_simple))*np.exp(-(delta_G_integral**2)/(2*(sigma_G_simple**2)))
-    D = np.interp(z_value,data.Z,data.D) #* np.ones_like(delta_G_integral)
-    density_delta_integral = convert.gaussian_to_lognormal_delta(delta_G_integral,sigma_G_simple,D)
-    mean_D = np.trapz(prob_delta_G * density_delta_integral,delta_G_integral)[0]
-    sigma_D = np.sqrt(np.trapz(prob_delta_G * (density_delta_integral)**2,delta_G_integral)[0])
+    #int_lim = sigma_G_simple*10.
+    #delta_G_integral = np.linspace(-int_lim,int_lim,10**4)
+    #delta_G_integral = np.reshape(delta_G_integral,(1,delta_G_integral.shape[0]))
+    #prob_delta_G = (1/((np.sqrt(2*np.pi))*sigma_G_simple))*np.exp(-(delta_G_integral**2)/(2*(sigma_G_simple**2)))
+    #D = np.interp(z_value,data.Z,data.D) #* np.ones_like(delta_G_integral)
+    #density_delta_integral = convert.gaussian_to_lognormal_delta(delta_G_integral,sigma_G_simple,D)
+    #mean_D = np.trapz(prob_delta_G * density_delta_integral,delta_G_integral)[0]
+    #sigma_D = np.sqrt(np.trapz(prob_delta_G * (density_delta_integral)**2,delta_G_integral)[0])
     #print('predicted density delta mean is',mean_D)
     #print('predicted density delta sigma is',sigma_D)
     #print(' ')
 
-    print('first DD skewer',data.DENSITY_DELTA_rows[0,:10])
+    #print('first DD skewer',data.DENSITY_DELTA_rows[0,:10])
     data.compute_tau_skewers(data.lya_absorber,alpha=np.ones(data.Z.shape[0])*alpha,beta=np.ones(data.Z.shape[0])*beta)
-    print('first tau skewer',data.lya_absorber.tau[0,:10])
+    #print('first tau skewer',data.lya_absorber.tau[0,:10])
     data.add_RSDs(data.lya_absorber,np.ones(data.Z.shape[0])*alpha,beta,thermal=False)
 
     #Trim the skewers again to get rid of the additional cells
@@ -153,12 +153,12 @@ def measure_pixel_segment(pixel,z_value,alpha,beta,sigma_G_required,n,k1,A0):
     #Convert back to small cells for cf measurement
     #need a new function to merge cells back together
 
-    print('z={}: alpha={}, sigma_G extra={}'.format(z_value,alpha,extra_sigma_G))
+    #print('z={}: alpha={}, sigma_G extra={}'.format(z_value,alpha,extra_sigma_G))
     ID = n
     measurement = tuning.measurement(ID,z_value,z_width,data.N_qso,n,k1,alpha,beta,sigma_G_required,pixels=[pixel])
 
     measurement.add_mean_F_measurement(data)
-    print('measuring Pk1D')
+    #print('measuring Pk1D')
     measurement.add_Pk1D_measurement(data)
     measurement.add_sigma_F_measurement(data)
     #print(measurement.sigma_F)
@@ -238,17 +238,17 @@ def f(alpha,beta,sigma_G,n,k1,A0,return_measurements=False):
         mean_F_chi2 += m.mean_F_chi2
         overall_chi2 += m.total_chi2
 
-        print(' ')
-        print('mean F')
-        print('measured: {:2.4f}, model: {:2.4f}, predict: {:2.4f}'.format(m.mean_F,tuning.get_mean_F_model(m.z_value),predicted_flux_stats[0]))
-        print(' ')
-        print('sigma F')
-        print('measured: {:2.4f}, model: {:2.4f}, predict: {:2.4f}'.format(m.sigma_F,tuning.get_sigma_dF_P1D(m.z_value),predicted_flux_stats[1]))
-        print(' ')
+        #print(' ')
+        #print('mean F')
+        #print('measured: {:2.4f}, model: {:2.4f}, predict: {:2.4f}'.format(m.mean_F,tuning.get_mean_F_model(m.z_value),predicted_flux_stats[0]))
+        #print(' ')
+        #print('sigma F')
+        #print('measured: {:2.4f}, model: {:2.4f}, predict: {:2.4f}'.format(m.sigma_F,tuning.get_sigma_dF_P1D(m.z_value),predicted_flux_stats[1]))
+        #print(' ')
 
-        print(m.k_kms)
-        print(m.Pk_kms)
-        print(m.get_details())
+        #print(m.k_kms)
+        #print(m.Pk_kms)
+        #print(m.get_details())
         sigma_F_chi2 += m.sigma_F_chi2
 
     #chi2 = mean_F_chi2 + sigma_F_chi2
@@ -271,13 +271,13 @@ def f(alpha,beta,sigma_G,n,k1,A0,return_measurements=False):
     else:
         return chi2
 
-t_kwargs = {'alpha' : 2.30,    'error_alpha' : 0.05,   'limit_alpha' : (0., 30.),  'fix_alpha' : True,
+t_kwargs = {'alpha' : 2.30,    'error_alpha' : 0.05,   'limit_alpha' : (0., 30.),  'fix_alpha' : False,
             'beta' : 1.65,      'error_beta' : 0.05,    'limit_beta' : (0., 20.),   'fix_beta' : True,
-            'sigma_G' : 6.86,  'error_sigma_G' : 0.05, 'limit_sigma_G' : (0., 20.),'fix_sigma_G' : True,
+            'sigma_G' : 6.86,  'error_sigma_G' : 0.05, 'limit_sigma_G' : (0., 20.),'fix_sigma_G' : False,
             }
 
-s_kwargs = {'n'  : 1.52,       'error_n' : 0.05,       'limit_n' : (0., 10.),      'fix_n' : True,
-            'k1' : 0.0166,    'error_k1' : 0.0005,   'limit_k1' : (0., 0.1),     'fix_k1' : True,
+s_kwargs = {'n'  : 8.861697909362348,       'error_n' : 0.05,       'limit_n' : (0., 10.),      'fix_n' : True,
+            'k1' : 0.03673608486189717,    'error_k1' : 0.0005,   'limit_k1' : (0., 0.1),     'fix_k1' : True,
             'A0' : 58.6,        'error_A0' : 0.1,       'limit_A0' : (0., 200.),    'fix_A0' : True,
             }
 
