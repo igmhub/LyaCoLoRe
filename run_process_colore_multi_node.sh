@@ -1,4 +1,5 @@
 # specify number of nodes and cores to use
+QUEUE='debug'
 NNODES=32
 NCORES=64
 TIME="00:30:00" #hh:mm:ss
@@ -27,11 +28,13 @@ PROCESS_PATH="/global/homes/j/jfarr/Projects/LyaCoLoRe/scripts/"
 INPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/output_G_hZsmooth_${COLORE_NGRID}_${COLORE_NODES}_sr${R_SMOOTH}_bm1_biasG18_picos_newNz_mpz0_seed${COLORE_SEED}/"
 echo "input will be taken from "$INPUT_PATH
 INPUT_FILES=`ls -1 ${INPUT_PATH}/out_srcs_*.fits`
+
 NFILES=`echo $INPUT_FILES | wc -w`
 echo "${NFILES} input files have been found"
 
 # full path to folder where output will be written
 OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_${COLORE_NGRID}_${COLORE_NODES}_sr${R_SMOOTH}_bm1_biasG18_picos_newNz_mpz0_seed${COLORE_SEED}_${LYACOLORE_SEED}_nside${NSIDE}_DLAfix/"
+
 echo "output will written to "$OUTPUT_PATH
 if [ ! -d $OUTPUT_PATH ] ; then
     mkdir -p $OUTPUT_PATH
@@ -58,7 +61,7 @@ date
 cat > $RUN_FILE <<EOF
 #!/bin/bash -l
 
-#SBATCH --partition debug
+#SBATCH --partition ${QUEUE}
 #SBATCH --nodes ${NNODES}
 #SBATCH --time ${TIME}
 #SBATCH --job-name process_colore
