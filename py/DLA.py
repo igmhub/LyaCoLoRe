@@ -87,7 +87,7 @@ def get_N(z, Nmin=20.0, Nmax=22.5, nsamp=100):
     if use_pyigm:
         auxfN = fN_default.evaluate(nn,z)
         # Above we got logprob in a grid NHI,z (note the order, we will transpose)
-        probs = (10**auxfN/np.sum(10**auxfN, axis=0)).T # The probability is the function divided by the sum for a given z
+        probs = (np.exp(auxfN)/np.sum(np.exp(auxfN), axis=0)).T # The probability is the function divided by the sum for a given z
     else:
         probs_low = dnHD_dz_cumlgN(z,nn[:-1]).T
         probs_high = dnHD_dz_cumlgN(z,nn[1:]).T
