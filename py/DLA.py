@@ -174,12 +174,22 @@ def add_DLA_table_to_object(object,dla_bias=2.0,extrapolate_z_down=None,Nmin=20.
     MOCKIDs = object.MOCKID[dla_skw_id]
 
     # TODO: make DLAIDs
-    DLAIDs np.zeros(MOCKIDs.shape)
+    DLAIDs = np.zeros(MOCKIDs.shape)
 
-    [('RA', '>f8'), ('DEC', '>f8'), ('Z_QSO_NO_RSD', '>f8'), ('Z_QSO_RSD', '>f8'), ('Z_DLA_NO_RSD', '>f8'), ('Z_DLA_RSD', '>f8'), ('MOCKID', '>i8'), ('DLAID', '>i8'), ('PIXNUM', '>i8')]
+    current_MOCKID = 0
+    current_DLAID = current_MOCKID * 10**3
+
+    for i,MOCKID in enumerate(MOCKIDs):
+        if MOCKID != current_MOCKID:
+            current_MOCKID = MOCKID
+            current_DLAID = current_MOCKID * 10**3
+        DLAIDs[i] = current_DLAID
+        current_DLAID += 1
 
     #Make the data into a table HDU
-    dla_table = astropy.table.Table([RA,DEC,Z_QSO_NO_RSD,Z_QSO_RSD,dla_z,dla_rsd_dz,dla_NHI,MOCKIDs,DLAIDs],names=('MOCKID','Z_DLA','DZ_DLA','N_HI_DLA'))
+    data = [RA,DEC,Z_QSO_NO_RSD,Z_QSO_RSD,dla_z,dla_z+dla_rsd_dz,dla_NHI,MOCKIDs,DLAIDs]
+    names = ('RA','DEC','Z_QSO_NO_RSD','Z_QSO_RSD','Z_DLA_NO_RSD','DZ_DLA_RSD','N_HI_DLA','MOCKID','DLAID')
+    dla_table = astropy.table.Table(data,names=names)
 
     ##Only include DLAs where the DLA is at lower z than the QSO
     #DLA_Z_QSOs = object.Z_QSO[kskw]
@@ -208,7 +218,6 @@ def make_DLA_master(basedir,N_side,pixel_list):
             DLA_master_data = DLA_table
         t.close()
 
-    """
         for i,DLA in enumerate(DLA_table):
             print(pixel,i,end='\r')
             MOCKID = DLA['MOCKID']
@@ -234,8 +243,6 @@ def make_DLA_master(basedir,N_side,pixel_list):
 
     dtype = [('RA', '>f8'), ('DEC', '>f8'), ('Z_QSO_NO_RSD', '>f8'), ('Z_QSO_RSD', '>f8'), ('Z_DLA_NO_RSD', '>f8'), ('Z_DLA_RSD', '>f8'), ('MOCKID', '>i8'), ('DLAID', '>i8'), ('PIXNUM', '>i8')]
     DLA_master_data = np.array(DLA_master_data,dtype=dtype)
-
-    """
 
     #Make an appropriate header.
     header = fits.Header()
