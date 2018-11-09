@@ -85,8 +85,8 @@ def get_N(z, Nmin=20.0, Nmax=22.5, nsamp=100):
     nn = np.linspace(Nmin,Nmax,nsamp)
     probs = np.zeros([Nz,nsamp])
     if use_pyigm:
-        auxfN = fN_default.evaluate(nn,z) 
-        # Above we got logprob in a grid NHI,z (note the order, we will transpose) 
+        auxfN = fN_default.evaluate(nn,z)
+        # Above we got logprob in a grid NHI,z (note the order, we will transpose)
         probs = (10**auxfN/np.sum(10**auxfN, axis=0)).T # The probability is the function divided by the sum for a given z
     else:
         probs_low = dnHD_dz_cumlgN(z,nn[:-1]).T
@@ -166,11 +166,20 @@ def add_DLA_table_to_object(object,dla_bias=2.0,extrapolate_z_down=None,Nmin=20.
 
     dla_NHI = get_N(dla_z,Nmin=Nmin,Nmax=Nmax)
 
-    #global id for the skewers
+    #Obtain the other variable to put in the DLA table
+    RA = object.RA[dla_skw_id]
+    DEC = object.DEC[dla_skw_id]
+    Z_QSO_NO_RSD = object.Z_QSO[dla_skw_id]
+    Z_QSO_RSD = (object.Z_QSO + object.DZ_RSD)[dla_skw_id]
     MOCKIDs = object.MOCKID[dla_skw_id]
 
+    # TODO: make DLAIDs
+    DLAIDs np.zeros(MOCKIDs.shape)
+
+    [('RA', '>f8'), ('DEC', '>f8'), ('Z_QSO_NO_RSD', '>f8'), ('Z_QSO_RSD', '>f8'), ('Z_DLA_NO_RSD', '>f8'), ('Z_DLA_RSD', '>f8'), ('MOCKID', '>i8'), ('DLAID', '>i8'), ('PIXNUM', '>i8')]
+
     #Make the data into a table HDU
-    dla_table = astropy.table.Table([MOCKIDs,dla_z,dla_rsd_dz,dla_NHI],names=('MOCKID','Z_DLA','DZ_DLA','N_HI_DLA'))
+    dla_table = astropy.table.Table([RA,DEC,Z_QSO_NO_RSD,Z_QSO_RSD,dla_z,dla_rsd_dz,dla_NHI,MOCKIDs,DLAIDs],names=('MOCKID','Z_DLA','DZ_DLA','N_HI_DLA'))
 
     ##Only include DLAs where the DLA is at lower z than the QSO
     #DLA_Z_QSOs = object.Z_QSO[kskw]
@@ -192,20 +201,21 @@ def make_DLA_master(basedir,N_side,pixel_list):
 
         current_MOCKID = 0
         current_DLAID = current_MOCKID * 10**3
-       
+
         try:
             DLA_master_data = np.concatenate((DLA_master_data,DLA_table))
         except TypeError:
             DLA_master_data = DLA_table
         t.close()
-        """
+
+    """
         for i,DLA in enumerate(DLA_table):
             print(pixel,i,end='\r')
             MOCKID = DLA['MOCKID']
             Z_DLA_RSD = DLA['Z_DLA'] + DLA['DZ_DLA']
             Z_DLA_NO_RSD = DLA['Z_DLA']
             N_HI_DLA = DLA['N_HI_DLA']
-            
+
             RA = t[1].data[t[1].data['MOCKID']==MOCKID]['RA']
             DEC = t[1].data[t[1].data['MOCKID']==MOCKID]['DEC']
             Z_QSO_RSD = t[1].data[t[1].data['MOCKID']==MOCKID]['Z']
@@ -224,6 +234,7 @@ def make_DLA_master(basedir,N_side,pixel_list):
 
     dtype = [('RA', '>f8'), ('DEC', '>f8'), ('Z_QSO_NO_RSD', '>f8'), ('Z_QSO_RSD', '>f8'), ('Z_DLA_NO_RSD', '>f8'), ('Z_DLA_RSD', '>f8'), ('MOCKID', '>i8'), ('DLAID', '>i8'), ('PIXNUM', '>i8')]
     DLA_master_data = np.array(DLA_master_data,dtype=dtype)
+
     """
 
     #Make an appropriate header.
