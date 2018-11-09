@@ -11,7 +11,7 @@ import h5py
 
 # TODO: write this
 class picca_correlation:
-    def __init__(self,p,cd,fp):
+    def __init__(self,p,cd,f):
 
         #picca parameters
         self.correl_type = p['correl_type']
@@ -48,22 +48,24 @@ class picca_correlation:
         """
 
         #fit parameters
-        self.zeff = fp['zeff']
+        self.zeff = f['zeff']
 
         # TODO: the way picca reports bias and beta is weird, this needs to be sorted
-        self.bias_LYA = fp['bias_LYA']['value'] / fp['beta_LYA']['value']
-        self.bias_LYA_err = fp['bias_LYA']['error'] / fp['beta_LYA']['value']
-        self.beta_LYA = fp['beta_LYA']['value']
-        self.beta_LYA_err = fp['beta_LYA']['error']
-        self.bias_QSO = fp['bias_QSO']['value'] / fp['beta_QSO']['value']
-        self.bias_QSO_err = fp['bias_QSO']['error'] / fp['beta_QSO']['value']
-        self.beta_QSO = fp['beta_QSO']['value']
-        self.beta_QSO_err = fp['beta_QSO']['error']
+        self.bias_LYA = f['bias_LYA']['value'] / f['beta_LYA']['value']
+        self.bias_LYA_err = f['bias_LYA']['error'] / f['beta_LYA']['value']
+        self.beta_LYA = f['beta_LYA']['value']
+        self.beta_LYA_err = f['beta_LYA']['error']
+        self.bias_QSO = f['bias_QSO']['value'] / f['beta_QSO']['value']
+        self.bias_QSO_err = f['bias_QSO']['error'] / f['beta_QSO']['value']
+        self.beta_QSO = f['beta_QSO']['value']
+        self.beta_QSO_err = f['beta_QSO']['error']
 
-        self.ap = fp['ap']['value']
-        self.ap_err = fp['ap']['error']
-        self.at = fp['at']['value']
-        self.at_err = fp['at']['error']
+        self.ap = f['ap']['value']
+        self.ap_err = f['ap']['error']
+        self.at = f['at']['value']
+        self.at_err = f['at']['error']
+
+        self.fit_xi_grid = f['xi_grid']
 
         return
 
@@ -101,8 +103,8 @@ class picca_correlation:
         #yet to do this
 
         #get fit paramters
-        fit_parameters = get_fit_parameters_from_result(location+'/result.h5')
-        
+        fit_parameters = get_fit_from_result(location+'/result.h5')
+
         return cls(parameters,correlation_data,fit_parameters)
 
     def plot_data(self,mubin,plot_label,r_power,colour,nr=40,rmax=160.):
@@ -140,28 +142,47 @@ class picca_correlation:
 
     def plot_fit(self,mubin,plot_label,r_power,colour,rmax):
 
+        #Using our model
         model = 'Slosar11'
 
         bias1,bias2,beta1,beta2 = self.get_biases_and_betas()
         r,xi = correlation_model.get_model_xi(model,self.quantity_1,self.quantity_2,bias1,bias2,beta1,beta2,self.zeff,mubin)
 
         indices = r<rmax
-
         r = r[indices]
         xi = xi[indices]
-
         plt.plot(r,(r**r_power) * xi,label=plot_label)
+        
+
+        #Using data in picca fit
+        mumin = mubin[0]
+        mumax = mubin[1]
+
+        b = wedgize.wedge(mumin=mumin,mumax=mumax,rtmax=self.rtmax,nrt=self.nt,
+            rpmin=self.rpmin,rpmax=self.rpmax,nrp=self.np,nr=self.nr,
+            rmax=self.rmax)
+
+        """
+        #REMOVE NON_DIAGONALS FROM COV MATRIX
+        for i in range(self.cov_grid.shape[0]):
+            for j in range(self.cov_grid.shape[1]):
+                if i!=j:
+                    self.cov_grid[i,j]=0
+        """
+
+        r, fit_xi_wed, _ = b.wedge(self.fit_xi_wed,self.cov_grid)
+
+        plt.plot(r,(r**r_power) * fit_xi_wed,label=plot_label)
 
         return
 
-
-def get_fit_parameters_from_result(filepath):
+def get_fit_from_result(filepath):
 
     ff = h5py.File(filepath,'r')
-    fit_parameters = {}
+    fit = {}
 
     zeff = ff['best fit'].attrs['zeff']
-    fit_parameters['zeff'] = zeff
+    fit['zeff'] = zeff
 
     cosmo_pars = ["bias_LYA","beta_LYA","bias_QSO","beta_QSO","ap","at"]
     for par in cosmo_pars:
@@ -170,11 +191,15 @@ def get_fit_parameters_from_result(filepath):
             value,error = ff['best fit'].attrs[par]
             par_dict['value'] = value
             par_dict['error'] = error
-            fit_parameters[par] = par_dict
+            fit[par] = {par_dict}
+
+    # TODO: This won't work if it's not the lya auto correlation
+    fit['xi_grid'] = ff['LYA(LYA)xLYA(LYA)/fit'][...]
 
     ff.close()
 
-    return fit_parameters
+    return fit
+
 
 def get_correlation_data_from_cf_exp(filepath):
 
@@ -252,7 +277,7 @@ def make_plots(corr_objects,mu_boundaries,plot_system,r_power,include_fits,nr=40
                 if include_fits:
                     plot_label += ' (fit)'
                     corr_object.plot_fit(mu_bin,plot_label,r_power,colours[i],rmax)
-         
+
             # TODO: import the LyaCoLoRe nside to use here
             plt.title('{} {}{} ({} pixels @ Nside {})'.format(corr_object.correl_type,corr_object.quantity_1,corr_object.quantity_2,corr_object.N_pixels,16))
 
