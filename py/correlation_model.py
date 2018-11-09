@@ -49,7 +49,6 @@ def get_model_xi(model,q1,q2,bias1,bias2,beta1,beta2,z,mubin,sr=0.0):
         C4 = get_C4(beta1,beta2)
 
         scaling = get_growth_factor_scaling(z,q1)*get_growth_factor_scaling(z,q2)
-
         scaling *= bias1*bias2
 
         xi = scaling*(C0*xi0*P_mu_0 + C2*xi2*P_mu_2 + C4*xi4*P_mu_4)
@@ -68,20 +67,20 @@ def get_C4(B1,B2):
 def get_growth_factor_scaling(z,quantity,location=None):
 
     if location == None:
-        location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test/'
+        location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_newNz_mpz0_seed1003_123_nside16/'
     if quantity == 'G':
         D_at_z0 = 1
         D_at_zval = 1
     elif quantity in ['D','F','q']:
-        h = fits.open('/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test/master.fits')
-        D = h[2].data['D']
-        z_D = h[2].data['Z']
+        h = fits.open('/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_newNz_mpz0_seed1003_123_nside16/master.fits')
+        D = h['COSMO_COL'].data['D']
+        z_D = h['COSMO_COL'].data['Z']
         D_at_z0 = np.interp(0,z_D,D)
         D_at_zval = np.interp(z,z_D,D)
     else:
         print('quantity not recognised')
 
-    return D_at_zval/D_at_z0
+    return (D_at_zval/D_at_z0)
 
 
 
