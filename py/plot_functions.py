@@ -70,7 +70,7 @@ class picca_correlation:
         return
 
     def get_biases_and_betas(self):
-        print(self.correl_type)
+
         if self.correl_type == 'cf':
             bias1 = self.bias_LYA
             bias2 = self.bias_LYA
@@ -94,10 +94,10 @@ class picca_correlation:
 
         #get parameters
         #replace with get_parameters_from_param_file when written
-        parameters = get_parameters_from_param_file(location+'parameters.txt')
+        parameters = get_parameters_from_param_file(location+'/parameters.txt')
 
         #get correlation data
-        correlation_data = get_correlation_data_from_cf_exp(location+cf_exp_filename)
+        correlation_data = get_correlation_data_from_cf_exp(location+'/'+cf_exp_filename)
 
         #get cosmology data
         #yet to do this
@@ -136,12 +136,13 @@ class picca_correlation:
         xi_wed = xi_wed[cut]
         err_wed = err_wed[cut]
 
-        plt.errorbar(r,(r**r_power) * xi_wed,yerr=err_wed,fmt='o',label=plot_label)
+        plt.errorbar(r,(r**r_power) * xi_wed,yerr=(r**r_power) * err_wed,fmt='o',label=plot_label)
 
         return
 
-    def plot_fit(self,mubin,plot_label,r_power,colour,rmax):
+    def plot_fit(self,mubin,plot_label,r_power,colour,nr=40,rmax=160.):
 
+        """
         #Using our model
         model = 'Slosar11'
 
@@ -151,16 +152,15 @@ class picca_correlation:
         indices = r<rmax
         r = r[indices]
         xi = xi[indices]
-        plt.plot(r,(r**r_power) * xi,label=plot_label)
-        
+        plt.plot(r,(r**r_power) * xi,label=plot_label,c=colour)
+        """
 
         #Using data in picca fit
         mumin = mubin[0]
         mumax = mubin[1]
 
         b = wedgize.wedge(mumin=mumin,mumax=mumax,rtmax=self.rtmax,nrt=self.nt,
-            rpmin=self.rpmin,rpmax=self.rpmax,nrp=self.np,nr=self.nr,
-            rmax=self.rmax)
+            rpmin=self.rpmin,rpmax=self.rpmax,nrp=self.np,nr=nr,rmax=rmax)
 
         """
         #REMOVE NON_DIAGONALS FROM COV MATRIX
@@ -170,9 +170,9 @@ class picca_correlation:
                     self.cov_grid[i,j]=0
         """
 
-        r, fit_xi_wed, _ = b.wedge(self.fit_xi_wed,self.cov_grid)
+        r, fit_xi_wed, _ = b.wedge(self.fit_xi_grid,self.cov_grid)
 
-        plt.plot(r,(r**r_power) * fit_xi_wed,label=plot_label)
+        plt.plot(r,(r**r_power) * fit_xi_wed,label=plot_label,c=colour)
 
         return
 
@@ -191,7 +191,7 @@ def get_fit_from_result(filepath):
             value,error = ff['best fit'].attrs[par]
             par_dict['value'] = value
             par_dict['error'] = error
-            fit[par] = {par_dict}
+            fit[par] = par_dict
 
     # TODO: This won't work if it's not the lya auto correlation
     fit['xi_grid'] = ff['LYA(LYA)xLYA(LYA)/fit'][...]
@@ -256,12 +256,12 @@ def make_plots(corr_objects,mu_boundaries,plot_system,r_power,include_fits,nr=40
 
         colours = colours[:len(corr_objects)]
         for mu_bin in mu_bins:
-            plt.figure()
+            plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
 
             for i,corr_object in enumerate(corr_objects):
                 corr_object.plot_data(mu_bin,'',r_power,colours[i],nr=nr,rmax=rmax)
                 if include_fits:
-                    corr_object.plot_fit(mu_bin,'',r_power,colours[i],rmax)
+                    corr_object.plot_fit(mu_bin,'',r_power,colours[i],nr=nr,rmax=rmax)
 
             plt.title('{} < mu < {}'.format(mu_bin[0],mu_bin[1]))
 
@@ -269,18 +269,20 @@ def make_plots(corr_objects,mu_boundaries,plot_system,r_power,include_fits,nr=40
 
         colours = colours[:len(mu_bins)]
         for corr_object in corr_objects:
-            plt.figure()
+            plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
 
             for i,mu_bin in enumerate(mu_bins):
                 plot_label = '{}<mu<{}'.format(mu_bin[0],mu_bin[1])
                 corr_object.plot_data(mu_bin,plot_label,r_power,colours[i])
                 if include_fits:
                     plot_label += ' (fit)'
-                    corr_object.plot_fit(mu_bin,plot_label,r_power,colours[i],rmax)
+                    corr_object.plot_fit(mu_bin,plot_label,r_power,colours[i],nr=nr,rmax=rmax)
 
             # TODO: import the LyaCoLoRe nside to use here
-            plt.title('{} {}{} ({} pixels @ Nside {})'.format(corr_object.correl_type,corr_object.quantity_1,corr_object.quantity_2,corr_object.N_pixels,16))
+            plt.title('{} {}{} ({} pixels @ Nside {}), {} < z < {}'.format(corr_object.correl_type,corr_object.quantity_1,corr_object.quantity_2,corr_object.N_pixels,16,corr_object.zmin,corr_object.zmax))
 
+    plt.legend()
+    plt.grid()
     plt.show()
 
     return
@@ -292,6 +294,8 @@ def bins_from_boundaries(boundaries):
     return bins
 
 
+
+###############################################################################
 
 
 
