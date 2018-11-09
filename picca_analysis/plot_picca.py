@@ -8,7 +8,7 @@ from pyacolore import plot_functions
 
 default_location = ['/global/homes/j/jfarr/Programs/picca/picca_00000/']
 
-if len(sys.argv) > 0:
+if len(sys.argv) > 1:
     locations = sys.argv[1:]
 else:
     locations = default_location
@@ -19,9 +19,11 @@ mu_boundaries = [0.0,0.5,0.8,0.95,1.0]
 model = 'Slosar11'
 include_fits = True
 r_power = 2
+nr = 40
+rmax=160. #Mpc/h
 
 #Get the correlation objects
 corr_objects = plot_functions.get_correlation_objects(locations)
 
 #Make plots of the objects
-plot_functions.make_plots(corr_objects,mu_boundaries,plot_system,r_power,include_fits)
+plot_functions.make_plots(corr_objects,mu_boundaries,plot_system,r_power,include_fits,nr=nr,rmax=rmax)
