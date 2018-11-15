@@ -14,20 +14,20 @@ from pyacolore import convert, Pk1D, utils, independent, tuning, simulation_data
 
 lya = utils.lya_rest
 
-N_files = 32
+N_files = 600
 N_processes = np.min((64,N_files))
 lambda_min = 3550.0
 min_cat_z = 1.8
 IVAR_cutoff = 1150.0
 
-fix_all = False
+fix_all = True
 show_plots = True
 
 #Get the starting values of alpha, beta and sigma_G from file
 #Decide which z values we are going to sample at
-z_values = [2.0,2.2,2.4,2.6,2.8,3.0,3.2,3.4]
+z_values = [2.0,2.2,2.4,2.6,2.8,3.0,3.2]
 z_width = 0.2
-colours = ['C0','C1','C2','C3','C4','C5','C6','C0']
+colours = ['C0','C1','C2','C3','C4','C5','C6']
 
 cell_size = 0.25 #Mpc/h
 
@@ -35,7 +35,7 @@ max_k = 0.01 #skm-1
 
 #Open up the Gaussian colore files
 #base_file_location = '/Users/jfarr/Projects/test_data/test/'
-base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_newNz_mpz0_seed1003_123_nside16/'
+base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v4.0/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_newNz_mpz0_seed1003_123_nside16/'
 #base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v3/v3.0/'
 N_side = 16
 
@@ -114,7 +114,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,D0,D1,D2,n,k1,RSD_weights,prep=False):
     location = base_file_location + '/' + new_file_structure.format(pixel//100,pixel)
 
     # TODO: this is a problem
-    measured_SIGMA_G = 1.17
+    measured_SIGMA_G = 1.16423233683
 
     #We work from the gaussian colore files made in 'pixelise gaussian skewers'.
     gaussian_filename = new_filename_structure.format('gaussian-colore',N_side,pixel)
@@ -306,7 +306,7 @@ def f(C0,C1,C2,D0,D1,D2,n,k1,return_measurements=False):
         txt = str(time.ctime()+'\n')
         txt += 'C0:{}, C1:{}, C2:{}, D0:{}, D1:{}, D2:{}, n:{}, k1:{}, beta:1.65\n'.format(C0,C1,C2,D0,D1,D2,n,k1)
         txt += 'chi2: Pk {:2.4f}, mean F {:2.4f}, overall {:2.4f}\n\n'.format(Pk_kms_chi2,mean_F_chi2,overall_chi2)
-        #f.write(txt)
+        f.write(txt)
         f.close()
         best = chi2
 
@@ -320,18 +320,18 @@ def f(C0,C1,C2,D0,D1,D2,n,k1,return_measurements=False):
 #   beta = np.ones_like(alpha) * 1.65
 #   sigma_G_required = D0 * (Z**D1) + D2
 
-a_kwargs = {'C0' : 2.636004450988738,     'error_C0' : 0.2461,  'fix_C0' : fix_all|False, 'limit_C0' : (0., 100.),
-            'C1' : -0.3435831699077125,     'error_C1' : 0.5443,  'fix_C1' : fix_all|False, #'limit_C1' : (0., 20.),
-            'C2' : 6.030766985459455,     'error_C2' : 4.001,  'fix_C2' : fix_all|False, #'limit_C2' : (0., 20.),
+a_kwargs = {'C0' : 2.6332653734714553,     'error_C0' : 0.2688,  'fix_C0' : fix_all|False, 'limit_C0' : (0., 100.),
+            'C1' : -0.34320825880102096,     'error_C1' : 0.6182,  'fix_C1' : fix_all|False, #'limit_C1' : (0., 20.),
+            'C2' : 6.015264156788307,     'error_C2' : 2.311,  'fix_C2' : fix_all|False, #'limit_C2' : (0., 20.),
             }
 
-sG_kwargs = {'D0' : 7.019175181068954,     'error_D0' : 0.1273,  'fix_D0' : fix_all|False, 'limit_D0' : (0., 100.),
-             'D1' : -0.7034721243908706,     'error_D1' : 0.07417,  'fix_D1' : fix_all|False, #'limit_D1' : (0., 20.),
-             'D2' : -0.8532301210163152,     'error_D2' : 0.3783,  'fix_D2' : fix_all|False, #'limit_D2' : (0., 20.),
+sG_kwargs = {'D0' : 7.0184129350010505,     'error_D0' : 0.1519,  'fix_D0' : fix_all|False, 'limit_D0' : (0., 100.),
+             'D1' : -0.7041099375147687,     'error_D1' : 0.08014,  'fix_D1' : fix_all|False, #'limit_D1' : (0., 20.),
+             'D2' : -0.855862202003979,     'error_D2' : 0.2538,  'fix_D2' : fix_all|False, #'limit_D2' : (0., 20.),
              }
 
-s_kwargs = {'n'  : 1.2037021362226792,     'error_n' : 0.06357,   'limit_n' : (0., 10.),   'fix_n' : fix_all|False,
-            'k1' : 0.0142420579473729,   'error_k1' : 0.00103,'limit_k1' : (0., 0.1),  'fix_k1' : fix_all|False,
+s_kwargs = {'n'  : 1.2039754979318222,     'error_n' : 0.06131,   'limit_n' : (0., 10.),   'fix_n' : fix_all|False,
+            'k1' : 0.014240377775446435,   'error_k1' : 0.001075,'limit_k1' : (0., 0.1),  'fix_k1' : fix_all|False,
             }
 #9.994699217841518
 other_kwargs = {'return_measurements'  : False,    'fix_return_measurements' : True,
