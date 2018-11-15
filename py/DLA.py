@@ -167,18 +167,12 @@ def add_DLA_table_to_object(object,dla_bias=2.0,extrapolate_z_down=None,Nmin=20.
     dla_NHI = get_N(dla_z,Nmin=Nmin,Nmax=Nmax)
 
     #Obtain the other variable to put in the DLA table
-    RA = object.RA[dla_skw_id]
-    DEC = object.DEC[dla_skw_id]
-    Z_QSO_NO_RSD = object.Z_QSO[dla_skw_id]
-    Z_QSO_RSD = (object.Z_QSO + object.DZ_RSD)[dla_skw_id]
     MOCKIDs = object.MOCKID[dla_skw_id]
 
-    # TODO: make DLAIDs
+    #Make DLAIDs
     DLAIDs = np.zeros(MOCKIDs.shape)
-
     current_MOCKID = 0
     current_DLAID = current_MOCKID * 10**3
-
     for i,MOCKID in enumerate(MOCKIDs):
         if MOCKID != current_MOCKID:
             current_MOCKID = MOCKID
@@ -187,8 +181,8 @@ def add_DLA_table_to_object(object,dla_bias=2.0,extrapolate_z_down=None,Nmin=20.
         current_DLAID += 1
 
     #Make the data into a table HDU
-    data = [RA,DEC,Z_QSO_NO_RSD,Z_QSO_RSD,dla_z,dla_z+dla_rsd_dz,dla_NHI,MOCKIDs,DLAIDs]
-    names = ('RA','DEC','Z_QSO_NO_RSD','Z_QSO_RSD','Z_DLA_NO_RSD','Z_DLA_RSD','N_HI_DLA','MOCKID','DLAID')
+    data = [dla_z,dla_z+dla_rsd_dz,dla_NHI,MOCKIDs,DLAIDs]
+    names = ('Z_DLA_NO_RSD','Z_DLA_RSD','N_HI_DLA','MOCKID','DLAID')
     dla_table = astropy.table.Table(data,names=names)
 
     ##Only include DLAs where the DLA is at lower z than the QSO
@@ -210,21 +204,18 @@ def make_DLA_master(basedir,N_side,pixel_list):
         DLA_table = np.sort(t[4].data,order=['DLAID'])
 
         current_MOCKID = 0
-        current_DLAID = current_MOCKID * 10**3
-
-        """
-        try:
-            DLA_master_data = np.concatenate((DLA_master_data,DLA_table))
-        except TypeError:
-            DLA_master_data = DLA_table
-        t.close()
-        """
+        #current_DLAID = current_MOCKID * 10**3
 
         for i,DLA in enumerate(DLA_table):
-            print(pixel,i,end='\r')
             MOCKID = DLA['MOCKID']
+            DLAID = DLA['DLAID']
+
             Z_DLA_NO_RSD = DLA['Z_DLA_NO_RSD']
-            Z_DLA_RSD = DLA['Z_DLA_RSD']
+            try:
+                Z_DLA_RSD = DLA['Z_DLA_RSD']
+            except KeyError:
+                #This is to allow for a typo made in v4.2, that labelled Z_DLA wrongly. It should be removed afterwards.
+                Z_DLA_RSD = DLA['DZ_DLA_RSD']
             N_HI_DLA = DLA['N_HI_DLA']
 
             if MOCKID != current_MOCKID:
@@ -236,10 +227,10 @@ def make_DLA_master(basedir,N_side,pixel_list):
                 Z_QSO_NO_RSD = QSO_data['Z_noRSD']
 
                 current_MOCKID = MOCKID
-                current_DLAID = current_MOCKID * 10**3
+                #current_DLAID = current_MOCKID * 10**3
 
-            DLAID = current_DLAID
-            current_DLAID += 1
+            #DLAID = current_DLAID
+            #current_DLAID += 1
 
             DLA_master_data += [(RA,DEC,Z_QSO_NO_RSD,Z_QSO_RSD,Z_DLA_NO_RSD,Z_DLA_RSD,N_HI_DLA,MOCKID,DLAID,pixel)] #No file number
 
@@ -253,7 +244,7 @@ def make_DLA_master(basedir,N_side,pixel_list):
     header['NSIDE'] = N_side
 
     #Make the data into tables.
-    hdu_ID = fits.BinTableHDU.from_columns(DLA_master_data,header=header,name='DLA CATALOG')
+    hdu_ID = fits.BinTableHDU.from_columns(DLA_master_data,header=header,name='DLACAT')
 
     #Make a primary HDU.
     prihdr = fits.Header()
