@@ -49,16 +49,24 @@ class picca_correlation:
 
         #fit parameters
         self.zeff = f['zeff']
+        self.fval = f['fval']
+        self.ndata = f['ndata']
+        self.npar = f['npar']
 
-        # TODO: the way picca reports bias and beta is weird, this needs to be sorted
-        self.bias_LYA = f['bias_LYA']['value'] / f['beta_LYA']['value']
-        self.bias_LYA_err = f['bias_LYA']['error'] / f['beta_LYA']['value']
+        self.growth_rate = f['growth_rate']['value']
+        self.growth_rate_err = f['growth_rate']['error']
+
         self.beta_LYA = f['beta_LYA']['value']
         self.beta_LYA_err = f['beta_LYA']['error']
-        self.bias_QSO = f['bias_QSO']['value'] / f['beta_QSO']['value']
-        self.bias_QSO_err = f['bias_QSO']['error'] / f['beta_QSO']['value']
+
         self.beta_QSO = f['beta_QSO']['value']
         self.beta_QSO_err = f['beta_QSO']['error']
+
+        self.bias_LYA = f['bias_LYA']['value'] * self.growth_rate / self.beta_LYA
+        self.bias_LYA_err = np.sqrt((f['bias_LYA']['error'] * self.growth_rate / self.beta_LYA)**2 + (self.bias_LYA * self.growth_rate_err / self.beta_LYA_err)**2 + (self.bias_LYA * self.growth_rate * self.beta_LYA_err / (self.beta_LYA ** 2))**2)
+        
+        self.bias_QSO = f['bias_QSO']['value'] * self.growth_rate / self.beta_QSO
+        self.bias_QSO_err = np.sqrt((f['bias_QSO']['error'] * self.growth_rate / self.beta_QSO)**2 + (self.bias_QSO * self.growth_rate_err / self.beta_QSO_err)**2 + (self.bias_QSO * self.growth_rate * self.beta_QSO_err / (self.beta_QSO ** 2))**2)
 
         self.ap = f['ap']['value']
         self.ap_err = f['ap']['error']
@@ -90,7 +98,7 @@ class picca_correlation:
         return bias1,bias2,beta1,beta2
 
     @classmethod
-    def make_correlation_object(cls,location,cf_exp_filename):
+    def make_correlation_object(cls,location,cf_exp_filename,res_name='result.h5'):
 
         #get parameters
         #replace with get_parameters_from_param_file when written
@@ -103,7 +111,7 @@ class picca_correlation:
         #yet to do this
 
         #get fit paramters
-        fit_parameters = get_fit_from_result(location+'/result.h5')
+        fit_parameters = get_fit_from_result(location+res_name)
 
         return cls(parameters,correlation_data,fit_parameters)
 
@@ -172,7 +180,7 @@ class picca_correlation:
 
         r, fit_xi_wed, _ = b.wedge(self.fit_xi_grid,self.cov_grid)
 
-        plt.plot(r,(r**r_power) * fit_xi_wed,label=plot_label,c=colour)
+        plt.plot(r,(r**r_power) * fit_xi_wed,c=colour)#,label=plot_label
 
         return
 
@@ -183,8 +191,14 @@ def get_fit_from_result(filepath):
 
     zeff = ff['best fit'].attrs['zeff']
     fit['zeff'] = zeff
+    fval = ff['best fit'].attrs['fval']
+    fit['fval'] = fval
+    ndata = ff['best fit'].attrs['ndata']
+    fit['ndata'] = ndata
+    npar = ff['best fit'].attrs['npar']
+    fit['npar'] = npar
 
-    cosmo_pars = ["bias_LYA","beta_LYA","bias_QSO","beta_QSO","ap","at"]
+    cosmo_pars = ["bias_LYA","beta_LYA","bias_QSO","beta_QSO","ap","at","growth_rate"]
     for par in cosmo_pars:
         if par in ff['best fit'].attrs:
             par_dict = {}
@@ -227,7 +241,7 @@ def get_parameters_from_param_file(filepath):
 
     return params
 
-def get_correlation_objects(locations,cf_exp_filenames=None):
+def get_correlation_objects(locations,cf_exp_filenames=None,res_name='result.h5'):
 
     if not cf_exp_filenames:
         checked_locations = []
@@ -238,11 +252,11 @@ def get_correlation_objects(locations,cf_exp_filenames=None):
                 cf_exp_filenames += [f[(len(f)-f[::-1].find('/')):]]
                 checked_locations += [location]
 
-    locations = checked_locations
+        locations = checked_locations
 
     objects = []
     for i,location in enumerate(locations):
-        objects += [picca_correlation.make_correlation_object(location,cf_exp_filenames[i])]
+        objects += [picca_correlation.make_correlation_object(location,cf_exp_filenames[i],res_name=res_name)]
 
     return objects
 
@@ -264,6 +278,8 @@ def make_plots(corr_objects,mu_boundaries,plot_system,r_power,include_fits,nr=40
                     corr_object.plot_fit(mu_bin,'',r_power,colours[i],nr=nr,rmax=rmax)
 
             plt.title('{} < mu < {}'.format(mu_bin[0],mu_bin[1]))
+            plt.legend()
+            plt.grid()
 
     elif plot_system == 'plot_per_file':
 
@@ -278,11 +294,11 @@ def make_plots(corr_objects,mu_boundaries,plot_system,r_power,include_fits,nr=40
                     plot_label += ' (fit)'
                     corr_object.plot_fit(mu_bin,plot_label,r_power,colours[i],nr=nr,rmax=rmax)
 
-            # TODO: import the LyaCoLoRe nside to use here
-            plt.title('{} {}{} ({} pixels @ Nside {}), {} < z < {}'.format(corr_object.correl_type,corr_object.quantity_1,corr_object.quantity_2,corr_object.N_pixels,16,corr_object.zmin,corr_object.zmax))
+            # TODO: import the LyaCoLoRe nside to use here, use corr_object.correl_type to determine which biases are presented
+            plt.title('{} {}{}; {} pix @ Nside {}; {} < z < {}; \nbias = {:1.3}+/-{:1.3f}; beta = {:1.3f}+/-{:1.3f}; chi2/(nd-np) = {:5.1f}/({}-{}); ap = {:1.3f}+/-{:1.3f}, at = {:1.3f}+/-{:1.3f}'.format(corr_object.correl_type,corr_object.quantity_1,corr_object.quantity_2,corr_object.N_pixels,16,corr_object.zmin,corr_object.zmax,corr_object.bias_LYA,corr_object.bias_LYA_err,corr_object.beta_LYA,corr_object.beta_LYA_err,corr_object.fval,corr_object.ndata,corr_object.npar,corr_object.ap,corr_object.ap_err,corr_object.at,corr_object.at_err))
+            plt.legend()
+            plt.grid()
 
-    plt.legend()
-    plt.grid()
     plt.show()
 
     return

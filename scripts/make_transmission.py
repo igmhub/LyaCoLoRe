@@ -96,6 +96,7 @@ parser.add_argument('--nskewers', type = int, default = None, required=False,
 parser.add_argument('--seed', type = int, default = 123, required=False,
                     help = 'specify seed to generate random numbers')
 
+# TODO: this is now defunct.
 parser.add_argument('--fit-function-to-tuning-data', action="store_true", default = False, required=False,
                     help = 'fit a function of the form A0 * (z^A1) + A2 to the tuning data')
 
@@ -314,7 +315,13 @@ else:
     h = fits.open(tuning_file)
     n = h[1].header['n']
     k1 = h[1].header['k1']
+    tuning_z_values = h[1].data['z']
+    tuning_alphas = h[1].data['alpha']
+    tuning_betas = h[1].data['beta']
+    tuning_sigma_Gs = h[1].data['sigma_G']
 
+    """"
+    #This is now outdated with the new method
     #If we want to use fitted tuning data, then do so. Otherwise use raw data.
     if fit_function_to_tuning_data:
         try:
@@ -346,7 +353,8 @@ else:
         tuning_alphas = tuning_data['alpha']
         tuning_betas = tuning_data['beta']
         tuning_sigma_Gs = tuning_data['sigma_G']
-
+    """
+ 
     h.close()
     print('Process complete!')
 
