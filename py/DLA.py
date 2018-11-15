@@ -218,32 +218,7 @@ def make_DLA_master(basedir,N_side,pixel_list):
             DLA_master_data = DLA_table
         t.close()
 
-        """
-        for i,DLA in enumerate(DLA_table):
-            print(pixel,i,end='\r')
-            MOCKID = DLA['MOCKID']
-            Z_DLA_RSD = DLA['Z_DLA'] + DLA['DZ_DLA']
-            Z_DLA_NO_RSD = DLA['Z_DLA']
-            N_HI_DLA = DLA['N_HI_DLA']
-
-            RA = t[1].data[t[1].data['MOCKID']==MOCKID]['RA']
-            DEC = t[1].data[t[1].data['MOCKID']==MOCKID]['DEC']
-            Z_QSO_RSD = t[1].data[t[1].data['MOCKID']==MOCKID]['Z']
-            Z_QSO_NO_RSD = t[1].data[t[1].data['MOCKID']==MOCKID]['Z_noRSD']
-
-            if MOCKID != current_MOCKID:
-                current_MOCKID = MOCKID
-                current_DLAID = current_MOCKID * 10**3
-
-            DLAID = current_DLAID
-            current_DLAID += 1
-
-            DLA_master_data += [(RA,DEC,Z_QSO_NO_RSD,Z_QSO_RSD,Z_DLA_NO_RSD,Z_DLA_RSD,MOCKID,DLAID,pixel)] #No file number
-        
-        t.close()
-        """
-
-    dtype = [('RA', '>f8'), ('DEC', '>f8'), ('Z_QSO_NO_RSD', '>f8'), ('Z_QSO_RSD', '>f8'), ('Z_DLA_NO_RSD', '>f8'), ('Z_DLA_RSD', '>f8'), ('MOCKID', '>i8'), ('DLAID', '>i8'), ('PIXNUM', '>i8')]
+    dtype = [('RA', '>f8'), ('DEC', '>f8'), ('Z_QSO_NO_RSD', '>f8'), ('Z_QSO_RSD', '>f8'), ('Z_DLA_NO_RSD', '>f8'), ('Z_DLA_RSD', '>f8'), ('N_HI_DLA', '>f8'), ('MOCKID', '>i8'), ('DLAID', '>i8')]
     DLA_master_data = np.array(DLA_master_data,dtype=dtype)
 
     #Make an appropriate header.
