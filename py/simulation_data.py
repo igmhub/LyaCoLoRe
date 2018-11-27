@@ -341,7 +341,7 @@ class SimulationData:
         return
 
     #Function to add small scale gaussian fluctuations.
-    def add_small_scale_gaussian_fluctuations(self,cell_size,sigma_G_z_values,extra_sigma_G_values,generator,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n=0.7,k1=0.001,A0=58.6):
+    def add_small_scale_gaussian_fluctuations(self,cell_size,sigma_G_z_values,extra_sigma_G_values,generator,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n=0.7,k1=0.001,A0=58.6,R1=10.0):
         times = []
         start = time.time(); times += [start]
         # TODO: Is NGP really the way to go?
@@ -398,13 +398,13 @@ class SimulationData:
         #Generate extra variance, either white noise or correlated.
         dkms_dhMpc = utils.get_dkms_dhMpc(0.)
         dv_kms = cell_size * dkms_dhMpc
-        extra_var = independent.get_gaussian_fields(generator,self.N_cells,dv_kms=dv_kms,N_skewers=self.N_qso,white_noise=white_noise,n=n,k1=k1,A0=A0)
+        extra_var = independent.get_gaussian_fields(generator,self.N_cells,dv_kms=dv_kms,N_skewers=self.N_qso,white_noise=white_noise,n=n,k1=k1,A0=A0,R1=R1)
 
         times += [time.time()]
 
         #Normalise the extra variance to have unit variance
         k_kms = np.fft.rfftfreq(self.N_cells)*2*np.pi/dv_kms
-        Pk_kms = independent.power_kms(0.,k_kms,dv_kms,white_noise=white_noise,n=n,k1=k1,A0=A0,smooth=True)
+        Pk_kms = independent.power_kms(0.,k_kms,dv_kms,white_noise=white_noise,n=n,k1=k1,A0=A0,R1=R1,smooth=True)
         mean_P = np.average(Pk_kms)
         sigma_G_extra_var = np.sqrt((1/np.pi)*np.trapz(Pk_kms,k_kms))
         extra_var /= sigma_G_extra_var #np.sqrt(mean_P/dv_kms)

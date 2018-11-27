@@ -179,7 +179,7 @@ def get_NGPs(x,x_new):
         NGPs[i] = np.argmin(distances2)
 
     NGPs = NGPs.astype(int)
-    
+
     return NGPs
 
 #Function to return the index of the point in a sorted array closest to a given value.
