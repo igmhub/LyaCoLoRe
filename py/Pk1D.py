@@ -29,13 +29,16 @@ def get_Pk1D(skewer_rows,IVAR_rows,R_hMpc,z,z_value=0.0,z_width=None,units='km/s
     R_hMpc = R_hMpc[j_lower:j_upper]
     z = z[j_lower:j_upper]
 
+    #Get cell size
+    dr_hMpc = (R_hMpc[-1] - R_hMpc[0])/(N_cells_chunk - 1)
+
     if units == 'km/s':
         #convert to kms
         dkms_dhMpc = utils.get_dkms_dhMpc(z_value)
         R_kms = dkms_dhMpc*R_hMpc
 
         #get the cell width (this is not constant in kms)
-        dv_kms = dkms_dhMpc*(R_hMpc[-1] - R_hMpc[0])/(N_cells_chunk - 1)
+        dv_kms = dkms_dhMpc*dr_hMpc
 
         #get the k frequencies
         k_kms = np.fft.rfftfreq(N_cells_chunk)*2*np.pi/dv_kms
@@ -43,6 +46,10 @@ def get_Pk1D(skewer_rows,IVAR_rows,R_hMpc,z,z_value=0.0,z_width=None,units='km/s
         #ft the skewers
         ft_rows = np.fft.rfft(skewer_rows_chunk,axis=1) / np.sqrt(N_cells_chunk/dv_kms)
         pk_rows = np.abs(ft_rows)**2
+
+        #compute Fourier transform of Top-Hat filter of size l_kms and apply it
+        W_kms = np.sinc((k_kms*dv_kms)/(2*np.pi))
+        pk_kms /= (W_kms**2)
 
         #calculate mean and variance
         pk_kms = np.average(pk_rows,axis=0)
@@ -54,15 +61,16 @@ def get_Pk1D(skewer_rows,IVAR_rows,R_hMpc,z,z_value=0.0,z_width=None,units='km/s
         var = var_kms
 
     elif units == 'Mpc/h':
-        #get the cell width (this is not constant in kms)
-        dr_hMpc = (R_hMpc[-1] - R_hMpc[0])/(N_cells_chunk - 1)
-
         #get the k frequencies
         k_hMpc = np.fft.rfftfreq(N_cells_chunk)*2*np.pi/dr_hMpc
 
         #ft the skewers
         ft_rows = np.fft.rfft(skewer_rows_chunk,axis=1) / np.sqrt(N_cells_chunk/dr_hMpc)
         pk_rows = np.abs(ft_rows)**2
+
+        #compute Fourier transform of Top-Hat filter of size l_kms and apply it
+        W_hMpc = np.sinc((k_hMpc*dr_hMpc)/(2*np.pi))
+        pk_hMpc /= (W_hMpc**2)
 
         #calculate mean and variance
         pk_hMpc = np.average(pk_rows,axis=0)
