@@ -21,10 +21,22 @@ include_fits = True
 r_power = 2
 nr = 40
 rmax = 160. #Mpc/h
-res_name = '/result.h5'
+show_plots = True
+save_plots = True
 
-#Get the correlation objects
-corr_objects = plot_functions.get_correlation_objects(locations,res_name=res_name)
+rmins = [20.,40.,60.]
+afixs = ['free','fixed']
 
-#Make plots of the objects
-plot_functions.make_plots(corr_objects,mu_boundaries,plot_system,r_power,include_fits,nr=nr,rmax=rmax)
+for rmin in rmins:
+    for afix in afixs:
+
+        rmin_label = str(rmin)
+        rmin_label = rmin_label[:rmin_label.find('.')]
+        suffix = '_{}r_a{}'.format(rmin_label,afix)
+        res_name = '/result'+suffix+'.h5'
+
+        #Get the correlation objects
+        corr_objects = plot_functions.get_correlation_objects(locations,res_name=res_name)
+
+        #Make plots of the objects
+        plot_functions.make_plots(corr_objects,mu_boundaries,plot_system,r_power,include_fits,nr=nr,rmin=rmin,rmax=rmax,save_plots=save_plots,show_plots=show_plots,suffix=suffix)

@@ -11,7 +11,9 @@ import h5py
 
 # TODO: write this
 class picca_correlation:
-    def __init__(self,p,cd,f):
+    def __init__(self,loc,p,cd,f):
+
+        self.location = loc
 
         #picca parameters
         self.correl_type = p['correl_type']
@@ -62,11 +64,17 @@ class picca_correlation:
         self.beta_QSO = f['beta_QSO']['value']
         self.beta_QSO_err = f['beta_QSO']['error']
 
-        self.bias_LYA = f['bias_LYA']['value'] * self.growth_rate / self.beta_LYA
-        self.bias_LYA_err = np.sqrt((f['bias_LYA']['error'] * self.growth_rate / self.beta_LYA)**2 + (self.bias_LYA * self.growth_rate_err / self.beta_LYA_err)**2 + (self.bias_LYA * self.growth_rate * self.beta_LYA_err / (self.beta_LYA ** 2))**2)
+        self.bias_LYA_eta = f['bias_LYA']['value']
+        self.bias_LYA_eta_err = f['bias_LYA']['error']
+
+        self.bias_QSO_eta = f['bias_QSO']['value']
+        self.bias_QSO_eta_err = f['bias_QSO']['error']
+
+        self.bias_LYA = self.bias_LYA_eta * self.growth_rate / self.beta_LYA
+        self.bias_LYA_err = abs(self.bias_LYA * np.sqrt((self.bias_LYA_eta_err/self.bias_LYA_eta)**2 + (self.beta_LYA_err/self.beta_LYA)**2 + (self.growth_rate_err/self.growth_rate)**2))      
         
         self.bias_QSO = f['bias_QSO']['value'] * self.growth_rate / self.beta_QSO
-        self.bias_QSO_err = np.sqrt((f['bias_QSO']['error'] * self.growth_rate / self.beta_QSO)**2 + (self.bias_QSO * self.growth_rate_err / self.beta_QSO_err)**2 + (self.bias_QSO * self.growth_rate * self.beta_QSO_err / (self.beta_QSO ** 2))**2)
+        self.bias_QSO_err = abs(self.bias_LYA * np.sqrt((self.bias_QSO_eta_err/self.bias_QSO_eta)**2 + (self.beta_QSO_err/self.beta_QSO)**2 + (self.growth_rate_err/self.growth_rate)**2))
 
         self.ap = f['ap']['value']
         self.ap_err = f['ap']['error']
@@ -82,6 +90,7 @@ class picca_correlation:
         if self.correl_type == 'cf':
             bias1 = self.bias_LYA
             bias2 = self.bias_LYA
+           
             beta1 = self.beta_LYA
             beta2 = self.beta_LYA
         elif self.correl_type == 'xcf':
@@ -113,7 +122,7 @@ class picca_correlation:
         #get fit paramters
         fit_parameters = get_fit_from_result(location+res_name)
 
-        return cls(parameters,correlation_data,fit_parameters)
+        return cls(location,parameters,correlation_data,fit_parameters)
 
     def plot_data(self,mubin,plot_label,r_power,colour,nr=40,rmax=160.):
 
@@ -185,7 +194,7 @@ class picca_correlation:
         return
 
 def get_fit_from_result(filepath):
-
+    
     ff = h5py.File(filepath,'r')
     fit = {}
 
@@ -260,7 +269,7 @@ def get_correlation_objects(locations,cf_exp_filenames=None,res_name='result.h5'
 
     return objects
 
-def make_plots(corr_objects,mu_boundaries,plot_system,r_power,include_fits,nr=40,rmax=160.):
+def make_plots(corr_objects,mu_boundaries,plot_system,r_power,include_fits,nr=40,rmin=10.,rmax=160.,save_plots=True,show_plots=True,save_loc='.',suffix=''):
 
     colours = ['C0','C1','C2','C3','C4','C5','C6']
 
@@ -298,8 +307,14 @@ def make_plots(corr_objects,mu_boundaries,plot_system,r_power,include_fits,nr=40
             plt.title('{} {}{}; {} pix @ Nside {}; {} < z < {}; \nbias = {:1.3}+/-{:1.3f}; beta = {:1.3f}+/-{:1.3f}; chi2/(nd-np) = {:5.1f}/({}-{}); ap = {:1.3f}+/-{:1.3f}, at = {:1.3f}+/-{:1.3f}'.format(corr_object.correl_type,corr_object.quantity_1,corr_object.quantity_2,corr_object.N_pixels,16,corr_object.zmin,corr_object.zmax,corr_object.bias_LYA,corr_object.bias_LYA_err,corr_object.beta_LYA,corr_object.beta_LYA_err,corr_object.fval,corr_object.ndata,corr_object.npar,corr_object.ap,corr_object.ap_err,corr_object.at,corr_object.at_err))
             plt.legend()
             plt.grid()
+            plt.xlabel(r'$r\ /\ Mpc/h$')
+            plt.ylabel(r'$r^2 \xi (r)$')
 
-    plt.show()
+            if save_plots:
+                plt.savefig(corr_object.location+'/cf'+suffix+'.pdf')
+    
+    if show_plots:
+        plt.show()
 
     return
 
