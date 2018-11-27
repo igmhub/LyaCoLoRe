@@ -66,7 +66,7 @@ parser.add_argument('--min-cat-z', type = float, default = 1.8, required=False,
 parser.add_argument('--param-file', type = str, default = 'out_params.cfg', required=False,
                     help = 'output parameter file name')
 
-parser.add_argument('--tuning-file', type = str, default = 'input_files/tuning_data.fits', required=False,
+parser.add_argument('--tuning-file', type = str, default = 'input_files/tuning_data_151118.fits', required=False,
                     help = 'file name for data about tuning sigma_G/alpha')
 
 parser.add_argument('--add-DLAs', action="store_true", default = True, required=False,

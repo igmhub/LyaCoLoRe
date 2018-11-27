@@ -13,7 +13,7 @@ MIN_CAT_Z=1.8
 LYACOLORE_SEED=123
 
 # specify process flags
-FLAGS="--add-DLAs --add-RSDs --fit-function-to-tuning-data"
+FLAGS="--add-DLAs --add-RSDs"
 
 # specify details of colore output
 COLORE_NGRID=4096
@@ -32,8 +32,11 @@ INPUT_FILES=`ls -1 ${INPUT_PATH}/out_srcs_*.fits`
 NFILES=`echo $INPUT_FILES | wc -w`
 echo "${NFILES} input files have been found"
 
+# version
+V="v4.2"
+
 # full path to folder where output will be written
-OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_${COLORE_NGRID}_${COLORE_NODES}_sr${R_SMOOTH}_bm1_biasG18_picos_newNz_mpz0_seed${COLORE_SEED}_${LYACOLORE_SEED}_nside${NSIDE}_DLAfix/"
+OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/${V}/process_output_G_hZsmooth_${COLORE_NGRID}_${COLORE_NODES}_sr${R_SMOOTH}_bm1_biasG18_picos_newNz_mpz0_seed${COLORE_SEED}_${LYACOLORE_SEED}_nside${NSIDE}_DLAfix2_tuning131118/"
 
 echo "output will written to "$OUTPUT_PATH
 if [ ! -d $OUTPUT_PATH ] ; then
@@ -45,10 +48,10 @@ if [ ! -d $OUTPUT_PATH/logs ] ; then
 fi
 
 # full path to file with tuning sigma_G data
-TUNING_PATH="/global/homes/j/jfarr/Projects/LyaCoLoRe/input_files/tuning_data.fits" #tune_small_scale_fluctuations.fits
+TUNING_PATH="/global/homes/j/jfarr/Projects/LyaCoLoRe/input_files/tuning_data_151118.fits" #tune_small_scale_fluctuations.fits
 
 # we will create this script
-RUN_FILE="/global/homes/j/jfarr/Projects/LyaCoLoRe/run_files/process_colore_output_G_hZsmooth_${COLORE_NGRID}_${COLORE_NODES}_sr${R_SMOOTH}_bm1_biasG18_picos_newNz_seed${COLORE_SEED}_${LYACOLORE_SEED}_mpz0_noRSD.sh"
+RUN_FILE="/global/homes/j/jfarr/Projects/LyaCoLoRe/run_files/process_colore_output_G_hZsmooth_${COLORE_NGRID}_${COLORE_NODES}_sr${R_SMOOTH}_bm1_biasG18_picos_newNz_mpz0_seed${COLORE_SEED}_${LYACOLORE_SEED}_nside${NSIDE}_DLAfix2_tuning131118.sh"
 echo "run file "$RUN_FILE
 
 # make master file and new file structure
