@@ -49,7 +49,7 @@ def get_Pk1D(skewer_rows,IVAR_rows,R_hMpc,z,z_value=0.0,z_width=None,units='km/s
 
         #compute Fourier transform of Top-Hat filter of size l_kms and apply it
         W_kms = np.sinc((k_kms*dv_kms)/(2*np.pi))
-        pk_kms /= (W_kms**2)
+        pk_rows /= (W_kms**2)
 
         #calculate mean and variance
         pk_kms = np.average(pk_rows,axis=0)
@@ -70,7 +70,7 @@ def get_Pk1D(skewer_rows,IVAR_rows,R_hMpc,z,z_value=0.0,z_width=None,units='km/s
 
         #compute Fourier transform of Top-Hat filter of size l_kms and apply it
         W_hMpc = np.sinc((k_hMpc*dr_hMpc)/(2*np.pi))
-        pk_hMpc /= (W_hMpc**2)
+        pk_rows /= (W_hMpc**2)
 
         #calculate mean and variance
         pk_hMpc = np.average(pk_rows,axis=0)
