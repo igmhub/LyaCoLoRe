@@ -544,7 +544,7 @@ print('Process complete!\n')
 Group the statistics calculated to get means and variances.
 Save these into a fits file.
 """
-"""
+
 print('\nMaking statistics file...')
 start_time = time.time()
 
@@ -556,10 +556,10 @@ means = stats.combine_means(means_list)
 statistics = stats.means_to_statistics(means)
 
 #Save the statistics data as a new fits file.
-functions.write_statistics(base_out_dir,N_side,statistics,new_cosmology)
+stats.write_statistics(base_out_dir,N_side,statistics,new_cosmology)
 
 print('\nTime to make statistics file: {:4.0f}s.\n'.format(time.time()-start_time))
-"""
+
 ################################################################################
 
 """
