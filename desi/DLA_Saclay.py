@@ -213,7 +213,7 @@ parser.add_argument('--dla_bias', type = float, default=2.0,
 args = parser.parse_args()
 
 flist = glob.glob(os.path.join(args.input_path,args.input_pattern))
-hdulist = fitisio.FITS(flist[0])
+hdulist = fitsio.FITS(flist[0])
 lam = hdulist[2].read()
 cosmo_hdu = fitsio.FITS(args.fname_cosmo)[1].read_header()
 z_cell = lam / 1215.67 - 1.
