@@ -144,3 +144,32 @@ def write_DRQ(filename,RSD_option,ID_data,N_side):
     hdulist.close()
 
     return
+
+#Function to make a MOCKID lookup from master data.
+def make_MOCKID_lookup(master_filepath,pixels):
+
+    master = fits.open(master_filepath)
+    master_data = master[1].data
+    master.close()
+
+    #Make a MOCKID lookup.
+    master_data_pixel_set = set(master_data['PIXNUM'])
+    pixels_set = set(pixels)
+    pixel_list = list(sorted(master_data_pixel_set.intersection(pixels_set)))
+
+    #For each pixel, find which QSOs are in it, and which files they come from.
+    MOCKID_lookup = {}
+    for pixel in pixel_list:
+
+        pixel_indices = (master_data['PIXNUM']==pixel)
+        pixel_MOCKIDs = master_data['MOCKID'][pixel_indices]
+        pixel_file_number_list = list(sorted(set(master_data['FILENUM'][pixel_indices])))
+
+        #For each file, find which relevant MOCKIDs are in it, and add them to the lookup.
+        for file_number in pixel_file_number_list:
+
+            pixel_file_indices = ((master_data['FILENUM'][pixel_indices])==file_number)
+            pixel_file_MOCKIDs = pixel_MOCKIDs[pixel_file_indices]
+            MOCKID_lookup = {**MOCKID_lookup,**{(file_number,pixel):list(pixel_file_MOCKIDs)}}
+
+    return MOCKID_lookup
