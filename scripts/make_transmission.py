@@ -296,7 +296,7 @@ Otherwise, we just load values from file.
 """
 
 #Work out sigma_G desired to achive the P1D sigma_dF
-beta = 1.65
+#beta = 1.65
 
 if retune_small_scale_fluctuations == True:
 
@@ -415,6 +415,8 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
 
     filename = get_file_name(location,'picca-gaussian-colorecell',N_side,pixel)
     pixel_object.save_as_picca_gaussian(filename,header)
+    filename = get_file_name(location,'picca-density-colorecell',N_side,pixel)
+    pixel_object.save_as_picca_density(filename,header)
 
     #Get seed to generate random numbers for this particular pixel
     seed = int(pixel * 10**5 + global_seed)
@@ -441,6 +443,9 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
     #Add tau skewers to the object, starting with Lyman-alpha
     alphas = np.exp(np.interp(np.log(pixel_object.Z),np.log(tuning_z_values),np.log(tuning_alphas)))
     betas = np.exp(np.interp(np.log(pixel_object.Z),np.log(tuning_z_values),np.log(tuning_betas)))
+
+    #print(betas)
+
     pixel_object.compute_all_tau_skewers(alphas,betas)
 
     if transmission_only == False:
@@ -460,7 +465,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
     #Add thermal RSDs to the tau skewers.
     #Add RSDs from the velocity skewers provided by CoLoRe.
     if add_RSDs == True:
-        pixel_object.add_all_RSDs(alphas,beta,thermal=include_thermal_effects)
+        pixel_object.add_all_RSDs(alphas,betas,thermal=include_thermal_effects)
 
     #transmission
     filename = get_file_name(location,'transmission',N_side,pixel)
