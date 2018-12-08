@@ -9,7 +9,6 @@ from pyacolore import correlation_model
 import glob
 import h5py
 
-# TODO: write this
 class picca_correlation:
     def __init__(self,loc,p,cd,f):
 
@@ -71,8 +70,8 @@ class picca_correlation:
         self.bias_QSO_eta_err = f['bias_QSO']['error']
 
         self.bias_LYA = self.bias_LYA_eta * self.growth_rate / self.beta_LYA
-        self.bias_LYA_err = abs(self.bias_LYA * np.sqrt((self.bias_LYA_eta_err/self.bias_LYA_eta)**2 + (self.beta_LYA_err/self.beta_LYA)**2 + (self.growth_rate_err/self.growth_rate)**2))      
-        
+        self.bias_LYA_err = abs(self.bias_LYA * np.sqrt((self.bias_LYA_eta_err/self.bias_LYA_eta)**2 + (self.beta_LYA_err/self.beta_LYA)**2 + (self.growth_rate_err/self.growth_rate)**2))
+
         self.bias_QSO = f['bias_QSO']['value'] * self.growth_rate / self.beta_QSO
         self.bias_QSO_err = abs(self.bias_LYA * np.sqrt((self.bias_QSO_eta_err/self.bias_QSO_eta)**2 + (self.beta_QSO_err/self.beta_QSO)**2 + (self.growth_rate_err/self.growth_rate)**2))
 
@@ -90,7 +89,7 @@ class picca_correlation:
         if self.correl_type == 'cf':
             bias1 = self.bias_LYA
             bias2 = self.bias_LYA
-           
+
             beta1 = self.beta_LYA
             beta2 = self.beta_LYA
         elif self.correl_type == 'xcf':
@@ -194,7 +193,7 @@ class picca_correlation:
         return
 
 def get_fit_from_result(filepath):
-    
+
     ff = h5py.File(filepath,'r')
     fit = {}
 
@@ -250,22 +249,22 @@ def get_parameters_from_param_file(filepath):
 
     return params
 
-def get_correlation_objects(locations,cf_exp_filenames=None,res_name='result.h5'):
+def get_correlation_objects(locations,filenames=None,res_name='result.h5'):
 
-    if not cf_exp_filenames:
+    if not filenames:
         checked_locations = []
-        cf_exp_filenames = []
+        filenames = []
         for location in locations:
-            fi = glob.glob(location+'/cf_exp*.fits.gz')
+            fi = glob.glob(location+'/*cf_exp*.fits.gz')
             for f in fi:
-                cf_exp_filenames += [f[(len(f)-f[::-1].find('/')):]]
+                filenames += [f[(len(f)-f[::-1].find('/')):]]
                 checked_locations += [location]
 
         locations = checked_locations
 
     objects = []
     for i,location in enumerate(locations):
-        objects += [picca_correlation.make_correlation_object(location,cf_exp_filenames[i],res_name=res_name)]
+        objects += [picca_correlation.make_correlation_object(location,filenames[i],res_name=res_name)]
 
     return objects
 
@@ -312,7 +311,7 @@ def make_plots(corr_objects,mu_boundaries,plot_system,r_power,include_fits,nr=40
 
             if save_plots:
                 plt.savefig(corr_object.location+'/cf'+suffix+'.pdf')
-    
+
     if show_plots:
         plt.show()
 
