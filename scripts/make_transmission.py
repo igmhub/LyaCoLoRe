@@ -178,7 +178,6 @@ pixel_list = list(sorted(master_data_pixel_set.intersection(pixels_set)))
 
 MOCKID_lookup = {}
 for pixel in pixel_list:
-    print(pixel)
     #pixel_indices = [i for i in range(len(master_data['PIXNUM'])) if master_data['PIXNUM'][i]==pixel]
     pixel_indices = (master_data['PIXNUM']==pixel)
     pixel_MOCKIDs = master_data['MOCKID'][pixel_indices]
@@ -217,7 +216,7 @@ start_time = time.time()
 def pixelise_gaussian_skewers(pixel,colore_base_filename,z_min,base_out_dir,N_side):
 
     #Define the output directory the pixel, according to the new file structure.
-    location = get_dir_name(base_out_dir,pixel)
+    location = utils.get_dir_name(base_out_dir,pixel)
 
     #at some point we might want to read physical density
     input_format='gaussian_colore'
@@ -323,7 +322,7 @@ start_time = time.time()
 def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,measured_SIGMA_G,n,k1):
 
     #We work from the gaussian colore files made in 'pixelise gaussian skewers'.
-    location = get_dir_name(base_out_dir,pixel)
+    location = utils.get_dir_name(base_out_dir,pixel)
     gaussian_filename = utils.get_file_name(location,'gaussian-colore',N_side,pixel)
 
     #Make a pixel object from it.
@@ -398,7 +397,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
         pixel_object.save_as_picca_delta('density',filename,header)
 
         #Picca tau
-        filename = utils.get_file_name(location,'picca-density-noRSD',N_side,pixel)
+        filename = utils.get_file_name(location,'picca-tau-noRSD',N_side,pixel)
         pixel_object.save_as_picca_delta('tau',filename,header)
 
         #Picca flux
@@ -407,7 +406,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
 
     #Add RSDs from the velocity skewers provided by CoLoRe.
     if add_RSDs == True:
-        pixel_object.add_all_RSDs(alphas,betas,thermal=include_thermal_effects)
+        pixel_object.add_all_RSDs(thermal=include_thermal_effects)
 
     #transmission
     filename = utils.get_file_name(location,'transmission',N_side,pixel)
@@ -415,7 +414,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
 
     if transmission_only == False:
         #Picca tau
-        filename = utils.get_file_name(location,'picca-density',N_side,pixel)
+        filename = utils.get_file_name(location,'picca-tau',N_side,pixel)
         pixel_object.save_as_picca_delta('tau',filename,header)
 
         #Picca flux
@@ -424,11 +423,10 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
     else:
         #If transmission_only is not False, remove the gaussian-colore file.
         os.remove(gaussian_filename)
-
+    
     #Save the statistics file for this pixel.
-    means = pixel_object.get_means()
     filename = 'statistics-16-{}.fits'.format(pixel)
-    pixel_object.save_statistics(location,filename)
+    pixel_object.save_statistics(location,filename,lambda_min=lambda_min)
 
     return [new_cosmology]
 
