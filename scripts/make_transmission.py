@@ -435,7 +435,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
 
     #Save the statistics file for this pixel.
     filename = 'statistics-16-{}.fits'.format(pixel)
-    pixel_object.save_statistics(location,filename,lambda_min=lambda_min)
+    pixel_object.save_statistics(location,filename)
 
     return [new_cosmology]
 
