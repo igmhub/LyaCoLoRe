@@ -4,7 +4,6 @@ import numpy as np
 def gaussian_to_lognormal_delta(GAUSSIAN_DELTA_rows,SIGMA_G,D):
 
     LN_DENSITY_rows = np.zeros(GAUSSIAN_DELTA_rows.shape)
-    LN_DENSITY_DELTA_rows = np.zeros(GAUSSIAN_DELTA_rows.shape)
 
     SIGMA_G = SIGMA_G*np.ones(GAUSSIAN_DELTA_rows.shape[1])
 

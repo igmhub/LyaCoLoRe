@@ -2,7 +2,7 @@ import numpy as np
 from astropy.io import fits
 import time
 
-from . import utils, read_files, convert, RSD, DLA, independent, absorber, metals
+from . import utils, read_files, convert, RSD, DLA, independent, absorber, metals, stats
 
 lya = utils.lya_rest
 
@@ -472,7 +472,7 @@ class SimulationData:
 
         return
 
-    #Function to add physical skewers to the object via a lognormal transformation.
+    #Function to add tau skewers to an absorber using FGPA.
     def compute_tau_skewers(self,absorber,alpha,beta):
 
         # scale optical depth for this particular absorber (=1 for Lya)
@@ -489,6 +489,7 @@ class SimulationData:
 
         return
 
+    #Function to compute tau for all absorbers.
     def compute_all_tau_skewers(self,alpha,beta):
 
         # for each absorber, compute its optical depth skewers
@@ -505,16 +506,16 @@ class SimulationData:
 
         return
 
-    def get_RSD_weights(self,absorber,alpha,beta,thermal=False):
+    #Get the weights for going into redshift space.
+    def get_RSD_weights(self,absorber,thermal=False):
 
         density = 1 + self.DENSITY_DELTA_rows
         RSD_weights = RSD.get_weights(density,self.VEL_rows,self.Z,self.R,self.Z_QSO,thermal=thermal)
 
         return RSD_weights
 
-    # TODO: this doesn't use alpha or beta, so can get rid of them
     #Function to add RSDs from the velocity skewers, with an option to include thermal effects too.
-    def add_RSDs(self,absorber,alpha,beta,thermal=False,weights=None):
+    def add_RSDs(self,absorber,thermal=False,weights=None):
 
         density = 1 + self.DENSITY_DELTA_rows
         new_tau = RSD.add_skewer_RSDs(absorber.tau,density,self.VEL_rows,self.Z,self.R,self.Z_QSO,thermal=thermal,weights=weights)
@@ -524,23 +525,22 @@ class SimulationData:
 
         return
 
-
-    def add_all_RSDs(self,alpha,beta,thermal=False):
+    #Function to add RSDs for all absorbers.
+    def add_all_RSDs(self,thermal=False):
 
         # for each absorber, add RSDs
-        self.add_RSDs(self.lya_absorber,alpha,beta,thermal)
+        self.add_RSDs(self.lya_absorber,thermal)
 
         # RSD for Ly-b
         if self.lyb_absorber is not None:
-            self.add_RSDs(self.lyb_absorber,alpha,beta,thermal)
+            self.add_RSDs(self.lyb_absorber,thermal)
 
         # loop over metals in dictionary
         if self.metals is not None:
             for metal in iter(self.metals.values()):
-                self.add_RSDs(metal,alpha,beta,thermal)
+                self.add_RSDs(metal,thermal)
 
         return
-
 
     #Function to measure mean flux.
     def get_mean_flux(self,absorber,z_value=None,z_width=None):
@@ -660,6 +660,286 @@ class SimulationData:
 
         return cls(N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,R,Z,D,V,LOGLAM_MAP,A)
 
+    #Function to save in the colore format.
+    def save_as_colore(self,quantity,filename,header,overwrite=False,cell_size=None):
+
+        #Organise the catalog data into a colore-format array.
+        colore_1_data = []
+        for i in range(self.N_qso):
+            colore_1_data += [(self.TYPE[i],self.RA[i],self.DEC[i],self.Z_QSO[i],self.DZ_RSD[i],self.MOCKID[i])]
+        dtype = [('TYPE', 'f8'), ('RA', 'f8'), ('DEC', 'f8'), ('Z_COSMO', 'f8'), ('DZ_RSD', 'f8'), ('MOCKID', int)]
+        colore_1 = np.array(colore_1_data,dtype=dtype)
+
+        #Choose the right skewers according to input quantity.
+        if quantity == 'gaussian':
+            colore_2 = self.GAUSSIAN_DELTA_rows
+        elif quantity == 'density':
+            colore_2 = self.DENSITY_DELTA_rows + 1
+        elif quantity == 'tau':
+            colore_2 == self.lya_absorber.tau
+        elif quantity == 'flux':
+            colore_2 = self.lya_absorber.transmission()
+
+        #Add the velocity skewers and cosmology data
+        colore_3 = self.VEL_rows
+        colore_4_data = []
+        for i in range(self.N_cells):
+            colore_4_data += [(self.R[i],self.Z[i],self.D[i],self.V[i])]
+        dtype = [('R', 'f8'), ('Z', 'f8'), ('D', 'f8'), ('V', 'f8')]
+        colore_4 = np.array(colore_4_data,dtype=dtype)
+
+        #Construct HDUs from the data arrays.
+        prihdr = fits.Header()
+        prihdu = fits.PrimaryHDU(header=prihdr)
+        cols_CATALOG = fits.ColDefs(colore_1)
+        hdu_CATALOG = fits.BinTableHDU.from_columns(cols_CATALOG,header=header,name='CATALOG')
+        hdu_GAUSSIAN = fits.ImageHDU(data=colore_2,header=header,name=quantity.upper())
+        hdu_VEL = fits.ImageHDU(data=colore_3,header=header,name='VELOCITY')
+        cols_COSMO = fits.ColDefs(colore_4)
+        hdu_COSMO = fits.BinTableHDU.from_columns(cols_COSMO,header=header,name='COSMO')
+
+        #Combine the HDUs into an HDUlist and save as a new file. Close the HDUlist.
+        hdulist = fits.HDUList([prihdu, hdu_CATALOG, hdu_GAUSSIAN, hdu_VEL, hdu_COSMO])
+        hdulist.writeto(filename,overwrite=overwrite)
+        hdulist.close
+
+        return
+
+    #Function to save in the picca format.
+    def save_as_picca_delta(self,quantity,filename,header,overwrite=False,min_number_cells=2,mean_data=None,cell_size=None):
+
+        lya_lambdas = 10**self.LOGLAM_MAP
+        if mean_data:
+            mean = np.interp(self.Z,mean_data['z'],mean_data['mean'])
+
+        #Choose the right skewers according to input quantity.
+        #Convert non-delta quantities to deltas.
+        if quantity == 'gaussian':
+            skewer_rows = self.GAUSSIAN_DELTA_rows
+        elif quantity == 'density':
+            skewer_rows = self.DENSITY_DELTA_rows
+        elif quantity == 'tau':
+            skewer_rows = self.lya_absorber.tau
+            if mean_data:
+                skewer_rows = skewer_rows/mean - 1
+            else:
+                skewer_rows = skewer_rows/np.average(skewer_rows,weights=self.IVAR_rows,axis=0) - 1
+        elif quantity == 'flux':
+            skewer_rows = self.lya_absorber.transmission()
+            if mean_data:
+                skewer_rows = skewer_rows/mean - 1
+            else:
+                skewer_rows = skewer_rows/np.average(skewer_rows,weights=self.IVAR_rows,axis=0) - 1
+
+        #Determine the relevant QSOs: those that have relevant cells (IVAR > 0) beyond the first_relevant_cell.
+        #We impose a minimum number of cells per skewer here to avoid problems with picca.
+        relevant_QSOs = []
+        for i in range(self.N_qso):
+            if np.sum(self.IVAR_rows[i,:]) >= min_number_cells:
+                relevant_QSOs += [i]
+
+        #Trim data according to the relevant cells and QSOs.
+        relevant_skewer_rows = skewer_rows[relevant_QSOs,:]
+        relevant_IVAR_rows = self.IVAR_rows[relevant_QSOs,:]
+        relevant_LOGLAM_MAP = self.LOGLAM_MAP[:]
+
+        #Organise the data into picca-format arrays.
+        picca_0 = relevant_skewer_rows.T
+        picca_1 = relevant_IVAR_rows.T
+        picca_2 = relevant_LOGLAM_MAP
+        picca_3_data = []
+        for i in range(self.N_qso):
+            if i in relevant_QSOs:
+                picca_3_data += [(self.RA[i],self.DEC[i],self.Z_QSO[i],self.PLATE[i],self.MJD[i],self.FIBER[i],self.MOCKID[i])]
+        dtype = [('RA', 'f8'), ('DEC', 'f8'), ('Z', 'f8'), ('PLATE', int), ('MJD', 'f8'), ('FIBER', int), ('THING_ID', int)]
+        picca_3 = np.array(picca_3_data,dtype=dtype)
+
+        #Make the data into suitable HDUs.
+        hdu_DELTA = fits.PrimaryHDU(data=picca_0,header=header)
+        hdu_iv = fits.ImageHDU(data=picca_1,header=header,name='IV')
+        hdu_LOGLAM_MAP = fits.ImageHDU(data=picca_2,header=header,name='LOGLAM_MAP')
+        cols_CATALOG = fits.ColDefs(picca_3)
+        hdu_CATALOG = fits.BinTableHDU.from_columns(cols_CATALOG,header=header,name='CATALOG')
+
+        #Combine the HDUs into and HDUlist and save as a new file. Close the HDUlist.
+        hdulist = fits.HDUList([hdu_DELTA, hdu_iv, hdu_LOGLAM_MAP, hdu_CATALOG])
+        hdulist.writeto(filename,overwrite=overwrite)
+        hdulist.close()
+
+        return
+
+    #Compute transmission for a particular absorber, on a particular grid
+    def compute_grid_transmission(self,absorber,wave_grid):
+        #Get transmission on each cell, from tau stored in absorber
+        F_skewer = absorber.transmission()
+        #Get rest-frame wavelength for this particular absorber
+        rest_wave = absorber.rest_wave
+        #Get wavelength on each original cell, for this particular absorber
+        wave_skewer = rest_wave*(1+self.Z)
+
+        # interpolate F into the common grid
+        N_los = F_skewer.shape[0]
+        N_w = wave_grid.shape[0]
+        F_grid = np.empty([N_los,N_w])
+        for i in range(N_los):
+            F_grid[i,] = np.interp(wave_grid,wave_skewer,F_skewer[i])
+
+        return F_grid
+
+    #Function to save data as a transmission file.
+    def save_as_transmission(self,filename,header):
+
+        # define common wavelength grid to be written in files (in Angstroms)
+        wave_min = 3550.
+        wave_max = 6500.
+        wave_step = 0.2
+        wave_grid = np.arange(wave_min,wave_max,wave_step)
+
+        # now we should loop over the different absorbers, combine them and
+        # write them in HDUs. I suggest to have two HDU:
+        # - TRANSMISSION will contain both Lya and Lyb
+        # - METALS will contain all metal absorption
+
+        # compute Lyman alpha transmission on grid of wavelengths
+        F_grid_Lya = self.compute_grid_transmission(self.lya_absorber,wave_grid)
+
+        # compute Lyman beta transmission on grid of wavelengths
+        if self.lyb_absorber is None:
+            F_grid_Lyb = np.ones_like(F_grid_Lya)
+        else:
+            F_grid_Lyb = self.compute_grid_transmission(self.lyb_absorber,wave_grid)
+
+        # construct quasar catalog HDU
+        Z_RSD = self.Z_QSO + self.DZ_RSD
+        catalog_data = list(zip(self.RA,self.DEC,Z_RSD,self.Z_QSO,self.MOCKID))
+        dtype = [('RA', 'f8'), ('DEC', 'f8'), ('Z', 'f8'), ('Z_noRSD', 'f8'), ('MOCKID', int)]
+        catalog_data = np.array(catalog_data,dtype=dtype)
+
+        #Construct HDUs from the data arrays.
+        prihdr = fits.Header()
+        prihdu = fits.PrimaryHDU(header=prihdr)
+        cols_METADATA = fits.ColDefs(catalog_data)
+        hdu_METADATA = fits.BinTableHDU.from_columns(cols_METADATA,header=header,name='METADATA')
+        hdu_WAVELENGTH = fits.ImageHDU(data=wave_grid,header=header,name='WAVELENGTH')
+        #Gives transmission with Lya and Lyb
+        hdu_TRANSMISSION = fits.ImageHDU(data=F_grid_Lya*F_grid_Lyb,header=header,name='TRANSMISSION')
+
+        #Combine the HDUs into an HDUlist (including DLAs and metals, if they have been computed)
+        list_hdu = [prihdu, hdu_METADATA, hdu_WAVELENGTH, hdu_TRANSMISSION]
+
+        if self.DLA_table is not None:
+            hdu_DLAs = fits.hdu.BinTableHDU(data=self.DLA_table,header=header,name='DLA')
+            list_hdu.append(hdu_DLAs)
+
+        if self.metals is not None:
+            # compute metals' transmission on grid of wavelengths
+            F_grid_met = np.ones_like(F_grid_Lya)
+            for metal in iter(self.metals.values()):
+                F_i=self.compute_grid_transmission(metal,wave_grid)
+                F_grid_met *= F_i
+
+            hdu_METALS = fits.ImageHDU(data=F_grid_met,header=header,name='METALS')
+            list_hdu.append(hdu_METALS)
+
+        #Save as a new file. Close the HDUlist.
+        hdulist = fits.HDUList(list_hdu)
+        hdulist.writeto(filename)
+        hdulist.close()
+
+        return
+
+    #Function to calculate the mean and variance of the different quantities as a function of Z.
+    def get_means(self,lambda_min=0.0):
+
+        #Determine the relevant cells and QSOs.
+        lya_lambdas = 10**self.LOGLAM_MAP
+
+        #Determine the first cell which corresponds to a lya_line at wavelength > lambda_min
+        first_relevant_cell = utils.get_first_relevant_index(lambda_min,lya_lambdas)
+
+        #Determine the furthest cell which is still relevant: i.e. the one in which at least one QSO has non-zero value of IVAR.
+        furthest_QSO_index = np.argmax(self.Z_QSO)
+        #last_relevant_cell = (np.argmax(self.IVAR_rows[furthest_QSO_index,:]==0) - 1) % self.N_cells
+        last_relevant_cell = self.N_cells - 1
+
+        #Determine the relevant QSOs: those that have relevant cells (IVAR > 0) beyond the first_relevant_cell.
+        relevant_QSOs = [i for i in range(self.N_qso) if self.IVAR_rows[i,first_relevant_cell] == 1]
+
+        #Trim data according to the relevant cells and QSOs.
+        relevant_DENSITY_DELTA = self.DENSITY_DELTA_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
+        relevant_GAUSSIAN_DELTA = self.GAUSSIAN_DELTA_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
+        relevant_TAU = self.lya_absorber.tau[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
+        F = self.lya_absorber.transmission()
+        relevant_F = F[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
+        relevant_IVAR = self.IVAR_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
+        relevant_LOGLAM_MAP = self.LOGLAM_MAP[first_relevant_cell:last_relevant_cell+1]
+
+        #For each cell, determine the number of skewers for which it is relevant.
+        N_relevant_skewers = np.sum(relevant_IVAR,axis=0)
+        relevant_cells = N_relevant_skewers>0
+
+        #Calculate delta_F from F.
+        #Introduce a small 'hack' in order to get around the problem of having cells with no skewers contributing to them.
+        # TODO: find a neater way to deal with this
+        # TODO: don't want this?
+        small = 1.0e-10
+        #relevant_mean_F = np.average(relevant_F,weights=relevant_IVAR+small,axis=0)
+        #relevant_delta_F = ((relevant_F)/relevant_mean_F - 1)*relevant_IVAR
+
+        #Calculate the mean in each cell of the gaussian delta and its square.
+        GDB = np.average(relevant_GAUSSIAN_DELTA,weights=relevant_IVAR+small,axis=0)*relevant_cells
+        GDSB = np.average(relevant_GAUSSIAN_DELTA**2,weights=relevant_IVAR+small,axis=0)*relevant_cells
+
+        #Calculate the mean in each cell of the density delta and its square.
+        DDB = np.average(relevant_DENSITY_DELTA,weights=relevant_IVAR+small,axis=0)*relevant_cells
+        DDSB = np.average(relevant_DENSITY_DELTA**2,weights=relevant_IVAR+small,axis=0)*relevant_cells
+
+        #Calculate the mean in each cell of the tau and its square.
+        TB = np.average(relevant_TAU,weights=relevant_IVAR+small,axis=0)*relevant_cells
+        TSB = np.average(relevant_TAU**2,weights=relevant_IVAR+small,axis=0)*relevant_cells
+
+        #Calculate the mean in each cell of the flux and its square.
+        FB = np.average(relevant_F,weights=relevant_IVAR+small,axis=0)*relevant_cells
+        FSB = np.average(relevant_F**2,weights=relevant_IVAR+small,axis=0)*relevant_cells
+
+        #Calculate the mean in each cell of the flux delta and its square.
+        #FDB = np.average(relevant_delta_F,weights=relevant_IVAR+small,axis=0)*relevant_cells
+        #FDSB = np.average(relevant_delta_F**2,weights=relevant_IVAR+small,axis=0)*relevant_cells
+
+        #Stitch together the means into a binary table.
+        dtype = [('N', 'f4'),('GAUSSIAN_DELTA', 'f4'), ('GAUSSIAN_DELTA_SQUARED', 'f4'), ('DENSITY_DELTA', 'f4'), ('DENSITY_DELTA_SQUARED', 'f4'), ('TAU', 'f4'), ('TAU_SQUARED', 'f4'), ('F', 'f4'), ('F_SQUARED', 'f4')]
+
+        #, ('F_DELTA', 'f4'), ('F_DELTA_SQUARED', 'f4')]
+        means = np.array(list(zip(N_relevant_skewers,GDB,GDSB,DDB,DDSB,TB,TSB,FB,FSB)),dtype=dtype)
+        #,FDB,FDSB
+
+        return means
+
+    #Function to save the means as a function of z.
+    def save_statistics(self,location,filename,lamda_min=0.0):
+
+        means = self.get_means(lambda_min=lambda_min)
+        statistics = stats.means_to_statistics(means)
+        stats.write_statistics(location,filename,statistics)
+
+        return
+
+    #Function to add DLAs to a set of skewers.
+    def add_DLA_table(self,seed,dla_bias=2.0):
+
+        #If extrapolate_z_down is set to a value below the skewer, then we extrapolate down to that value.
+        #Otherwise, we start placing DLAs at the start of the skewer.
+        extrapolate_z_down = None
+        DLA_table = DLA.add_DLA_table_to_object(self,dla_bias=dla_bias,extrapolate_z_down=extrapolate_z_down,seed=seed)
+        self.DLA_table = DLA_table
+
+        return
+
+
+    ####
+    """
+    Obsolete functions
+    """
     #Function to save data as a Gaussian colore file.
     def save_as_gaussian_colore(self,filename,header,overwrite=False):
 
@@ -875,87 +1155,6 @@ class SimulationData:
 
         return
 
-
-    #Compute transmission for a particular absorber, on a particular grid
-    def compute_grid_transmission(self,absorber,wave_grid):
-        #Get transmission on each cell, from tau stored in absorber
-        F_skewer = absorber.transmission()
-        #Get rest-frame wavelength for this particular absorber
-        rest_wave = absorber.rest_wave
-        #Get wavelength on each original cell, for this particular absorber
-        wave_skewer = rest_wave*(1+self.Z)
-
-        # interpolate F into the common grid
-        N_los = F_skewer.shape[0]
-        N_w = wave_grid.shape[0]
-        F_grid = np.empty([N_los,N_w])
-        for i in range(N_los):
-            F_grid[i,] = np.interp(wave_grid,wave_skewer,F_skewer[i])
-
-        return F_grid
-
-    #Function to save data as a transmission file.
-    def save_as_transmission(self,filename,header):
-
-        # define common wavelength grid to be written in files (in Angstroms)
-        wave_min = 3550.
-        wave_max = 6500.
-        wave_step = 0.2
-        wave_grid = np.arange(wave_min,wave_max,wave_step)
-
-        # now we should loop over the different absorbers, combine them and
-        # write them in HDUs. I suggest to have two HDU:
-        # - TRANSMISSION will contain both Lya and Lyb
-        # - METALS will contain all metal absorption
-
-        # compute Lyman alpha transmission on grid of wavelengths
-        F_grid_Lya = self.compute_grid_transmission(self.lya_absorber,wave_grid)
-
-        # compute Lyman beta transmission on grid of wavelengths
-        if self.lyb_absorber is None:
-            F_grid_Lyb = np.ones_like(F_grid_Lya)
-        else:
-            F_grid_Lyb = self.compute_grid_transmission(self.lyb_absorber,wave_grid)
-
-        # construct quasar catalog HDU
-        Z_RSD = self.Z_QSO + self.DZ_RSD
-        catalog_data = list(zip(self.RA,self.DEC,Z_RSD,self.Z_QSO,self.MOCKID))
-        dtype = [('RA', 'f8'), ('DEC', 'f8'), ('Z', 'f8'), ('Z_noRSD', 'f8'), ('MOCKID', int)]
-        catalog_data = np.array(catalog_data,dtype=dtype)
-
-        #Construct HDUs from the data arrays.
-        prihdr = fits.Header()
-        prihdu = fits.PrimaryHDU(header=prihdr)
-        cols_METADATA = fits.ColDefs(catalog_data)
-        hdu_METADATA = fits.BinTableHDU.from_columns(cols_METADATA,header=header,name='METADATA')
-        hdu_WAVELENGTH = fits.ImageHDU(data=wave_grid,header=header,name='WAVELENGTH')
-        #Gives transmission with Lya and Lyb
-        hdu_TRANSMISSION = fits.ImageHDU(data=F_grid_Lya*F_grid_Lyb,header=header,name='TRANSMISSION')
-
-        #Combine the HDUs into an HDUlist (including DLAs and metals, if they have been computed)
-        list_hdu = [prihdu, hdu_METADATA, hdu_WAVELENGTH, hdu_TRANSMISSION]
-
-        if self.DLA_table is not None:
-            hdu_DLAs = fits.hdu.BinTableHDU(data=self.DLA_table,header=header,name='DLA')
-            list_hdu.append(hdu_DLAs)
-
-        if self.metals is not None:
-            # compute metals' transmission on grid of wavelengths
-            F_grid_met = np.ones_like(F_grid_Lya)
-            for metal in iter(self.metals.values()):
-                F_i=self.compute_grid_transmission(metal,wave_grid)
-                F_grid_met *= F_i
-
-            hdu_METALS = fits.ImageHDU(data=F_grid_met,header=header,name='METALS')
-            list_hdu.append(hdu_METALS)
-
-        #Save as a new file. Close the HDUlist.
-        hdulist = fits.HDUList(list_hdu)
-        hdulist.writeto(filename)
-        hdulist.close()
-
-        return
-
     #Function to save data as a picca flux file.
     def save_as_picca_flux(self,filename,header,min_number_cells=2,mean_F_data=None,rebin_size_hMpc=None):
 
@@ -1035,6 +1234,7 @@ class SimulationData:
 
         return
 
+    # TODO: Do we really want this? Does it make much sense?
     #Function to save data as a picca velocity file.
     def save_as_picca_velocity(self,filename,header,zero_mean_delta=False,min_number_cells=2,overwrite=False):
 
@@ -1076,76 +1276,5 @@ class SimulationData:
         hdulist = fits.HDUList([hdu_VEL, hdu_iv, hdu_LOGLAM_MAP, hdu_CATALOG])
         hdulist.writeto(filename,overwrite=overwrite)
         hdulist.close()
-
-        return
-
-    #Function to save the mean and variance of the different quantities as a function of Z.
-    def get_means(self,lambda_min=0.0):
-
-        #Determine the relevant cells and QSOs.
-        lya_lambdas = 10**self.LOGLAM_MAP
-
-        #Determine the first cell which corresponds to a lya_line at wavelength > lambda_min
-        first_relevant_cell = utils.get_first_relevant_index(lambda_min,lya_lambdas)
-
-        #Determine the furthest cell which is still relevant: i.e. the one in which at least one QSO has non-zero value of IVAR.
-        furthest_QSO_index = np.argmax(self.Z_QSO)
-        #last_relevant_cell = (np.argmax(self.IVAR_rows[furthest_QSO_index,:]==0) - 1) % self.N_cells
-        last_relevant_cell = self.N_cells - 1
-
-        #Determine the relevant QSOs: those that have relevant cells (IVAR > 0) beyond the first_relevant_cell.
-        relevant_QSOs = [i for i in range(self.N_qso) if self.IVAR_rows[i,first_relevant_cell] == 1]
-
-        #Trim data according to the relevant cells and QSOs.
-        relevant_DENSITY_DELTA = self.DENSITY_DELTA_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
-        relevant_GAUSSIAN_DELTA = self.GAUSSIAN_DELTA_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
-        F = self.lya_absorber.transmission()
-        relevant_F = F[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
-        relevant_IVAR = self.IVAR_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
-        relevant_LOGLAM_MAP = self.LOGLAM_MAP[first_relevant_cell:last_relevant_cell+1]
-
-        #For each cell, determine the number of skewers for which it is relevant.
-        N_relevant_skewers = np.sum(relevant_IVAR,axis=0)
-        relevant_cells = N_relevant_skewers>0
-
-        #Calculate delta_F from F.
-        #Introduce a small 'hack' in order to get around the problem of having cells with no skewers contributing to them.
-        # TODO: find a neater way to deal with this
-        small = 1.0e-10
-        relevant_mean_F = np.average(relevant_F,weights=relevant_IVAR+small,axis=0)
-        relevant_delta_F = ((relevant_F)/relevant_mean_F - 1)*relevant_IVAR
-
-        #Calculate the mean in each cell of the gaussian delta and its square.
-        GDB = np.average(relevant_GAUSSIAN_DELTA,weights=relevant_IVAR+small,axis=0)*relevant_cells
-        GDSB = np.average(relevant_GAUSSIAN_DELTA**2,weights=relevant_IVAR+small,axis=0)*relevant_cells
-
-        #Calculate the mean in each cell of the density delta and its square.
-        DDB = np.average(relevant_DENSITY_DELTA,weights=relevant_IVAR+small,axis=0)*relevant_cells
-        DDSB = np.average(relevant_DENSITY_DELTA**2,weights=relevant_IVAR+small,axis=0)*relevant_cells
-
-        #Calculate the mean in each cell of the flux and its square.
-        FB = np.average(relevant_F,weights=relevant_IVAR+small,axis=0)*relevant_cells
-        FSB = np.average(relevant_F**2,weights=relevant_IVAR+small,axis=0)*relevant_cells
-
-        #Calculate the mean in each cell of the flux delta and its square.
-        FDB = np.average(relevant_delta_F,weights=relevant_IVAR+small,axis=0)*relevant_cells
-        FDSB = np.average(relevant_delta_F**2,weights=relevant_IVAR+small,axis=0)*relevant_cells
-
-        #Stitch together the means into a binary table.
-        dtype = [('N', 'f4'),('GAUSSIAN_DELTA', 'f4'), ('GAUSSIAN_DELTA_SQUARED', 'f4'), ('DENSITY_DELTA', 'f4'), ('DENSITY_DELTA_SQUARED', 'f4')
-                , ('F', 'f4'), ('F_SQUARED', 'f4'), ('F_DELTA', 'f4'), ('F_DELTA_SQUARED', 'f4')]
-        means = np.array(list(zip(N_relevant_skewers,GDB,GDSB,DDB,DDSB,FB,FSB,FDB,FDSB)),dtype=dtype)
-
-        return means
-
-    #Function to add DLAs to a set of skewers.
-    def add_DLA_table(self,seed):
-
-        dla_bias = 2.0
-        #If extrapolate_z_down is set to a value below the skewer, then we extrapolate down to that value.
-        #Otherwise, we start placing DLAs at the start of the skewer.
-        extrapolate_z_down = None
-        DLA_table = DLA.add_DLA_table_to_object(self,dla_bias=dla_bias,extrapolate_z_down=extrapolate_z_down,seed=seed)
-        self.DLA_table = DLA_table
 
         return
