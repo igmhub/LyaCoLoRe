@@ -543,12 +543,24 @@ class SimulationData:
         return
 
     #Function to measure mean flux.
-    def get_mean_flux(self,absorber,z_value=None,z_width=None):
+    def get_mean_quantity(self,quantity,z_value=None,z_width=None):
 
-        F = absorber.transmission()
+        if quantity == 'gaussian':
+            skewer_rows = self.GAUSSIAN_DELTA_rows
+        elif quantity == 'density':
+            skewer_rows = self.DENSITY_DELTA_rows
+        elif quantity == 'tau':
+            skewer_rows = self.lya_absorber.tau
+        elif quantity == 'flux':
+            skewer_rows = self.lya_absorber.transmission()
+
+        #If no z value, then compute the mean as a function of redshift.
         if not z_value:
-            mean_F = np.average(F,axis=0,weights=self.IVAR_rows)
+            mean = np.zeros(self.N_cells)
+            cells = np.sum(self.IVAR_rows,axis=0)>0
+            mean[cells] = np.average(skewer_rows[:,cells],axis=0,weights=self.IVAR_rows[:,cells])
 
+        #Else if there's no width, compute the mean of the cells neighbouring the z_value.
         elif not z_width:
             j_value_upper = np.searchsorted(self.Z,z_value)
 
@@ -567,8 +579,9 @@ class SimulationData:
             weights[:,0] *= weight_lower
             weights[:,1] *= weight_upper
 
-            mean_F = np.average(F[relevant_rows,j_value_lower:j_value_upper+1],weights=weights)
+            mean = np.average(skewer_rows[relevant_rows,j_value_lower:j_value_upper+1],weights=weights)
 
+        #Else, compute the mean of the chunk of width z_width centred on z_value.
         else:
             #print('finding chunk')
             j_value_upper = np.searchsorted(self.Z,z_value + z_width/2.) - 1
@@ -578,17 +591,17 @@ class SimulationData:
             #print('max qso z',np.max(self.Z_QSO))
             #print('ivar rows',self.IVAR_rows[:,j_value_lower:j_value_upper+1])
             #print(self.IVAR_rows[:,j_value_lower:j_value_upper+1].shape)
-            mean_F = np.average(F[:,j_value_lower:j_value_upper+1],weights=self.IVAR_rows[:,j_value_lower:j_value_upper+1])
+            mean = np.average(skewer_rows[:,j_value_lower:j_value_upper+1],weights=self.IVAR_rows[:,j_value_lower:j_value_upper+1])
             #print('mean calc')
             #print(self.N_qso)
             #print(j_value_lower,j_value_upper)
-        return mean_F
+        return mean
 
     #Function to measure sigma dF.
     def get_sigma_dF(self,absorber,z_value=None,z_width=None,mean_F=None):
 
         if not mean_F:
-            mean_F = self.get_mean_flux(absorber,z_value=z_value,z_width=z_width)
+            mean_F = self.get_mean_quantity('flux',z_value=z_value,z_width=z_width)
 
         F = absorber.transmission()
         dF = F/mean_F
@@ -719,17 +732,17 @@ class SimulationData:
         elif quantity == 'density':
             skewer_rows = self.DENSITY_DELTA_rows
         elif quantity == 'tau':
-            skewer_rows = self.lya_absorber.tau
-            if mean_data:
-                skewer_rows = skewer_rows/mean - 1
-            else:
-                skewer_rows = skewer_rows/np.average(skewer_rows,weights=self.IVAR_rows,axis=0) - 1
+            skewer_rows = np.zeros(self.lya_absorber.tau.shape)
+            if not mean_data:
+                mean = self.get_mean_quantity('tau')
+            cells = np.sum(self.IVAR_rows,axis=0)>0
+            skewer_rows[:,cells] = self.lya_absorber.tau[:,cells]/mean[cells] - 1
         elif quantity == 'flux':
-            skewer_rows = self.lya_absorber.transmission()
-            if mean_data:
-                skewer_rows = skewer_rows/mean - 1
-            else:
-                skewer_rows = skewer_rows/np.average(skewer_rows,weights=self.IVAR_rows,axis=0) - 1
+            skewer_rows = np.zeros(self.lya_absorber.transmission().shape)
+            if not mean_data:
+                mean = self.get_mean_quantity('flux')
+            cells = np.sum(self.IVAR_rows,axis=0)>0
+            skewer_rows[:,cells] = self.lya_absorber.transmission()[:,cells]/mean[cells] - 1
 
         #Determine the relevant QSOs: those that have relevant cells (IVAR > 0) beyond the first_relevant_cell.
         #We impose a minimum number of cells per skewer here to avoid problems with picca.
@@ -916,7 +929,7 @@ class SimulationData:
         return means
 
     #Function to save the means as a function of z.
-    def save_statistics(self,location,filename,lamda_min=0.0):
+    def save_statistics(self,location,filename,lambda_min=0.0):
 
         means = self.get_means(lambda_min=lambda_min)
         statistics = stats.means_to_statistics(means)
