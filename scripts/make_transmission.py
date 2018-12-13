@@ -351,7 +351,9 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
         pixel_object.save_as_physical_colore(filename,header)
 
     #Trim the skewers (remove low lambda cells). Exit if no QSOs are left.
-    pixel_object.trim_skewers(lambda_min,min_catalog_z,extra_cells=1)
+    #We don't cut too tightly on the low lambda to allow for RSDs.
+    lambda_buffer = 100. #Å
+    pixel_object.trim_skewers(lambda_min-lambda_buffer,min_catalog_z,extra_cells=1)
     if pixel_object.N_qso == 0:
         print('\nwarning: no objects left in pixel {} after trimming.'.format(pixel))
         return pixel
@@ -408,6 +410,13 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
     if add_RSDs == True:
         pixel_object.add_all_RSDs(thermal=include_thermal_effects)
 
+    #Trim the skewers (remove low lambda cells). Exit if no QSOs are left.
+    #We now cut hard at lambda min as RSDs have been implemented.
+    pixel_object.trim_skewers(lambda_min,min_catalog_z,extra_cells=1)
+    if pixel_object.N_qso == 0:
+        print('\nwarning: no objects left in pixel {} after trimming.'.format(pixel))
+        return pixel
+
     #transmission
     filename = utils.get_file_name(location,'transmission',N_side,pixel)
     pixel_object.save_as_transmission(filename,header)
@@ -423,7 +432,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
     else:
         #If transmission_only is not False, remove the gaussian-colore file.
         os.remove(gaussian_filename)
-    
+
     #Save the statistics file for this pixel.
     filename = 'statistics-16-{}.fits'.format(pixel)
     pixel_object.save_statistics(location,filename,lambda_min=lambda_min)
