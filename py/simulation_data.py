@@ -586,6 +586,7 @@ class SimulationData:
             j_value_upper = np.searchsorted(self.Z,z_value + z_width/2.) - 1
             j_value_lower = np.max([0,np.searchsorted(self.Z,z_value - z_width/2.)])
             mean = np.average(skewer_rows[:,j_value_lower:j_value_upper+1],weights=self.IVAR_rows[:,j_value_lower:j_value_upper+1])
+
         return mean
 
     #Function to measure sigma dF.
@@ -727,12 +728,14 @@ class SimulationData:
             if not mean_data:
                 mean = self.get_mean_quantity('tau')
             cells = np.sum(self.IVAR_rows,axis=0)>0
+            print('min mean tau:',np.min(mean[cells]))
             skewer_rows[:,cells] = self.lya_absorber.tau[:,cells]/mean[cells] - 1
         elif quantity == 'flux':
             skewer_rows = np.zeros(self.lya_absorber.transmission().shape)
             if not mean_data:
                 mean = self.get_mean_quantity('flux')
             cells = np.sum(self.IVAR_rows,axis=0)>0
+            print('min mean flux:',np.min(mean[cells]))
             skewer_rows[:,cells] = self.lya_absorber.transmission()[:,cells]/mean[cells] - 1
 
         #Determine the relevant QSOs: those that have relevant cells (IVAR > 0) beyond the first_relevant_cell.
@@ -887,9 +890,9 @@ class SimulationData:
         return means
 
     #Function to save the means as a function of z.
-    def save_statistics(self,location,filename,lambda_min=0.0):
+    def save_statistics(self,location,filename):
 
-        means = self.get_means(lambda_min=lambda_min)
+        means = self.get_means()
         statistics = stats.means_to_statistics(means)
         stats.write_statistics(location,filename,statistics)
 
