@@ -1,23 +1,6 @@
 import numpy as np
 from astropy.io import fits
 
-#Function to calculate the mean of deltas, mean of deltas^2, and N.
-def return_means(DELTA_rows,weights,sample_pc=1.0):
-    DELTA_SQUARED_rows = DELTA_rows**2
-    N_cells = DELTA_rows.shape[1]
-
-    N = np.zeros(N_cells)
-    mean_DELTA = np.zeros(N_cells)
-    mean_DELTA_SQUARED = np.zeros(N_cells)
-
-    for j in range(N_cells):
-        N[j] = np.sum(weights[:,j],axis=0)
-        if N[j] > 0:
-            mean_DELTA[j] = np.average(DELTA_rows[:,j],weights=weights[:,j])
-            mean_DELTA_SQUARED[j] = np.average(DELTA_SQUARED_rows[:,j],weights=weights[:,j])
-
-    return N, mean_DELTA, mean_DELTA_SQUARED
-
 #
 def combine_pixel_means(results):
 
@@ -47,8 +30,8 @@ def combine_statistics(statistics_list):
     N_cells = statistics_shape[0]
 
     quantities = [('N', 'f4')
-        , ('GAUSSIAN_DELTA_MEAN', 'f4'), ('GAUSSIAN_DELTA_VAR', 'f4')
-        , ('DENSITY_DELTA_MEAN', 'f4'), ('DENSITY_DELTA_VAR', 'f4')
+        , ('GAUSSIAN_MEAN', 'f4'), ('GAUSSIAN_VAR', 'f4')
+        , ('DENSITY_MEAN', 'f4'), ('DENSITY_VAR', 'f4')
         , ('TAU_MEAN', 'f4'), ('TAU_VAR', 'f4')
         , ('F_MEAN', 'f4'), ('F_VAR', 'f4')]
 
@@ -67,24 +50,26 @@ def combine_statistics(statistics_list):
 #Function to convert a set of means of quantities and quantities squared (as outputted by 'combine_means') to a set of means and variances.
 def means_to_statistics(means):
 
-    statistics_dtype = [('N', 'f4')
-        , ('GAUSSIAN_DELTA_MEAN', 'f4'), ('GAUSSIAN_DELTA_VAR', 'f4')
-        , ('DENSITY_DELTA_MEAN', 'f4'), ('DENSITY_DELTA_VAR', 'f4')
+    statistics_dtype = [('Z', 'f4'), ('N', 'int')
+        , ('GAUSSIAN_MEAN', 'f4'), ('GAUSSIAN_VAR', 'f4')
+        , ('DENSITY_MEAN', 'f4'), ('DENSITY_VAR', 'f4')
         , ('TAU_MEAN', 'f4'), ('TAU_VAR', 'f4')
         , ('F_MEAN', 'f4'), ('F_VAR', 'f4')]
         #, ('F_DELTA_MEAN', 'f4'), ('F_DELTA_VAR', 'f4')]
 
     statistics = np.zeros(means.shape,dtype=statistics_dtype)
 
+    statistics['Z'] = means['Z']
     statistics['N'] = means['N']
-    statistics['GAUSSIAN_DELTA_MEAN'] = means['GAUSSIAN_DELTA']
-    statistics['DENSITY_DELTA_MEAN'] = means['DENSITY_DELTA']
+
+    statistics['GAUSSIAN_MEAN'] = means['GAUSSIAN']
+    statistics['DENSITY_MEAN'] = means['DENSITY']
     statistics['TAU_MEAN'] = means['TAU']
     statistics['F_MEAN'] = means['F']
     #statistics['F_DELTA_MEAN'] = means['F_DELTA']
 
-    statistics['GAUSSIAN_DELTA_VAR'] = means['GAUSSIAN_DELTA_SQUARED'] - means['GAUSSIAN_DELTA']**2
-    statistics['DENSITY_DELTA_VAR'] = means['DENSITY_DELTA_SQUARED'] - means['DENSITY_DELTA']**2
+    statistics['GAUSSIAN_VAR'] = means['GAUSSIAN_SQUARED'] - means['GAUSSIAN']**2
+    statistics['DENSITY_VAR'] = means['DENSITY_SQUARED'] - means['DENSITY']**2
     statistics['TAU_VAR'] = means['TAU_SQUARED'] - means['TAU']**2
     statistics['F_VAR'] = means['F_SQUARED'] - means['F']**2
     #statistics['F_DELTA_VAR'] = means['F_DELTA_SQUARED'] - means['F_DELTA']**2
@@ -108,3 +93,23 @@ def write_statistics(location,filename,statistics):
     hdulist.close
 
     return
+
+
+###########
+
+#Function to calculate the mean of deltas, mean of deltas^2, and N.
+def return_means(DELTA_rows,weights,sample_pc=1.0):
+    DELTA_SQUARED_rows = DELTA_rows**2
+    N_cells = DELTA_rows.shape[1]
+
+    N = np.zeros(N_cells)
+    mean_DELTA = np.zeros(N_cells)
+    mean_DELTA_SQUARED = np.zeros(N_cells)
+
+    for j in range(N_cells):
+        N[j] = np.sum(weights[:,j],axis=0)
+        if N[j] > 0:
+            mean_DELTA[j] = np.average(DELTA_rows[:,j],weights=weights[:,j])
+            mean_DELTA_SQUARED[j] = np.average(DELTA_SQUARED_rows[:,j],weights=weights[:,j])
+
+    return N, mean_DELTA, mean_DELTA_SQUARED

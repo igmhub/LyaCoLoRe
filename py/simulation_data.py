@@ -543,16 +543,16 @@ class SimulationData:
         return
 
     #Function to measure mean flux.
-    def get_mean_quantity(self,quantity,z_value=None,z_width=None):
+    def get_mean_quantity(self,quantity,z_value=None,z_width=None,power=1):
 
         if quantity == 'gaussian':
-            skewer_rows = self.GAUSSIAN_DELTA_rows
+            skewer_rows = self.GAUSSIAN_DELTA_rows ** power
         elif quantity == 'density':
-            skewer_rows = self.DENSITY_DELTA_rows
+            skewer_rows = (self.DENSITY_DELTA_rows + 1) ** power
         elif quantity == 'tau':
-            skewer_rows = self.lya_absorber.tau
+            skewer_rows = self.lya_absorber.tau ** power
         elif quantity == 'flux':
-            skewer_rows = self.lya_absorber.transmission()
+            skewer_rows = self.lya_absorber.transmission() ** power
 
         #If no z value, then compute the mean as a function of redshift.
         if not z_value:
@@ -583,18 +583,9 @@ class SimulationData:
 
         #Else, compute the mean of the chunk of width z_width centred on z_value.
         else:
-            #print('finding chunk')
             j_value_upper = np.searchsorted(self.Z,z_value + z_width/2.) - 1
             j_value_lower = np.max([0,np.searchsorted(self.Z,z_value - z_width/2.)])
-            #print('j values',j_value_lower,j_value_upper)
-            #print('F shape',F.shape)
-            #print('max qso z',np.max(self.Z_QSO))
-            #print('ivar rows',self.IVAR_rows[:,j_value_lower:j_value_upper+1])
-            #print(self.IVAR_rows[:,j_value_lower:j_value_upper+1].shape)
             mean = np.average(skewer_rows[:,j_value_lower:j_value_upper+1],weights=self.IVAR_rows[:,j_value_lower:j_value_upper+1])
-            #print('mean calc')
-            #print(self.N_qso)
-            #print(j_value_lower,j_value_upper)
         return mean
 
     #Function to measure sigma dF.
@@ -862,68 +853,35 @@ class SimulationData:
         return
 
     #Function to calculate the mean and variance of the different quantities as a function of Z.
-    def get_means(self,lambda_min=0.0):
-
-        #Determine the relevant cells and QSOs.
-        lya_lambdas = 10**self.LOGLAM_MAP
-
-        #Determine the first cell which corresponds to a lya_line at wavelength > lambda_min
-        first_relevant_cell = utils.get_first_relevant_index(lambda_min,lya_lambdas)
-
-        #Determine the furthest cell which is still relevant: i.e. the one in which at least one QSO has non-zero value of IVAR.
-        furthest_QSO_index = np.argmax(self.Z_QSO)
-        #last_relevant_cell = (np.argmax(self.IVAR_rows[furthest_QSO_index,:]==0) - 1) % self.N_cells
-        last_relevant_cell = self.N_cells - 1
-
-        #Determine the relevant QSOs: those that have relevant cells (IVAR > 0) beyond the first_relevant_cell.
-        relevant_QSOs = [i for i in range(self.N_qso) if self.IVAR_rows[i,first_relevant_cell] == 1]
-
-        #Trim data according to the relevant cells and QSOs.
-        relevant_DENSITY_DELTA = self.DENSITY_DELTA_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
-        relevant_GAUSSIAN_DELTA = self.GAUSSIAN_DELTA_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
-        relevant_TAU = self.lya_absorber.tau[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
-        F = self.lya_absorber.transmission()
-        relevant_F = F[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
-        relevant_IVAR = self.IVAR_rows[relevant_QSOs,first_relevant_cell:last_relevant_cell+1]
-        relevant_LOGLAM_MAP = self.LOGLAM_MAP[first_relevant_cell:last_relevant_cell+1]
+    def get_means(self):
 
         #For each cell, determine the number of skewers for which it is relevant.
-        N_relevant_skewers = np.sum(relevant_IVAR,axis=0)
-        relevant_cells = N_relevant_skewers>0
-
-        #Calculate delta_F from F.
-        #Introduce a small 'hack' in order to get around the problem of having cells with no skewers contributing to them.
-        # TODO: find a neater way to deal with this
-        # TODO: don't want this?
-        small = 1.0e-10
-        #relevant_mean_F = np.average(relevant_F,weights=relevant_IVAR+small,axis=0)
-        #relevant_delta_F = ((relevant_F)/relevant_mean_F - 1)*relevant_IVAR
+        N_skewers = np.sum(self.IVAR_rows,axis=0)
 
         #Calculate the mean in each cell of the gaussian delta and its square.
-        GDB = np.average(relevant_GAUSSIAN_DELTA,weights=relevant_IVAR+small,axis=0)*relevant_cells
-        GDSB = np.average(relevant_GAUSSIAN_DELTA**2,weights=relevant_IVAR+small,axis=0)*relevant_cells
+        GM = self.get_mean_quantity('gaussian')
+        GSM = self.get_mean_quantity('gaussian',power=2)
 
         #Calculate the mean in each cell of the density delta and its square.
-        DDB = np.average(relevant_DENSITY_DELTA,weights=relevant_IVAR+small,axis=0)*relevant_cells
-        DDSB = np.average(relevant_DENSITY_DELTA**2,weights=relevant_IVAR+small,axis=0)*relevant_cells
+        DM = self.get_mean_quantity('density')
+        DSM = self.get_mean_quantity('density',power=2)
 
         #Calculate the mean in each cell of the tau and its square.
-        TB = np.average(relevant_TAU,weights=relevant_IVAR+small,axis=0)*relevant_cells
-        TSB = np.average(relevant_TAU**2,weights=relevant_IVAR+small,axis=0)*relevant_cells
+        TM = self.get_mean_quantity('tau')
+        TSM = self.get_mean_quantity('tau',power=2)
 
         #Calculate the mean in each cell of the flux and its square.
-        FB = np.average(relevant_F,weights=relevant_IVAR+small,axis=0)*relevant_cells
-        FSB = np.average(relevant_F**2,weights=relevant_IVAR+small,axis=0)*relevant_cells
+        FM = self.get_mean_quantity('flux')
+        FSM = self.get_mean_quantity('flux',power=2)
 
         #Calculate the mean in each cell of the flux delta and its square.
         #FDB = np.average(relevant_delta_F,weights=relevant_IVAR+small,axis=0)*relevant_cells
         #FDSB = np.average(relevant_delta_F**2,weights=relevant_IVAR+small,axis=0)*relevant_cells
 
         #Stitch together the means into a binary table.
-        dtype = [('N', 'f4'),('GAUSSIAN_DELTA', 'f4'), ('GAUSSIAN_DELTA_SQUARED', 'f4'), ('DENSITY_DELTA', 'f4'), ('DENSITY_DELTA_SQUARED', 'f4'), ('TAU', 'f4'), ('TAU_SQUARED', 'f4'), ('F', 'f4'), ('F_SQUARED', 'f4')]
-
+        dtype = [('Z', 'f4'), ('N', 'int'), ('GAUSSIAN', 'f4'), ('GAUSSIAN_SQUARED', 'f4'), ('DENSITY', 'f4'), ('DENSITY_SQUARED', 'f4'), ('TAU', 'f4'), ('TAU_SQUARED', 'f4'), ('F', 'f4'), ('F_SQUARED', 'f4')]
         #, ('F_DELTA', 'f4'), ('F_DELTA_SQUARED', 'f4')]
-        means = np.array(list(zip(N_relevant_skewers,GDB,GDSB,DDB,DDSB,TB,TSB,FB,FSB)),dtype=dtype)
+        means = np.array(list(zip(self.Z,N_skewers,GM,GSM,DM,DSM,TM,TSM,FM,FSM)),dtype=dtype)
         #,FDB,FDSB
 
         return means
