@@ -711,11 +711,9 @@ class SimulationData:
         return
 
     #Function to save in the picca format.
-    def save_as_picca_delta(self,quantity,filename,header,overwrite=False,min_number_cells=2,mean_data=None,cell_size=None):
+    def save_as_picca_delta(self,quantity,filename,header,mean_data=None,overwrite=False,min_number_cells=2,cell_size=None):
 
         lya_lambdas = 10**self.LOGLAM_MAP
-        if mean_data:
-            mean = np.interp(self.Z,mean_data['z'],mean_data['mean'])
 
         #Choose the right skewers according to input quantity.
         #Convert non-delta quantities to deltas.
@@ -725,17 +723,21 @@ class SimulationData:
             skewer_rows = self.DENSITY_DELTA_rows
         elif quantity == 'tau':
             skewer_rows = np.zeros(self.lya_absorber.tau.shape)
-            if not mean_data:
-                mean = self.get_mean_quantity('tau')
             cells = np.sum(self.IVAR_rows,axis=0)>0
-            print('min mean tau:',np.min(mean[cells]))
+            #print('min mean tau:',np.min(mean[cells]))
+            if mean_data is None:
+                mean = self.get_mean_quantity('tau')
+            else:
+                mean = np.interp(self.Z,mean_data['z'],mean_data['mean'])
             skewer_rows[:,cells] = self.lya_absorber.tau[:,cells]/mean[cells] - 1
         elif quantity == 'flux':
             skewer_rows = np.zeros(self.lya_absorber.transmission().shape)
-            if not mean_data:
-                mean = self.get_mean_quantity('flux')
             cells = np.sum(self.IVAR_rows,axis=0)>0
-            print('min mean flux:',np.min(mean[cells]))
+            #print('min mean flux:',np.min(mean[cells]))
+            if mean_data is None:
+                mean = self.get_mean_quantity('tau')
+            else:
+                mean = np.interp(self.Z,mean_data['z'],mean_data['mean'])
             skewer_rows[:,cells] = self.lya_absorber.transmission()[:,cells]/mean[cells] - 1
 
         #Determine the relevant QSOs: those that have relevant cells (IVAR > 0) beyond the first_relevant_cell.

@@ -29,21 +29,22 @@ def combine_statistics(statistics_list):
     statistics_data_type = statistics_list[0].dtype
     N_cells = statistics_shape[0]
 
-    quantities = [('N', 'f4')
+    quantities = [('Z', 'f4'), ('N', 'f4')
         , ('GAUSSIAN_MEAN', 'f4'), ('GAUSSIAN_VAR', 'f4')
         , ('DENSITY_MEAN', 'f4'), ('DENSITY_VAR', 'f4')
         , ('TAU_MEAN', 'f4'), ('TAU_VAR', 'f4')
         , ('F_MEAN', 'f4'), ('F_VAR', 'f4')]
 
-    combined_statistics = np.zeros(statistics_shape,dtype=means_data_type)
+    combined_statistics = np.zeros(statistics_shape,dtype=quantities)
     for s_array in statistics_list:
-        combined_means['N'] += s_array['N']
+        combined_statistics['N'] += s_array['N']
 
     #Combine the means.
-    cells = combined_means['N']>0
-    for q in quantities:
+    cells = combined_statistics['N']>0
+    for quantity in quantities:
+        q = quantity[0]
         for s_array in statistics_list:
-            combined_statistics[quantity][cells] += s_array['N'][cells]*s_array[q][cells]/combined_statistics['N'][cells]
+            combined_statistics[q][cells] += s_array['N'][cells]*s_array[q][cells]/combined_statistics['N'][cells]
 
     return combined_statistics
 

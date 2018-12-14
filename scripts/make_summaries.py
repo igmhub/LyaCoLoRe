@@ -26,8 +26,8 @@ parser.add_argument('--nside', type = int, default = 16, required=False,
 parser.add_argument('--pixels', type = int, default = None, required=False,
                     help = 'which pixel numbers to work on', nargs='*')
 
-parser.add_argument('--picca_N_merge', type = int, default = None, required=False,
-                    help = 'number of cells to merge when rebinning for picca files')
+parser.add_argument('--picca-N-merge-values', type = int, default = [1], required = False,
+                    help = 'number of cells to merge when rebinning for picca files', nargs='*')
 
 args = parser.parse_args()
 
@@ -37,7 +37,9 @@ N_side = args.nside
 pixels = args.pixels
 if not pixels:
     pixels = list(range(12*N_side**2))
-N_merge = args.picca_N_merge
+N_merge_values = args.picca_N_merge_values
+if not N_merge_values:
+    N_merge_values = []
 
 ################################################################################
 
@@ -71,14 +73,30 @@ DLA.make_DLA_master(base_dir,N_side,pixels)
 Make the global statistics file.
 """
 
+print('Making the global statistics file...')
+
 # TODO: paralellise
 #Get the statistics from all pixels.
 statistics_list = []
 
 def get_statistics(pixel):
-    s_filename = utils.get_file_name(base_dir,'statistics',N_side,pixel)
-    s = fits.open(dirname+s_filename)
-    return s[1].data
+    dirname = utils.get_dir_name(base_dir,pixel)
+
+    #Open up the statistics file without RSDs and extract data.
+    s_noRSD_filename = utils.get_file_name(dirname,'statistics-noRSD',N_side,pixel)
+    s_noRSD = fits.open(s_noRSD_filename)
+    statistics_noRSD = s_noRSD[1].data
+    s_noRSD.close()
+
+    #Open up the statistics file with RSDs and extract data.
+    s_filename = utils.get_file_name(dirname,'statistics',N_side,pixel)
+    s = fits.open(s_filename)
+    statistics = s[1].data
+    s.close()
+ 
+    return statistics_noRSD, statistics
+
+tasks = [(pixel,) for pixel in pixels]
 
 #Run the multiprocessing pool
 if __name__ == '__main__':
@@ -86,16 +104,25 @@ if __name__ == '__main__':
     results = []
     start_time = time.time()
 
-    for pixel in pixels:
-        pool.apply_async(get_statistics,pixel,callback=log_result,error_callback=log_error)
+    for task in tasks:
+        pool.apply_async(get_statistics,task,callback=log_result,error_callback=log_error)
 
     pool.close()
     pool.join()
 
-#Combine the statistics from all of the pixels.
-statistics = combine_statistics(results)
+#Make lists with and without RSDs
+statistics_noRSD_list = []
+statistics_list = []
+for result in results:
+    statistics_noRSD_list += [result[0]]
+    statistics_list += [result[1]]
 
-#Save the final file.
+#Combine the statistics from all of the pixels and save, with and without RSDs.
+statistics_noRSD = stats.combine_statistics(statistics_noRSD_list)
+filename = './statistics_noRSD.fits'
+stats.write_statistics(base_dir,filename,statistics_noRSD)
+
+statistics = stats.combine_statistics(statistics_list)
 filename = './statistics.fits'
 stats.write_statistics(base_dir,filename,statistics)
 
@@ -107,29 +134,47 @@ We then ensure that the global mean of all the picca-deltas is 0.
 Also, we rebin the files to get the desired cell_size.
 """
 
+print('Renormalising the picca files...')
+
 #Also need to add in the rebinned ones? Or should we rebin here?
 #Issue  with different names in the statistics files?
 quantities = ['tau','flux']
 stats_quantities = ['TAU','F']
 
-# TODO: paralellise
+tasks = [(pixel,N_merge) for pixel in pixels for N_merge in N_merge_values]
+
 #For each pixel, and each quantity, renormalise the picca file
-def renormalise(pixel):
+def renormalise(pixel,N_merge):
     #Open up the per-pixel stats file
     dirname = utils.get_dir_name(base_dir,pixel)
-    s_filename = utils.get_file_name(base_dir,'statistics',N_side,pixel)
-    s = fits.open(dirname+s_filename)
+    s_filename = utils.get_file_name(dirname,'statistics',N_side,pixel)
+    s = fits.open(s_filename)
 
     for i,q in enumerate(quantities):
 
         #Get the old mean, and renormalise.
         # TODO: this use of "stats_quantities" is v ugly
         lookup_name = stats_quantities[i]+'_MEAN'
-        old_mean = s[1].data[lookup_name]
-        #new_mean = statistics[lookup_name]
-        new_mean = np.ones_like(old_mean)
-        filename = utils.get_file_name(base_dir,'picca-'+q,N_side,pixel)
-        utils.renormalise_picca_file(filepath,old_mean,new_mean,N_merge=N_merge)
+        #old_mean = s[1].data[lookup_name]
+        old_mean = np.ones(s[1].data.shape)
+
+        #Renormalise the files without RSDs.
+        new_mean = statistics_noRSD[lookup_name]
+        filename = utils.get_file_name(dirname,'picca-'+q+'-noRSD',N_side,pixel)
+        if N_merge == 1:
+            out = utils.get_file_name(dirname,'picca-'+q+'-noRSD-renorm-',N_side,pixel)
+        else:
+            out = utils.get_file_name(dirname,'picca-'+q+'-noRSD-renorm-rebin-{}-'.format(N_merge)+q,N_side,pixel)
+        utils.renormalise_picca_file(filename,old_mean,new_mean,N_merge=N_merge,out_filepath=out)
+
+        #Renormalise the files with RSDs.
+        new_mean = statistics[lookup_name]
+        filename = utils.get_file_name(dirname,'picca-'+q,N_side,pixel)
+        if N_merge == 1:
+            out = utils.get_file_name(dirname,'picca-'+q+'-renorm-',N_side,pixel)
+        else:
+            out = utils.get_file_name(dirname,'picca-'+q+'-renorm-rebin-{}-'.format(N_merge)+q,N_side,pixel)
+        utils.renormalise_picca_file(filename,old_mean,new_mean,N_merge=N_merge,out_filepath=out)
 
     return
 
@@ -139,8 +184,8 @@ if __name__ == '__main__':
     results = []
     start_time = time.time()
 
-    for pixel in pixels:
-        pool.apply_async(renormalise,pixel,callback=log_result,error_callback=log_error)
+    for task in tasks:
+        pool.apply_async(renormalise,task,callback=log_result,error_callback=log_error)
 
     pool.close()
     pool.join()
