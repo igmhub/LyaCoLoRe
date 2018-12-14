@@ -79,7 +79,6 @@ def dNdz(z, Nmin=20.0, Nmax=22.5):
 def get_N(z, Nmin=20.0, Nmax=22.5, nsamp=100):
     """ Get random column densities for a given z
     """
-
     # number of DLAs we want to generate
     Nz = len(z)
     nn = np.linspace(Nmin,Nmax,nsamp)
@@ -97,7 +96,7 @@ def get_N(z, Nmin=20.0, Nmax=22.5, nsamp=100):
         NHI[i] = np.random.choice(nn,size=1,p=probs[i]/np.sum(probs[i]))+(nn[1]-nn[0])*np.random.random(size=1)
     return NHI
 
-def add_DLA_table_to_object(object,dla_bias=2.0,extrapolate_z_down=None,Nmin=20.0,Nmax=22.5,seed=123):
+def add_DLA_table_to_object(object,dla_bias=2.0,dla_bias_z=2.25,extrapolate_z_down=None,Nmin=20.0,Nmax=22.5,seed=123):
 
     #Hopefully this sets the seed for all random generators used
     np.random.seed(seed)
@@ -111,13 +110,13 @@ def add_DLA_table_to_object(object,dla_bias=2.0,extrapolate_z_down=None,Nmin=20.
 
     #Setup bias as a function of redshift
     y = interp1d(z_cell,D_cell)
-    bias = dla_bias/(D_cell)*y(2.25)
+    bias = y(dla_bias_z)*dla_bias/D_cell
 
     #We measure sigma_G already, but it is not fed back into the files at all. This should change.
     sigma_g = object.SIGMA_G
     #sigma_g = DLA.get_sigma_g(o.input_file)
 
-    nu_arr = nu_of_bD(bias*D_cell)
+    nu_arr = nu_of_bD(dla_bias*np.ones_like(z_cell))
     #Figure out cells that could host a DLA, based on Gaussian fluctuation
     deltas = object.GAUSSIAN_DELTA_rows
     flagged_cells = flag_DLA(zq,z_cell,deltas,nu_arr,sigma_g)
