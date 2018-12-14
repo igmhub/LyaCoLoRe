@@ -863,19 +863,19 @@ class SimulationData:
 
         #Calculate the mean in each cell of the gaussian delta and its square.
         GM = self.get_mean_quantity('gaussian')
-        GSM = self.get_mean_quantity('gaussian',power=2)
+        GSM = self.get_mean_quantity('gaussian',power=2.)
 
         #Calculate the mean in each cell of the density delta and its square.
         DM = self.get_mean_quantity('density')
-        DSM = self.get_mean_quantity('density',power=2)
+        DSM = self.get_mean_quantity('density',power=2.)
 
         #Calculate the mean in each cell of the tau and its square.
         TM = self.get_mean_quantity('tau')
-        TSM = self.get_mean_quantity('tau',power=2)
+        TSM = self.get_mean_quantity('tau',power=2.)
 
         #Calculate the mean in each cell of the flux and its square.
         FM = self.get_mean_quantity('flux')
-        FSM = self.get_mean_quantity('flux',power=2)
+        FSM = self.get_mean_quantity('flux',power=2.)
 
         #Calculate the mean in each cell of the flux delta and its square.
         #FDB = np.average(relevant_delta_F,weights=relevant_IVAR+small,axis=0)*relevant_cells
@@ -896,7 +896,7 @@ class SimulationData:
         statistics = stats.means_to_statistics(means)
         stats.write_statistics(location,filename,statistics)
 
-        return
+        return statistics
 
     #Function to add DLAs to a set of skewers.
     def add_DLA_table(self,seed,dla_bias=2.0):

@@ -387,9 +387,16 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
     #Add tau skewers to the object, starting with Lyman-alpha
     alphas = np.exp(np.interp(np.log(pixel_object.Z),np.log(tuning_z_values),np.log(tuning_alphas)))
     betas = np.exp(np.interp(np.log(pixel_object.Z),np.log(tuning_z_values),np.log(tuning_betas)))
+    sigma_Gs = np.exp(np.interp(np.log(pixel_object.Z),np.log(tuning_z_values),np.log(tuning_sigma_Gs)))
     pixel_object.compute_all_tau_skewers(alphas,betas)
 
     if transmission_only == False:
+        #Get mean quantities to normalise by for now.
+        #analytic_mean_tau = tuning.get_analytical_mean('tau',pixel_object.Z,alphas,betas,sigma_Gs,pixel_object.D)
+        #analytic_mean_F = tuning.get_analytical_mean('flux',pixel_object.Z,alphas,betas,sigma_Gs,pixel_object.D)
+        analytic_mean_tau = np.ones_like(pixel_object.Z)
+        analytic_mean_F = np.ones_like(pixel_object.Z)
+
         #Picca Gaussian, small cells
         filename = utils.get_file_name(location,'picca-gaussian',N_side,pixel)
         pixel_object.save_as_picca_delta('gaussian',filename,header)
@@ -400,11 +407,11 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
 
         #Picca tau
         filename = utils.get_file_name(location,'picca-tau-noRSD',N_side,pixel)
-        pixel_object.save_as_picca_delta('tau',filename,header)
+        pixel_object.save_as_picca_delta('tau',filename,header,mean_data=analytic_mean_tau)
 
         #Picca flux
         filename = utils.get_file_name(location,'picca-flux-noRSD',N_side,pixel)
-        pixel_object.save_as_picca_delta('flux',filename,header)
+        pixel_object.save_as_picca_delta('flux',filename,header,mean_data=analytic_mean_F)
 
     #Add RSDs from the velocity skewers provided by CoLoRe.
     if add_RSDs == True:
@@ -424,20 +431,20 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
     if transmission_only == False:
         #Picca tau
         filename = utils.get_file_name(location,'picca-tau',N_side,pixel)
-        pixel_object.save_as_picca_delta('tau',filename,header)
+        pixel_object.save_as_picca_delta('tau',filename,header,mean_data=analytic_mean_tau)
 
         #Picca flux
         filename = utils.get_file_name(location,'picca-flux',N_side,pixel)
-        pixel_object.save_as_picca_delta('flux',filename,header)
+        pixel_object.save_as_picca_delta('flux',filename,header,mean_data=analytic_mean_F)
     else:
         #If transmission_only is not False, remove the gaussian-colore file.
         os.remove(gaussian_filename)
 
     #Save the statistics file for this pixel.
     filename = 'statistics-16-{}.fits'.format(pixel)
-    pixel_object.save_statistics(location,filename)
+    statistics = pixel_object.save_statistics(location,filename)
 
-    return [new_cosmology]
+    return [new_cosmology,statistics]
 
 #define the tasks
 tasks = [(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,measured_SIGMA_G,n,k1) for pixel in pixel_list]
@@ -458,6 +465,7 @@ print('\nTime to make physical pixel files: {:4.0f}s.\n'.format(time.time()-star
 
 ################################################################################
 """
+PROBABLY COULD MOVE THIS TO make_summaries
 Having added small scale power, we must add a new HDU to the master file's cosmology.
 """
 
@@ -498,29 +506,6 @@ except IndexError:
     hdulist.close()
 
 print('Process complete!\n')
-
-################################################################################
-"""
-THIS WILL NOW BE DONE BY make_summaries
-
-Group the statistics calculated to get means and variances.
-Save these into a fits file.
-
-print('\nMaking statistics file...')
-start_time = time.time()
-
-#Use combine_means and means_to_statistics to calculate the mean and variance of the different quantities over all skewers.
-means_list = []
-for result in results:
-    means_list += [result[1]]
-means = stats.combine_means(means_list)
-statistics = stats.means_to_statistics(means)
-
-#Save the statistics data as a new fits file.
-stats.write_statistics(base_out_dir,N_side,statistics,new_cosmology)
-
-print('\nTime to make statistics file: {:4.0f}s.\n'.format(time.time()-start_time))
-"""
 
 ################################################################################
 
