@@ -292,7 +292,9 @@ def renormalise_picca_file(filepath,old_mean,new_mean,N_merge=None,IVAR_cutoff=1
     hdu_CATALOG = h[3]
 
     #Renormalise the deltas.
-    renorm_delta_rows = (old_mean*(1 + old_delta_rows))/new_mean - 1
+    cells = new_mean>0
+    renorm_delta_rows = np.ones(old_delta_rows.shape)
+    renorm_delta_rows[:,cells] = (old_mean[cells]*(1 + old_delta_rows[:,cells]))/new_mean[cells] - 1
 
     #Rebin the deltas if necessary.
     if N_merge:
