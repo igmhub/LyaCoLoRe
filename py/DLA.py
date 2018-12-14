@@ -16,6 +16,7 @@ try:
 except:
     use_pyigm = False
 
+# TODO: this function name may be misleading: should it be nu_of_b?
 def nu_of_bD(b):
     """ Compute the Gaussian field threshold for a given bias"""
     nu = np.linspace(-10,100,500) # Generous range to interpolate
@@ -116,8 +117,9 @@ def add_DLA_table_to_object(object,dla_bias=2.0,dla_bias_z=2.25,extrapolate_z_do
     sigma_g = object.SIGMA_G
     #sigma_g = DLA.get_sigma_g(o.input_file)
 
-    nu_arr = nu_of_bD(dla_bias*np.ones_like(z_cell))
     #Figure out cells that could host a DLA, based on Gaussian fluctuation
+    # TODO: is this the right thing to feed to this function? Not sure...
+    nu_arr = nu_of_bD(dla_bias*np.ones_like(z_cell))
     deltas = object.GAUSSIAN_DELTA_rows
     flagged_cells = flag_DLA(zq,z_cell,deltas,nu_arr,sigma_g)
 
