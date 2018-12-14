@@ -361,9 +361,9 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
     #Save picca format files without adding small scale power.
     if transmission_only == False:
         filename = utils.get_file_name(location,'picca-gaussian-colorecell',N_side,pixel)
-        pixel_object.save_as_picca_delta('gaussian',filename,header)
+        #pixel_object.save_as_picca_delta('gaussian',filename,header)
         filename = utils.get_file_name(location,'picca-density-colorecell',N_side,pixel)
-        pixel_object.save_as_picca_delta('density',filename,header)
+        #pixel_object.save_as_picca_delta('density',filename,header)
 
     #Add small scale power to the gaussian skewers:
     seed = int(pixel * 10**5 + global_seed)
@@ -394,13 +394,14 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
         #Get mean quantities to normalise by for now.
         #analytic_mean_tau = tuning.get_analytical_mean('tau',pixel_object.Z,alphas,betas,sigma_Gs,pixel_object.D)
         #analytic_mean_F = tuning.get_analytical_mean('flux',pixel_object.Z,alphas,betas,sigma_Gs,pixel_object.D)
-        analytic_mean_tau = np.ones_like(pixel_object.Z)
-        analytic_mean_F = np.ones_like(pixel_object.Z)
+        dtype = [('z', 'f8'), ('mean', 'f8')]
+        analytic_mean_tau = np.array(list(zip(pixel_object.Z,np.ones_like(pixel_object.Z))),dtype=dtype)
+        analytic_mean_F = np.array(list(zip(pixel_object.Z,np.ones_like(pixel_object.Z))),dtype=dtype)
 
         #Picca Gaussian, small cells
         filename = utils.get_file_name(location,'picca-gaussian',N_side,pixel)
         pixel_object.save_as_picca_delta('gaussian',filename,header)
-
+    
         #Picca density
         filename = utils.get_file_name(location,'picca-density',N_side,pixel)
         pixel_object.save_as_picca_delta('density',filename,header)
@@ -412,6 +413,10 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
         #Picca flux
         filename = utils.get_file_name(location,'picca-flux-noRSD',N_side,pixel)
         pixel_object.save_as_picca_delta('flux',filename,header,mean_data=analytic_mean_F)
+    
+    #Save the no RSD statistics file for this pixel.
+    filename = 'statistics-noRSD-16-{}.fits'.format(pixel)
+    statistics = pixel_object.save_statistics(location,filename)
 
     #Add RSDs from the velocity skewers provided by CoLoRe.
     if add_RSDs == True:
@@ -440,7 +445,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
         #If transmission_only is not False, remove the gaussian-colore file.
         os.remove(gaussian_filename)
 
-    #Save the statistics file for this pixel.
+    #Save the final statistics file for this pixel.
     filename = 'statistics-16-{}.fits'.format(pixel)
     statistics = pixel_object.save_statistics(location,filename)
 
