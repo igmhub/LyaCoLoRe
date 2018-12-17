@@ -26,7 +26,7 @@ def progress_bar(N_complete,N_tasks,start_time):
     print(' -> current progress: {} {:4d} of {:4d} complete ({:3.0%}), {:4.0f}s elapsed, ~{:5.0f}s remaining'.format(progress_bar,N_complete,N_tasks,N_complete/N_tasks,time_elapsed,estimated_time_remaining),end="\r")
 
     if N_complete == N_tasks:
-        print('\nProcess complete!')
+        print('\nProcess complete!\n')
 
     return
 

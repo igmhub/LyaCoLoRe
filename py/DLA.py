@@ -195,7 +195,7 @@ def add_DLA_table_to_object(object,dla_bias=2.0,dla_bias_z=2.25,extrapolate_z_do
 
     return dla_table
 
-def get_DLA_data_from_transmission(filename):
+def get_DLA_data_from_transmission(pixel,filename):
 
     DLA_data = []
     t = fits.open(filename)
