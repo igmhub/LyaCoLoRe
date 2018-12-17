@@ -454,6 +454,7 @@ class SimulationData:
                 expanded_GAUSSIAN_DELTA_rows[i,first_relevant_cell:last_relevant_cell] += amplitude*extra_var
             """
 
+        #self.COLORE_GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows
         self.GAUSSIAN_DELTA_rows = expanded_GAUSSIAN_DELTA_rows
         self.SIGMA_G = np.sqrt(extra_sigma_G**2 + (self.SIGMA_G)**2)
 

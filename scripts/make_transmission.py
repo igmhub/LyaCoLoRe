@@ -321,6 +321,9 @@ start_time = time.time()
 
 def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,measured_SIGMA_G,n,k1):
 
+    #Define a random seed for use in this pixel.
+    seed = int(pixel * 10**5 + global_seed)
+
     #We work from the gaussian colore files made in 'pixelise gaussian skewers'.
     location = utils.get_dir_name(base_out_dir,pixel)
     gaussian_filename = utils.get_file_name(location,'gaussian-colore',N_side,pixel)
@@ -352,7 +355,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
 
     #Trim the skewers (remove low lambda cells). Exit if no QSOs are left.
     #We don't cut too tightly on the low lambda to allow for RSDs.
-    lambda_buffer = 100. #Å
+    lambda_buffer = 100. #A
     pixel_object.trim_skewers(lambda_min-lambda_buffer,min_catalog_z,extra_cells=1)
     if pixel_object.N_qso == 0:
         print('\nwarning: no objects left in pixel {} after trimming.'.format(pixel))
@@ -365,8 +368,15 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
         filename = utils.get_file_name(location,'picca-density-colorecell',N_side,pixel)
         #pixel_object.save_as_picca_delta('density',filename,header)
 
+    #Add a table with DLAs in to the pixel object.
+    # TODO: in future, we want DLAs all the way down to z=0.
+    #That means we need to store skewers all the way down to z=0.
+    #May need to adjust how many nodes are used when running.
+    if add_DLAs:
+        pixel_object.add_DLA_table(seed)
+
+    #print(pixel_object.DLA_table)
     #Add small scale power to the gaussian skewers:
-    seed = int(pixel * 10**5 + global_seed)
     generator = np.random.RandomState(seed)
     new_cosmology = pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,tuning_z_values,extra_sigma_G_values,generator,white_noise=False,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff,n=n,k1=k1)
 

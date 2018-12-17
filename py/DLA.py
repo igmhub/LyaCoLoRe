@@ -119,7 +119,7 @@ def add_DLA_table_to_object(object,dla_bias=2.0,dla_bias_z=2.25,extrapolate_z_do
 
     #Figure out cells that could host a DLA, based on Gaussian fluctuation
     # TODO: is this the right thing to feed to this function? Not sure...
-    nu_arr = nu_of_bD(dla_bias*np.ones_like(z_cell))
+    nu_arr = nu_of_bD(bias*D_cell)
     deltas = object.GAUSSIAN_DELTA_rows
     flagged_cells = flag_DLA(zq,z_cell,deltas,nu_arr,sigma_g)
 
@@ -178,13 +178,14 @@ def add_DLA_table_to_object(object,dla_bias=2.0,dla_bias_z=2.25,extrapolate_z_do
         if MOCKID != current_MOCKID:
             current_MOCKID = MOCKID
             current_DLAID = current_MOCKID * 10**3
-        DLAIDs[i] = current_DLAID
+        DLAIDs[i] = current_DLAID.astype('int')
         current_DLAID += 1
 
     #Make the data into a table HDU
     data = [dla_z,dla_z+dla_rsd_dz,dla_NHI,MOCKIDs,DLAIDs]
     names = ('Z_DLA_NO_RSD','Z_DLA_RSD','N_HI_DLA','MOCKID','DLAID')
-    dla_table = astropy.table.Table(data,names=names)
+    dtype = ('f8','f8','f8','i8','i8')
+    dla_table = astropy.table.Table(data,names=names,dtype=dtype)
 
     ##Only include DLAs where the DLA is at lower z than the QSO
     #DLA_Z_QSOs = object.Z_QSO[kskw]
