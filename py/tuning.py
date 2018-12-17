@@ -779,6 +779,23 @@ def fit_function_to_data(x,y,new_x):
 
     return new_y
 
+def get_analytical_mean(quantity,z,a,b,sG,D,N_pow=3):
+    #Make y an array, with 1 dimension for z.
+    y = np.linspace(-10.,10.,10**N_pow)
+    y = np.add.outer(y,0*z)
+    #Helpful variables
+    y_ones = np.ones_like(y)
+    #Define F and integrate
+    p = (1/(np.sqrt(2*np.pi)))*np.exp(-0.5*(y**2))
+    ln = lognormal_transform(y,sG,D)
+    tau = convert.density_to_tau(ln,a,b)
+    if quantity == 'tau':
+        return np.trapz(p*tau,y,axis=0)
+    elif quantity == 'flux':
+        F = np.exp(-tau)
+        return np.trapz(p*F,y,axis=0)
+
+
 ################################################################################
 """
 Below: old tuning, no-RSD, theoretical based Method
