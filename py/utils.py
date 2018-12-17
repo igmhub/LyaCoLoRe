@@ -302,26 +302,26 @@ def renorm_rebin_picca_file(filepath,old_mean=None,new_mean=None,N_merge=None,IV
         renorm_delta_rows[:,cells] = (old_mean[cells]*(1 + old_delta_rows[:,cells]))/new_mean[cells] - 1
 
     #Rebin the deltas if necessary.
-    if N_merge:
+    if N_merge is not None:
+        if N_merge > 1:
+            #Merge the deltas and make a new LOGLAM_MAP.
+            new_delta_rows = merge_cells(renorm_delta_rows,N_merge)
+            old_lambdas = 10**hdu_LOGLAM_MAP.data
+            new_LOGLAM_MAP = np.log10(merge_cells(old_lambdas,N_merge))
 
-        #Merge the deltas and make a new LOGLAM_MAP.
-        new_delta_rows = merge_cells(renorm_delta_rows,N_merge)
-        old_lambdas = 10**hdu_LOGLAM_MAP.data
-        new_LOGLAM_MAP = np.log10(merge_cells(old_lambdas,N_merge))
+            #Determine which new cells are made of entirely
+            Z_QSO = hdu_CATALOG.data['Z']
+            new_iv_rows = (merge_cells(hdu_iv.data.T,N_merge)==1).astype('int')
+            #new_iv_rows = make_IVAR_rows(IVAR_cutoff,Z_QSO,new_LOGLAM_MAP)
+            relevant_QSOs = np.sum(new_iv_rows,axis=1)>min_number_cells
+            new_delta_rows = new_delta_rows[relevant_QSOs,:]
+            catalog_data = hdu_CATALOG.data[relevant_QSOs]
 
-        #Determine which new cells are made of entirely
-        Z_QSO = hdu_CATALOG.data['Z']
-        new_iv_rows = (merge_cells(hdu_iv.data.T,N_merge)==1).astype('int')
-        #new_iv_rows = make_IVAR_rows(IVAR_cutoff,Z_QSO,new_LOGLAM_MAP)
-        relevant_QSOs = np.sum(new_iv_rows,axis=1)>min_number_cells
-        new_delta_rows = new_delta_rows[relevant_QSOs,:]
-        catalog_data = hdu_CATALOG.data[relevant_QSOs]
-
-        #Reconstruct the non-delta HDUs.
-        hdu_iv = fits.ImageHDU(data=new_iv_rows.T,header=hdu_iv.header,name='IV')
-        hdu_LOGLAM_MAP = fits.ImageHDU(data=new_LOGLAM_MAP,header=hdu_LOGLAM_MAP.header,name='LOGLAM_MAP')
-        cols_CATALOG = fits.ColDefs(catalog_data)
-        hdu_CATALOG = fits.BinTableHDU.from_columns(cols_CATALOG,header=hdu_CATALOG.header,name='CATALOG')
+            #Reconstruct the non-delta HDUs.
+            hdu_iv = fits.ImageHDU(data=new_iv_rows.T,header=hdu_iv.header,name='IV')
+            hdu_LOGLAM_MAP = fits.ImageHDU(data=new_LOGLAM_MAP,header=hdu_LOGLAM_MAP.header,name='LOGLAM_MAP')
+            cols_CATALOG = fits.ColDefs(catalog_data)
+            hdu_CATALOG = fits.BinTableHDU.from_columns(cols_CATALOG,header=hdu_CATALOG.header,name='CATALOG')
 
     else:
         new_delta_rows = renorm_delta_rows

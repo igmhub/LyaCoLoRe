@@ -364,9 +364,9 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
     #Save picca format files without adding small scale power.
     if transmission_only == False:
         filename = utils.get_file_name(location,'picca-gaussian-colorecell',N_side,pixel)
-        #pixel_object.save_as_picca_delta('gaussian',filename,header)
+        pixel_object.save_as_picca_delta('gaussian',filename,header)
         filename = utils.get_file_name(location,'picca-density-colorecell',N_side,pixel)
-        #pixel_object.save_as_picca_delta('density',filename,header)
+        pixel_object.save_as_picca_delta('density',filename,header)
 
     #Add a table with DLAs in to the pixel object.
     # TODO: in future, we want DLAs all the way down to z=0.
@@ -411,19 +411,19 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
         #Picca Gaussian, small cells
         filename = utils.get_file_name(location,'picca-gaussian',N_side,pixel)
         pixel_object.save_as_picca_delta('gaussian',filename,header)
-    
+
         #Picca density
         filename = utils.get_file_name(location,'picca-density',N_side,pixel)
         pixel_object.save_as_picca_delta('density',filename,header)
 
         #Picca tau
-        filename = utils.get_file_name(location,'picca-tau-noRSD',N_side,pixel)
+        filename = utils.get_file_name(location,'picca-tau-noRSD-notnorm',N_side,pixel)
         pixel_object.save_as_picca_delta('tau',filename,header,mean_data=analytic_mean_tau)
 
         #Picca flux
-        filename = utils.get_file_name(location,'picca-flux-noRSD',N_side,pixel)
+        filename = utils.get_file_name(location,'picca-flux-noRSD-notnorm',N_side,pixel)
         pixel_object.save_as_picca_delta('flux',filename,header,mean_data=analytic_mean_F)
-    
+
     #Save the no RSD statistics file for this pixel.
     filename = 'statistics-noRSD-16-{}.fits'.format(pixel)
     statistics = pixel_object.save_statistics(location,filename)
@@ -445,11 +445,11 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
 
     if transmission_only == False:
         #Picca tau
-        filename = utils.get_file_name(location,'picca-tau',N_side,pixel)
+        filename = utils.get_file_name(location,'picca-tau-notnorm',N_side,pixel)
         pixel_object.save_as_picca_delta('tau',filename,header,mean_data=analytic_mean_tau)
 
         #Picca flux
-        filename = utils.get_file_name(location,'picca-flux',N_side,pixel)
+        filename = utils.get_file_name(location,'picca-flux-notnorm',N_side,pixel)
         pixel_object.save_as_picca_delta('flux',filename,header,mean_data=analytic_mean_F)
     else:
         #If transmission_only is not False, remove the gaussian-colore file.
