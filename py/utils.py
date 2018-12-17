@@ -281,8 +281,8 @@ def merge_cells(rows,N_merge):
 
     return merged_rows
 
-#Function to renormalise deltas given the old mean used and a new one.
-def renormalise_picca_file(filepath,old_mean,new_mean,N_merge=None,IVAR_cutoff=1150.,min_number_cells=2,out_filepath=None):
+#Function to renormalise and rebin data in a picca file.
+def renorm_rebin_picca_file(filepath,old_mean=None,new_mean=None,N_merge=None,IVAR_cutoff=1150.,min_number_cells=2,out_filepath=None):
 
     #Open the existing file.
     h = fits.open(filepath)
@@ -291,10 +291,15 @@ def renormalise_picca_file(filepath,old_mean,new_mean,N_merge=None,IVAR_cutoff=1
     hdu_LOGLAM_MAP = h[2]
     hdu_CATALOG = h[3]
 
-    #Renormalise the deltas.
-    cells = new_mean>0
-    renorm_delta_rows = np.ones(old_delta_rows.shape)
-    renorm_delta_rows[:,cells] = (old_mean[cells]*(1 + old_delta_rows[:,cells]))/new_mean[cells] - 1
+    if old_mean is None and new_mean is None:
+        renorm_delta_rows = old_delta_rows
+    elif old_mean is None or new_mean is None:
+        raise ValueError('Only one mean specified in renormalising.')
+    else:
+        #Renormalise the deltas.
+        cells = new_mean>0
+        renorm_delta_rows = np.ones(old_delta_rows.shape)
+        renorm_delta_rows[:,cells] = (old_mean[cells]*(1 + old_delta_rows[:,cells]))/new_mean[cells] - 1
 
     #Rebin the deltas if necessary.
     if N_merge:
