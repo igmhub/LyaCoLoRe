@@ -65,8 +65,31 @@ def log_error(retval):
 Make the DLA master file.
 """
 
+print('Making the DLA master file...')
+
+def get_DLA_data(pixel):
+    filename = utils.get_file_name(base_dir,'transmission',N_side,pixel)
+    DLA_data = DLA.get_DLA_data_from_transmission(filename)
+    return DLA_data
+
+tasks = [(pixel,) for pixel in pixels]
+
+#Run the multiprocessing pool
+if __name__ == '__main__':
+    pool = Pool(processes = N_processes)
+    results = []
+    start_time = time.time()
+
+    for task in tasks:
+        pool.apply_async(get_DLA_data,task,callback=log_result,error_callback=log_error)
+
+    pool.close()
+    pool.join()
+
 #Make the DLA master file
-DLA.make_DLA_master(base_dir,N_side,pixels)
+DLA.write_DLA_master(results,base_dir,N_side)
+
+print('Process complete!\n')
 
 ################################################################################
 """
@@ -125,6 +148,8 @@ stats.write_statistics(base_dir,filename,statistics_noRSD)
 statistics = stats.combine_statistics(statistics_list)
 filename = './statistics.fits'
 stats.write_statistics(base_dir,filename,statistics)
+
+print('Process complete!\n')
 
 ################################################################################
 """
@@ -205,6 +230,8 @@ if __name__ == '__main__':
 
     pool.close()
     pool.join()
+
+print('Process complete!\n')
 
 ################################################################################
 

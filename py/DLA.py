@@ -195,51 +195,53 @@ def add_DLA_table_to_object(object,dla_bias=2.0,dla_bias_z=2.25,extrapolate_z_do
 
     return dla_table
 
-def make_DLA_master(basedir,N_side,pixel_list):
+def get_DLA_data_from_transmission(filename):
 
-    DLA_master_data = []
+    DLA_data = []
+    t = fits.open(filename)
+    DLA_table = np.sort(t[4].data,order=['DLAID'])
 
-    for pixel in pixel_list:
-        print(pixel,end='\r')
-        filename = basedir + '/{}/{}/transmission-{}-{}.fits'.format(pixel//100,pixel,N_side,pixel)
-        t = fits.open(filename)
-        DLA_table = np.sort(t[4].data,order=['DLAID'])
+    current_MOCKID = 0
+    #current_DLAID = current_MOCKID * 10**3
 
-        current_MOCKID = 0
-        #current_DLAID = current_MOCKID * 10**3
+    for i,DLA in enumerate(DLA_table):
+        MOCKID = DLA['MOCKID']
+        DLAID = DLA['DLAID']
 
-        for i,DLA in enumerate(DLA_table):
-            MOCKID = DLA['MOCKID']
-            DLAID = DLA['DLAID']
+        Z_DLA_NO_RSD = DLA['Z_DLA_NO_RSD']
+        try:
+            Z_DLA_RSD = DLA['Z_DLA_RSD']
+        except KeyError:
+            #This is to allow for a typo made in v4.2, that labelled Z_DLA wrongly. It should be removed afterwards.
+            Z_DLA_RSD = DLA['DZ_DLA_RSD']
+        N_HI_DLA = DLA['N_HI_DLA']
 
-            Z_DLA_NO_RSD = DLA['Z_DLA_NO_RSD']
-            try:
-                Z_DLA_RSD = DLA['Z_DLA_RSD']
-            except KeyError:
-                #This is to allow for a typo made in v4.2, that labelled Z_DLA wrongly. It should be removed afterwards.
-                Z_DLA_RSD = DLA['DZ_DLA_RSD']
-            N_HI_DLA = DLA['N_HI_DLA']
+        if MOCKID != current_MOCKID:
 
-            if MOCKID != current_MOCKID:
+            QSO_data = t[1].data[t[1].data['MOCKID']==MOCKID]
+            RA = QSO_data['RA']
+            DEC = QSO_data['DEC']
+            Z_QSO_RSD = QSO_data['Z']
+            Z_QSO_NO_RSD = QSO_data['Z_noRSD']
 
-                QSO_data = t[1].data[t[1].data['MOCKID']==MOCKID]
-                RA = QSO_data['RA']
-                DEC = QSO_data['DEC']
-                Z_QSO_RSD = QSO_data['Z']
-                Z_QSO_NO_RSD = QSO_data['Z_noRSD']
+            current_MOCKID = MOCKID
+            #current_DLAID = current_MOCKID * 10**3
 
-                current_MOCKID = MOCKID
-                #current_DLAID = current_MOCKID * 10**3
+        #DLAID = current_DLAID
+        #current_DLAID += 1
 
-            #DLAID = current_DLAID
-            #current_DLAID += 1
+        DLA_data += [(RA,DEC,Z_QSO_NO_RSD,Z_QSO_RSD,Z_DLA_NO_RSD,Z_DLA_RSD,N_HI_DLA,MOCKID,DLAID,pixel)] #No file number
 
-            DLA_master_data += [(RA,DEC,Z_QSO_NO_RSD,Z_QSO_RSD,Z_DLA_NO_RSD,Z_DLA_RSD,N_HI_DLA,MOCKID,DLAID,pixel)] #No file number
-
-        t.close()
+    t.close()
 
     dtype = [('RA', '>f8'), ('DEC', '>f8'), ('Z_QSO_NO_RSD', '>f8'), ('Z_QSO_RSD', '>f8'), ('Z_DLA_NO_RSD', '>f8'), ('Z_DLA_RSD', '>f8'), ('N_HI_DLA', '>f8'), ('MOCKID', '>i8'), ('DLAID', '>i8'), ('PIXNUM', '>i8')]
-    DLA_master_data = np.array(DLA_master_data,dtype=dtype)
+    DLA_data = np.array(DLA_data,dtype=dtype)
+
+    return DLA_data
+
+def write_DLA_master(DLA_data_list,basedir,N_side):
+
+    DLA_master_data = np.concatenate(DLA_data_list)
 
     #Make an appropriate header.
     header = fits.Header()
