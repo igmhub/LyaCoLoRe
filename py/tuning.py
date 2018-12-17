@@ -323,6 +323,13 @@ class function_measurement:
             n = 2.
             eps = 0.1 * ((1 + (self.k_kms/k0)**n))
             denom = (eps * model_Pk_kms)**2
+        elif denom == "npower_cutoff":
+            k0 = max_k
+            n = 2.
+            cutoff = 0.02 #kms
+            eps = 0.1 * ((1 + (self.k_kms/k0)**n))
+            eps[max_j:] *= 10**6
+            denom = (eps * model_Pk_kms)**2
         self.Pk_kms_chi2_eps = eps
         chi2 = np.sum(((self.Pk_kms - model_Pk_kms)**2)/denom)
         self.Pk_kms_chi2 = chi2

@@ -19,7 +19,7 @@ def get_gaussian_skewers(generator,N_cells,sigma_G=1.0,N_skewers=1):
 
 #Function to generate random Gaussian fields at a given redshift.
 #From lya_mock_functions
-def get_gaussian_fields(generator,N_cells,z=0.0,dv_kms=10.0,N_skewers=1,white_noise=False,n=0.7,k1=0.001,A0=58.6,R1=10.0):
+def get_gaussian_fields(generator,N_cells,z=0.0,dv_kms=10.0,N_skewers=1,white_noise=False,n=0.7,k1=0.001,A0=58.6,R1=25.0):
     #print(generator,N_cells,z,dv_kms,N_skewers,white_noise,n,k1,A0)
 
     times = []
@@ -76,7 +76,7 @@ def power_amplitude(z,A0=58.6):
 
 #Function to return a gaussian P1D in k.
 #From lya_mock_functions
-def power_kms(z_c,k_kms,dv_kms,white_noise=False,n=0.7,k1=0.001,A0=58.6,R1=10.0,smooth=True):
+def power_kms(z_c,k_kms,dv_kms,white_noise=False,n=0.7,k1=0.001,A0=58.6,R1=25.0,smooth=True):
     """Return Gaussian P1D at different wavenumbers k_kms (in s/km), fixed z_c.
 
       Other arguments:
