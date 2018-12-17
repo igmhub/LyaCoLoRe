@@ -68,8 +68,9 @@ Make the DLA master file.
 print('Making the DLA master file...')
 
 def get_DLA_data(pixel):
-    filename = utils.get_file_name(base_dir,'transmission',N_side,pixel)
-    DLA_data = DLA.get_DLA_data_from_transmission(filename)
+    dirname = utils.get_dir_name(base_dir,pixel)
+    filename = utils.get_file_name(dirname,'transmission',N_side,pixel)
+    DLA_data = DLA.get_DLA_data_from_transmission(pixel,filename)
     return DLA_data
 
 tasks = [(pixel,) for pixel in pixels]
@@ -88,8 +89,6 @@ if __name__ == '__main__':
 
 #Make the DLA master file
 DLA.write_DLA_master(results,base_dir,N_side)
-
-print('Process complete!\n')
 
 ################################################################################
 """
@@ -149,8 +148,6 @@ statistics = stats.combine_statistics(statistics_list)
 filename = './statistics.fits'
 stats.write_statistics(base_dir,filename,statistics)
 
-print('Process complete!\n')
-
 ################################################################################
 """
 We need to renormalise the picca files using global statistics data.
@@ -170,7 +167,7 @@ stats_quantities = ['TAU','F']
 tasks = [(pixel,N_merge) for pixel in pixels for N_merge in N_merge_values]
 
 #For each pixel, and each quantity, renormalise the picca file
-def renormalise(pixel,N_merge,renorm):
+def renormalise(pixel,N_merge):
     #Open up the per-pixel stats files
     dirname = utils.get_dir_name(base_dir,pixel)
     s_filename = utils.get_file_name(dirname,'statistics',N_side,pixel)
@@ -184,7 +181,7 @@ def renormalise(pixel,N_merge,renorm):
         filename = utils.get_file_name(dirname,'picca-'+q,N_side,pixel)
         if N_merge > 1:
             out = utils.get_file_name(dirname,'picca-'+q+'-rebin-{}-'.format(N_merge)+q,N_side,pixel)
-        utils.renorm_rebin_picca_file(filename,old_mean=old_mean,new_mean=new_mean,N_merge=N_merge,out_filepath=out)
+            utils.renorm_rebin_picca_file(filename,N_merge=N_merge,out_filepath=out)
 
     for i,q in enumerate(type_2_quantities):
 
@@ -209,9 +206,9 @@ def renormalise(pixel,N_merge,renorm):
         new_mean = statistics[lookup_name]
         filename = utils.get_file_name(dirname,'picca-'+q,N_side,pixel)
         if N_merge == 1:
-            out = utils.get_file_name(dirname,'picca-'+q+'-renorm-',N_side,pixel)
+            out = utils.get_file_name(dirname,'picca-'+q+'-renorm',N_side,pixel)
         else:
-            out = utils.get_file_name(dirname,'picca-'+q+'-renorm-rebin-{}-'.format(N_merge)+q,N_side,pixel)
+            out = utils.get_file_name(dirname,'picca-'+q+'-renorm-rebin-{}'.format(N_merge),N_side,pixel)
         utils.renorm_rebin_picca_file(filename,old_mean=old_mean,new_mean=new_mean,N_merge=N_merge,out_filepath=out)
 
     s.close()
@@ -230,8 +227,6 @@ if __name__ == '__main__':
 
     pool.close()
     pool.join()
-
-print('Process complete!\n')
 
 ################################################################################
 
