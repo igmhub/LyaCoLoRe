@@ -18,11 +18,8 @@ from pyacolore import utils, independent, stats, convert, simulation_data, DLA, 
 
 # TODO: Make 'input parameters' and 'output parameters' objects? Currently passing loads of arguments to multiprocessing functions which is messy
 # TODO: option to reduce the number of skewers for test purposes?
-# TODO: update the master file's cosmology once ssgf have been added
-# TODO: update handling of sigma_G as it's a bit misleading atm
 # TODO: use args to pass things like file structures around neatly?
 # TODO: Get rid of the need to specify file numbers?
-# TODO: Issue with if we don't have consecutive pixel numbers?
 
 ################################################################################
 
@@ -71,6 +68,9 @@ parser.add_argument('--tuning-file', type = str, default = 'input_files/tuning_d
 
 parser.add_argument('--add-DLAs', action="store_true", default = True, required=False,
                     help = 'add DLAs to the transmission file')
+
+parser.add_argument('--DLA-bias', type = float, default = 2., required=False,
+                    help = 'bias of DLAs')
 
 parser.add_argument('--add-RSDs', action="store_true", default = False, required=False,
                     help = 'add linear RSDs to the transmission file')
@@ -148,12 +148,6 @@ else:
 #colore skewers filename (except number that will be added later)
 colore_base_filename = base_in_dir+'/out_srcs_s1_'
 
-def get_file_name(base_dir,base_name,nside,pixel):
-    return base_dir+'/{}-{}-{}.fits'.format(base_name,nside,pixel)
-
-def get_dir_name(base_dir,pixel):
-    return base_dir+'/{}/{}/'.format(pixel//100,pixel)
-
 #Calculate the minimum value of z that we are interested in.
 #i.e. the z value for which lambda_min cooresponds to the lya wavelength.
 z_min = lambda_min/lya - 1
@@ -184,7 +178,6 @@ pixel_list = list(sorted(master_data_pixel_set.intersection(pixels_set)))
 
 MOCKID_lookup = {}
 for pixel in pixel_list:
-    print(pixel)
     #pixel_indices = [i for i in range(len(master_data['PIXNUM'])) if master_data['PIXNUM'][i]==pixel]
     pixel_indices = (master_data['PIXNUM']==pixel)
     pixel_MOCKIDs = master_data['MOCKID'][pixel_indices]
@@ -223,7 +216,7 @@ start_time = time.time()
 def pixelise_gaussian_skewers(pixel,colore_base_filename,z_min,base_out_dir,N_side):
 
     #Define the output directory the pixel, according to the new file structure.
-    location = get_dir_name(base_out_dir,pixel)
+    location = utils.get_dir_name(base_out_dir,pixel)
 
     #at some point we might want to read physical density
     input_format='gaussian_colore'
@@ -243,7 +236,7 @@ def pixelise_gaussian_skewers(pixel,colore_base_filename,z_min,base_out_dir,N_si
     header['SIGMA_G'] = pixel_object.SIGMA_G
 
     #Gaussian CoLoRe
-    filename = get_file_name(location,'gaussian-colore',N_side,pixel)
+    filename = utils.get_file_name(location,'gaussian-colore',N_side,pixel)
     pixel_object.save_as_gaussian_colore(filename,header)
 
     #Calculate the means of the pixel's gaussian skewers.
@@ -291,74 +284,17 @@ print('\nGaussian skewers have mean {:2.2f}, variance {:2.2f}.'.format(gaussian_
 
 """
 We would like to add small scale flucatuations to the Gaussian field.
-If desired, we can recalculate the tuning parameters.
-Otherwise, we just load values from file.
+We load values of the parameters from file.
 """
 
-#Work out sigma_G desired to achive the P1D sigma_dF
-#beta = 1.65
-
-if retune_small_scale_fluctuations == True:
-
-    # TODO: this needs to be written.
-    import tune_flux_parameters
-    tuning_data = tune_flux_parameters.tune()
-    tuning_z_values = tuning_data['z']
-    tuning_alphas = tuning_data['alpha']
-    tuning_betas = tuning_data['beta']
-    tuning_sigma_Gs = tuning_data['sigma_G']
-
-
-else:
-    #Otherwise, load the data from the fits file that has been pre-computed.
-    print('\nLoading how much extra power to add from file...')
-    h = fits.open(tuning_file)
-    n = h[1].header['n']
-    k1 = h[1].header['k1']
-    tuning_z_values = h[1].data['z']
-    tuning_alphas = h[1].data['alpha']
-    tuning_betas = h[1].data['beta']
-    tuning_sigma_Gs = h[1].data['sigma_G']
-
-    """"
-    #This is now outdated with the new method
-    #If we want to use fitted tuning data, then do so. Otherwise use raw data.
-    if fit_function_to_tuning_data:
-        try:
-            #Try to find fitted data stored. If found, use it.
-            tuning_data = h['FIT DATA'].data
-            tuning_z_values = tuning_data['z']
-            tuning_alphas = tuning_data['alpha']
-            tuning_betas = tuning_data['beta']
-            tuning_sigma_Gs = tuning_data['sigma_G']
-
-        except KeyError:
-            #Otherwise, open the raw data and fit it.
-            tuning_data = h['DATA'].data
-            new_z = np.linspace(0.0,4.0,4001)
-
-            tuning_z_values = tuning_data['z']
-            tuning_alphas = tuning_data['alpha']
-            tuning_betas = tuning_data['beta']
-            tuning_sigma_Gs = tuning_data['sigma_G']
-
-            tuning_alphas = tuning.fit_function_to_data(tuning_z_values,tuning_alphas,new_z)
-            tuning_betas = tuning.fit_function_to_data(tuning_z_values,tuning_betas,new_z)
-            tuning_sigma_Gs = tuning.fit_function_to_data(tuning_z_values,tuning_sigma_Gs,new_z)
-            tuning_z_values = new_z
-
-    else:
-        tuning_data = h['DATA'].data
-        tuning_z_values = tuning_data['z']
-        tuning_alphas = tuning_data['alpha']
-        tuning_betas = tuning_data['beta']
-        tuning_sigma_Gs = tuning_data['sigma_G']
-    """
- 
-    h.close()
-    print('Process complete!')
-
-desired_mean_F = tuning.get_mean_F_model(tuning_z_values)
+h = fits.open(tuning_file)
+n = h[1].header['n']
+k1 = h[1].header['k1']
+tuning_z_values = h[1].data['z']
+tuning_alphas = h[1].data['alpha']
+tuning_betas = h[1].data['beta']
+tuning_sigma_Gs = h[1].data['sigma_G']
+h.close()
 
 #Determine the desired sigma_G by sampling
 # TODO: maybe fit here to the data
@@ -367,27 +303,35 @@ extra_sigma_G_values = np.sqrt(tuning_sigma_Gs**2 - measured_SIGMA_G**2)
 ################################################################################
 
 """
-We may now calculate the density and flux fields, and save the relevant files.
+We may now do the main work of LyaCoLoRe. This includes:
+ - add extra small scale power
+ - convert from the gaussian field to the lognormal field, then tau
+ - add metals
+ - add RSDs
+ - add DLAs
+ - convert from tau to flux
+ - save the transmission files
+We also save picca format delta files for running correlation function tests.
+Deltas are caclulated using the mean quantity in each pixel.
+They are renormalised using the global mean in 'make_summaries'
 """
 
 print('\nWorking on per-HEALPix pixel final skewer files...')
 start_time = time.time()
 
 def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,measured_SIGMA_G,n,k1):
-    # TODO: initially want to use model mean F, then want to post process to use actual mean
-    location = get_dir_name(base_out_dir,pixel)
-    mean_F_data = np.array(list(zip(tuning_z_values,desired_mean_F)))
 
     #We work from the gaussian colore files made in 'pixelise gaussian skewers'.
-    gaussian_filename = get_file_name(location,'gaussian-colore',N_side,pixel)
+    location = utils.get_dir_name(base_out_dir,pixel)
+    gaussian_filename = utils.get_file_name(location,'gaussian-colore',N_side,pixel)
 
     #Make a pixel object from it.
-    file_number=None
+    file_number = None
     pixel_object = simulation_data.SimulationData.get_gaussian_skewers_object(gaussian_filename,file_number,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
 
+    #Add Lyb and metal absorbers if needed.
     if add_Lyb:
         pixel_object.setup_Lyb_absorber()
-
     if add_metals:
         pixel_object.setup_metal_absorbers()
 
@@ -399,32 +343,32 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
     header['LYA'] = lya
     header['SIGMA_G'] = measured_SIGMA_G
 
+    #Save CoLoRe format files.
     if transmission_only == False:
         #lognorm CoLoRe
         pixel_object.compute_physical_skewers()
-        filename = get_file_name(location,'physical-colore',N_side,pixel)
+        filename = utils.get_file_name(location,'physical-colore',N_side,pixel)
         pixel_object.save_as_physical_colore(filename,header)
 
-    #Trim the skewers (remove low lambda cells)
-    pixel_object.trim_skewers(lambda_min,min_catalog_z,extra_cells=1)
-
-    #Exit now if no skewers are left.
+    #Trim the skewers (remove low lambda cells). Exit if no QSOs are left.
+    #We don't cut too tightly on the low lambda to allow for RSDs.
+    lambda_buffer = 100. #Å
+    pixel_object.trim_skewers(lambda_min-lambda_buffer,min_catalog_z,extra_cells=1)
     if pixel_object.N_qso == 0:
         print('\nwarning: no objects left in pixel {} after trimming.'.format(pixel))
         return pixel
 
-    filename = get_file_name(location,'picca-gaussian-colorecell',N_side,pixel)
-    pixel_object.save_as_picca_gaussian(filename,header)
-    filename = get_file_name(location,'picca-density-colorecell',N_side,pixel)
-    pixel_object.save_as_picca_density(filename,header)
-
-    #Get seed to generate random numbers for this particular pixel
-    seed = int(pixel * 10**5 + global_seed)
+    #Save picca format files without adding small scale power.
+    if transmission_only == False:
+        filename = utils.get_file_name(location,'picca-gaussian-colorecell',N_side,pixel)
+        #pixel_object.save_as_picca_delta('gaussian',filename,header)
+        filename = utils.get_file_name(location,'picca-density-colorecell',N_side,pixel)
+        #pixel_object.save_as_picca_delta('density',filename,header)
 
     #Add small scale power to the gaussian skewers:
+    seed = int(pixel * 10**5 + global_seed)
     generator = np.random.RandomState(seed)
     new_cosmology = pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,tuning_z_values,extra_sigma_G_values,generator,white_noise=False,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff,n=n,k1=k1)
-    #new_cosmology = []
 
     #Remove the 'SIGMA_G' header as SIGMA_G now varies with z, so can't be stored in a header.
     del header['SIGMA_G']
@@ -433,55 +377,79 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
     #Add a table with DLAs in to the pixel object.
     # TODO: in future, we want DLAs all the way down to z=0.
     #That means we need to store skewers all the way down to z=0.
-    #Not possible atm as we'd run out of memory, but can be done once running on >1 node.
+    #May need to adjust how many nodes are used when running.
     if add_DLAs:
         pixel_object.add_DLA_table(seed)
 
-    #Add physical skewers to the object.
+    #Recompute physical skewers.
     pixel_object.compute_physical_skewers()
 
     #Add tau skewers to the object, starting with Lyman-alpha
     alphas = np.exp(np.interp(np.log(pixel_object.Z),np.log(tuning_z_values),np.log(tuning_alphas)))
     betas = np.exp(np.interp(np.log(pixel_object.Z),np.log(tuning_z_values),np.log(tuning_betas)))
-
-    #print(betas)
-
+    sigma_Gs = np.exp(np.interp(np.log(pixel_object.Z),np.log(tuning_z_values),np.log(tuning_sigma_Gs)))
     pixel_object.compute_all_tau_skewers(alphas,betas)
 
     if transmission_only == False:
-        #Picca Gaussian
-        filename = get_file_name(location,'picca-gaussian',N_side,pixel)
-        pixel_object.save_as_picca_gaussian(filename,header)
+        #Get mean quantities to normalise by for now.
+        #analytic_mean_tau = tuning.get_analytical_mean('tau',pixel_object.Z,alphas,betas,sigma_Gs,pixel_object.D)
+        #analytic_mean_F = tuning.get_analytical_mean('flux',pixel_object.Z,alphas,betas,sigma_Gs,pixel_object.D)
+        dtype = [('z', 'f8'), ('mean', 'f8')]
+        analytic_mean_tau = np.array(list(zip(pixel_object.Z,np.ones_like(pixel_object.Z))),dtype=dtype)
+        analytic_mean_F = np.array(list(zip(pixel_object.Z,np.ones_like(pixel_object.Z))),dtype=dtype)
 
+        #Picca Gaussian, small cells
+        filename = utils.get_file_name(location,'picca-gaussian',N_side,pixel)
+        pixel_object.save_as_picca_delta('gaussian',filename,header)
+    
         #Picca density
-        filename = get_file_name(location,'picca-density',N_side,pixel)
-        pixel_object.save_as_picca_density(filename,header)
+        filename = utils.get_file_name(location,'picca-density',N_side,pixel)
+        pixel_object.save_as_picca_delta('density',filename,header)
 
-        #picca flux
-        # TODO: Issue with mean_F_data
-        filename = get_file_name(location,'picca-flux-noRSD',N_side,pixel)
-        pixel_object.save_as_picca_flux(filename,header,mean_F_data=mean_F_data)
+        #Picca tau
+        filename = utils.get_file_name(location,'picca-tau-noRSD',N_side,pixel)
+        pixel_object.save_as_picca_delta('tau',filename,header,mean_data=analytic_mean_tau)
 
-    #Add thermal RSDs to the tau skewers.
+        #Picca flux
+        filename = utils.get_file_name(location,'picca-flux-noRSD',N_side,pixel)
+        pixel_object.save_as_picca_delta('flux',filename,header,mean_data=analytic_mean_F)
+    
+    #Save the no RSD statistics file for this pixel.
+    filename = 'statistics-noRSD-16-{}.fits'.format(pixel)
+    statistics = pixel_object.save_statistics(location,filename)
+
     #Add RSDs from the velocity skewers provided by CoLoRe.
     if add_RSDs == True:
-        pixel_object.add_all_RSDs(alphas,betas,thermal=include_thermal_effects)
+        pixel_object.add_all_RSDs(thermal=include_thermal_effects)
+
+    #Trim the skewers (remove low lambda cells). Exit if no QSOs are left.
+    #We now cut hard at lambda min as RSDs have been implemented.
+    pixel_object.trim_skewers(lambda_min,min_catalog_z,extra_cells=1)
+    if pixel_object.N_qso == 0:
+        print('\nwarning: no objects left in pixel {} after trimming.'.format(pixel))
+        return pixel
 
     #transmission
-    filename = get_file_name(location,'transmission',N_side,pixel)
+    filename = utils.get_file_name(location,'transmission',N_side,pixel)
     pixel_object.save_as_transmission(filename,header)
 
     if transmission_only == False:
-        #picca flux, with RSD
-        filename = get_file_name(location,'picca-flux',N_side,pixel)
-        pixel_object.save_as_picca_flux(filename,header,mean_F_data=mean_F_data)
+        #Picca tau
+        filename = utils.get_file_name(location,'picca-tau',N_side,pixel)
+        pixel_object.save_as_picca_delta('tau',filename,header,mean_data=analytic_mean_tau)
+
+        #Picca flux
+        filename = utils.get_file_name(location,'picca-flux',N_side,pixel)
+        pixel_object.save_as_picca_delta('flux',filename,header,mean_data=analytic_mean_F)
     else:
         #If transmission_only is not False, remove the gaussian-colore file.
         os.remove(gaussian_filename)
 
-    means = pixel_object.get_means()
+    #Save the final statistics file for this pixel.
+    filename = 'statistics-16-{}.fits'.format(pixel)
+    statistics = pixel_object.save_statistics(location,filename)
 
-    return [new_cosmology,means]
+    return [new_cosmology,statistics]
 
 #define the tasks
 tasks = [(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,measured_SIGMA_G,n,k1) for pixel in pixel_list]
@@ -502,6 +470,7 @@ print('\nTime to make physical pixel files: {:4.0f}s.\n'.format(time.time()-star
 
 ################################################################################
 """
+PROBABLY COULD MOVE THIS TO make_summaries
 Having added small scale power, we must add a new HDU to the master file's cosmology.
 """
 
@@ -542,28 +511,6 @@ except IndexError:
     hdulist.close()
 
 print('Process complete!\n')
-
-################################################################################
-
-"""
-Group the statistics calculated to get means and variances.
-Save these into a fits file.
-"""
-
-print('\nMaking statistics file...')
-start_time = time.time()
-
-#Use combine_means and means_to_statistics to calculate the mean and variance of the different quantities over all skewers.
-means_list = []
-for result in results:
-    means_list += [result[1]]
-means = stats.combine_means(means_list)
-statistics = stats.means_to_statistics(means)
-
-#Save the statistics data as a new fits file.
-stats.write_statistics(base_out_dir,N_side,statistics,new_cosmology)
-
-print('\nTime to make statistics file: {:4.0f}s.\n'.format(time.time()-start_time))
 
 ################################################################################
 

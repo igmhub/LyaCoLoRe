@@ -6,6 +6,12 @@ import healpy as hp
 
 lya_rest = 1215.67
 
+def get_file_name(base_dir,base_name,nside,pixel):
+    return base_dir+'/{}-{}-{}.fits'.format(base_name,nside,pixel)
+
+def get_dir_name(base_dir,pixel):
+    return base_dir+'/{}/{}/'.format(pixel//100,pixel)
+
 #Define a function to print a progress bar.
 def progress_bar(N_complete,N_tasks,start_time):
 
@@ -225,3 +231,106 @@ def confirm_identical(A,B,item_name=None,array=False):
         else:
             result = True
     return result
+
+#Function to rebin skewers according to a fixed cell size.
+def rebin_skewers(skewers,R,cell_size):
+
+    """
+    grid_start = R[0]
+    rebin_map = np.array((R - R[0])//rebin_size_hMpc,dtype='int')
+    rebin_new_delta = np.zeros((N_qso,max(rebin_map)))
+    j_hi = -1
+    for j in range(max(rebin_map)):
+        j_lo = j_hi + 1 #np.argmax(rebin_map==j)
+        j_hi = np.searchsorted(rebin_map,j+1) - 1
+        rebin_new_delta[:,j] = np.average(new_delta[:,j_lo:j_hi+1],axis=1)
+    """
+
+    R_edges = R[1:] - R[:-1]
+
+    R_shift = R - R[0]
+
+    R_new = np.arange(R[0],R[-1],cell_size)
+    R_new_edges = R_new[1:] - R_new[:-1]
+
+    N_cells = R.shape[0]
+
+    return rebinned_skewers
+
+#Function to rebin skewers by merging a certain number of cells together.
+def merge_cells(rows,N_merge):
+
+    #Work out if it's an array or vector. Make a merged shell to insert into.
+    N_dim = len(rows.shape)
+    if N_dim == 1:
+        N_cells = rows.shape[0]
+        N_cells_new = N_cells//N_merge
+        merged_rows = np.zeros(N_cells_new)
+    elif N_dim == 2:
+        N_rows = rows.shape[0]
+        N_cells = rows.shape[1]
+        N_cells_new = N_cells//N_merge
+        merged_rows = np.zeros((N_rows,N_cells_new))
+
+    #Fill in the shell with merged values
+    for j in range(N_cells_new):
+        if N_dim == 1:
+            merged_rows[j] = np.average(rows[j*N_merge:(j+1)*N_merge])
+        elif N_dim == 2:
+            merged_rows[:,j] = np.average(rows[:,j*N_merge:(j+1)*N_merge],axis=1)
+
+    return merged_rows
+
+#Function to renormalise deltas given the old mean used and a new one.
+def renormalise_picca_file(filepath,old_mean,new_mean,N_merge=None,IVAR_cutoff=1150.,min_number_cells=2,out_filepath=None):
+
+    #Open the existing file.
+    h = fits.open(filepath)
+    old_delta_rows = h[0].data.T
+    hdu_iv = h[1]
+    hdu_LOGLAM_MAP = h[2]
+    hdu_CATALOG = h[3]
+
+    #Renormalise the deltas.
+    cells = new_mean>0
+    renorm_delta_rows = np.ones(old_delta_rows.shape)
+    renorm_delta_rows[:,cells] = (old_mean[cells]*(1 + old_delta_rows[:,cells]))/new_mean[cells] - 1
+
+    #Rebin the deltas if necessary.
+    if N_merge:
+
+        #Merge the deltas and make a new LOGLAM_MAP.
+        new_delta_rows = merge_cells(renorm_delta_rows,N_merge)
+        old_lambdas = 10**hdu_LOGLAM_MAP.data
+        new_LOGLAM_MAP = np.log10(merge_cells(old_lambdas,N_merge))
+
+        #Determine which new cells are made of entirely
+        Z_QSO = hdu_CATALOG.data['Z']
+        new_iv_rows = (merge_cells(hdu_iv.data.T,N_merge)==1).astype('int')
+        #new_iv_rows = make_IVAR_rows(IVAR_cutoff,Z_QSO,new_LOGLAM_MAP)
+        relevant_QSOs = np.sum(new_iv_rows,axis=1)>min_number_cells
+        new_delta_rows = new_delta_rows[relevant_QSOs,:]
+        catalog_data = hdu_CATALOG.data[relevant_QSOs]
+
+        #Reconstruct the non-delta HDUs.
+        hdu_iv = fits.ImageHDU(data=new_iv_rows.T,header=hdu_iv.header,name='IV')
+        hdu_LOGLAM_MAP = fits.ImageHDU(data=new_LOGLAM_MAP,header=hdu_LOGLAM_MAP.header,name='LOGLAM_MAP')
+        cols_CATALOG = fits.ColDefs(catalog_data)
+        hdu_CATALOG = fits.BinTableHDU.from_columns(cols_CATALOG,header=hdu_CATALOG.header,name='CATALOG')
+
+    else:
+        new_delta_rows = renorm_delta_rows
+
+    #Reconstruct the deltas HDU.
+    hdu_deltas = fits.PrimaryHDU(data=new_delta_rows.T,header=h[0].header)
+
+    #Save the file again.
+    hdulist = fits.HDUList([hdu_deltas, hdu_iv, hdu_LOGLAM_MAP, hdu_CATALOG])
+    if out_filepath:
+        hdulist.writeto(out_filepath)
+    else:
+        hdulist.writeto(filepath)
+    hdulist.close()
+    h.close()
+
+    return
