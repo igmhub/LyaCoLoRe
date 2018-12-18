@@ -97,6 +97,17 @@ def power_kms(z_c,k_kms,dv_kms,white_noise=False,n=0.7,k1=0.001,A0=58.6,R1=25.0,
         P *= np.exp(-pow(k_kms*R1,2)) * pow(np.sin(kdv/2)/(kdv/2),2)
     return P
 
+def alternative_power_kms(k_kms,dv_kms,A0=58.6,k0=0.009,E1=-0.55,E2=-0.1,R1=25.0,smooth=True):
+
+    A = power_amplitude(z_c,A0=A0)
+    P = A * (k_kms/k0) ** (E1 + E2*np.log(k_kms/k0))
+    if smooth:
+        # smooth with Gaussian and top hat
+        kdv = np.fmax(k_kms*dv_kms,0.000001)
+        P *= np.exp(-pow(k_kms*R1,2)) * pow(np.sin(kdv/2)/(kdv/2),2)
+    return P
+
+
 def get_sigma_G(z_c,k_kms,dv_kms,white_noise=False,n=0.7,k1=0.001,A0=58.6):
 
     Pk_kms = power_kms(z_c,k_kms,dv_kms,white_noise=False,n=0.7,k1=0.001,A0=58.6)

@@ -248,10 +248,11 @@ class function_measurement:
         details = (self.z_value,self.z_width,self.N_skewers,
                 self.n,self.k1,self.C0,self.C1,self.C2,self.D0,self.D1,self.D2,self.beta,self.pixels)
         return details
-    def add_Pk1D_measurement(self,pixel_object):
-        if not self.mean_F:
-            self.add_mean_F_measurement(pixel_object)
-        mean_F = self.mean_F
+    def add_Pk1D_measurement(self,pixel_object,mean_F=None):
+        if mean_F is None:
+            if not self.mean_F:
+                self.add_mean_F_measurement(pixel_object)
+            mean_F = self.mean_F
         F = pixel_object.lya_absorber.transmission()
         delta_F = F/mean_F - 1
         IVAR = pixel_object.IVAR_rows
