@@ -326,9 +326,9 @@ class function_measurement:
         elif denom == "npower_cutoff":
             k0 = max_k
             n = 2.
-            cutoff = np.searchsorted(self.k_kms,0.02) #kms
+            cutoff = 0.02 #kms
             eps = 0.1 * ((1 + (self.k_kms/k0)**n))
-            eps[cutoff:] *= 10**6
+            eps[self.k_kms>cutoff] = 10**6
             denom = (eps * model_Pk_kms)**2
         self.Pk_kms_chi2_eps = eps
         chi2 = np.sum(((self.Pk_kms - model_Pk_kms)**2)/denom)
