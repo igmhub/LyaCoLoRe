@@ -298,7 +298,7 @@ h.close()
 
 #Determine the desired sigma_G by sampling
 # TODO: maybe fit here to the data
-extra_sigma_G_values = np.sqrt(tuning_sigma_Gs**2 - measured_SIGMA_G**2)
+extra_sigma_G_values = tuning_sigma_Gs
 
 ################################################################################
 
