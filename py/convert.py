@@ -2,7 +2,7 @@ import numpy as np
 
 #Function to define the lognormal transform.
 def lognormal_transform(y,sG,D):
-    return np.exp(D*sG - 0.5*(D**2)*(sG**2))
+    return np.exp(D*y - 0.5*(D**2)*(sG**2))
 
 #Function to convert gaussian field skewers (in rows) to lognormal delta skewers (in rows).
 def gaussian_to_lognormal_delta(GAUSSIAN_DELTA_rows,SIGMA_G,D):
@@ -14,7 +14,7 @@ def gaussian_to_lognormal_delta(GAUSSIAN_DELTA_rows,SIGMA_G,D):
     D = D*np.ones(GAUSSIAN_DELTA_rows.shape[1])
 
     for j in range(GAUSSIAN_DELTA_rows.shape[1]):
-        LN_DENSITY_rows[:,j] = lognormal_transform(GAUSSIAN_DELTA_rows[:,j],SIGMA_G[j],D[j])
+        LN_DENSITY_rows[:,j] = np.exp(D[j]*GAUSSIAN_DELTA_rows[:,j] - ((D[j])**2)*(SIGMA_G[j]**2)/2.)#lognormal_transform(GAUSSIAN_DELTA_rows[:,j],SIGMA_G[j],D[j])
 
     LN_DENSITY_DELTA_rows = LN_DENSITY_rows - 1
 
