@@ -31,7 +31,10 @@ def get_gaussian_fields(generator,N_cells,z=0.0,dv_kms=10.0,N_skewers=1,white_no
     k_kms = np.fft.rfftfreq(N_cells)*2*np.pi/dv_kms
 
     # get power evaluated at each k_kms
-    P_kms = power_kms(z,k_kms,dv_kms,white_noise=white_noise,n=n,k1=k1,A0=A0,R1=R1,smooth=True)
+    #P_kms = power_kms(z,k_kms,dv_kms,white_noise=white_noise,n=n,k1=k1,A0=A0,R1=R1,smooth=True)
+
+    P_kms = alternative_power_kms(z,k_kms,dv_kms,A0=A0,k0=k1,E1=n,E2=-0.1,R1=R1,smooth=True)
+
     times += [time.time()]
     # generate random Fourier modes
     modes = np.empty([N_skewers,NF], dtype=complex)
@@ -97,10 +100,12 @@ def power_kms(z_c,k_kms,dv_kms,white_noise=False,n=0.7,k1=0.001,A0=58.6,R1=25.0,
         P *= np.exp(-pow(k_kms*R1,2)) * pow(np.sin(kdv/2)/(kdv/2),2)
     return P
 
-def alternative_power_kms(k_kms,dv_kms,A0=58.6,k0=0.009,E1=-0.55,E2=-0.1,R1=25.0,smooth=True):
+def alternative_power_kms(z_c,k_kms,dv_kms,A0=58.6,k0=0.009,E1=-0.55,E2=-0.1,R1=25.0,smooth=True):
 
     A = power_amplitude(z_c,A0=A0)
-    P = A * (k_kms/k0) ** (E1 + E2*np.log(k_kms/k0))
+    P = np.zeros(k_kms.shape)
+    cells = k_kms>0
+    P[cells] = A * (k_kms[cells]/k0) ** (E1 + E2*np.log(k_kms[cells]/k0))
     if smooth:
         # smooth with Gaussian and top hat
         kdv = np.fmax(k_kms*dv_kms,0.000001)
