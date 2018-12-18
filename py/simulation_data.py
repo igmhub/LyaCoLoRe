@@ -508,7 +508,7 @@ class SimulationData:
         return
 
     #Get the weights for going into redshift space.
-    def get_RSD_weights(self,absorber,thermal=False):
+    def get_RSD_weights(self,thermal=False):
 
         density = 1 + self.DENSITY_DELTA_rows
         RSD_weights = RSD.get_weights(density,self.VEL_rows,self.Z,self.R,self.Z_QSO,thermal=thermal)
@@ -527,19 +527,19 @@ class SimulationData:
         return
 
     #Function to add RSDs for all absorbers.
-    def add_all_RSDs(self,thermal=False):
+    def add_all_RSDs(self,thermal=False,weights=None):
 
         # for each absorber, add RSDs
-        self.add_RSDs(self.lya_absorber,thermal)
+        self.add_RSDs(self.lya_absorber,thermal=thermal,weights=weights)
 
         # RSD for Ly-b
         if self.lyb_absorber is not None:
-            self.add_RSDs(self.lyb_absorber,thermal)
+            self.add_RSDs(self.lyb_absorber,thermal=thermal,weights=weights)
 
         # loop over metals in dictionary
         if self.metals is not None:
             for metal in iter(self.metals.values()):
-                self.add_RSDs(metal,thermal)
+                self.add_RSDs(metal,thermal=thermal,weights=weights)
 
         return
 
