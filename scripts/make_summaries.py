@@ -90,8 +90,6 @@ if __name__ == '__main__':
 #Make the DLA master file
 DLA.write_DLA_master(results,base_dir,N_side)
 
-print('Process complete!\n')
-
 ################################################################################
 """
 Make the global statistics file.
@@ -150,8 +148,6 @@ statistics = stats.combine_statistics(statistics_list)
 filename = './statistics.fits'
 stats.write_statistics(base_dir,filename,statistics)
 
-print('Process complete!\n')
-
 ################################################################################
 """
 We need to renormalise the picca files using global statistics data.
@@ -174,10 +170,10 @@ tasks = [(pixel,) for pixel in pixels]
 def normalise_and_rebin(pixel):
     #Open up the per-pixel stats files
     dirname = utils.get_dir_name(base_dir,pixel)
-    s_filename = utils.get_file_name(dirname,'statistics',N_side,pixel)
-    s = fits.open(s_filename)
-    s_noRSD_filename = utils.get_file_name(dirname,'statistics-noRSD',N_side,pixel)
-    s_noRSD = fits.open(s_noRSD_filename)
+    #s_filename = utils.get_file_name(dirname,'statistics',N_side,pixel)
+    #s = fits.open(s_filename)
+    #s_noRSD_filename = utils.get_file_name(dirname,'statistics-noRSD',N_side,pixel)
+    #s_noRSD = fits.open(s_noRSD_filename)
 
     for N_merge in N_merge_values:
         for i,q in enumerate(type_1_quantities):
@@ -185,19 +181,18 @@ def normalise_and_rebin(pixel):
             #Rebin the files.
             filename = utils.get_file_name(dirname,'picca-'+q,N_side,pixel)
             if N_merge > 1:
-                out = utils.get_file_name(dirname,'picca-'+q+'-rebin-{}-'.format(N_merge)+q,N_side,pixel)
-                utils.renorm_rebin_picca_file(filename,old_mean=old_mean,new_mean=new_mean,N_merge=N_merge,out_filepath=out)
+                out = utils.get_file_name(dirname,'picca-'+q+'-rebin-{}'.format(N_merge),N_side,pixel)
+                utils.renorm_rebin_picca_file(filename,N_merge=N_merge,out_filepath=out)
 
         for i,q in enumerate(type_2_quantities):
 
             #Get the old mean, and renormalise.
             # TODO: this use of "stats_quantities" is v ugly
             lookup_name = stats_quantities[i]+'_MEAN'
-            #old_mean = s[1].data[lookup_name]
-            old_mean = np.ones(s[1].data.shape)
 
             #Renormalise the files without RSDs.
-            old_mean = np.ones(s_noRSD[1].data.shape)
+            #old_mean = s_noRSD[1].data[lookup_name]
+            old_mean = None
             new_mean = statistics_noRSD[lookup_name]
             filename = utils.get_file_name(dirname,'picca-'+q+'-noRSD-notnorm',N_side,pixel)
             if N_merge == 1:
@@ -207,7 +202,8 @@ def normalise_and_rebin(pixel):
             utils.renorm_rebin_picca_file(filename,old_mean=old_mean,new_mean=new_mean,N_merge=N_merge,out_filepath=out)
 
             #Renormalise the files with RSDs.
-            old_mean = np.ones(s[1].data.shape)
+            #old_mean = s[1].data[lookup_name]
+            old_mean = None
             new_mean = statistics[lookup_name]
             filename = utils.get_file_name(dirname,'picca-'+q+'-notnorm',N_side,pixel)
             if N_merge == 1:
@@ -216,8 +212,8 @@ def normalise_and_rebin(pixel):
                 out = utils.get_file_name(dirname,'picca-'+q+'-rebin-{}'.format(N_merge),N_side,pixel)
             utils.renorm_rebin_picca_file(filename,old_mean=old_mean,new_mean=new_mean,N_merge=N_merge,out_filepath=out)
 
-    s.close()
-    s_noRSD.close()
+    #s.close()
+    #s_noRSD.close()
 
     return
 
@@ -232,8 +228,6 @@ if __name__ == '__main__':
 
     pool.close()
     pool.join()
-
-print('Process complete!\n')
 
 ################################################################################
 

@@ -11,6 +11,7 @@ CELL_SIZE=0.25
 LAMBDA_MIN=3550.0
 MIN_CAT_Z=1.8
 LYACOLORE_SEED=123
+DLA_BIAS=2.0
 
 # specify process flags
 FLAGS="--add-DLAs --add-RSDs"
@@ -25,7 +26,7 @@ COLORE_SEED=1003
 PROCESS_PATH="/global/homes/j/jfarr/Projects/LyaCoLoRe/scripts/"
 
 # full path to folder where input will be taken from
-INPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/output_G_hZsmooth_${COLORE_NGRID}_${COLORE_NODES}_sr${R_SMOOTH}_bm1_biasG18_picos_newNz_mpz0_seed${COLORE_SEED}/"
+INPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v5/v5_seed${COLORE_SEED}/"
 echo "input will be taken from "$INPUT_PATH
 INPUT_FILES=`ls -1 ${INPUT_PATH}/out_srcs_*.fits`
 
@@ -33,10 +34,10 @@ NFILES=`echo $INPUT_FILES | wc -w`
 echo "${NFILES} input files have been found"
 
 # version
-V="v4.2"
+V="v5"
 
 # full path to folder where output will be written
-OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/${V}/process_output_G_hZsmooth_${COLORE_NGRID}_${COLORE_NODES}_sr${R_SMOOTH}_bm1_biasG18_picos_newNz_mpz0_seed${COLORE_SEED}_${LYACOLORE_SEED}_nside${NSIDE}_DLAfix2_tuning131118/"
+OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/${V}/v5.0.0/"
 
 echo "output will written to "$OUTPUT_PATH
 if [ ! -d $OUTPUT_PATH ] ; then
@@ -48,10 +49,10 @@ if [ ! -d $OUTPUT_PATH/logs ] ; then
 fi
 
 # full path to file with tuning sigma_G data
-TUNING_PATH="/global/homes/j/jfarr/Projects/LyaCoLoRe/input_files/tuning_data_151118.fits" #tune_small_scale_fluctuations.fits
+TUNING_PATH="/global/homes/j/jfarr/Projects/LyaCoLoRe/input_files/tuning_data_apow4.5_sGconst.fits" #tune_small_scale_fluctuations.fits
 
 # we will create this script
-RUN_FILE="/global/homes/j/jfarr/Projects/LyaCoLoRe/run_files/process_colore_output_G_hZsmooth_${COLORE_NGRID}_${COLORE_NODES}_sr${R_SMOOTH}_bm1_biasG18_picos_newNz_mpz0_seed${COLORE_SEED}_${LYACOLORE_SEED}_nside${NSIDE}_DLAfix2_tuning131118.sh"
+RUN_FILE="/global/homes/j/jfarr/Projects/LyaCoLoRe/run_files/process_colore_v5.0.0.sh"
 echo "run file "$RUN_FILE
 
 # make master file and new file structure
@@ -98,7 +99,7 @@ for NODE in \`seq $NNODES\` ; do
 
     echo "looking at pixels: \${NODE_PIXELS}"
 
-    command="srun -N 1 -n 1 -c ${NCORES} ${PROCESS_PATH}/make_transmission.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} --pixels \${NODE_PIXELS} --tuning-file ${TUNING_PATH} --nside ${NSIDE} --nproc ${NCORES} --IVAR-cut ${IVAR_CUT} --cell-size ${CELL_SIZE} --lambda-min ${LAMBDA_MIN} ${FLAGS} --seed ${LYACOLORE_SEED}"
+    command="srun -N 1 -n 1 -c ${NCORES} ${PROCESS_PATH}/make_transmission.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} --pixels \${NODE_PIXELS} --tuning-file ${TUNING_PATH} --nside ${NSIDE} --nproc ${NCORES} --IVAR-cut ${IVAR_CUT} --cell-size ${CELL_SIZE} --lambda-min ${LAMBDA_MIN} ${FLAGS} --seed ${LYACOLORE_SEED} --DLA-bias ${DLA_BIAS}"
 
     echo \$command
     \$command >& ${OUTPUT_PATH}/logs/node-\${NODE}.log &

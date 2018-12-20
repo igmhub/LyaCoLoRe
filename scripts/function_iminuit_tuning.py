@@ -14,13 +14,13 @@ from pyacolore import convert, Pk1D, utils, independent, tuning, simulation_data
 
 lya = utils.lya_rest
 
-N_files = 32
+N_files = 500
 N_processes = np.min((64,N_files))
 lambda_min = 3550.0
 min_cat_z = 1.8
 IVAR_cutoff = 1150.0
 
-fix_all = False
+fix_all = True
 show_plots = True
 
 #Get the starting values of alpha, beta and sigma_G from file
@@ -28,7 +28,7 @@ show_plots = True
 z_values = [2.0,2.2,2.4,2.6,2.8,3.0,3.2]
 z_width = 0.2
 colours = ['C0','C1','C2','C3','C4','C5','C6']
-beta_value = 1.65
+beta_value = 2.0
 fix_beta = True
 fix_shape = False
 
@@ -116,7 +116,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
     #print('start pixel {} at {}'.format(pixel,time.ctime()))
     location = base_file_location + '/' + new_file_structure.format(pixel//100,pixel)
 
-    # TODO: this is a problem
+    #This isn't really necessary: it gets added to the object then removed again when we add SSP.
     measured_SIGMA_G = 1.16423233683
 
     #We work from the gaussian colore files made in 'pixelise gaussian skewers'.
@@ -331,7 +331,7 @@ def f(C0,C1,C2,beta,D0,D1,D2,n,k1,return_measurements=False):
 #   beta = np.ones_like(alpha) * beta_value
 #   sigma_G_required = D0 * (Z**D1) + D2
 
-a_kwargs = {'C0' : 1.222620690283599,     'error_C0' : 1.0,  'fix_C0' : fix_all|False, 'limit_C0' : (0., 100.),
+a_kwargs = {'C0' : 1.1197990142866043,     'error_C0' : 1.0,  'fix_C0' : fix_all|False, 'limit_C0' : (0., 100.),
             'C1' : 4.5,     'error_C1' : 1.0,  'fix_C1' : fix_all|True, #'limit_C1' : (0., 20.),
             'C2' : 0.0,     'error_C2' : 1.0,  'fix_C2' : fix_all|True, #'limit_C2' : (0., 20.),
             }
@@ -339,13 +339,13 @@ a_kwargs = {'C0' : 1.222620690283599,     'error_C0' : 1.0,  'fix_C0' : fix_all|
 b_kwargs = {'beta' : beta_value, 'error_beta' : 1.0, 'fix_beta' : fix_all|False|fix_beta, 'limit_beta' : (0.,5.)
             }
 
-sG_kwargs = {'D0' : 5.638232357885419,     'error_D0' : 1.0,  'fix_D0' : fix_all|False, 'limit_D0' : (0., 100.),
+sG_kwargs = {'D0' : 5.438035741056513,     'error_D0' : 1.0,  'fix_D0' : fix_all|False, 'limit_D0' : (0., 100.),
              'D1' : 0.0,     'error_D1' : 0.2,  'fix_D1' : fix_all|False, #'limit_D1' : (0., 20.),
              'D2' : 0.0,     'error_D2' : 1.0,  'fix_D2' : fix_all|True, #'limit_D2' : (0., 20.),
              }
 
-s_kwargs = {'n'  :0.7,     'error_n' : 1.0,   'limit_n' : (0., 10.),   'fix_n' : fix_all|False|fix_shape,
-            'k1' :0.001,   'error_k1' : 0.001,'limit_k1' : (0., 0.1),  'fix_k1' : fix_all|False|fix_shape,
+s_kwargs = {'n'  :1.4274710964561526,     'error_n' : 1.0,   'limit_n' : (-2., 10.),   'fix_n' : fix_all|False|fix_shape,
+            'k1' :0.018601121991399055,   'error_k1' : 0.001,'limit_k1' : (0., 0.1),  'fix_k1' : fix_all|False|fix_shape,
             }
 
 """
