@@ -12,6 +12,7 @@ LAMBDA_MIN=3550.0
 MIN_CAT_Z=1.8
 LYACOLORE_SEED=123
 DLA_BIAS=2.0
+DLA_BIAS_METHOD='b_const'
 
 # specify process flags
 FLAGS="--add-DLAs --add-RSDs"
@@ -99,7 +100,7 @@ for NODE in \`seq $NNODES\` ; do
 
     echo "looking at pixels: \${NODE_PIXELS}"
 
-    command="srun -N 1 -n 1 -c ${NCORES} ${PROCESS_PATH}/make_transmission.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} --pixels \${NODE_PIXELS} --tuning-file ${TUNING_PATH} --nside ${NSIDE} --nproc ${NCORES} --IVAR-cut ${IVAR_CUT} --cell-size ${CELL_SIZE} --lambda-min ${LAMBDA_MIN} ${FLAGS} --seed ${LYACOLORE_SEED} --DLA-bias ${DLA_BIAS}"
+    command="srun -N 1 -n 1 -c ${NCORES} ${PROCESS_PATH}/make_transmission.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} --pixels \${NODE_PIXELS} --tuning-file ${TUNING_PATH} --nside ${NSIDE} --nproc ${NCORES} --IVAR-cut ${IVAR_CUT} --cell-size ${CELL_SIZE} --lambda-min ${LAMBDA_MIN} ${FLAGS} --seed ${LYACOLORE_SEED} --DLA-bias ${DLA_BIAS} --DLA-bias-method ${DLA_BIAS_METHOD}"
 
     echo \$command
     \$command >& ${OUTPUT_PATH}/logs/node-\${NODE}.log &

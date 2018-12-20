@@ -20,6 +20,8 @@ INPUT_FILES=`ls -1 ${BASE_DIR}/*/*/transmission*.fits`
 NFILES=`echo $INPUT_FILES | wc -w`
 echo "${NFILES} input files have been found"
 
+RUN_FILE="/global/homes/j/jfarr/Projects/LyaCoLoRe/run_files/run_process_colore_summaries.sh"
+
 cat > $RUN_FILE <<EOF
 #!/bin/bash -l
 

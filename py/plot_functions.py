@@ -262,6 +262,7 @@ def get_correlation_objects(locations,filenames=None,res_name='result.h5'):
 
         locations = checked_locations
 
+ 
     objects = []
     for i,location in enumerate(locations):
         objects += [picca_correlation.make_correlation_object(location,filenames[i],res_name=res_name)]
