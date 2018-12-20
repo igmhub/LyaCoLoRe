@@ -260,25 +260,30 @@ def rebin_skewers(skewers,R,cell_size):
 #Function to rebin skewers by merging a certain number of cells together.
 def merge_cells(rows,N_merge):
 
-    #Work out if it's an array or vector. Make a merged shell to insert into.
+    #Work out if it's an array or vector. Trim the rows so we have no half full.
     N_dim = len(rows.shape)
     if N_dim == 1:
         N_cells = rows.shape[0]
         N_cells_new = N_cells//N_merge
-        merged_rows = np.zeros(N_cells_new)
+        rows = rows[:N_cells_new*N_merge]
+        new_shape = (N_cells_new,N_merge)
+        merged_rows = rows.reshape(new_shape).mean(-1)
     elif N_dim == 2:
         N_rows = rows.shape[0]
         N_cells = rows.shape[1]
         N_cells_new = N_cells//N_merge
-        merged_rows = np.zeros((N_rows,N_cells_new))
+        rows = rows[:,:N_cells_new*N_merge]
+        new_shape = (N_rows,N_cells_new,N_merge)
+        merged_rows = rows.reshape(new_shape).mean(-1)
 
+    """
     #Fill in the shell with merged values
     for j in range(N_cells_new):
         if N_dim == 1:
             merged_rows[j] = np.average(rows[j*N_merge:(j+1)*N_merge])
         elif N_dim == 2:
             merged_rows[:,j] = np.average(rows[:,j*N_merge:(j+1)*N_merge],axis=1)
-
+    """
     return merged_rows
 
 #Function to renormalise and rebin data in a picca file.
@@ -296,7 +301,7 @@ def renorm_rebin_picca_file(filepath,old_mean=None,new_mean=None,N_merge=None,IV
     elif old_mean is None and new_mean is not None:
         cells = new_mean>0
         renorm_delta_rows = np.zeros(old_delta_rows.shape)
-        renorm_delta_rows[:,cells] = old_delta_rows[:,cells]/new_mean[:,cells] - 1
+        renorm_delta_rows[:,cells] = old_delta_rows[:,cells]/new_mean[cells] - 1
     elif old_mean is not None and new_mean is None:
         renorm_delta_rows = (1 + old_delta_rows) * old_mean
     else:
@@ -304,7 +309,7 @@ def renorm_rebin_picca_file(filepath,old_mean=None,new_mean=None,N_merge=None,IV
         cells = new_mean>0
         renorm_delta_rows = np.zeros(old_delta_rows.shape)
         renorm_delta_rows[:,cells] = (old_mean[cells]*(1 + old_delta_rows[:,cells]))/new_mean[cells] - 1
-
+    
     #Rebin the deltas if necessary.
     if N_merge is not None:
         if N_merge > 1:

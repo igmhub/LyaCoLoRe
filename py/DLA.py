@@ -97,7 +97,7 @@ def get_N(z, Nmin=20.0, Nmax=22.5, nsamp=100):
         NHI[i] = np.random.choice(nn,size=1,p=probs[i]/np.sum(probs[i]))+(nn[1]-nn[0])*np.random.random(size=1)
     return NHI
 
-def add_DLA_table_to_object(object,dla_bias=2.0,dla_bias_z=2.25,extrapolate_z_down=None,Nmin=20.0,Nmax=22.5,seed=123):
+def add_DLA_table_to_object(object,dla_bias=2.0,dla_bias_z=2.25,extrapolate_z_down=None,Nmin=20.0,Nmax=22.5,seed=123,method='b_const'):
 
     #Hopefully this sets the seed for all random generators used
     np.random.seed(seed)
@@ -111,15 +111,20 @@ def add_DLA_table_to_object(object,dla_bias=2.0,dla_bias_z=2.25,extrapolate_z_do
 
     #Setup bias as a function of redshift
     y = interp1d(z_cell,D_cell)
-    bias = y(dla_bias_z)*dla_bias/D_cell
-
-    #We measure sigma_G already, but it is not fed back into the files at all. This should change.
     sigma_g = object.SIGMA_G
-    #sigma_g = DLA.get_sigma_g(o.input_file)
+    #bias = y(dla_bias_z)*dla_bias/D_cell
+
+    #Can choose to have b constant with z, or b*D constant with z.
+    if method == "b_const":
+        b_D_sigma0 = dla_bias*D_cell*sigma_g
+    elif method == "bD_const":
+        b_D_sigma0 = dla_bias*y(dla_bias_z)*sigma_g*np.ones(z.shape)
+    else:
+        raise ValueError('DLA bias method not recognised.')
 
     #Figure out cells that could host a DLA, based on Gaussian fluctuation
     # TODO: is this the right thing to feed to this function? Not sure...
-    nu_arr = nu_of_bD(bias*D_cell)
+    nu_arr = nu_of_bD(b_D_sigma0)
     deltas = object.GAUSSIAN_DELTA_rows
     flagged_cells = flag_DLA(zq,z_cell,deltas,nu_arr,sigma_g)
 

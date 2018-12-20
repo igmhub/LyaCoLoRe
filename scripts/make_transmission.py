@@ -66,11 +66,14 @@ parser.add_argument('--param-file', type = str, default = 'out_params.cfg', requ
 parser.add_argument('--tuning-file', type = str, default = 'input_files/tuning_data_151118.fits', required=False,
                     help = 'file name for data about tuning sigma_G/alpha')
 
-parser.add_argument('--add-DLAs', action="store_true", default = True, required=False,
+parser.add_argument('--add-DLAs', action="store_true", default = False, required=False,
                     help = 'add DLAs to the transmission file')
 
 parser.add_argument('--DLA-bias', type = float, default = 2., required=False,
                     help = 'bias of DLAs')
+
+parser.add_argument('--DLA-bias-method', type = str, default = 'b_const', required=False,
+                    help = 'either \"b_const\" or \"bD_const\"')
 
 parser.add_argument('--add-RSDs', action="store_true", default = False, required=False,
                     help = 'add linear RSDs to the transmission file')
@@ -127,6 +130,8 @@ final_cell_size = args.cell_size
 N_processes = args.nproc
 parameter_filename = args.param_file
 add_DLAs = args.add_DLAs
+dla_bias = args.DLA_bias
+dla_bias_method = args.DLA_bias_method
 add_RSDs = args.add_RSDs
 add_Lyb = args.add_Lyb
 add_metals = args.add_metals
@@ -296,10 +301,6 @@ tuning_betas = h[1].data['beta']
 tuning_sigma_Gs = h[1].data['sigma_G']
 h.close()
 
-#Determine the desired sigma_G by sampling
-# TODO: maybe fit here to the data
-extra_sigma_G_values = tuning_sigma_Gs
-
 ################################################################################
 
 """
@@ -373,23 +374,17 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
     #That means we need to store skewers all the way down to z=0.
     #May need to adjust how many nodes are used when running.
     if add_DLAs:
-        pixel_object.add_DLA_table(seed)
+        pixel_object.add_DLA_table(seed,dla_bias=dla_bias,method=dla_bias_method)
 
     #print(pixel_object.DLA_table)
     #Add small scale power to the gaussian skewers:
     generator = np.random.RandomState(seed)
-    new_cosmology = pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,tuning_z_values,extra_sigma_G_values,generator,white_noise=False,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff,n=n,k1=k1)
+    new_cosmology = pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,tuning_z_values,tuning_sigma_Gs,generator,white_noise=False,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff,n=n,k1=k1)
 
     #Remove the 'SIGMA_G' header as SIGMA_G now varies with z, so can't be stored in a header.
     del header['SIGMA_G']
-    pixel_object.SIGMA_G = np.interp(pixel_object.Z,tuning_z_values,tuning_sigma_Gs)
-
-    #Add a table with DLAs in to the pixel object.
-    # TODO: in future, we want DLAs all the way down to z=0.
-    #That means we need to store skewers all the way down to z=0.
-    #May need to adjust how many nodes are used when running.
-    if add_DLAs:
-        pixel_object.add_DLA_table(seed)
+    sigma_G = np.sqrt(tuning_sigma_Gs**2 + measured_SIGMA_G**2)
+    pixel_object.SIGMA_G = np.exp(np.interp(np.log(pixel_object.Z),np.log(tuning_z_values),np.log(sigma_G)))
 
     #Recompute physical skewers.
     pixel_object.compute_physical_skewers()
