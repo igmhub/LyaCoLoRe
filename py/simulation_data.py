@@ -398,16 +398,9 @@ class SimulationData:
         #Generate extra variance, either white noise or correlated.
         dkms_dhMpc = utils.get_dkms_dhMpc(0.)
         dv_kms = cell_size * dkms_dhMpc
-        extra_var = independent.get_gaussian_fields(generator,self.N_cells,dv_kms=dv_kms,N_skewers=self.N_qso,white_noise=white_noise,n=n,k1=k1,A0=A0,R1=R1)
+        extra_var = independent.get_gaussian_fields(generator,self.N_cells,dv_kms=dv_kms,N_skewers=self.N_qso,white_noise=white_noise,n=n,k1=k1,A0=A0,R1=R1,norm=True)
 
         times += [time.time()]
-
-        #Normalise the extra variance to have unit variance
-        k_kms = np.fft.rfftfreq(self.N_cells)*2*np.pi/dv_kms
-        Pk_kms = independent.power_kms(0.,k_kms,dv_kms,white_noise=white_noise,n=n,k1=k1,A0=A0,R1=R1,smooth=True)
-        mean_P = np.average(Pk_kms)
-        sigma_G_extra_var = np.sqrt((1/np.pi)*np.trapz(Pk_kms,k_kms))
-        extra_var /= sigma_G_extra_var #np.sqrt(mean_P/dv_kms)
 
         extra_var *= extra_sigma_G
         times += [time.time()]
