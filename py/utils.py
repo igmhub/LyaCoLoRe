@@ -293,12 +293,16 @@ def renorm_rebin_picca_file(filepath,old_mean=None,new_mean=None,N_merge=None,IV
 
     if old_mean is None and new_mean is None:
         renorm_delta_rows = old_delta_rows
-    elif old_mean is None or new_mean is None:
-        raise ValueError('Only one mean specified in renormalising.')
+    elif old_mean is None and new_mean is not None:
+        cells = new_mean>0
+        renorm_delta_rows = np.zeros(old_delta_rows.shape)
+        renorm_delta_rows[:,cells] = old_delta_rows[:,cells]/new_mean[:,cells] - 1
+    elif old_mean is not None and new_mean is None:
+        renorm_delta_rows = (1 + old_delta_rows) * old_mean
     else:
         #Renormalise the deltas.
         cells = new_mean>0
-        renorm_delta_rows = np.ones(old_delta_rows.shape)
+        renorm_delta_rows = np.zeros(old_delta_rows.shape)
         renorm_delta_rows[:,cells] = (old_mean[cells]*(1 + old_delta_rows[:,cells]))/new_mean[cells] - 1
 
     #Rebin the deltas if necessary.
@@ -315,6 +319,7 @@ def renorm_rebin_picca_file(filepath,old_mean=None,new_mean=None,N_merge=None,IV
             #new_iv_rows = make_IVAR_rows(IVAR_cutoff,Z_QSO,new_LOGLAM_MAP)
             relevant_QSOs = np.sum(new_iv_rows,axis=1)>min_number_cells
             new_delta_rows = new_delta_rows[relevant_QSOs,:]
+            new_iv_rows = new_iv_rows[relevant_QSOs,:]
             catalog_data = hdu_CATALOG.data[relevant_QSOs]
 
             #Reconstruct the non-delta HDUs.
@@ -322,7 +327,8 @@ def renorm_rebin_picca_file(filepath,old_mean=None,new_mean=None,N_merge=None,IV
             hdu_LOGLAM_MAP = fits.ImageHDU(data=new_LOGLAM_MAP,header=hdu_LOGLAM_MAP.header,name='LOGLAM_MAP')
             cols_CATALOG = fits.ColDefs(catalog_data)
             hdu_CATALOG = fits.BinTableHDU.from_columns(cols_CATALOG,header=hdu_CATALOG.header,name='CATALOG')
-
+        else:
+            new_delta_rows = renorm_delta_rows
     else:
         new_delta_rows = renorm_delta_rows
 

@@ -2,7 +2,7 @@ import numpy as np
 
 from . import utils
 
-def get_Pk1D(skewer_rows,IVAR_rows,R_hMpc,z,z_value=0.0,z_width=None,units='km/s'):
+def get_Pk1D(skewer_rows,IVAR_rows,R_hMpc,z,z_value=0.0,z_width=None,R1=25.0,units='km/s'):
 
     if z_width:
         #Find relevant chunk of the skewers
@@ -48,7 +48,6 @@ def get_Pk1D(skewer_rows,IVAR_rows,R_hMpc,z,z_value=0.0,z_width=None,units='km/s
         pk_rows = np.abs(ft_rows)**2
 
         #compute Fourier transform of Top-Hat filter of size l_kms and apply it
-        R1 = 10.0 #kms
         W_kms = (np.sinc((k_kms*dv_kms)/(2*np.pi)))**2 #* np.exp(-pow(k_kms*R1,2))
         pk_rows /= (W_kms)
         #print(W_kms[-5:]**2)
