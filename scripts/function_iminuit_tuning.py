@@ -48,7 +48,7 @@ new_filename_structure = '{}-{}-{}.fits'    #file type, nside, pixel number
 input_format = 'gaussian_colore'
 
 def get_alpha(z,C0,C1,C2,z0=3.0,oneplusz=True):
-    
+
     if oneplusz:
         x = (1 + z)/(1 + z0)
     else:
@@ -56,7 +56,7 @@ def get_alpha(z,C0,C1,C2,z0=3.0,oneplusz=True):
 
     #Power law in x with constant
     alpha = C0 * (x ** C1) + C2
-    
+
     #Quadratic in log x
     alpha = C0 * (x ** (C1 + C2 * np.log(x)))
 
@@ -71,7 +71,7 @@ def get_sigma_G(z,D0,D1,D2,z0=3.0,oneplusz=True):
 
     #Power law in x with constant
     sigma_G = D0 * (x ** D1) + D2
-    
+
     #Quadratic in log x
     sigma_G = D0 * (x ** (D1 + D2 * np.log(x)))
 
@@ -146,6 +146,9 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
     extra_sigma_G = np.sqrt(sigma_G_required**2 - measured_SIGMA_G**2)
     """
 
+    print('Samples:')
+    print('Gaussian before adding SSP:')
+    print(data.GAUSSIAN_DELTA_rows[0,:5])
     #add small scale fluctuations
     seed = int(str(N_side) + str(pixel))
     generator = np.random.RandomState(seed)
@@ -163,7 +166,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
 
     """
     sigma_G_required = get_sigma_G(data.Z,D0,D1,D2)
-    """    
+    """
 
     """
     #HACK
@@ -176,6 +179,19 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
 
     #Compute the tau skewers and add RSDs
     data.compute_tau_skewers(data.lya_absorber,alpha=alpha,beta=beta)
+
+    print('Extra sigma G:')
+    print(extra_sigma_G[:5])
+    print('Gaussian after adding SSP:')
+    print(data.GAUSSIAN_DELTA_rows[0,:5])
+    print('Density:')
+    print(data.DENSITY_DELTA_rows[0,:5])
+    print('Alphas:')
+    print(alpha[:5])
+    print('Betas:')
+    print(beta[:5])
+    print('Tau:')
+    print(data.lyb_absorber.tau[0,:5])
 
     #indices = (abs(data.Z - 2.0) < 0.1)
     #print('mean alpha =',np.average(alpha[indices]))
@@ -190,7 +206,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
     #print('mean F =',np.average(data.lya_absorber.transmission()[:,indices],weights=data.IVAR_rows[:,indices]))
     #print('mean F from method =',data.get_mean_flux(data.lya_absorber,z_value=2.0,z_width=0.2))
     #print(' ')
-    
+
     if prep:
         RSD_weights = data.get_RSD_weights(thermal=False)
         #print('{:3.2f} checkpoint RSDs measured'.format(time.time()-start))
@@ -238,7 +254,7 @@ for result in results:
 print('done!')
 
 def f(C0,C1,C2,beta,D0,D1,D2,n,k1,return_measurements=False):
-    
+
     ################################################################################
 
     """
@@ -255,7 +271,7 @@ def f(C0,C1,C2,beta,D0,D1,D2,n,k1,return_measurements=False):
         print('Error:',retval)
 
     ################################################################################
-    
+
     print('starting at',time.ctime())
     print('looking at params: C=({:2.4f},{:2.4f},{:2.4f}), beta={:1.2f},  D=({:2.4f},{:2.4f},{:2.4f}), n={:2.4f}, k1={:2.6f}'.format(C0,C1,C2,beta,D0,D1,D2,n,k1))
 

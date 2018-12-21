@@ -376,6 +376,9 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
     if add_DLAs:
         pixel_object.add_DLA_table(seed,dla_bias=dla_bias,method=dla_bias_method)
 
+    print('Samples:')
+    print('Gaussian before adding SSP:')
+    print(pixel_object.GAUSSIAN_DELTA_rows[0,:5])
     #print(pixel_object.DLA_table)
     #Add small scale power to the gaussian skewers:
     generator = np.random.RandomState(seed)
@@ -394,6 +397,20 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
     betas = np.exp(np.interp(np.log(pixel_object.Z),np.log(tuning_z_values),np.log(tuning_betas)))
     sigma_Gs = np.exp(np.interp(np.log(pixel_object.Z),np.log(tuning_z_values),np.log(tuning_sigma_Gs)))
     pixel_object.compute_all_tau_skewers(alphas,betas)
+
+    print('Extra sigma G (not exactly what goes in):')
+    print(sigma_Gs[:5])
+    print('Gaussian after adding SSP:')
+    print(pixel_object.GAUSSIAN_DELTA_rows[0,:5])
+    print('Density:')
+    print(pixel_object.DENSITY_DELTA_rows[0,:5])
+    print('Alphas:')
+    print(alphas[:5])
+    print('Betas:')
+    print(betas[:5])
+    print('Tau:')
+    print(pixel_object.lyb_absorber.tau[0,:5])
+
 
     if transmission_only == False:
         #Get mean quantities to normalise by for now.
