@@ -14,7 +14,7 @@ from pyacolore import convert, Pk1D, utils, independent, tuning, simulation_data
 
 lya = utils.lya_rest
 
-N_files = 500
+N_files = 32
 N_processes = np.min((64,N_files))
 lambda_min = 3550.0
 min_cat_z = 1.8
@@ -38,7 +38,7 @@ max_k = 0.01 #skm-1
 
 #Open up the Gaussian colore files
 #base_file_location = '/Users/jfarr/Projects/test_data/test/'
-base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v4.0/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_newNz_mpz0_seed1003_123_nside16/'
+base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v5/v5.0.0/'
 #base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v3/v3.0/'
 N_side = 16
 
@@ -344,8 +344,8 @@ sG_kwargs = {'D0' : 5.438035741056513,     'error_D0' : 1.0,  'fix_D0' : fix_all
              'D2' : 0.0,     'error_D2' : 1.0,  'fix_D2' : fix_all|True, #'limit_D2' : (0., 20.),
              }
 
-s_kwargs = {'n'  :1.4274710964561526,     'error_n' : 1.0,   'limit_n' : (-2., 10.),   'fix_n' : fix_all|False|fix_shape,
-            'k1' :0.018601121991399055,   'error_k1' : 0.001,'limit_k1' : (0., 0.1),  'fix_k1' : fix_all|False|fix_shape,
+s_kwargs = {'n'  : 1.203975497931822 ,     'error_n' : 1.0,   'limit_n' : (-2., 10.),   'fix_n' : fix_all|False|fix_shape,
+            'k1' : 0.01424037777544643,   'error_k1' : 0.001,'limit_k1' : (0., 0.1),  'fix_k1' : fix_all|False|fix_shape,
             }
 
 """

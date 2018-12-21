@@ -10,7 +10,7 @@ import time
 import os
 import argparse
 
-from pyacolore import Pk1D
+from pyacolore import Pk1D, tuning, utils
 
 ################################################################################
 
@@ -21,8 +21,8 @@ Also define option preferences.
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-parser.add_argument('--in-dir', type = str, default = None, required=True,
-                    help = 'input data directory')
+parser.add_argument('--base-dir', type = str, default = None, required=True,
+                    help = 'base data directory')
 
 parser.add_argument('--nproc', type = int, default = 1, required=False,
                     help = 'number of processes to use')
@@ -33,7 +33,7 @@ parser.add_argument('--nside', type = int, default = 16, required=False,
 parser.add_argument('--pixels', type = int, default = None, required=False,
                     help = 'which pixel numbers to work on', nargs='*')
 
-parser.add_argument('--z-values', type = int, default = 2.4, required=False,
+parser.add_argument('--z-values', type = float, default = [2.4], required=False,
                     help = 'which z values to measure at', nargs='*')
 
 parser.add_argument('--z-width', type = int, default = 0.2, required=False,
@@ -45,7 +45,7 @@ parser.add_argument('--file-type', type = str, default = 'flux', required=False,
 parser.add_argument('--units', type = str, default = 'km/s', required=False,
                     help = 'choose \"km/s\" or \"Mpc/h\"')
 
-parser.add_argument('--show-plot', action="store_true", default = True, required=False,
+parser.add_argument('--show-plot', action="store_true", default = False, required=False,
                     help = 'do we want to show the plot or just save')
 
 ################################################################################
@@ -57,15 +57,17 @@ args = parser.parse_args()
 #Define global variables.
 lya = utils.lya_rest
 
-base_in_dir = args.in_dir
+base_dir = args.base_dir
 N_side = args.nside
 pixels = args.pixels
 if not pixels:
     pixels = list(range(12*N_side**2))
 N_processes = args.nproc
 z_values = args.z_values
+z_width = args.z_width
 file_type = args.file_type
 units = args.units
+show_plot = args.show_plot
 
 # TODO: print to confirm the arguments. e.g. "DLAs will be added"
 
@@ -100,6 +102,8 @@ def log_error(retval):
 Get the data
 """
 
+print('Assembling the skewers data...')
+
 #Get z and R along the skewers.
 m = fits.open(base_dir+'/master.fits')
 z = m['COSMO_EXP'].data['Z']
@@ -109,7 +113,7 @@ m.close()
 #Function to get deltas and ivar from each pixel.
 def get_pixel_data(pixel):
     dirname = utils.get_dir_name(base_dir,pixel)
-    filename = utils.get_file_name(dirname,'file_type',N_side,pixel)
+    filename = utils.get_file_name(dirname,'picca-'+file_type,N_side,pixel)
     h = fits.open(filename)
     delta_rows = h[0].data.T
     ivar_rows = h[1].data.T
@@ -130,20 +134,22 @@ if __name__ == '__main__':
     pool.join()
 
 #Combine the results from each pixel.
-delta_rows = []
-ivar_rows = []
-for result in results:
-    delta_rows += np.append((delta_rows,result[0]))
-    ivar_rows += np.append((ivar_rows,result[1]))
+delta_rows = results[0][0]
+ivar_rows = results[0][1]
+for result in results[1:]:
+    delta_rows = np.append(delta_rows,result[0],axis=0)
+    ivar_rows = np.append(ivar_rows,result[1],axis=0)
 
 ################################################################################
 """
 Compute the P1D
 """
 
+print('Computing the 1D power spectrum...')
+
 Pk1D_results = {}
 for i,z_value in enumerate(z_values):
-    print(z_value)
+    print(z_value,delta_rows.shape,ivar_rows.shape,R.shape,z.shape)
     k, Pk, var = Pk1D.get_Pk1D(delta_rows,ivar_rows,R,z,z_value=z_value,z_width=z_width,units=units)
     Pk1D_results[z_value] = {'k':k, 'Pk':Pk, 'var':var}
 
@@ -156,7 +162,7 @@ Make a plot
 def plot_P1D_values(Pk1D_results,show_plot=True):
     plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
 
-    for key in Pk1D_results.keys:
+    for key in Pk1D_results.keys():
 
         #Extract the data from the results dictionary.
         k = Pk1D_results[key]['k']
@@ -178,9 +184,9 @@ def plot_P1D_values(Pk1D_results,show_plot=True):
     plt.grid()
     plt.legend(fontsize=12)
     plt.ylabel(r'$P_{1D}$',fontsize=12)
-    if units = 'km/s':
+    if units == 'km/s':
         plt.xlabel(r'$k\ /\ (kms^{-1})^{-1}$',fontsize=12)
-    elif units = 'Mpc/h':
+    elif units == 'Mpc/h':
         plt.xlabel(r'$k\ /\ (Mpch^{-1})^{-1}$',fontsize=12)
     plt.savefig('Pk1D.pdf')
     if show_plot:
