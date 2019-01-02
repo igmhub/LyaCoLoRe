@@ -705,34 +705,45 @@ class SimulationData:
         return
 
     #Function to save in the picca format.
-    def save_as_picca_delta(self,quantity,filename,header,mean_data=None,overwrite=False,min_number_cells=2,cell_size=None):
+    def save_as_picca_delta(self,quantity,filename,header,mean_data=None,overwrite=False,min_number_cells=2,cell_size=None,notnorm=False):
 
         lya_lambdas = 10**self.LOGLAM_MAP
 
-        #Choose the right skewers according to input quantity.
-        #Convert non-delta quantities to deltas.
-        if quantity == 'gaussian':
-            skewer_rows = self.GAUSSIAN_DELTA_rows
-        elif quantity == 'density':
-            skewer_rows = self.DENSITY_DELTA_rows
-        elif quantity == 'tau':
-            skewer_rows = np.zeros(self.lya_absorber.tau.shape)
-            cells = np.sum(self.IVAR_rows,axis=0)>0
-            #print('min mean tau:',np.min(mean[cells]))
-            if mean_data is None:
-                mean = self.get_mean_quantity('tau')
-            else:
-                mean = np.interp(self.Z,mean_data['z'],mean_data['mean'])
-            skewer_rows[:,cells] = self.lya_absorber.tau[:,cells]/mean[cells] - 1
-        elif quantity == 'flux':
-            skewer_rows = np.zeros(self.lya_absorber.transmission().shape)
-            cells = np.sum(self.IVAR_rows,axis=0)>0
-            #print('min mean flux:',np.min(mean[cells]))
-            if mean_data is None:
-                mean = self.get_mean_quantity('tau')
-            else:
-                mean = np.interp(self.Z,mean_data['z'],mean_data['mean'])
-            skewer_rows[:,cells] = self.lya_absorber.transmission()[:,cells]/mean[cells] - 1
+        #If not normalising:
+        if notnorm:
+            if quantity == 'gaussian':
+                skewer_rows = self.GAUSSIAN_DELTA_rows
+            elif quantity == 'density':
+                skewer_rows = self.DENSITY_DELTA_rows
+            elif quantity == 'tau':
+                skewer_rows = self.lya_absorber.tau
+            elif quantity == 'flux':
+                skewer_rows = self.lya_absorber.transmission()
+
+        #If normalising:
+        else:
+            if quantity == 'gaussian':
+                skewer_rows = self.GAUSSIAN_DELTA_rows
+            elif quantity == 'density':
+                skewer_rows = self.DENSITY_DELTA_rows
+            elif quantity == 'tau':
+                skewer_rows = np.zeros(self.lya_absorber.tau.shape)
+                cells = np.sum(self.IVAR_rows,axis=0)>0
+                #print('min mean tau:',np.min(mean[cells]))
+                if mean_data is None:
+                    mean = self.get_mean_quantity('tau')
+                else:
+                    mean = np.interp(self.Z,mean_data['z'],mean_data['mean'])
+                skewer_rows[:,cells] = self.lya_absorber.tau[:,cells]/mean[cells] - 1
+            elif quantity == 'flux':
+                skewer_rows = np.zeros(self.lya_absorber.transmission().shape)
+                cells = np.sum(self.IVAR_rows,axis=0)>0
+                #print('min mean flux:',np.min(mean[cells]))
+                if mean_data is None:
+                    mean = self.get_mean_quantity('tau')
+                else:
+                    mean = np.interp(self.Z,mean_data['z'],mean_data['mean'])
+                skewer_rows[:,cells] = self.lya_absorber.transmission()[:,cells]/mean[cells] - 1
 
         #Determine the relevant QSOs: those that have relevant cells (IVAR > 0) beyond the first_relevant_cell.
         #We impose a minimum number of cells per skewer here to avoid problems with picca.

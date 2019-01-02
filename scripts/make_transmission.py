@@ -413,12 +413,6 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
 
 
     if transmission_only == False:
-        #Get mean quantities to normalise by for now.
-        #analytic_mean_tau = tuning.get_analytical_mean('tau',pixel_object.Z,alphas,betas,sigma_Gs,pixel_object.D)
-        #analytic_mean_F = tuning.get_analytical_mean('flux',pixel_object.Z,alphas,betas,sigma_Gs,pixel_object.D)
-        dtype = [('z', 'f8'), ('mean', 'f8')]
-        analytic_mean_tau = np.array(list(zip(pixel_object.Z,np.ones_like(pixel_object.Z))),dtype=dtype)
-        analytic_mean_F = np.array(list(zip(pixel_object.Z,np.ones_like(pixel_object.Z))),dtype=dtype)
 
         #Picca Gaussian, small cells
         filename = utils.get_file_name(location,'picca-gaussian',N_side,pixel)
@@ -430,11 +424,11 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
 
         #Picca tau
         filename = utils.get_file_name(location,'picca-tau-noRSD-notnorm',N_side,pixel)
-        pixel_object.save_as_picca_delta('tau',filename,header,mean_data=analytic_mean_tau)
+        pixel_object.save_as_picca_delta('tau',filename,header,notnorm=True)
 
         #Picca flux
         filename = utils.get_file_name(location,'picca-flux-noRSD-notnorm',N_side,pixel)
-        pixel_object.save_as_picca_delta('flux',filename,header,mean_data=analytic_mean_F)
+        pixel_object.save_as_picca_delta('flux',filename,header,notnorm=True)
 
     #Save the no RSD statistics file for this pixel.
     filename = 'statistics-noRSD-16-{}.fits'.format(pixel)
@@ -458,11 +452,11 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
     if transmission_only == False:
         #Picca tau
         filename = utils.get_file_name(location,'picca-tau-notnorm',N_side,pixel)
-        pixel_object.save_as_picca_delta('tau',filename,header,mean_data=analytic_mean_tau)
+        pixel_object.save_as_picca_delta('tau',filename,header,notnorm=True)
 
         #Picca flux
         filename = utils.get_file_name(location,'picca-flux-notnorm',N_side,pixel)
-        pixel_object.save_as_picca_delta('flux',filename,header,mean_data=analytic_mean_F)
+        pixel_object.save_as_picca_delta('flux',filename,header,notnorm=True)
     else:
         #If transmission_only is not False, remove the gaussian-colore file.
         os.remove(gaussian_filename)
