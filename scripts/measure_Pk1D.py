@@ -106,8 +106,12 @@ print('Assembling the skewers data...')
 
 #Get z and R along the skewers.
 m = fits.open(base_dir+'/master.fits')
-z = m['COSMO_EXP'].data['Z']
-R = m['COSMO_EXP'].data['R']
+if 'colorecell' in file_type:
+    z = m['COSMO_COL'].data['Z']
+    R = m['COSMO_COL'].data['R']
+else:
+    z = m['COSMO_EXP'].data['Z']
+    R = m['COSMO_EXP'].data['R']
 m.close()
 
 #Function to get deltas and ivar from each pixel.
@@ -149,7 +153,7 @@ print('Computing the 1D power spectrum...')
 
 Pk1D_results = {}
 for i,z_value in enumerate(z_values):
-    print(z_value,delta_rows.shape,ivar_rows.shape,R.shape,z.shape)
+    #print(z_value,delta_rows.shape,ivar_rows.shape,R.shape,z.shape)
     k, Pk, var = Pk1D.get_Pk1D(delta_rows,ivar_rows,R,z,z_value=z_value,z_width=z_width,units=units)
     Pk1D_results[z_value] = {'k':k, 'Pk':Pk, 'var':var}
 
@@ -172,14 +176,24 @@ def plot_P1D_values(Pk1D_results,show_plot=True):
 
         #Plot the result and a "model" comparison +/-10%
         plt.loglog(k,Pk,label='z={}'.format(key),c=colour)
-        model_Pk_kms = tuning.P1D_z_kms_PD2013(key,k)
-        plt.loglog(k,model_Pk_kms,label='DR9 z={}'.format(key),c=colour,linestyle=':')
-        plt.loglog(k,model_Pk_kms*0.9,color=[0.5,0.5,0.5],alpha=0.5)
-        plt.loglog(k,model_Pk_kms*1.1,color=[0.5,0.5,0.5],alpha=0.5)
+        if 'flux' in file_type:
+            model_Pk_kms = tuning.P1D_z_kms_PD2013(key,k)
+            plt.loglog(k,model_Pk_kms,label='DR9 z={}'.format(key),c=colour,linestyle=':')
+            plt.loglog(k,model_Pk_kms*0.9,color=[0.5,0.5,0.5],alpha=0.5)
+            plt.loglog(k,model_Pk_kms*1.1,color=[0.5,0.5,0.5],alpha=0.5)
 
-    ylim_lower = min(model_Pk_kms) * 0.8
-    ylim_upper = max(model_Pk_kms) * 1.2
-    plt.ylim(ylim_lower,ylim_upper)
+        #plt.errorbar(k,Pk,yerr=np.sqrt(var),label='z={}'.format(key),marker='o',c=colour)
+        #model_Pk_kms = tuning.P1D_z_kms_PD2013(key,k)
+        #plt.plot(k,model_Pk_kms,label='DR9 z={}'.format(key),c=colour,linestyle=':')
+        #plt.plot(k,model_Pk_kms*0.9,color=[0.5,0.5,0.5],alpha=0.5)
+        #plt.plot(k,model_Pk_kms*1.1,color=[0.5,0.5,0.5],alpha=0.5)
+
+    #plt.semilogy()
+    #plt.semilogx()
+
+    #ylim_lower = min(model_Pk_kms) * 0.8
+    #ylim_upper = max(model_Pk_kms) * 1.2
+    #plt.ylim(ylim_lower,ylim_upper)
 
     plt.grid()
     plt.legend(fontsize=12)
@@ -188,7 +202,7 @@ def plot_P1D_values(Pk1D_results,show_plot=True):
         plt.xlabel(r'$k\ /\ (kms^{-1})^{-1}$',fontsize=12)
     elif units == 'Mpc/h':
         plt.xlabel(r'$k\ /\ (Mpch^{-1})^{-1}$',fontsize=12)
-    plt.savefig('Pk1D.pdf')
+    plt.savefig('Pk1D_{}.pdf'.format(file_type))
     if show_plot:
         plt.show()
     return

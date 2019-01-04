@@ -29,6 +29,9 @@ parser.add_argument('--pixels', type = int, default = None, required=False,
 parser.add_argument('--picca-N-merge-values', type = int, default = [1], required = False,
                     help = 'number of cells to merge when rebinning for picca files', nargs='*')
 
+parser.add_argument('--overwrite', action="store_true", default = False, required=False,
+                    help = 'overwrite existing files')
+
 args = parser.parse_args()
 
 base_dir = args.base_dir
@@ -40,6 +43,7 @@ if not pixels:
 N_merge_values = args.picca_N_merge_values
 if not N_merge_values:
     N_merge_values = []
+overwrite = args.overwrite
 
 ################################################################################
 
@@ -88,7 +92,7 @@ if __name__ == '__main__':
     pool.join()
 
 #Make the DLA master file
-DLA.write_DLA_master(results,base_dir,N_side)
+DLA.write_DLA_master(results,base_dir,N_side,overwrite=overwrite)
 
 ################################################################################
 """
@@ -142,11 +146,11 @@ for result in results:
 #Combine the statistics from all of the pixels and save, with and without RSDs.
 statistics_noRSD = stats.combine_statistics(statistics_noRSD_list)
 filename = './statistics_noRSD.fits'
-stats.write_statistics(base_dir,filename,statistics_noRSD)
+stats.write_statistics(base_dir,filename,statistics_noRSD,overwrite=overwrite)
 
 statistics = stats.combine_statistics(statistics_list)
 filename = './statistics.fits'
-stats.write_statistics(base_dir,filename,statistics)
+stats.write_statistics(base_dir,filename,statistics,overwrite=overwrite)
 
 ################################################################################
 """
@@ -182,7 +186,7 @@ def normalise_and_rebin(pixel):
             filename = utils.get_file_name(dirname,'picca-'+q,N_side,pixel)
             if N_merge > 1:
                 out = utils.get_file_name(dirname,'picca-'+q+'-rebin-{}'.format(N_merge),N_side,pixel)
-                utils.renorm_rebin_picca_file(filename,N_merge=N_merge,out_filepath=out)
+                utils.renorm_rebin_picca_file(filename,N_merge=N_merge,out_filepath=out,overwrite=overwrite)
 
         for i,q in enumerate(type_2_quantities):
 
@@ -199,7 +203,7 @@ def normalise_and_rebin(pixel):
                 out = utils.get_file_name(dirname,'picca-'+q+'-noRSD',N_side,pixel)
             else:
                 out = utils.get_file_name(dirname,'picca-'+q+'-noRSD-rebin-{}'.format(N_merge),N_side,pixel)
-            utils.renorm_rebin_picca_file(filename,old_mean=old_mean,new_mean=new_mean,N_merge=N_merge,out_filepath=out)
+            utils.renorm_rebin_picca_file(filename,old_mean=old_mean,new_mean=new_mean,N_merge=N_merge,out_filepath=out,overwrite=overwrite)
 
             #Renormalise the files with RSDs.
             #old_mean = s[1].data[lookup_name]
@@ -210,7 +214,7 @@ def normalise_and_rebin(pixel):
                 out = utils.get_file_name(dirname,'picca-'+q,N_side,pixel)
             else:
                 out = utils.get_file_name(dirname,'picca-'+q+'-rebin-{}'.format(N_merge),N_side,pixel)
-            utils.renorm_rebin_picca_file(filename,old_mean=old_mean,new_mean=new_mean,N_merge=N_merge,out_filepath=out)
+            utils.renorm_rebin_picca_file(filename,old_mean=old_mean,new_mean=new_mean,N_merge=N_merge,out_filepath=out,overwrite=overwrite)
 
     #s.close()
     #s_noRSD.close()

@@ -19,13 +19,14 @@ N_processes = np.min((64,N_files))
 lambda_min = 3550.0
 min_cat_z = 1.8
 IVAR_cutoff = 1150.0
+global_seed = 123
 
 fix_all = True
 show_plots = True
 
 #Get the starting values of alpha, beta and sigma_G from file
 #Decide which z values we are going to sample at
-z_values = [2.0,2.2,2.4,2.6,2.8,3.0,3.2]
+z_values = [2.4]#[2.0,2.2,2.4,2.6,2.8,3.0,3.2]
 z_width = 0.2
 colours = ['C0','C1','C2','C3','C4','C5','C6']
 beta_value = 2.0
@@ -38,7 +39,7 @@ max_k = 0.01 #skm-1
 
 #Open up the Gaussian colore files
 #base_file_location = '/Users/jfarr/Projects/test_data/test/'
-base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v5/v5.0.0/'
+base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v5/test/'
 #base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v3/v3.0/'
 N_side = 16
 
@@ -86,6 +87,7 @@ for dir in dirs:
     ending = dir[len(dir)-dir[-2::-1].find('/')-1:-1]
     if ending != 'logs':
         pixels += [int(ending)]
+pixels = list(range(N_files))
 
 ################################################################################
 
@@ -112,18 +114,16 @@ def log_error(retval):
 # TODO: want to move this to tuning.py eventually
 def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,prep=False):
     start = time.time()
+    seed = int(pixel * 10**5 + global_seed)
 
     #print('start pixel {} at {}'.format(pixel,time.ctime()))
     location = base_file_location + '/' + new_file_structure.format(pixel//100,pixel)
-
-    #This isn't really necessary: it gets added to the object then removed again when we add SSP.
-    measured_SIGMA_G = 1.16423233683
 
     #We work from the gaussian colore files made in 'pixelise gaussian skewers'.
     gaussian_filename = new_filename_structure.format('gaussian-colore',N_side,pixel)
 
     #Make a pixel object from it.
-    data = simulation_data.SimulationData.get_gaussian_skewers_object(location+gaussian_filename,None,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
+    data = simulation_data.SimulationData.get_gaussian_skewers_object(location+gaussian_filename,None,input_format,IVAR_cutoff=IVAR_cutoff)
     #print('{:3.2f} checkpoint sim_dat'.format(time.time()-start))
 
     #trim skewers to the minimal length
@@ -132,25 +132,17 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
     z_upper_cut = np.max(z_values) + z_width*(1+extra)/2.
     lambda_min_val = np.min([lambda_min,lya*(1 + z_lower_cut)])
     lambda_max_val = lya*(1 + z_upper_cut)
-    data.trim_skewers(lambda_min_val,min_cat_z,lambda_max=lambda_max_val,whole_lambda_range=False)
+    #data.trim_skewers(lambda_min_val,min_cat_z,lambda_max=lambda_max_val,whole_lambda_range=False)
+
+    lambda_min_val = lambda_min-100.
+    data.trim_skewers(lambda_min_val,min_cat_z,extra_cells=1)
 
     #Expand the C and D parameters into functions of z.
     alpha = get_alpha(data.Z,C0,C1,C2)
     beta = np.ones_like(alpha) * beta_value
     extra_sigma_G = get_sigma_G(data.Z,D0,D1,D2)
 
-    """
-    sigma_G_required = get_sigma_G(data.Z,D0,D1,D2)
-
-    #Determine the sigma_G to add
-    extra_sigma_G = np.sqrt(sigma_G_required**2 - measured_SIGMA_G**2)
-    """
-
-    print('Samples:')
-    print('Gaussian before adding SSP:')
-    print(data.GAUSSIAN_DELTA_rows[0,:5])
     #add small scale fluctuations
-    seed = int(str(N_side) + str(pixel))
     generator = np.random.RandomState(seed)
     data.add_small_scale_gaussian_fluctuations(cell_size,data.Z,extra_sigma_G,generator,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n=n,k1=k1,A0=58.6)
 
@@ -164,9 +156,15 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
     beta = np.ones_like(alpha) * beta_value
     extra_sigma_G = get_sigma_G(data.Z,D0,D1,D2)
 
-    """
-    sigma_G_required = get_sigma_G(data.Z,D0,D1,D2)
-    """
+    #Way to get exact same alpha as in make_transmission
+    z = np.linspace(1.6,4.0,2401)
+    alpha = get_alpha(z,C0,C1,C2)
+    beta = np.ones_like(alpha) * beta_value
+    extra_sigma_G = get_sigma_G(z,D0,D1,D2)
+
+    alpha = np.exp(np.interp(np.log(data.Z),np.log(z),np.log(alpha)))
+    beta = np.exp(np.interp(np.log(data.Z),np.log(z),np.log(beta)))
+    extra_sigma_G = np.exp(np.interp(np.log(data.Z),np.log(z),np.log(extra_sigma_G)))
 
     """
     #HACK
@@ -180,33 +178,6 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
     #Compute the tau skewers and add RSDs
     data.compute_tau_skewers(data.lya_absorber,alpha=alpha,beta=beta)
 
-    print('Extra sigma G:')
-    print(extra_sigma_G[:5])
-    print('Gaussian after adding SSP:')
-    print(data.GAUSSIAN_DELTA_rows[0,:5])
-    print('Density:')
-    print(data.DENSITY_DELTA_rows[0,:5])
-    print('Alphas:')
-    print(alpha[:5])
-    print('Betas:')
-    print(beta[:5])
-    print('Tau:')
-    print(data.lyb_absorber.tau[0,:5])
-
-    #indices = (abs(data.Z - 2.0) < 0.1)
-    #print('mean alpha =',np.average(alpha[indices]))
-    #print('mean sG =',np.average(sigma_G_required[indices]))
-    #print('mean gauss =',np.average(data.GAUSSIAN_DELTA_rows[:,indices],weights=data.IVAR_rows[:,indices]))
-    #print('mean dens =',np.average(1 + data.DENSITY_DELTA_rows[:,indices],weights=data.IVAR_rows[:,indices]))
-    #print('mean tau =',np.average(data.lya_absorber.tau[:,indices],weights=data.IVAR_rows[:,indices]))
-    #print('F shape =',data.lya_absorber.transmission().shape)
-    #print('indices shape =',np.sum(indices))
-    #print(data.lya_absorber.transmission()[0,:10])
-    #print('z min/max',min(data.Z[indices]),max(data.Z[indices]))
-    #print('mean F =',np.average(data.lya_absorber.transmission()[:,indices],weights=data.IVAR_rows[:,indices]))
-    #print('mean F from method =',data.get_mean_flux(data.lya_absorber,z_value=2.0,z_width=0.2))
-    #print(' ')
-
     if prep:
         RSD_weights = data.get_RSD_weights(thermal=False)
         #print('{:3.2f} checkpoint RSDs measured'.format(time.time()-start))
@@ -214,6 +185,8 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
     else:
         RSD_weights = RSD_weights_dict[pixel]
         data.add_all_RSDs(thermal=False,weights=RSD_weights)
+        data.trim_skewers(lambda_min,min_cat_z,extra_cells=1)
+        #print('after final trim, N_cells=',data.N_cells)
         #print('{:3.2f} checkpoint RSDs applied'.format(time.time()-start))
         measurements = []
         for z_value in z_values:
