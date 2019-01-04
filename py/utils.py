@@ -287,7 +287,7 @@ def merge_cells(rows,N_merge):
     return merged_rows
 
 #Function to renormalise and rebin data in a picca file.
-def renorm_rebin_picca_file(filepath,old_mean=None,new_mean=None,N_merge=None,IVAR_cutoff=1150.,min_number_cells=2,out_filepath=None):
+def renorm_rebin_picca_file(filepath,old_mean=None,new_mean=None,N_merge=None,IVAR_cutoff=1150.,min_number_cells=2,out_filepath=None,overwrite=False):
 
     #Open the existing file.
     h = fits.open(filepath)
@@ -343,9 +343,9 @@ def renorm_rebin_picca_file(filepath,old_mean=None,new_mean=None,N_merge=None,IV
     #Save the file again.
     hdulist = fits.HDUList([hdu_deltas, hdu_iv, hdu_LOGLAM_MAP, hdu_CATALOG])
     if out_filepath:
-        hdulist.writeto(out_filepath)
+        hdulist.writeto(out_filepath,overwrite=overwrite)
     else:
-        hdulist.writeto(filepath)
+        hdulist.writeto(filepath,overwrite=overwrite)
     hdulist.close()
     h.close()
 

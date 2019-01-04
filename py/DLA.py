@@ -244,7 +244,7 @@ def get_DLA_data_from_transmission(pixel,filename):
 
     return DLA_data
 
-def write_DLA_master(DLA_data_list,basedir,N_side):
+def write_DLA_master(DLA_data_list,basedir,N_side,overwrite=False):
 
     DLA_master_data = np.concatenate(DLA_data_list)
 
@@ -262,7 +262,7 @@ def write_DLA_master(DLA_data_list,basedir,N_side):
     #Make the .fits file.
     hdulist = fits.HDUList([prihdu,hdu_ID])
     filename = basedir + '/master_DLA.fits'
-    hdulist.writeto(filename)
+    hdulist.writeto(filename,overwrite=overwrite)
     hdulist.close()
 
     return

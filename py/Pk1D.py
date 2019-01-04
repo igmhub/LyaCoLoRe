@@ -14,20 +14,26 @@ def get_Pk1D(skewer_rows,IVAR_rows,R_hMpc,z,z_value=0.0,z_width=None,R1=25.0,uni
         N_cells_chunk = j_upper - j_lower + 1
     else:
         j_lower = 0
-        j_upper = skewer_rows.shape[1]
+        j_upper = skewer_rows.shape[1] - 1
         N_cells_chunk = skewer_rows.shape[1]
 
     #if skewer contains entire chunk, keep, otherwise discard
     N_qso = skewer_rows.shape[0]
     skewer_rows_chunk = []
+    IVAR_rows_chunk = []
     for i in range(N_qso):
         if np.sum(IVAR_rows[i][j_lower:j_upper+1]) == N_cells_chunk:
             skewer_rows_chunk.append(skewer_rows[i][j_lower:j_upper+1])
+            IVAR_rows_chunk.append(IVAR_rows[i][j_lower:j_upper+1])
     skewer_rows_chunk = np.array(skewer_rows_chunk)
+    IVAR_rows_chunk = np.array(IVAR_rows_chunk)
 
-    #trim R to the chunk now being considered
-    R_hMpc = R_hMpc[j_lower:j_upper]
-    z = z[j_lower:j_upper]
+    relevant_QSOs = np.sum(IVAR_rows[:,j_lower:j_upper+1],axis=1) == N_cells_chunk
+    #not_relevant_QSOs = np.sum(IVAR_rows[:,j_lower:j_upper+1],axis=1) < N_cells_chunk
+    
+    #trim R and z to the chunk now being considered
+    R_hMpc = R_hMpc[j_lower:j_upper+1]
+    z = z[j_lower:j_upper+1]
 
     #Get cell size
     dr_hMpc = (R_hMpc[-1] - R_hMpc[0])/(N_cells_chunk - 1)
@@ -54,7 +60,7 @@ def get_Pk1D(skewer_rows,IVAR_rows,R_hMpc,z,z_value=0.0,z_width=None,R1=25.0,uni
 
         #calculate mean and variance
         pk_kms = np.average(pk_rows,axis=0)
-        var_kms = np.sum((pk_rows-pk_kms)**2,axis=0)
+        var_kms = np.average((pk_rows-pk_kms)**2,axis=0)
 
         #Relabel for return.
         pk = pk_kms

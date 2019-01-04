@@ -29,13 +29,15 @@ def combine_statistics(statistics_list):
     statistics_data_type = statistics_list[0].dtype
     N_cells = statistics_shape[0]
 
-    quantities = [('Z', 'f4'), ('N', 'f4')
-        , ('GAUSSIAN_MEAN', 'f4'), ('GAUSSIAN_VAR', 'f4')
-        , ('DENSITY_MEAN', 'f4'), ('DENSITY_VAR', 'f4')
-        , ('TAU_MEAN', 'f4'), ('TAU_VAR', 'f4')
-        , ('F_MEAN', 'f4'), ('F_VAR', 'f4')]
+    quantities = [('GAUSSIAN_MEAN', 'f4'), ('GAUSSIAN_VAR', 'f4')
+                , ('DENSITY_MEAN', 'f4'), ('DENSITY_VAR', 'f4')
+                , ('TAU_MEAN', 'f4'), ('TAU_VAR', 'f4')
+                , ('F_MEAN', 'f4'), ('F_VAR', 'f4')]
 
-    combined_statistics = np.zeros(statistics_shape,dtype=quantities)
+    dtype = [('Z', 'f4'), ('N', 'f4')] + quantities
+
+    combined_statistics = np.zeros(statistics_shape,dtype=dtype)
+    combined_statistics['Z'] = statistics_list[0]['Z']
     for s_array in statistics_list:
         combined_statistics['N'] += s_array['N']
 
@@ -78,7 +80,7 @@ def means_to_statistics(means):
     return statistics
 
 #Function to write the statistics data to file, along with an HDU extension contanint cosmology data.
-def write_statistics(location,filename,statistics):
+def write_statistics(location,filename,statistics,overwrite=False):
 
     #Construct HDU from the statistics array.
     prihdr = fits.Header()
@@ -90,7 +92,7 @@ def write_statistics(location,filename,statistics):
 
     #Put the HDU into an HDUlist and save as a new file. Close the HDUlist.
     hdulist = fits.HDUList([prihdu,hdu_stats])
-    hdulist.writeto(location+filename)
+    hdulist.writeto(location+filename,overwrite=overwrite)
     hdulist.close
 
     return

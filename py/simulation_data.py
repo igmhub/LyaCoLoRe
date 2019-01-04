@@ -373,6 +373,8 @@ class SimulationData:
 
         #Can either make new IVAR rows, or just use NGPs on the old ones.
         self.IVAR_rows = self.IVAR_rows[:,NGPs]
+        #self.IVAR_rows = utils.make_IVAR_rows(IVAR_cutoff,self.Z_QSO,self.LOGLAM_MAP)
+
         times += [time.time()]
         #For each skewer, determine the last relevant cell
         first_relevant_cells = np.zeros(self.N_qso)
@@ -451,13 +453,18 @@ class SimulationData:
         self.GAUSSIAN_DELTA_rows = expanded_GAUSSIAN_DELTA_rows
         self.SIGMA_G = np.sqrt(extra_sigma_G**2 + (self.SIGMA_G)**2)
 
-        dtype = [('R', 'f8'), ('Z', 'f8'), ('D', 'f8'), ('V', 'f8')]
-        new_cosmology = np.array(list(zip(self.R,self.Z,self.D,self.V)),dtype=dtype)
-
         times += [time.time()]
         #print(np.array(times)-start)
 
-        return new_cosmology
+        return 
+
+    def return_cosmology(self):
+
+        dtype = [('R', 'f8'), ('Z', 'f8'), ('D', 'f8'), ('V', 'f8')]
+        cosmology = np.array(list(zip(self.R,self.Z,self.D,self.V)),dtype=dtype)
+
+        return cosmology
+
 
     #Function to add physical skewers to the object via a lognormal transformation.
     def compute_physical_skewers(self,density_type='lognormal'):
@@ -537,7 +544,7 @@ class SimulationData:
         return
 
     #Function to measure mean flux.
-    def get_mean_quantity(self,quantity,z_value=None,z_width=None,power=1):
+    def get_mean_quantity(self,quantity,z_value=None,z_width=None,single_value=True,power=1):
 
         if quantity == 'gaussian':
             skewer_rows = self.GAUSSIAN_DELTA_rows ** power
@@ -579,7 +586,10 @@ class SimulationData:
         else:
             j_value_upper = np.searchsorted(self.Z,z_value + z_width/2.) - 1
             j_value_lower = np.max([0,np.searchsorted(self.Z,z_value - z_width/2.)])
-            mean = np.average(skewer_rows[:,j_value_lower:j_value_upper+1],weights=self.IVAR_rows[:,j_value_lower:j_value_upper+1])
+            if single_value:
+                mean = np.average(skewer_rows[:,j_value_lower:j_value_upper+1],weights=self.IVAR_rows[:,j_value_lower:j_value_upper+1])
+            else:
+                mean = np.average(skewer_rows[:,j_value_lower:j_value_upper+1],weights=self.IVAR_rows[:,j_value_lower:j_value_upper+1],axis=0)
 
         return mean
 
@@ -751,6 +761,8 @@ class SimulationData:
         for i in range(self.N_qso):
             if np.sum(self.IVAR_rows[i,:]) >= min_number_cells:
                 relevant_QSOs += [i]
+        #relevant_QSOs = np.sum(self.IVAR_rows,axis=1) >= min_number_cells
+        non_rel_QSOs = np.sum(self.IVAR_rows,axis=1) < min_number_cells
 
         #Trim data according to the relevant cells and QSOs.
         relevant_skewer_rows = skewer_rows[relevant_QSOs,:]
@@ -801,7 +813,7 @@ class SimulationData:
         return F_grid
 
     #Function to save data as a transmission file.
-    def save_as_transmission(self,filename,header):
+    def save_as_transmission(self,filename,header,overwrite=False):
 
         # define common wavelength grid to be written in files (in Angstroms)
         wave_min = 3550.
@@ -857,7 +869,7 @@ class SimulationData:
 
         #Save as a new file. Close the HDUlist.
         hdulist = fits.HDUList(list_hdu)
-        hdulist.writeto(filename)
+        hdulist.writeto(filename,overwrite=overwrite)
         hdulist.close()
 
         return
@@ -897,11 +909,11 @@ class SimulationData:
         return means
 
     #Function to save the means as a function of z.
-    def save_statistics(self,location,filename):
+    def save_statistics(self,location,filename,overwrite=False):
 
         means = self.get_means()
         statistics = stats.means_to_statistics(means)
-        stats.write_statistics(location,filename,statistics)
+        stats.write_statistics(location,filename,statistics,overwrite=overwrite)
 
         return statistics
 
