@@ -478,7 +478,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
     filename = 'statistics-16-{}.fits'.format(pixel)
     statistics = pixel_object.save_statistics(location,filename,overwrite=overwrite)
 
-    return [new_cosmology]
+    return new_cosmology
 
 #define the tasks
 tasks = [(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,measured_SIGMA_G,n,k1) for pixel in pixel_list]
@@ -507,6 +507,10 @@ print('Updating master file\'s cosmology...')
 #First check that the new cosmologies are all the same.
 # TODO: some kind of system to check consistency here?
 new_cosmology = results[0]
+
+print(new_cosmology)
+print(new_cosmology.dtype)
+print(type(new_cosmology))
 
 #Reorganise the data.
 master = fits.open(master_file)
