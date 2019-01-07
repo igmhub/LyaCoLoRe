@@ -114,6 +114,8 @@ else:
     R = m['COSMO_EXP'].data['R']
 m.close()
 
+dr_hMpc = (R[-1] - R[0])/(R.shape[0] - 1)
+
 #Function to get deltas and ivar from each pixel.
 def get_pixel_data(pixel):
     dirname = utils.get_dir_name(base_dir,pixel)
@@ -154,7 +156,7 @@ print('Computing the 1D power spectrum...')
 Pk1D_results = {}
 for i,z_value in enumerate(z_values):
     #print(z_value,delta_rows.shape,ivar_rows.shape,R.shape,z.shape)
-    k, Pk, var = Pk1D.get_Pk1D(delta_rows,ivar_rows,R,z,z_value=z_value,z_width=z_width,units=units)
+    k, Pk, var = Pk1D.get_Pk1D(delta_rows,ivar_rows,dr_hMpc,z,z_value=z_value,z_width=z_width,units=units)
     Pk1D_results[z_value] = {'k':k, 'Pk':Pk, 'var':var}
 
 ################################################################################

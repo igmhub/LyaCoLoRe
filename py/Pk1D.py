@@ -2,7 +2,7 @@ import numpy as np
 
 from . import utils
 
-def get_Pk1D(skewer_rows,IVAR_rows,R_hMpc,z,z_value=0.0,z_width=None,R1=25.0,units='km/s'):
+def get_Pk1D(skewer_rows,IVAR_rows,dr_hMpc,z,z_value=0.0,z_width=None,R1=25.0,units='km/s'):
 
     if z_width:
         #Find relevant chunk of the skewers
@@ -30,18 +30,13 @@ def get_Pk1D(skewer_rows,IVAR_rows,R_hMpc,z,z_value=0.0,z_width=None,R1=25.0,uni
 
     relevant_QSOs = np.sum(IVAR_rows[:,j_lower:j_upper+1],axis=1) == N_cells_chunk
     #not_relevant_QSOs = np.sum(IVAR_rows[:,j_lower:j_upper+1],axis=1) < N_cells_chunk
-    
-    #trim R and z to the chunk now being considered
-    R_hMpc = R_hMpc[j_lower:j_upper+1]
-    z = z[j_lower:j_upper+1]
 
-    #Get cell size
-    dr_hMpc = (R_hMpc[-1] - R_hMpc[0])/(N_cells_chunk - 1)
+    #trim z to the chunk now being considered
+    z = z[j_lower:j_upper+1]
 
     if units == 'km/s':
         #convert to kms
         dkms_dhMpc = utils.get_dkms_dhMpc(z_value)
-        R_kms = dkms_dhMpc*R_hMpc
 
         #get the cell width (this is not constant in kms)
         dv_kms = dkms_dhMpc*dr_hMpc
