@@ -128,7 +128,8 @@ def get_pixel_data(pixel):
     h = fits.open(filename)
     delta_rows = h[0].data.T
     ivar_rows = h[1].data.T
-    return (delta_rows,ivar_rows)
+    z = 10**(h[2].data)/lya - 1
+    return (delta_rows,ivar_rows,z)
 
 tasks = [(pixel,) for pixel in pixels]
 
@@ -147,6 +148,7 @@ if __name__ == '__main__':
 #Combine the results from each pixel.
 delta_rows = results[0][0]
 ivar_rows = results[0][1]
+z = results[0][2]
 for result in results[1:]:
     delta_rows = np.append(delta_rows,result[0],axis=0)
     ivar_rows = np.append(ivar_rows,result[1],axis=0)
