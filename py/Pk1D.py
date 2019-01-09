@@ -2,7 +2,7 @@ import numpy as np
 
 from . import utils
 
-def get_Pk1D(skewer_rows,IVAR_rows,dr_hMpc,z,z_value=0.0,z_width=None,R1=25.0,units='km/s'):
+def get_Pk1D(skewer_rows,IVAR_rows,dr_hMpc,z,z_value=0.0,z_width=None,R1=25.0,units='km/s',gaussian=False):
 
     if z_width:
         #Find relevant chunk of the skewers
@@ -36,7 +36,11 @@ def get_Pk1D(skewer_rows,IVAR_rows,dr_hMpc,z,z_value=0.0,z_width=None,R1=25.0,un
 
     if units == 'km/s':
         #convert to kms
-        dkms_dhMpc = utils.get_dkms_dhMpc(z_value)
+        #If we're dealing with the Gaussian field, we want z=0 value.
+        if not Gaussian:
+            dkms_dhMpc = utils.get_dkms_dhMpc(z_value)
+        else:
+            dkms_dhMpc = utils.get_dkms_dhMpc(0.0)
 
         #get the cell width (this is not constant in kms)
         dv_kms = dkms_dhMpc*dr_hMpc

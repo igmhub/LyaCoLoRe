@@ -36,7 +36,7 @@ parser.add_argument('--pixels', type = int, default = None, required=False,
 parser.add_argument('--z-values', type = float, default = [2.4], required=False,
                     help = 'which z values to measure at', nargs='*')
 
-parser.add_argument('--z-width', type = int, default = 0.2, required=False,
+parser.add_argument('--z-width', type = float, default = 0.2, required=False,
                     help = 'width of z bins to use')
 
 parser.add_argument('--file-type', type = str, default = 'flux', required=False,
@@ -50,6 +50,9 @@ parser.add_argument('--show-plot', action="store_true", default = False, require
 
 parser.add_argument('--save-data', action="store_true", default = False, required=False,
                     help = 'do we want to save the data')
+
+parser.add_argument('--smoothing-radius', type = float, default = 25.0, required=False,
+                    help = 'gaussian smoothing radius to account for')
 
 ################################################################################
 
@@ -73,6 +76,7 @@ file_type = args.file_type
 units = args.units
 show_plot = args.show_plot
 save_data = args.save_data
+smoothing_radius = args.smoothing_radius
 
 # TODO: print to confirm the arguments. e.g. "DLAs will be added"
 
@@ -119,6 +123,9 @@ else:
     R = m['COSMO_EXP'].data['R']
 m.close()
 
+#Determine if we're looking at the Gaussian skewers.
+gaussian = ('colorecell' in file_type)
+
 dr_hMpc = (R[-1] - R[0])/(R.shape[0] - 1)
 
 #Function to get deltas and ivar from each pixel.
@@ -163,7 +170,9 @@ print('Computing the 1D power spectrum...')
 Pk1D_results = {}
 for i,z_value in enumerate(z_values):
     #print(z_value,delta_rows.shape,ivar_rows.shape,R.shape,z.shape)
-    k, Pk, var = Pk1D.get_Pk1D(delta_rows,ivar_rows,dr_hMpc,z,z_value=z_value,z_width=z_width,units=units)
+    k, Pk, var = Pk1D.get_Pk1D(delta_rows,ivar_rows,dr_hMpc,z,z_value=z_value
+                            ,z_width=z_width,units=units,R1=smoothing_radius
+                            ,gaussian=gaussian)
     Pk1D_results[z_value] = {'k':k, 'Pk':Pk, 'var':var}
 
 ################################################################################
