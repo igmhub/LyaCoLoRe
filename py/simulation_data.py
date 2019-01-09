@@ -456,7 +456,7 @@ class SimulationData:
         times += [time.time()]
         #print(np.array(times)-start)
 
-        return 
+        return
 
     def return_cosmology(self):
 
@@ -779,6 +779,10 @@ class SimulationData:
                 picca_3_data += [(self.RA[i],self.DEC[i],self.Z_QSO[i],self.PLATE[i],self.MJD[i],self.FIBER[i],self.MOCKID[i])]
         dtype = [('RA', 'f8'), ('DEC', 'f8'), ('Z', 'f8'), ('PLATE', int), ('MJD', 'f8'), ('FIBER', int), ('THING_ID', int)]
         picca_3 = np.array(picca_3_data,dtype=dtype)
+
+        #Add cell size to the header (average)
+        dr_hMpc = (self.R[-1] - self.R[0])/(self.N_cells - 1)
+        header['dr_hMpc'] = dr_hMpc
 
         #Make the data into suitable HDUs.
         hdu_DELTA = fits.PrimaryHDU(data=picca_0,header=header)

@@ -56,9 +56,10 @@ class measurement:
         mean_F = np.average(F)
         delta_F = F/mean_F - 1
         IVAR = pixel_object.IVAR_rows
-        R_hMpc = pixel_object.R
+        R = pixel_object.R
+        dr_hMpc = (R[-1] - R[0])/(R.shape[0] - 1)
         z = pixel_object.Z
-        k_kms, Pk_kms, var_kms = Pk1D.get_Pk1D(delta_F,IVAR,R_hMpc,z,z_value=self.z_value,z_width=self.z_width)
+        k_kms, Pk_kms, var_kms = Pk1D.get_Pk1D(delta_F,IVAR,dr_hMpc,z,z_value=self.z_value,z_width=self.z_width)
         self.k_kms = k_kms
         self.Pk_kms = Pk_kms
         return
@@ -256,9 +257,10 @@ class function_measurement:
         F = pixel_object.lya_absorber.transmission()
         delta_F = F/mean_F - 1
         IVAR = pixel_object.IVAR_rows
-        R_hMpc = pixel_object.R
+        R = pixel_object.R
+        dr_hMpc = (R[-1] - R[0])/(R.shape[0] - 1)
         z = pixel_object.Z
-        k_kms, Pk_kms, var_kms = Pk1D.get_Pk1D(delta_F,IVAR,R_hMpc,z,z_value=self.z_value,z_width=self.z_width)
+        k_kms, Pk_kms, var_kms = Pk1D.get_Pk1D(delta_F,IVAR,dr_hMpc,z,z_value=self.z_value,z_width=self.z_width)
         self.k_kms = k_kms
         self.Pk_kms = Pk_kms
         return
