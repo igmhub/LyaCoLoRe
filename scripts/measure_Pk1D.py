@@ -48,6 +48,9 @@ parser.add_argument('--units', type = str, default = 'km/s', required=False,
 parser.add_argument('--show-plot', action="store_true", default = False, required=False,
                     help = 'do we want to show the plot or just save')
 
+parser.add_argument('--save-data', action="store_true", default = False, required=False,
+                    help = 'do we want to save the data')
+
 ################################################################################
 
 print('setup arguments from parser')
@@ -62,12 +65,14 @@ N_side = args.nside
 pixels = args.pixels
 if not pixels:
     pixels = list(range(12*N_side**2))
+N_pixels = len(pixels)
 N_processes = args.nproc
 z_values = args.z_values
 z_width = args.z_width
 file_type = args.file_type
 units = args.units
 show_plot = args.show_plot
+save_data = args.save_data
 
 # TODO: print to confirm the arguments. e.g. "DLAs will be added"
 
@@ -159,7 +164,7 @@ for i,z_value in enumerate(z_values):
 
 ################################################################################
 """
-Make a plot
+Make a plot.
 """
 
 #Plot the power spectra
@@ -202,12 +207,52 @@ def plot_P1D_values(Pk1D_results,show_plot=True):
         plt.xlabel(r'$k\ /\ (kms^{-1})^{-1}$',fontsize=12)
     elif units == 'Mpc/h':
         plt.xlabel(r'$k\ /\ (Mpch^{-1})^{-1}$',fontsize=12)
+    filename = 'Pk1D_{}_{}.pdf'.format(file_type,N_pixels)
     plt.savefig('Pk1D_{}.pdf'.format(file_type))
     if show_plot:
         plt.show()
     return
 
 plot_P1D_values(Pk1D_results,show_plot=show_plot)
+
+################################################################################
+"""
+Save the data.
+"""
+
+#Save the data.
+def save_P1D_values(Pk1D_results):
+
+    header = fits.Header()
+    header['units'] = units
+    header['N_side'] = N_side
+
+    prihdr = fits.Header()
+    prihdu = fits.PrimaryHDU(header=prihdr)
+    hdus = [prihdu]
+
+    for key in Pk1D_results.keys():
+
+        #Extract the data from the results dictionary.
+        k = Pk1D_results[key]['k']
+        Pk = Pk1D_results[key]['Pk']
+        var = Pk1D_results[key]['var']
+
+        dtype = [('k', 'f8'), ('Pk', 'f8'), ('var', 'f8')]
+        data = np.array(list(zip(k,Pk,var)),dtype=dtype)
+        hdu = fits.BinTableHDU.from_columns(data,header=header,name=key)
+        hdus += [hdu]
+
+    #Combine the HDUs into an HDUlist and save as a new file. Close the HDUlist.
+    hdulist = fits.HDUList(hdus)
+    filename = 'Pk1D_data_{}_{}.fits'.format(file_type,N_pixels)
+    hdulist.writeto(filename,overwrite=overwrite)
+    hdulist.close
+
+    return
+
+if save_data:
+    save_P1D_values(Pk1D_results)
 
 ################################################################################
 """
