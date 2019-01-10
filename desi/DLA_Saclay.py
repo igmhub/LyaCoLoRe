@@ -9,6 +9,7 @@ import fitsio
 import glob
 #import matplotlib.pyplot as plt
 import argparse
+
 try:
     from pyigm.fN.fnmodel import FNModel
     fN_default = FNModel.default_model()
@@ -121,8 +122,6 @@ def get_N(z, Nmin=20.0, Nmax=22.5, nsamp=100):
 
 
 def add_DLA_table_to_object_Saclay(fname,fname_cosmo,fname_sigma,dNdz_arr,dla_bias=20.0,extrapolate_z_down=None,Nmin=20.0,Nmax=22.5,seed=123,zlow=1.8):
-
-
     np.random.seed(seed)
     hdulist = fitsio.FITS(fname) # Open the file
     qso = hdulist[1].read() # Read the QSO table
@@ -138,8 +137,7 @@ def add_DLA_table_to_object_Saclay(fname,fname_cosmo,fname_sigma,dNdz_arr,dla_bi
     h = cosmo_hdu['H'] # h
     Ok = cosmo_hdu['OK'] # Omega_k
     #Linear growth rate of each cell in the skewer
-    cosmo = ccl.Cosmology(Omega_c=Oc, Omega_b=Ob, h=h, Omega_k=Ok, n_s=0.96, sigma8=0.8)
-    D_cell = ccl.growth_factor(cosmo,1./(1+z_cell))   
+    D_cell = hdulist['GROWTHF'].read()   
     #Setup bias as a function of redshift
     y = interp1d(z_cell,D_cell)
     bias = dla_bias/(D_cell)*y(2.25)
@@ -213,6 +211,7 @@ parser.add_argument('--dla_bias', type = float, default=2.0,
 args = parser.parse_args()
 
 flist = glob.glob(os.path.join(args.input_path,args.input_pattern))
+print('Will read', len(flist),' files')
 hdulist = fitsio.FITS(flist[0])
 lam = hdulist[2].read()
 cosmo_hdu = fitsio.FITS(args.fname_cosmo)[1].read_header()
@@ -224,6 +223,8 @@ for i, fname in enumerate(flist):
     if i==0:
         out_table = aux
     else:
-        out_talbe = astropy.table.vstack([out_table, aux])
+        out_table = astropy.table.vstack([out_table, aux])
+    if i%500==0:
+        print('Read %d of %d' %(i,len(flist)))
 
 out_table.write(args.output_file, overwrite=True)
