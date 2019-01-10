@@ -37,10 +37,10 @@ def get_Pk1D(skewer_rows,IVAR_rows,dr_hMpc,z,z_value=0.0,z_width=None,R1=25.0,un
     if units == 'km/s':
         #convert to kms
         #If we're dealing with the Gaussian field, we want z=0 value.
-        if not Gaussian:
-            dkms_dhMpc = utils.get_dkms_dhMpc(z_value)
-        else:
+        if gaussian:
             dkms_dhMpc = utils.get_dkms_dhMpc(0.0)
+        else:
+            dkms_dhMpc = utils.get_dkms_dhMpc(z_value)
 
         #get the cell width (this is not constant in kms)
         dv_kms = dkms_dhMpc*dr_hMpc
