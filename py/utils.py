@@ -309,7 +309,7 @@ def renorm_rebin_picca_file(filepath,old_mean=None,new_mean=None,N_merge=None,IV
         cells = new_mean>0
         renorm_delta_rows = np.zeros(old_delta_rows.shape)
         renorm_delta_rows[:,cells] = (old_mean[cells]*(1 + old_delta_rows[:,cells]))/new_mean[cells] - 1
-    
+
     #Rebin the deltas if necessary.
     if N_merge is not None:
         if N_merge > 1:
@@ -320,7 +320,7 @@ def renorm_rebin_picca_file(filepath,old_mean=None,new_mean=None,N_merge=None,IV
 
             #Determine which new cells are made of entirely
             Z_QSO = hdu_CATALOG.data['Z']
-            new_iv_rows = (merge_cells(hdu_iv.data.T,N_merge)==1).astype('int')
+            new_iv_rows = (merge_cells(hdu_iv.data.T,N_merge)==1)
             #new_iv_rows = make_IVAR_rows(IVAR_cutoff,Z_QSO,new_LOGLAM_MAP)
             relevant_QSOs = np.sum(new_iv_rows,axis=1)>min_number_cells
             new_delta_rows = new_delta_rows[relevant_QSOs,:]
