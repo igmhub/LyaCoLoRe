@@ -334,9 +334,6 @@ def renorm_rebin_picca_file(filepath,old_mean=None,new_mean=None,N_merge=None,IV
             hdu_LOGLAM_MAP_new = fits.ImageHDU(data=new_LOGLAM_MAP,header=hdu_LOGLAM_MAP.header,name='LOGLAM_MAP')
             hdu_CATALOG_new = fits.BinTableHDU(catalog_data,header=hdu_CATALOG.header,name='CATALOG')
 
-            print('old hdu:',hdu_CATALOG.data.shape,np.sum(relevant_QSOs))
-            print('new cat data:',catalog_data.shape,np.sum(relevant_QSOs))
-            print('new hdu:',hdu_CATALOG_new.data.shape,np.sum(relevant_QSOs))
         else:
             new_delta_rows = renorm_delta_rows
             hdu_deltas_new = fits.PrimaryHDU(data=new_delta_rows.T,header=header)
