@@ -292,6 +292,7 @@ def renorm_rebin_picca_file(filepath,old_mean=None,new_mean=None,N_merge=None,IV
     #Open the existing file.
     h = fits.open(filepath)
     old_delta_rows = h[0].data.T
+    header = h[0].header
     hdu_iv = h[1]
     hdu_LOGLAM_MAP = h[2]
     hdu_CATALOG = h[3]
@@ -322,26 +323,35 @@ def renorm_rebin_picca_file(filepath,old_mean=None,new_mean=None,N_merge=None,IV
             Z_QSO = hdu_CATALOG.data['Z']
             new_iv_rows = (merge_cells(hdu_iv.data.T,N_merge)==1)
             #new_iv_rows = make_IVAR_rows(IVAR_cutoff,Z_QSO,new_LOGLAM_MAP)
-            relevant_QSOs = np.sum(new_iv_rows,axis=1)>min_number_cells
+            relevant_QSOs = (np.sum(new_iv_rows,axis=1)>min_number_cells)
             new_delta_rows = new_delta_rows[relevant_QSOs,:]
             new_iv_rows = new_iv_rows[relevant_QSOs,:]
             catalog_data = hdu_CATALOG.data[relevant_QSOs]
 
             #Reconstruct the non-delta HDUs.
-            hdu_iv = fits.ImageHDU(data=new_iv_rows.T,header=hdu_iv.header,name='IV')
-            hdu_LOGLAM_MAP = fits.ImageHDU(data=new_LOGLAM_MAP,header=hdu_LOGLAM_MAP.header,name='LOGLAM_MAP')
-            cols_CATALOG = fits.ColDefs(catalog_data)
-            hdu_CATALOG = fits.BinTableHDU.from_columns(cols_CATALOG,header=hdu_CATALOG.header,name='CATALOG')
+            hdu_deltas_new = fits.PrimaryHDU(data=new_delta_rows.T,header=header)
+            hdu_iv_new = fits.ImageHDU(data=new_iv_rows.T,header=hdu_iv.header,name='IV')
+            hdu_LOGLAM_MAP_new = fits.ImageHDU(data=new_LOGLAM_MAP,header=hdu_LOGLAM_MAP.header,name='LOGLAM_MAP')
+            hdu_CATALOG_new = fits.BinTableHDU(catalog_data,header=hdu_CATALOG.header,name='CATALOG')
+
+            print('old hdu:',hdu_CATALOG.data.shape,np.sum(relevant_QSOs))
+            print('new cat data:',catalog_data.shape,np.sum(relevant_QSOs))
+            print('new hdu:',hdu_CATALOG_new.data.shape,np.sum(relevant_QSOs))
         else:
             new_delta_rows = renorm_delta_rows
+            hdu_deltas_new = fits.PrimaryHDU(data=new_delta_rows.T,header=header)
+            hdu_iv_new = hdu_iv
+            hdu_LOGLAM_MAP_new = hdu_LOGLAM_MAP
+            hdu_CATALOG_new = hdu_CATALOG
     else:
         new_delta_rows = renorm_delta_rows
-
-    #Reconstruct the deltas HDU.
-    hdu_deltas = fits.PrimaryHDU(data=new_delta_rows.T,header=h[0].header)
+        hdu_deltas_new = fits.PrimaryHDU(data=new_delta_rows.T,header=header)
+        hdu_iv_new = hdu_iv
+        hdu_LOGLAM_MAP_new = hdu_LOGLAM_MAP
+        hdu_CATALOG_new = hdu_CATALOG
 
     #Save the file again.
-    hdulist = fits.HDUList([hdu_deltas, hdu_iv, hdu_LOGLAM_MAP, hdu_CATALOG])
+    hdulist = fits.HDUList([hdu_deltas_new, hdu_iv_new, hdu_LOGLAM_MAP_new, hdu_CATALOG_new])
     if out_filepath:
         hdulist.writeto(out_filepath,overwrite=overwrite)
     else:
