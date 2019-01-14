@@ -54,6 +54,9 @@ parser.add_argument('--save-data', action="store_true", default = False, require
 parser.add_argument('--smoothing-radius', type = float, default = 25.0, required=False,
                     help = 'gaussian smoothing radius to account for')
 
+parser.add_argument('--overwrite', action="store_true", default = False, required=False,
+                    help = 'overwrite existing files')
+
 ################################################################################
 
 print('setup arguments from parser')
@@ -77,6 +80,7 @@ units = args.units
 show_plot = args.show_plot
 save_data = args.save_data
 smoothing_radius = args.smoothing_radius
+overwrite = args.overwrite
 
 # TODO: print to confirm the arguments. e.g. "DLAs will be added"
 
@@ -253,7 +257,7 @@ def save_P1D_values(Pk1D_results):
 
         dtype = [('k', 'f8'), ('Pk', 'f8'), ('var', 'f8')]
         data = np.array(list(zip(k,Pk,var)),dtype=dtype)
-        hdu = fits.BinTableHDU.from_columns(data,header=header,name=key)
+        hdu = fits.BinTableHDU.from_columns(data,header=header,name=str(key))
         hdus += [hdu]
 
     #Combine the HDUs into an HDUlist and save as a new file. Close the HDUlist.
