@@ -513,10 +513,6 @@ print('Updating master file\'s cosmology...')
 # TODO: some kind of system to check consistency here?
 new_cosmology = results[0]
 
-print(new_cosmology)
-print(new_cosmology.dtype)
-print(type(new_cosmology))
-
 #Reorganise the data.
 master = fits.open(master_file)
 try:
