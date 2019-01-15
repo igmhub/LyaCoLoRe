@@ -715,7 +715,7 @@ class SimulationData:
         return
 
     #Function to save in the picca format.
-    def save_as_picca_delta(self,quantity,filename,header,mean_data=None,overwrite=False,min_number_cells=2,cell_size=None,notnorm=False):
+    def save_as_picca_delta(self,quantity,filename,header,mean_data=None,overwrite=False,min_number_cells=2,cell_size=None,notnorm=False,add_QSO_RSDs=False):
 
         lya_lambdas = 10**self.LOGLAM_MAP
 
@@ -769,6 +769,12 @@ class SimulationData:
         relevant_IVAR_rows = self.IVAR_rows[relevant_QSOs,:]
         relevant_LOGLAM_MAP = self.LOGLAM_MAP[:]
 
+        #If desired, add in QSO RSDs.
+        if add_QSO_RSDs:
+            Z_QSO = self.Z_QSO + self.DZ_RSD
+        else:
+            Z_QSO = self.Z_QSO
+
         #Organise the data into picca-format arrays.
         picca_0 = relevant_skewer_rows.T
         picca_1 = relevant_IVAR_rows.T
@@ -776,7 +782,7 @@ class SimulationData:
         picca_3_data = []
         for i in range(self.N_qso):
             if i in relevant_QSOs:
-                picca_3_data += [(self.RA[i],self.DEC[i],self.Z_QSO[i],self.PLATE[i],self.MJD[i],self.FIBER[i],self.MOCKID[i])]
+                picca_3_data += [(self.RA[i],self.DEC[i],Z_QSO[i],self.PLATE[i],self.MJD[i],self.FIBER[i],self.MOCKID[i])]
         dtype = [('RA', 'f8'), ('DEC', 'f8'), ('Z', 'f8'), ('PLATE', int), ('MJD', 'f8'), ('FIBER', int), ('THING_ID', int)]
         picca_3 = np.array(picca_3_data,dtype=dtype)
 

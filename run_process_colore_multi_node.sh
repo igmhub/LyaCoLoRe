@@ -15,7 +15,7 @@ DLA_BIAS=2.0
 DLA_BIAS_METHOD='b_const'
 
 # specify process flags
-FLAGS="--add-DLAs --add-RSDs"
+FLAGS="--add-DLAs --add-RSDs --add-QSO-RSDs"
 
 # specify details of colore output
 COLORE_NGRID=4096
@@ -83,7 +83,7 @@ NPIXELS=\`echo \$PIXDIRS | wc -w\`
 PIXDIRS_list=(\$PIXDIRS)
 
 PIXELS=()
-for PIXDIR in \$PIXDIRS ; do 
+for PIXDIR in \$PIXDIRS ; do
     PIX=\${PIXDIR##*/}
     PIXELS=("\${PIXELS[@]}" \$PIX)
 done

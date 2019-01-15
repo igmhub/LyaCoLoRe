@@ -16,16 +16,15 @@ try:
 except:
     use_pyigm = False
 
-# TODO: this function name may be misleading: should it be nu_of_b?
-def nu_of_bD(b):
+def nu_of_bDs(bDs):
     """ Compute the Gaussian field threshold for a given bias"""
     nu = np.linspace(-10,100,500) # Generous range to interpolate
     p_nu = norm.pdf(nu)
     galaxy_mean = 1.0-norm.cdf(nu)
-    b_nu = np.zeros(nu.shape)
-    b_nu[galaxy_mean!=0] = p_nu[galaxy_mean!=0]/galaxy_mean[galaxy_mean!=0]
-    y = interp1d(b_nu,nu)
-    return y(b)
+    bDs_nu = np.zeros(nu.shape)
+    bDs_nu[galaxy_mean!=0] = p_nu[galaxy_mean!=0]/galaxy_mean[galaxy_mean!=0]
+    y = interp1d(bDs_nu,nu)
+    return y(bDs)
 
 def get_bias_z(fname,dla_bias):
     """ Given a path, read the z array there and return a bias inversely
@@ -124,7 +123,7 @@ def add_DLA_table_to_object(object,dla_bias=2.0,dla_bias_z=2.25,extrapolate_z_do
 
     #Figure out cells that could host a DLA, based on Gaussian fluctuation
     # TODO: is this the right thing to feed to this function? Not sure...
-    nu_arr = nu_of_bD(b_D_sigma0)
+    nu_arr = nu_of_bDs(b_D_sigma0)
     deltas = object.GAUSSIAN_DELTA_rows
     flagged_cells = flag_DLA(zq,z_cell,deltas,nu_arr,sigma_g)
 

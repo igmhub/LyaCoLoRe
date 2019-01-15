@@ -102,6 +102,9 @@ parser.add_argument('--seed', type = int, default = 123, required=False,
 parser.add_argument('--overwrite', action="store_true", default = False, required=False,
                     help = 'overwrite existing files')
 
+parser.add_argument('--add-QSO-RSDs', action="store_true", default = False, required=False,
+                    help = 'add QSO RSDs to the transmission file')
+
 # TODO: this is now defunct.
 parser.add_argument('--fit-function-to-tuning-data', action="store_true", default = False, required=False,
                     help = 'fit a function of the form A0 * (z^A1) + A2 to the tuning data')
@@ -146,6 +149,7 @@ N_skewers = args.nskewers
 global_seed = args.seed
 fit_function_to_tuning_data = args.fit_function_to_tuning_data
 overwrite = args.overwrite
+add_QSO_RSDs = args.add_QSO_RSDs
 
 # TODO: print to confirm the arguments. e.g. "DLAs will be added"
 
@@ -394,6 +398,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
     if transmission_only == False:
         filename = utils.get_file_name(location,'picca-gaussian-colorecell',N_side,pixel)
         pixel_object.save_as_picca_delta('gaussian',filename,header,overwrite=overwrite)
+
         filename = utils.get_file_name(location,'picca-density-colorecell',N_side,pixel)
         pixel_object.save_as_picca_delta('density',filename,header,overwrite=overwrite)
 
@@ -426,19 +431,19 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
 
         #Picca Gaussian, small cells
         filename = utils.get_file_name(location,'picca-gaussian',N_side,pixel)
-        pixel_object.save_as_picca_delta('gaussian',filename,header,overwrite=overwrite)
+        pixel_object.save_as_picca_delta('gaussian',filename,header,overwrite=overwrite,add_QSO_RSDs=add_QSO_RSDs)
 
         #Picca density
         filename = utils.get_file_name(location,'picca-density',N_side,pixel)
-        pixel_object.save_as_picca_delta('density',filename,header,overwrite=overwrite)
+        pixel_object.save_as_picca_delta('density',filename,header,overwrite=overwrite,add_QSO_RSDs=add_QSO_RSDs)
 
         #Picca tau
         filename = utils.get_file_name(location,'picca-tau-noRSD-notnorm',N_side,pixel)
-        pixel_object.save_as_picca_delta('tau',filename,header,notnorm=True,overwrite=overwrite)
+        pixel_object.save_as_picca_delta('tau',filename,header,notnorm=True,overwrite=overwrite,add_QSO_RSDs=add_QSO_RSDs)
 
         #Picca flux
         filename = utils.get_file_name(location,'picca-flux-noRSD-notnorm',N_side,pixel)
-        pixel_object.save_as_picca_delta('flux',filename,header,notnorm=True,overwrite=overwrite)
+        pixel_object.save_as_picca_delta('flux',filename,header,notnorm=True,overwrite=overwrite,add_QSO_RSDs=add_QSO_RSDs)
 
     #Save the no RSD statistics file for this pixel.
     filename = 'statistics-noRSD-16-{}.fits'.format(pixel)
@@ -465,11 +470,11 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
     if transmission_only == False:
         #Picca tau
         filename = utils.get_file_name(location,'picca-tau-notnorm',N_side,pixel)
-        pixel_object.save_as_picca_delta('tau',filename,header,notnorm=True,overwrite=overwrite)
+        pixel_object.save_as_picca_delta('tau',filename,header,notnorm=True,overwrite=overwrite,add_QSO_RSDs=add_QSO_RSDs)
 
         #Picca flux
         filename = utils.get_file_name(location,'picca-flux-notnorm',N_side,pixel)
-        pixel_object.save_as_picca_delta('flux',filename,header,notnorm=True,overwrite=overwrite)
+        pixel_object.save_as_picca_delta('flux',filename,header,notnorm=True,overwrite=overwrite,add_QSO_RSDs=add_QSO_RSDs)
     else:
         #If transmission_only is not False, remove the gaussian-colore file.
         os.remove(gaussian_filename)
