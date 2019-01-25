@@ -28,7 +28,7 @@ def generate_rnd(factor=3, out_path=None):
     Z_QSO_NO_RSD_rnd = data['Z_QSO_NO_RSD'][qso_rnd]
 
     if out_path is not None:
-        tab_out = astropy.table.Table([ra_rnd,dec_rnd,Z_QSO_NO_RSD_rnd,Z_QSO_rnd,z_rnd,MOCKID_rnd],names=('RA','DEC','Z','Z_QSO_NO_RSD','Z_QSO_RSD','MOCKID'))
+        tab_out = astropy.table.Table([ra_rnd,dec_rnd,Z_QSO_NO_RSD_rnd,Z_QSO_RSD_rnd,z_rnd,MOCKID_rnd],names=('RA','DEC','Z','Z_QSO_NO_RSD','Z_QSO_RSD','MOCKID'))
         tab_out.write(out_path,overwrite=True)
 
     return None

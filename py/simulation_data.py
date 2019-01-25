@@ -341,7 +341,7 @@ class SimulationData:
         return
 
     #Function to add small scale gaussian fluctuations.
-    def add_small_scale_gaussian_fluctuations(self,cell_size,sigma_G_z_values,extra_sigma_G_values,generator,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n=0.7,k1=0.001,A0=58.6,R1=25.0):
+    def add_small_scale_gaussian_fluctuations(self,cell_size,sigma_G_z_values,extra_sigma_G_values,generator,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n=0.7,k1=0.001,A0=58.6,R_kms=25.0):
         times = []
         start = time.time(); times += [start]
         # TODO: Is NGP really the way to go?
@@ -400,7 +400,7 @@ class SimulationData:
         #Generate extra variance, either white noise or correlated.
         dkms_dhMpc = utils.get_dkms_dhMpc(0.)
         dv_kms = cell_size * dkms_dhMpc
-        extra_var = independent.get_gaussian_fields(generator,self.N_cells,dv_kms=dv_kms,N_skewers=self.N_qso,white_noise=white_noise,n=n,k1=k1,A0=A0,R1=R1,norm=True)
+        extra_var = independent.get_gaussian_fields(generator,self.N_cells,dv_kms=dv_kms,N_skewers=self.N_qso,white_noise=white_noise,n=n,k1=k1,A0=A0,R_kms=R_kms,norm=True)
 
         times += [time.time()]
 
@@ -779,12 +779,18 @@ class SimulationData:
         picca_0 = relevant_skewer_rows.T
         picca_1 = relevant_IVAR_rows.T
         picca_2 = relevant_LOGLAM_MAP
+        picca_3_data = list(zip(self.RA[relevant_QSOs],self.DEC[relevant_QSOs],Z_QSO[relevant_QSOs],self.PLATE[relevant_QSOs],self.MJD[relevant_QSOs],self.FIBER[relevant_QSOs],self.MOCKID[relevant_QSOs]))
+        dtype = [('RA', 'f8'), ('DEC', 'f8'), ('Z', 'f8'), ('PLATE', int), ('MJD', 'f8'), ('FIBER', int), ('THING_ID', int)]
+        picca_3 = np.array(picca_3_data,dtype=dtype)
+        
+        """
         picca_3_data = []
         for i in range(self.N_qso):
             if i in relevant_QSOs:
                 picca_3_data += [(self.RA[i],self.DEC[i],Z_QSO[i],self.PLATE[i],self.MJD[i],self.FIBER[i],self.MOCKID[i])]
         dtype = [('RA', 'f8'), ('DEC', 'f8'), ('Z', 'f8'), ('PLATE', int), ('MJD', 'f8'), ('FIBER', int), ('THING_ID', int)]
         picca_3 = np.array(picca_3_data,dtype=dtype)
+        """
 
         #Add cell size to the header (average)
         dr_hMpc = (self.R[-1] - self.R[0])/(self.N_cells - 1)
@@ -794,8 +800,7 @@ class SimulationData:
         hdu_DELTA = fits.PrimaryHDU(data=picca_0,header=header)
         hdu_iv = fits.ImageHDU(data=picca_1,header=header,name='IV')
         hdu_LOGLAM_MAP = fits.ImageHDU(data=picca_2,header=header,name='LOGLAM_MAP')
-        cols_CATALOG = fits.ColDefs(picca_3)
-        hdu_CATALOG = fits.BinTableHDU.from_columns(cols_CATALOG,header=header,name='CATALOG')
+        hdu_CATALOG = fits.BinTableHDU(picca_3,header=header,name='CATALOG')
 
         #Combine the HDUs into and HDUlist and save as a new file. Close the HDUlist.
         hdulist = fits.HDUList([hdu_DELTA, hdu_iv, hdu_LOGLAM_MAP, hdu_CATALOG])

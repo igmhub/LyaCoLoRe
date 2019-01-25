@@ -303,8 +303,12 @@ def make_plots(corr_objects,mu_boundaries,plot_system,r_power,include_fits,nr=40
                     plot_label += ' (fit)'
                     corr_object.plot_fit(mu_bin,plot_label,r_power,colours[i],nr=nr,rmax=rmax)
 
+            title_line_1 = r'{} {}{}; {} pix @ Nside {}; ${} < z < {}$; $r_{{min}} = $??'.format(corr_object.correl_type,corr_object.quantity_1,corr_object.quantity_2,corr_object.N_pixels,16,corr_object.zmin,corr_object.zmax)
+            title_line_2 = r'$b_\delta = {:1.3f}\pm{:1.3f}$; $\beta = {:1.3f}\pm{:1.3f}$; $\chi^2/(n_d-n_p) = {:5.1f}/({}-{})$; $\alpha_p = {:1.3f}\pm{:1.3f}$, $\alpha_t = {:1.3f}\pm{:1.3f}$'.format(corr_object.bias_LYA,corr_object.bias_LYA_err,corr_object.beta_LYA,corr_object.beta_LYA_err,corr_object.fval,corr_object.ndata,corr_object.npar,corr_object.ap,corr_object.ap_err,corr_object.at,corr_object.at_err)
+            title = title_line_1 + '\n' + title_line_2
+
             # TODO: import the LyaCoLoRe nside to use here, use corr_object.correl_type to determine which biases are presented
-            plt.title('{} {}{}; {} pix @ Nside {}; {} < z < {}; rmin = ??;\nbias = {:1.3}+/-{:1.3f}; beta = {:1.3f}+/-{:1.3f}; chi2/(nd-np) = {:5.1f}/({}-{}); ap = {:1.3f}+/-{:1.3f}, at = {:1.3f}+/-{:1.3f}'.format(corr_object.correl_type,corr_object.quantity_1,corr_object.quantity_2,corr_object.N_pixels,16,corr_object.zmin,corr_object.zmax,corr_object.bias_LYA,corr_object.bias_LYA_err,corr_object.beta_LYA,corr_object.beta_LYA_err,corr_object.fval,corr_object.ndata,corr_object.npar,corr_object.ap,corr_object.ap_err,corr_object.at,corr_object.at_err))
+            plt.title(title)
             plt.legend()
             plt.grid()
             plt.xlabel(r'$r\ /\ Mpc/h$')
