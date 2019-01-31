@@ -61,4 +61,4 @@ def generate_rnd(factor=3, out_path= None, method='use_catalog', catalog_path= N
         tab_out.write(out_path,overwrite=True)
     return None
 # Execute
-generate_rnd(factor=10,out_path='/global/projecta/projectdirs/desi/mocks/lya_forest/london/v5.0.0/master_randoms.fits.gz',method='use_catalog', catalog_path='/global/projecta/projectdirs/desi/mocks/lya_forest/london/v5.0.0/master.fits')
+generate_rnd(factor=10,out_path='/global/projecta/projectdirs/desi/mocks/lya_forest/london/v5.0.0/master_randoms.fits',method='use_catalog', catalog_path='/global/projecta/projectdirs/desi/mocks/lya_forest/london/v5.0.0/master.fits')
