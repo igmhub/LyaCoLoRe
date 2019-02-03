@@ -34,7 +34,7 @@ def doloop(dlas_in_cell,velocity,zedges, dla_z, dla_skw_id, dla_rsd_dz, dla_coun
 
 def nu_of_bD(b):
     """ Compute the Gaussian field threshold for a given bias"""
-    nu = np.linspace(-10,100,500) # Generous range to interpolate
+    nu = np.linspace(0,100,500) # Generous range to interpolate
     p_nu = norm.pdf(nu)
     galaxy_mean = 1.0-norm.cdf(nu)
     b_nu = np.zeros(nu.shape)
@@ -121,7 +121,7 @@ def get_N(z, Nmin=20.0, Nmax=22.5, nsamp=100):
     return NHI
 
 
-def add_DLA_table_to_object_Saclay(fname,fname_cosmo,fname_sigma,dNdz_arr,dla_bias=20.0,extrapolate_z_down=None,Nmin=20.0,Nmax=22.5,seed=123,zlow=1.8):
+def add_DLA_table_to_object_Saclay(fname,fname_cosmo,fname_sigma,dNdz_arr,dla_bias=2.0,extrapolate_z_down=None,Nmin=20.0,Nmax=22.5,seed=123,zlow=1.8):
     np.random.seed(seed)
     hdulist = fitsio.FITS(fname) # Open the file
     qso = hdulist[1].read() # Read the QSO table
