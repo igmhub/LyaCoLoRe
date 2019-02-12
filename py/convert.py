@@ -16,9 +16,10 @@ def gaussian_to_lognormal_delta(GAUSSIAN_DELTA_rows,SIGMA_G,D):
     for j in range(GAUSSIAN_DELTA_rows.shape[1]):
         LN_DENSITY_rows[:,j] = np.exp(D[j]*GAUSSIAN_DELTA_rows[:,j] - ((D[j])**2)*(SIGMA_G[j]**2)/2.)#lognormal_transform(GAUSSIAN_DELTA_rows[:,j],SIGMA_G[j],D[j])
 
-    LN_DENSITY_DELTA_rows = LN_DENSITY_rows - 1
+    LN_DENSITY_DELTA_rows = LN_DENSITY_rows - 1.
 
-    LN_DENSITY_DELTA_rows = LN_DENSITY_DELTA_rows.astype('float32')
+    #Not sure why this was there?
+    #LN_DENSITY_DELTA_rows = LN_DENSITY_DELTA_rows.astype('float32')
 
     return LN_DENSITY_DELTA_rows
 
