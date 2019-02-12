@@ -48,6 +48,7 @@ class picca_correlation:
         self.D_cosmology = D_cosmology
         """
 
+        print(f.keys())
         #fit parameters
         self.zeff = f['zeff']
         self.fval = f['fval']
@@ -63,8 +64,8 @@ class picca_correlation:
         self.beta_QSO = f['beta_QSO']['value']
         self.beta_QSO_err = f['beta_QSO']['error']
 
-        self.bias_LYA_eta = f['bias_LYA']['value']
-        self.bias_LYA_eta_err = f['bias_LYA']['error']
+        self.bias_LYA_eta = f['bias_eta_LYA']['value']
+        self.bias_LYA_eta_err = f['bias_eta_LYA']['error']
 
         self.bias_QSO_eta = f['bias_QSO']['value']
         self.bias_QSO_eta_err = f['bias_QSO']['error']
@@ -206,7 +207,7 @@ def get_fit_from_result(filepath):
     npar = ff['best fit'].attrs['npar']
     fit['npar'] = npar
 
-    cosmo_pars = ["bias_LYA","beta_LYA","bias_QSO","beta_QSO","ap","at","growth_rate"]
+    cosmo_pars = ["bias_eta_LYA","beta_LYA","bias_QSO","beta_QSO","ap","at","growth_rate"]
     for par in cosmo_pars:
         if par in ff['best fit'].attrs:
             par_dict = {}
@@ -255,14 +256,15 @@ def get_correlation_objects(locations,filenames=None,res_name='result.h5'):
         checked_locations = []
         filenames = []
         for location in locations:
-            fi = glob.glob(location+'/*cf_exp*.fits.gz')
+            fi = glob.glob(location+'/cf_exp*.fits.gz')
             for f in fi:
                 filenames += [f[(len(f)-f[::-1].find('/')):]]
                 checked_locations += [location]
 
         locations = checked_locations
 
- 
+    print(locations)
+    print(filenames)
     objects = []
     for i,location in enumerate(locations):
         objects += [picca_correlation.make_correlation_object(location,filenames[i],res_name=res_name)]
@@ -287,7 +289,7 @@ def make_plots(corr_objects,mu_boundaries,plot_system,r_power,include_fits,nr=40
                     corr_object.plot_fit(mu_bin,'',r_power,colours[i],nr=nr,rmax=rmax)
 
             plt.title('{} < mu < {}'.format(mu_bin[0],mu_bin[1]))
-            plt.legend()
+            plt.legend(fontsize=12)
             plt.grid()
 
     elif plot_system == 'plot_per_file':
@@ -309,10 +311,10 @@ def make_plots(corr_objects,mu_boundaries,plot_system,r_power,include_fits,nr=40
 
             # TODO: import the LyaCoLoRe nside to use here, use corr_object.correl_type to determine which biases are presented
             plt.title(title)
-            plt.legend()
+            plt.legend(fontsize=12)
             plt.grid()
-            plt.xlabel(r'$r\ /\ Mpc/h$')
-            plt.ylabel(r'$r^2 \xi (r)$')
+            plt.xlabel(r'$r\ /\ Mpc/h$',fontsize=12)
+            plt.ylabel(r'$r^2 \xi (r)$',fontsize=12)
 
             if save_plots:
                 plt.savefig(corr_object.location+'/cf'+suffix+'.pdf')
