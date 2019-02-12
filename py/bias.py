@@ -3,7 +3,7 @@ import copy
 
 #Function to get the bias of delta at various z values from a sim data object.
 #Assumes that the object already has tau calculated and RSDs applied.
-def get_bias_delta(data,betas,z_values,d=0.05,z_width=0.2):
+def get_bias_delta(data,betas,z_values,d=0.001,z_width=0.2):
 
     """
     #Add small extra delta to Gaussian skewers to simulate overdensity
