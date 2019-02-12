@@ -341,6 +341,10 @@ class SimulationData:
         self.D = self.D[first_relevant_cell:last_relevant_cell + 1]
         self.V = self.V[first_relevant_cell:last_relevant_cell + 1]
         self.LOGLAM_MAP = self.LOGLAM_MAP[first_relevant_cell:last_relevant_cell + 1]
+        try:
+            self.SIGMA_G = self.SIGMA_G[first_relevant_cell:last_relevant_cell + 1]
+        except TypeError:
+            self.SIGMA_G = self.SIGMA_G
 
         return
 
