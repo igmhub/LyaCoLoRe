@@ -33,6 +33,6 @@ def get_bias_delta(data,z_values,d=0.05,z_width=0.2,RSD_weights=None):
     mean_F = np.array(mean_F)
 
     #Calculate bias using gradient
-    b = (1/mean_F) * (1/d) * (mean_F_over - mean_F_under
+    b = (1/mean_F) * (1/d) * (mean_F_over - mean_F_under)
 
     return b
