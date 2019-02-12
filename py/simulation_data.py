@@ -285,7 +285,11 @@ class SimulationData:
             last_relevant_cell = -1 % self.N_cells
 
         #If we want to keep any extra_cells, we subtract from the first_relevant_cell.
-        first_relevant_cell -= extra_cells
+        #If we cannot add enough extra cells, then we just set the first relevant cell to 0.
+        if first_relevant_cell>extra_cells:
+            first_relevant_cell -= extra_cells
+        else:
+            first_relevant_cell = 0
 
         #Determine which QSOs have any relevant cells to keep.
         """
