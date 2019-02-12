@@ -105,6 +105,9 @@ parser.add_argument('--overwrite', action="store_true", default = False, require
 parser.add_argument('--add-QSO-RSDs', action="store_true", default = False, required=False,
                     help = 'add QSO RSDs to the transmission file')
 
+parser.add_argument('--smoothing-R-kms', type = float, default = 25.0, required=False,
+                    help = 'size in km/s of extra power smoothing radius')
+
 # TODO: this is now defunct.
 parser.add_argument('--fit-function-to-tuning-data', action="store_true", default = False, required=False,
                     help = 'fit a function of the form A0 * (z^A1) + A2 to the tuning data')
@@ -150,6 +153,7 @@ global_seed = args.seed
 fit_function_to_tuning_data = args.fit_function_to_tuning_data
 overwrite = args.overwrite
 add_QSO_RSDs = args.add_QSO_RSDs
+R_kms = args.smoothing_R_kms
 
 # TODO: print to confirm the arguments. e.g. "DLAs will be added"
 
@@ -411,7 +415,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
 
     #Add small scale power to the gaussian skewers:
     generator = np.random.RandomState(seed)
-    pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,tuning_z_values,tuning_sigma_Gs,generator,white_noise=False,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff,n=n,k1=k1)
+    pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,tuning_z_values,tuning_sigma_Gs,generator,white_noise=False,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff,n=n,k1=k1,R_kms=R_kms)
 
     #Remove the 'SIGMA_G' header as SIGMA_G now varies with z, so can't be stored in a header.
     del header['SIGMA_G']
