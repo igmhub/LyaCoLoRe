@@ -562,6 +562,9 @@ class SimulationData:
             skewer_rows = self.lya_absorber.tau ** power
         elif quantity == 'flux':
             skewer_rows = self.lya_absorber.transmission() ** power
+        elif quantity == 'FlnF':
+            fudge = (10**-15)*(self.lya_absorber.transmission() == 0)
+            skewer_rows = (self.lya_absorber.transmission() * np.log(self.lya_absorber.transmission()+fudge)) ** power
 
         #If no z value, then compute the mean as a function of redshift.
         if not z_value:
