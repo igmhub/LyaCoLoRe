@@ -109,7 +109,14 @@ def J(x,a,sigma):
     return J
 
 #
-def add_skewer_RSDs(initial_tau,initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,weights=None):
+def add_skewer_RSDs(initial_tau,initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,weights=None,d=0.0,z_r0=2.5):
+
+    #Rescale r and tau to simulate a change in velocity gradient.
+    r0 = np.interp(z_r0,z,r_hMpc)
+    #old_r_hMpc = r_hMpc
+    #r_hMpc /= (1 - d)
+    #initial_tau /= (1 - d)
+    #z = np.interp(r_hMpc,old_r_hMpc,z)
 
     N_qso = initial_tau.shape[0]
     N_cells = initial_tau.shape[1]
@@ -118,10 +125,20 @@ def add_skewer_RSDs(initial_tau,initial_density,velocity_skewer_dz,z,r_hMpc,z_qs
     #Convert radial distance to a velocity.
     dkms_dhMpc = utils.get_dkms_dhMpc(z)
     x_kms = r_hMpc * dkms_dhMpc
+    #x_kms += (r_hMpc - r0) * d# * dkms_dhMpc
 
     #Calculate the temperature in every cell if we want to include thermal effects.
     if thermal == True:
         T_K = get_T_K(z,initial_density)
+
+    #We want to alter the velocity along the skewer.
+    #v_diff is prop to integral of aH by comoving distance
+    v_diff = []
+    for i in range(r_hMpc.shape[0]):
+        v_diff += [np.trapz(dkms_dhMpc[:i],r_hMpc[:i])]
+    v_diff = np.array(v_diff)
+    v_diff *= (d / 1.)
+    x_kms += v_diff
 
     #count = np.zeros(100)
     #total = 0
@@ -133,6 +150,7 @@ def add_skewer_RSDs(initial_tau,initial_density,velocity_skewer_dz,z,r_hMpc,z_qs
             for j in range(j_upper):
                 #Add the dz from the velocity skewers to get a 'new_z' for each cell
                 z_cell = z[j]
+                r_hMpc_cell = r_hMpc[j]
                 dz_cell = velocity_skewer_dz[i,j]
                 new_z_cell = z_cell + dz_cell
 
@@ -144,8 +162,17 @@ def add_skewer_RSDs(initial_tau,initial_density,velocity_skewer_dz,z,r_hMpc,z_qs
                 elif j == N_cells:
                     cell_size = (x_kms[j] - x_kms[j-1])
 
-                new_r_hMpc = np.interp(new_z_cell,z,r_hMpc)
-                new_x_kms_cell = new_r_hMpc * utils.get_dkms_dhMpc(new_z_cell)
+                #Find new r of cell by interpolating.
+                #Interpolate in the stretched r to enable d!=0 to be used to measure b_nu.
+                new_r_hMpc_cell = np.interp(new_z_cell,z,r_hMpc)# - r_hMpc_cell*d
+
+                #print('r_cell w RSD:','{:1.1f}'.format(new_r_hMpc_cell))
+                #print('extra grad r:','{:1.1f}'.format((r_hMpc_cell - r0)*d))
+                #Add an extra gradient to the velocity (for estimating bias_nu).
+                #new_r_hMpc_cell += (r_hMpc_cell - r0)*d
+                #print('r_cell w RSD + extra grad r:','{:1.1f}'.format(new_r_hMpc_cell))
+
+                new_x_kms_cell = new_r_hMpc_cell * utils.get_dkms_dhMpc(new_z_cell)
                 #new_x_kms_cell = x_kms_cell
 
                 j_upper = np.searchsorted(x_kms,new_x_kms_cell)

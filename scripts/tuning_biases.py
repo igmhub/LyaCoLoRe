@@ -10,10 +10,13 @@ from pyacolore import simulation_data, bias, utils
 #base_dir = '../example_data/lya_skewers/'
 base_dir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v5/v5.0.0/'
 tuning_files = glob.glob('./input_files/tuning_data_a?.?_b1.65.fits') + glob.glob('./input_files/tuning_data_a?.?_b2.0.fits')
+#tuning_files = glob.glob('./input_files/tuning_data_apow4.5_sGconst.fits')
 z_values = np.array([2.0,2.2,2.4,2.6,2.8,3.0,3.2,3.4])
-d_value = 0.001
-z_width_value = 0.2
-N_pixels = 32
+d_value = 10**-4
+z_width_value = 0.1
+N_pixels = 1
+f = 0.9625
+z_r0 = 2.5
 
 #pixels = np.random.choice(3072,size=N_pixels,replace=False)
 pixels = list(range(N_pixels))
@@ -31,7 +34,7 @@ R_kms = 25.
 include_thermal_effects = False
 N_side = 16
 
-def bias_tuning(pixel_object,tuning_filename,z_values,d=0.001,z_width=0.2):
+def bias_tuning(pixel_object,tuning_filename,z_values,d=0.001,z_width=0.2,z_r0=2.5):
 
     #Get tuning data
     h = fits.open(tuning_filename)
@@ -81,11 +84,10 @@ def bias_tuning(pixel_object,tuning_filename,z_values,d=0.001,z_width=0.2):
     sigma_Gs = np.exp(np.interp(np.log(pixel_object.Z),np.log(tuning_z_values),np.log(tuning_sigma_Gs)))
 
     #Calculate biases.
-    biases = bias.get_bias_delta(pixel_object,betas,z_values,d=d,z_width=z_width)
+    b = bias.get_bias_delta(pixel_object,betas,z_values,d=d,z_width=z_width)
+    b_eta = bias.get_bias_nu(pixel_object,alphas,betas,z_values,d=d,z_width=z_width,z_r0=z_r0)
 
-    #print(pixel_object.get_mean_quantity('FlnF',z_value=2.4,z_width=z_width,single_value=True,power=1))
-
-    return biases
+    return b,b_eta
 
 
 def pixel_tuning_bias(pixel,tuning_filename,z_values,d=0.001,z_width=0.2):
@@ -95,9 +97,9 @@ def pixel_tuning_bias(pixel,tuning_filename,z_values,d=0.001,z_width=0.2):
     file_number = None
     pixel_object = simulation_data.SimulationData.get_gaussian_skewers_object(gaussian_filename,file_number,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
 
-    biases = bias_tuning(pixel_object,tuning_filename,z_values,d=0.001,z_width=0.2)
+    b,b_eta = bias_tuning(pixel_object,tuning_filename,z_values,d=d,z_width=z_width,z_r0=z_r0)
 
-    return biases
+    return (b,b_eta)
 
 ################################################################################
 
@@ -135,11 +137,16 @@ for tuning_filename in tuning_files:
         pool.close()
         pool.join()
 
-    biases_all_pixels = np.average(np.array(results),axis=0)
-    
+    biases_all_pixels = np.array(results)
+
+    b_all_pixels = np.average(biases_all_pixels[:,0,:],axis=0)
+    b_nu_all_pixels = np.average(biases_all_pixels[:,1,:],axis=0)
+    beta_all_pixels = b_nu_all_pixels * f / b_all_pixels
+
     print(tuning_filename)
     print_string = ''
-    for b in biases_all_pixels:
-        print_string += '{:1.6f}, '.format(b)
-    print_string = print_string[:-2] + '\n'
+    for bs in [b_all_pixels,b_nu_all_pixels,beta_all_pixels]:
+        for b in bs:
+            print_string += '{:1.6f}, '.format(b)
+        print_string = print_string[:-2] + '\n'
     print(print_string)

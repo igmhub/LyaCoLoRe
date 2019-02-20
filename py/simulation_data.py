@@ -524,10 +524,10 @@ class SimulationData:
         return RSD_weights
 
     #Function to add RSDs from the velocity skewers, with an option to include thermal effects too.
-    def add_RSDs(self,absorber,thermal=False,weights=None):
+    def add_RSDs(self,absorber,thermal=False,weights=None,d=0.0,z_r0=2.5):
 
         density = 1 + self.DENSITY_DELTA_rows
-        new_tau = RSD.add_skewer_RSDs(absorber.tau,density,self.VEL_rows,self.Z,self.R,self.Z_QSO,thermal=thermal,weights=weights)
+        new_tau = RSD.add_skewer_RSDs(absorber.tau,density,self.VEL_rows,self.Z,self.R,self.Z_QSO,thermal=thermal,weights=weights,d=d,z_r0=z_r0)
 
         #Overwrite the tau skewers and set a flag to True.
         absorber.tau = new_tau
@@ -535,19 +535,19 @@ class SimulationData:
         return
 
     #Function to add RSDs for all absorbers.
-    def add_all_RSDs(self,thermal=False,weights=None):
+    def add_all_RSDs(self,thermal=False,weights=None,d=0.0,z_r0=2.5):
 
         # for each absorber, add RSDs
-        self.add_RSDs(self.lya_absorber,thermal=thermal,weights=weights)
+        self.add_RSDs(self.lya_absorber,thermal=thermal,weights=weights,d=d,z_r0=z_r0)
 
         # RSD for Ly-b
         if self.lyb_absorber is not None:
-            self.add_RSDs(self.lyb_absorber,thermal=thermal,weights=weights)
+            self.add_RSDs(self.lyb_absorber,thermal=thermal,weights=weights,d=d,z_r0=z_r0)
 
         # loop over metals in dictionary
         if self.metals is not None:
             for metal in iter(self.metals.values()):
-                self.add_RSDs(metal,thermal=thermal,weights=weights)
+                self.add_RSDs(metal,thermal=thermal,weights=weights,d=d,z_r0=z_r0)
 
         return
 
@@ -563,8 +563,8 @@ class SimulationData:
         elif quantity == 'flux':
             skewer_rows = self.lya_absorber.transmission() ** power
         elif quantity == 'FlnF':
-            fudge = (10**-15)*(self.lya_absorber.transmission() == 0)
-            skewer_rows = (self.lya_absorber.transmission() * np.log(self.lya_absorber.transmission()+fudge)) ** power
+            #Use that ln(F)=-tau so FlnF = -F*tau
+            skewer_rows = (-self.lya_absorber.transmission() * self.lya_absorber.tau) ** power
 
         #If no z value, then compute the mean as a function of redshift.
         if not z_value:
