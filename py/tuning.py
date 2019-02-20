@@ -269,6 +269,16 @@ class function_measurement:
         self.mean_F = pixel_object.get_mean_quantity('flux',z_value=self.z_value,z_width=self.z_width)
 
         return
+    def add_bias_delta_measurement(self,pixel_object,betas,d=0.001):
+
+        self.bias_delta = bias.get_bias_delta(pixel_object,betas,self.z_value,z_width=self.z_width,d=d)
+
+        return
+    def add_bias_nu_measurement(self,pixel_object,alphas,betas,d=0.001,z_r0=2.5):
+
+        self.bias_nu = bias.get_bias_nu(pixel_object,alphas,betas,self.z_value,z_width=self.z_width,d=d,z_r0=z_r0)
+
+        return
     def add_sigma_F_measurement(self,pixel_object):
         sF = pixel_object.get_sigma_dF(pixel_object.lya_absorber,z_value=self.z_value,z_width=self.z_width)
 
