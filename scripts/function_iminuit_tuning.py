@@ -14,33 +14,48 @@ from pyacolore import convert, Pk1D, utils, independent, tuning, simulation_data
 
 lya = utils.lya_rest
 
-N_files = 32
+N_files = 128
 N_processes = np.min((64,N_files))
 lambda_min = 3550.0
 min_cat_z = 1.8
 IVAR_cutoff = 1150.0
 global_seed = 123
 
+#Choose parameter values.
+beta_value = 2.0
+R_kms = 25.0
+eps_mean_F = 0.025
+
+#Choose parameters to fix.
 fix_all = True
+fix_C0 = False
+fix_C1 = True
+fix_C2 = True
+fix_beta = True
+fix_D0 = False
+fix_D1 = True
+fix_D2 = True
+fix_n = False
+fix_k1 = False
+
+#Admin options
+k_plot_max = 0.02
 show_plots = True
+save_plots = True
+suffix = '_apow4.5_sGconst_new'
+overwrite_tuning = True
+tuning_filename = 'input_files/tuning_data' + suffix + '.fits'
 
 #Get the starting values of alpha, beta and sigma_G from file
 #Decide which z values we are going to sample at
-z_values = [2.4]#[2.0,2.2,2.4,2.6,2.8,3.0,3.2]
+z_values = [2.0,2.2,2.4,2.6,2.8,3.0,3.2]
 z_width = 0.2
 colours = ['C0','C1','C2','C3','C4','C5','C6']
-beta_value = 2.0
-fix_beta = True
-fix_shape = False
-
 cell_size = 0.25 #Mpc/h
-
 max_k = 0.01 #skm-1
 
 #Open up the Gaussian colore files
-#base_file_location = '/Users/jfarr/Projects/test_data/test/'
-base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v5/test/'
-#base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v3/v3.0/'
+base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v5/v5.0.0/'
 N_side = 16
 
 new_file_structure = '{}/{}/'               #pixel number//100, pixel number
@@ -49,33 +64,25 @@ new_filename_structure = '{}-{}-{}.fits'    #file type, nside, pixel number
 input_format = 'gaussian_colore'
 
 def get_alpha(z,C0,C1,C2,z0=3.0,oneplusz=True):
-
     if oneplusz:
         x = (1 + z)/(1 + z0)
     else:
         x = z / z0
-
     #Power law in x with constant
     alpha = C0 * (x ** C1) + C2
-
     #Quadratic in log x
     alpha = C0 * (x ** (C1 + C2 * np.log(x)))
-
     return alpha
 
 def get_sigma_G(z,D0,D1,D2,z0=3.0,oneplusz=True):
-
     if oneplusz:
         x = (1 + z)/(1 + z0)
     else:
         x = z / z0
-
     #Power law in x with constant
     sigma_G = D0 * (x ** D1) + D2
-
     #Quadratic in log x
     sigma_G = D0 * (x ** (D1 + D2 * np.log(x)))
-
     return sigma_G
 
 
@@ -132,10 +139,10 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
     z_upper_cut = np.max(z_values) + z_width*(1+extra)/2.
     lambda_min_val = np.min([lambda_min,lya*(1 + z_lower_cut)])
     lambda_max_val = lya*(1 + z_upper_cut)
-    #data.trim_skewers(lambda_min_val,min_cat_z,lambda_max=lambda_max_val,whole_lambda_range=False)
+    data.trim_skewers(lambda_min_val,min_cat_z,lambda_max=lambda_max_val,whole_lambda_range=False)
 
-    lambda_min_val = lambda_min-100.
-    data.trim_skewers(lambda_min_val,min_cat_z,extra_cells=1)
+    #lambda_min_val = lambda_min-100.
+    #data.trim_skewers(lambda_min_val,min_cat_z,extra_cells=1)
 
     #Expand the C and D parameters into functions of z.
     alpha = get_alpha(data.Z,C0,C1,C2)
@@ -144,9 +151,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
 
     #add small scale fluctuations
     generator = np.random.RandomState(seed)
-    data.add_small_scale_gaussian_fluctuations(cell_size,data.Z,extra_sigma_G,generator,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n=n,k1=k1,A0=58.6)
-
-    #print('{:3.2f} checkpoint ssgf added'.format(time.time()-start))
+    data.add_small_scale_gaussian_fluctuations(cell_size,data.Z,extra_sigma_G,generator,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n=n,k1=k1,R_kms=R_kms)
 
     #Copmute the physical skewers
     data.compute_physical_skewers()
@@ -157,14 +162,13 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
     extra_sigma_G = get_sigma_G(data.Z,D0,D1,D2)
 
     #Way to get exact same alpha as in make_transmission
-    z = np.linspace(1.6,4.0,2401)
-    alpha = get_alpha(z,C0,C1,C2)
-    beta = np.ones_like(alpha) * beta_value
-    extra_sigma_G = get_sigma_G(z,D0,D1,D2)
-
-    alpha = np.exp(np.interp(np.log(data.Z),np.log(z),np.log(alpha)))
-    beta = np.exp(np.interp(np.log(data.Z),np.log(z),np.log(beta)))
-    extra_sigma_G = np.exp(np.interp(np.log(data.Z),np.log(z),np.log(extra_sigma_G)))
+    #z = np.linspace(1.6,4.0,2401)
+    #alpha = get_alpha(z,C0,C1,C2)
+    #beta = np.ones_like(alpha) * beta_value
+    #extra_sigma_G = get_sigma_G(z,D0,D1,D2)
+    #alpha = np.exp(np.interp(np.log(data.Z),np.log(z),np.log(alpha)))
+    #beta = np.exp(np.interp(np.log(data.Z),np.log(z),np.log(beta)))
+    #extra_sigma_G = np.exp(np.interp(np.log(data.Z),np.log(z),np.log(extra_sigma_G))) 
 
     """
     #HACK
@@ -186,6 +190,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
         RSD_weights = RSD_weights_dict[pixel]
         data.add_all_RSDs(thermal=False,weights=RSD_weights)
         data.trim_skewers(lambda_min,min_cat_z,extra_cells=1)
+
         #print('after final trim, N_cells=',data.N_cells)
         #print('{:3.2f} checkpoint RSDs applied'.format(time.time()-start))
         measurements = []
@@ -196,9 +201,9 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
             measurement.add_mean_F_measurement(data)
             measurement.add_Pk1D_measurement(data)
             measurement.add_sigma_F_measurement(data)
-            measurement.add_mean_F_chi2(eps=0.025)
+            measurement.add_mean_F_chi2(eps=eps_mean_F)
             measurement.add_Pk1D_chi2(max_k=max_k,denom="npower_cutoff")
-            measurement.add_sigma_F_chi2(eps=0.1)
+            measurement.add_sigma_F_chi2(eps=0.05)
             measurement.add_total_chi2()
             measurements += [measurement]
         #print('{:3.2f} checkpoint measurements'.format(time.time()-start))
@@ -277,7 +282,7 @@ def f(C0,C1,C2,beta,D0,D1,D2,n,k1,return_measurements=False):
 
     for m in combined_pixels_set.measurements:
 
-        m.add_mean_F_chi2(eps=0.025)
+        m.add_mean_F_chi2(eps=eps_mean_F)
         m.add_Pk1D_chi2(max_k=max_k,denom="npower_cutoff")
         m.add_sigma_F_chi2(eps=0.05)
         m.add_total_chi2()
@@ -320,22 +325,42 @@ def f(C0,C1,C2,beta,D0,D1,D2,n,k1,return_measurements=False):
 #   beta = np.ones_like(alpha) * beta_value
 #   sigma_G_required = D0 * (Z**D1) + D2
 
-a_kwargs = {'C0' : 1.1197990142866043,     'error_C0' : 1.0,  'fix_C0' : fix_all|False, 'limit_C0' : (0., 100.),
-            'C1' : 4.5,     'error_C1' : 1.0,  'fix_C1' : fix_all|True, #'limit_C1' : (0., 20.),
-            'C2' : 0.0,     'error_C2' : 1.0,  'fix_C2' : fix_all|True, #'limit_C2' : (0., 20.),
+
+a_kwargs = {'C0' : 0.7787,     'error_C0' : 1.0,  'fix_C0' : fix_all|fix_C0, 'limit_C0' : (0., 100.),
+            'C1' : 4.5,     'error_C1' : 1.0,  'fix_C1' : fix_all|fix_C1, #'limit_C1' : (0., 20.),
+            'C2' : 0.0,     'error_C2' : 1.0,  'fix_C2' : fix_all|fix_C2, #'limit_C2' : (0., 20.),
             }
 
-b_kwargs = {'beta' : beta_value, 'error_beta' : 1.0, 'fix_beta' : fix_all|False|fix_beta, 'limit_beta' : (0.,5.)
+b_kwargs = {'beta' : beta_value, 'error_beta' : 1.0, 'fix_beta' : fix_all|fix_beta, 'limit_beta' : (0.,5.)
             }
 
-sG_kwargs = {'D0' : 5.438035741056513,     'error_D0' : 1.0,  'fix_D0' : fix_all|False, 'limit_D0' : (0., 100.),
-             'D1' : 0.0,     'error_D1' : 0.2,  'fix_D1' : fix_all|False, #'limit_D1' : (0., 20.),
-             'D2' : 0.0,     'error_D2' : 1.0,  'fix_D2' : fix_all|True, #'limit_D2' : (0., 20.),
+sG_kwargs = {'D0' : 4.971,     'error_D0' : 1.0,  'fix_D0' : fix_all|fix_D0, 'limit_D0' : (0., 100.),
+             'D1' : 0.0,     'error_D1' : 0.2,  'fix_D1' : fix_all|fix_D1, #'limit_D1' : (0., 20.),
+             'D2' : 0.0,     'error_D2' : 1.0,  'fix_D2' : fix_all|fix_D2, #'limit_D2' : (0., 20.),
              }
 
-s_kwargs = {'n'  : 1.203975497931822 ,     'error_n' : 1.0,   'limit_n' : (-2., 10.),   'fix_n' : fix_all|False|fix_shape,
-            'k1' : 0.01424037777544643,   'error_k1' : 0.001,'limit_k1' : (0., 0.1),  'fix_k1' : fix_all|False|fix_shape,
+s_kwargs = {'n'  : 1.1648,     'error_n' : 1.0,   'limit_n' : (-2., 10.),   'fix_n' : fix_all|False|fix_n,
+            'k1' : 0.025638,   'error_k1' : 0.001,'limit_k1' : (0., 0.1),  'fix_k1' : fix_all|False|fix_k1,
             }
+
+"""
+a_kwargs = {'C0' : 0.5097990142866043,     'error_C0' : 1.0,  'fix_C0' : fix_all|fix_C0, 'limit_C0' : (0., 100.),
+            'C1' : 4.5,     'error_C1' : 1.0,  'fix_C1' : fix_all|fix_C1, #'limit_C1' : (0., 20.),
+            'C2' : 0.0,     'error_C2' : 1.0,  'fix_C2' : fix_all|fix_C2, #'limit_C2' : (0., 20.),
+            }
+
+b_kwargs = {'beta' : beta_value, 'error_beta' : 1.0, 'fix_beta' : fix_all|fix_beta, 'limit_beta' : (0.,5.)
+            }
+
+sG_kwargs = {'D0' : 5.438035741056513,     'error_D0' : 1.0,  'fix_D0' : fix_all|fix_D0, 'limit_D0' : (0., 100.),
+             'D1' : 0.0,     'error_D1' : 0.2,  'fix_D1' : fix_all|fix_D1, #'limit_D1' : (0., 20.),
+             'D2' : 0.0,     'error_D2' : 1.0,  'fix_D2' : fix_all|fix_D2, #'limit_D2' : (0., 20.),
+             }
+
+s_kwargs = {'n'  : 1.203975497931822,     'error_n' : 1.0,   'limit_n' : (-2., 10.),   'fix_n' : fix_all|False|fix_n,
+            'k1' : 0.01424037777544643,   'error_k1' : 0.001,'limit_k1' : (0., 0.1),  'fix_k1' : fix_all|False|fix_k1,
+            }
+"""
 
 """
 #best fit values and errors from 128 pixels using beta = 2.0 and exponential correction in P1D measurements
@@ -419,6 +444,37 @@ k1 = minuit.values['k1']
 
 print(minuit.values)
 
+def save_tuning_file(filename,overwrite=False):
+    z = np.linspace(1.6,4.0,2401)
+    alpha_arr = get_alpha(z,C0,C1,C2)
+    beta_arr = np.ones(alpha_arr.shape)*beta
+    sigma_G_arr = get_sigma_G(z,D0,D1,D2)
+
+    header = fits.Header()
+    header['C0'] = C0
+    header['C1'] = C1
+    header['C2'] = C2
+    header['D0'] = D0
+    header['D1'] = D1
+    header['D2'] = D2
+    header['n']  = n
+    header['k1'] = k1
+
+    prihdr = fits.Header()
+    prihdu = fits.PrimaryHDU(header=prihdr)
+
+    dtype = [('z', 'f8'), ('alpha', 'f8'), ('beta', 'f8'), ('sigma_G', 'f8')]
+    data = np.array(list(zip(z,alpha_arr,beta_arr,sigma_G_arr)),dtype=dtype)
+    hdu_tuning = fits.BinTableHDU(data,header=header,name='TUNING')
+
+    hdulist = fits.HDUList([prihdu,hdu_tuning])
+    hdulist.writeto(filename,overwrite=overwrite)
+    hdulist.close
+
+    return
+
+save_tuning_file(tuning_filename,overwrite=overwrite_tuning)
+
 #Want to do a final run here
 #final_measurements = []
 #for pixel in pixels:
@@ -429,7 +485,7 @@ print(minuit.values)
 final_chi2,final_measurements = f(C0,C1,C2,beta,D0,D1,D2,n,k1,return_measurements=True)
 
 #Plot a graph of mean F with redshift
-def plot_mean_F_values(m_set,show_plot=True):
+def plot_mean_F_values(m_set,show_plot=True,save_plot=False):
     mean_F_data = []
     for m in m_set.measurements:
         mean_F_data += [(m.z_value,m.mean_F)]
@@ -437,10 +493,10 @@ def plot_mean_F_values(m_set,show_plot=True):
     mean_F_data = np.array(mean_F_data,dtype=dtype)
     mean_F_data = np.sort(mean_F_data,order=['z'])
     plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
-    plt.plot(mean_F_data['z'],mean_F_data['mean_F'],label='mean flux',marker='o')
+    plt.plot(mean_F_data['z'],mean_F_data['mean_F'],label='Mocks',marker='o')
     model_mean_F = tuning.get_mean_F_model(np.array(z_values))
-    plt.plot(z_values,model_mean_F,label='model',marker='o')
-    plt.fill_between(z_values,model_mean_F*1.1,model_mean_F*0.9,color=[0.5,0.5,0.5],alpha=0.5)
+    plt.plot(z_values,model_mean_F,label='Becker 2013',marker='o')
+    plt.fill_between(z_values,model_mean_F*1.1,model_mean_F*0.9,color=[0.5,0.5,0.5],alpha=0.3)
     plt.grid()
     plt.legend()
     z = mean_F_data['z']
@@ -448,48 +504,55 @@ def plot_mean_F_values(m_set,show_plot=True):
     max_z = np.max(z) + (np.max(z) - np.min(z))*0.1
     plt.xlim(min_z,max_z)
     plt.xlabel(r'$z$',fontsize=12)
-    plt.savefig('mean_F.pdf')
+    plt.ylabel(r'$\bar{F}$')
+    if save_plot:
+        plt.savefig('mean_F' + suffix + '.pdf')
     if show_plot:
         plt.show()
     return
 
 #Plot the power spectra
-def plot_P1D_values(m_set,show_plot=True):
+def plot_P1D_values(m_set,show_plot=True,save_plot=False):
     plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
+    max_power_plot = 0.
+    min_power_plot = 10.**10
     for m in m_set.measurements:
         colour = colours[np.searchsorted(z_values,m.z_value)]
-        plt.plot(m.k_kms,m.Pk_kms,label='z={}'.format(m.z_value),c=colour)
+        plt.plot(m.k_kms,m.Pk_kms,label=r'$z={}$'.format(m.z_value),c=colour)
         model_Pk_kms = tuning.P1D_z_kms_PD2013(m.z_value,m.k_kms)
-        plt.plot(m.k_kms,model_Pk_kms,label='DR9 z={}'.format(m.z_value),c=colour,linestyle=':')
-        m.add_Pk1D_chi2(max_k=max_k,denom="npower")
-        eps = m.Pk_kms_chi2_eps
-        plt.plot(m.k_kms,model_Pk_kms*0.9,color=[0.5,0.5,0.5],alpha=0.5)
-        plt.plot(m.k_kms,model_Pk_kms*1.1,color=[0.5,0.5,0.5],alpha=0.5)
-        #plt.fill_between(m.k_kms,model_Pk_kms*1.1,model_Pk_kms*0.9,color=[0.5,0.5,0.5],alpha=0.5)#,label='DR9 +/- 10%')
-        lower = np.maximum(np.ones_like(model_Pk_kms)*10**(-6),model_Pk_kms * (1. - eps))
-        upper = model_Pk_kms * (1. + eps)
+        plt.plot(m.k_kms,model_Pk_kms,c=colour,linestyle=':')#,label='z={} DR9'.format(m.z_value))
+        m.add_Pk1D_chi2(max_k=max_k,denom="npower_cutoff")
+        #eps = m.Pk_kms_chi2_eps
+        #plt.plot(m.k_kms,model_Pk_kms*0.9,color=[0.5,0.5,0.5],alpha=0.5)
+        #plt.plot(m.k_kms,model_Pk_kms*1.1,color=[0.5,0.5,0.5],alpha=0.5)
+        plt.fill_between(m.k_kms,model_Pk_kms*1.1,model_Pk_kms*0.9,color=[0.5,0.5,0.5],alpha=0.3)#,label='DR9 +/- 10%')
+        #lower = np.maximum(np.ones_like(model_Pk_kms)*10**(-6),model_Pk_kms * (1. - eps))
+        #upper = model_Pk_kms * (1. + eps)
         #plt.plot(m.k_kms,upper,c='k',linestyle='dashed')
         #plt.plot(m.k_kms,lower,c='k',linestyle='dashed')
-        plt.fill_between(m.k_kms,upper,lower,color=[0.8,0.8,0.8],alpha=0.5)
+        #plt.fill_between(m.k_kms,upper,lower,color=[0.8,0.8,0.8],alpha=0.3)
+        max_power_plot = np.max((max_power_plot,np.max(model_Pk_kms[m.k_kms<k_plot_max])))
+        min_power_plot = np.min((min_power_plot,np.min(model_Pk_kms[m.k_kms<k_plot_max])))
     plt.title('C=({:2.4f},{:2.4f},{:2.4f}), D=({:2.4f},{:2.4f},{:2.4f}), n={:2.4f}, k1={:2.6f}'.format(m.C0,m.C1,m.C2,m.D0,m.D1,m.D2,m.n,m.k1),fontsize=12)
     plt.axvline(x=max_k,color='k')
     plt.semilogy()
     plt.semilogx()
-    ylim_lower = min(model_Pk_kms) * 0.8
-    ylim_upper = max(model_Pk_kms) * 1.2
+    ylim_lower = min_power_plot * 0.8
+    ylim_upper = max_power_plot * 1.2
     plt.ylim(ylim_lower,ylim_upper)
-    #plt.xlim(xmax=0.02)
+    plt.xlim(xmax=k_plot_max)
     plt.grid()
     plt.legend(fontsize=12)
     plt.ylabel(r'$P_{1D}$',fontsize=12)
     plt.xlabel(r'$k\ /\ (kms^{-1})^{-1}$',fontsize=12)
-    plt.savefig('Pk1D.pdf')
+    if save_plot:
+        plt.savefig('Pk1D' + suffix + '.pdf')
     if show_plot:
         plt.show()
     return
 
 #Plot parameter values
-def plot_parameter_values(minuit_results,z_min=1.8,z_max=4.0,z_size=0.01,show_plot=True):
+def plot_parameter_values(minuit_results,z_min=1.8,z_max=4.0,z_size=0.01,show_plot=True,save_plot=False):
     C0 = minuit.values['C0']
     C1 = minuit.values['C1']
     C2 = minuit.values['C2']
@@ -514,7 +577,7 @@ def plot_parameter_values(minuit_results,z_min=1.8,z_max=4.0,z_size=0.01,show_pl
 
     plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
     plt.plot(z,alpha,label=r'$\alpha$')
-    plt.plot(z,sigma_G,label=r'$\sigma_G$')
+    plt.plot(z,sigma_G,label=r'$\sigma_\epsilon$')
     plt.title('C=({:2.4f},{:2.4f},{:2.4f}), D=({:2.4f},{:2.4f},{:2.4f}), n={:2.4f}, k1={:2.6f}'.format(C0,C1,C2,D0,D1,D2,n,k1),fontsize=12)
     plt.grid()
     plt.legend(fontsize=12)
@@ -523,11 +586,12 @@ def plot_parameter_values(minuit_results,z_min=1.8,z_max=4.0,z_size=0.01,show_pl
     min_z = np.min(z) - (np.max(z) - np.min(z))*0.1
     max_z = np.max(z) + (np.max(z) - np.min(z))*0.1
     plt.xlim(min_z,max_z)
-    plt.savefig('parameters.pdf')
+    if save_plot:
+        plt.savefig('parameters' + suffix + '.pdf')
     if show_plot:
         plt.show()
     return
 
-plot_mean_F_values(final_measurements,show_plot=show_plots)
-plot_P1D_values(final_measurements,show_plot=show_plots)
-plot_parameter_values(minuit,z_min=min(z_values)-z_width/2.,z_max=max(z_values)+z_width/2.,show_plot=show_plots)
+plot_mean_F_values(final_measurements,show_plot=show_plots,save_plot=save_plots)
+plot_P1D_values(final_measurements,show_plot=show_plots,save_plot=save_plots)
+plot_parameter_values(minuit,z_min=min(z_values)-z_width/2.,z_max=max(z_values)+z_width/2.,show_plot=show_plots,save_plot=save_plots)

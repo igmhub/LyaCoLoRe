@@ -4,6 +4,15 @@ from . import utils
 
 def get_Pk1D(skewer_rows,IVAR_rows,dr_hMpc,z,z_value=0.0,z_width=None,R1=25.0,units='km/s',gaussian=False):
 
+    z_check = 2.4
+    i_check = np.searchsorted(z,z_check)
+    #print('\nData entering Pk1D')
+    #print(skewer_rows.shape)
+    #print(z[i_check:i_check+5])
+    #print(skewer_rows[0,i_check:i_check+5])
+    #print(IVAR_rows[0,i_check:i_check+5])
+    #print(dr_hMpc,z_value,z_width,R1,units,gaussian)
+    #print(' ')
     if z_width:
         #Find relevant chunk of the skewers
         z_min = z_value - z_width/2.
@@ -28,11 +37,26 @@ def get_Pk1D(skewer_rows,IVAR_rows,dr_hMpc,z,z_value=0.0,z_width=None,R1=25.0,un
     skewer_rows_chunk = np.array(skewer_rows_chunk)
     IVAR_rows_chunk = np.array(IVAR_rows_chunk)
 
-    relevant_QSOs = np.sum(IVAR_rows[:,j_lower:j_upper+1],axis=1) == N_cells_chunk
+    relevant_QSOs = (np.sum(IVAR_rows[:,j_lower:j_upper+1],axis=1) == N_cells_chunk)
+    #print(np.average(skewer_rows_chunk))
+    #print(np.sum(skewer_rows_chunk))
     #not_relevant_QSOs = np.sum(IVAR_rows[:,j_lower:j_upper+1],axis=1) < N_cells_chunk
 
     #trim z to the chunk now being considered
     z = z[j_lower:j_upper+1]
+
+    z_check = 2.4
+    i_check = np.searchsorted(z,z_check)
+    #print('\nData after being cropped')
+    #print(skewer_rows_chunk.shape)
+    #print(z[i_check:i_check+5])
+    #print(skewer_rows[0,i_check:i_check+5])
+    #print(IVAR_rows[0,i_check:i_check+5])
+    #print(dr_hMpc,z_value,z_width,R1,units,gaussian)
+    #print(' ')
+    #print('Check all cells relevant')
+    #print(np.sum(IVAR_rows_chunk))
+    #print(IVAR_rows_chunk.shape[0]*IVAR_rows_chunk.shape[1])
 
     if units == 'km/s':
         #convert to kms
