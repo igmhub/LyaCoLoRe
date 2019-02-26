@@ -14,7 +14,7 @@ from pyacolore import convert, Pk1D, utils, independent, tuning, simulation_data
 
 lya = utils.lya_rest
 
-N_files = 128
+N_files = 1
 N_processes = np.min((64,N_files))
 lambda_min = 3550.0
 min_cat_z = 1.8
@@ -28,6 +28,7 @@ eps_Pk1D = 0.1
 eps_mean_F = 0.025
 eps_bias_delta = 0.025
 eps_bias_eta = 10.**6
+d = 10.**-3
 
 #Choose parameters to fix.
 fix_all = True
@@ -177,6 +178,11 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
         data.add_all_RSDs(thermal=False,weights=RSD_weights)
         data.trim_skewers(lambda_min,min_cat_z,extra_cells=1)
 
+        #Recompute alpha and beta.
+        alpha = get_parameter(data.Z,C0,C1,C2)
+        beta = np.ones_like(alpha) * beta_value
+        extra_sigma_G = get_parameter(data.Z,D0,D1,D2)
+
         #print('after final trim, N_cells=',data.N_cells)
         #print('{:3.2f} checkpoint RSDs applied'.format(time.time()-start))
         measurements = []
@@ -186,7 +192,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
             measurement = tuning.function_measurement(ID,z_value,z_width,data.N_qso,n,k1,C0,C1,C2,beta_value,D0,D1,D2,pixels=[pixel])
             measurement.add_mean_F_measurement(data)
             measurement.add_Pk1D_measurement(data)
-            measurement.add_sigma_F_measurement(data)
+            measurement.add_sigma_dF_measurement(data)
             measurement.add_bias_delta_measurement(data,beta,d=d)
             measurement.add_bias_eta_measurement(data,alpha,beta,d=d)
             measurements += [measurement]
@@ -253,7 +259,6 @@ def f(C0,C1,C2,beta,D0,D1,D2,n,k1,return_measurements=False):
     measurements = []
     for result in results:
         measurements += result
-
     measurement_set = tuning.measurement_set(measurements=measurements)
     combined_pixels_set = measurement_set.combine_pixels()
 
@@ -266,7 +271,6 @@ def f(C0,C1,C2,beta,D0,D1,D2,n,k1,return_measurements=False):
 
         m.add_mean_F_chi2(eps=eps_mean_F)
         m.add_Pk1D_chi2(max_k=max_k,denom="npower_cutoff")
-        m.add_sigma_F_chi2(eps=0.05)
         m.add_bias_delta_chi2(eps=eps_bias_delta)
         m.add_bias_eta_chi2(eps=eps_bias_eta)
 
@@ -277,14 +281,15 @@ def f(C0,C1,C2,beta,D0,D1,D2,n,k1,return_measurements=False):
         #print('z =',m.z_value,'number of k values =',m.k_kms.shape,'number of k values < max k =',np.sum(m.k_kms<max_k))
 
     chi2 = mean_F_chi2 + Pk_kms_chi2 + bias_delta_chi2 + bias_eta_chi2
+    log_text = 'chi2: Pk {:2.4f}, mean F {:2.4f}, b_del {:2.4f}, b_eta {:2.4f}, overall {:2.4f}'.format(Pk_kms_chi2,mean_F_chi2,bias_delta_chi2,bias_eta_chi2,chi2)
 
-    print('chi2: Pk {:2.4f}, mean F {:2.4f}, overall {:2.4f}'.format(Pk_kms_chi2,mean_F_chi2,overall_chi2))
+    print(log_text)
     print(' ')
 
     with open("parameter_log.txt","a") as f:
         txt = str(time.ctime()+'\n')
         txt += 'C0:{}, C1:{}, C2:{}, D0:{}, D1:{}, D2:{}, n:{}, k1:{}, beta:{}\n'.format(C0,C1,C2,D0,D1,D2,n,k1,beta)
-        txt += 'chi2: Pk {:2.4f}, mean F {:2.4f}, overall {:2.4f}\n\n'.format(Pk_kms_chi2,mean_F_chi2,overall_chi2)
+        txt += log_text + '\n\n'
         f.write(txt)
         f.close()
         best = chi2
@@ -342,9 +347,9 @@ print(minuit.values)
 
 def save_tuning_file(filename,overwrite=False):
     z = np.linspace(1.6,4.0,2401)
-    alpha_arr = get_alpha(z,C0,C1,C2)
+    alpha_arr = get_parameter(z,C0,C1,C2)
     beta_arr = np.ones(alpha_arr.shape)*beta
-    sigma_G_arr = get_sigma_G(z,D0,D1,D2)
+    sigma_G_arr = get_parameter(z,D0,D1,D2)
 
     header = fits.Header()
     header['C0'] = C0
@@ -453,8 +458,8 @@ def plot_parameter_values(minuit_results,z_min=1.8,z_max=4.0,z_size=0.01,show_pl
     k1 = minuit.values['k1']
 
     z = np.linspace(z_min,z_max,(z_max-z_min)/z_size+1)
-    alpha = get_alpha(z,C0,C1,C2)
-    sigma_G = get_sigma_G(z,D0,D1,D2)
+    alpha = get_parameter(z,C0,C1,C2)
+    sigma_G = get_parameter(z,D0,D1,D2)
 
     """
     #HACK
