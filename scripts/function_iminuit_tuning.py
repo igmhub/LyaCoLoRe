@@ -24,7 +24,10 @@ global_seed = 123
 #Choose parameter values.
 beta_value = 2.0
 R_kms = 25.0
+eps_Pk1D = 0.1
 eps_mean_F = 0.025
+eps_bias_delta = 0.025
+eps_bias_eta = 10.**6
 
 #Choose parameters to fix.
 fix_all = True
@@ -63,28 +66,11 @@ new_filename_structure = '{}-{}-{}.fits'    #file type, nside, pixel number
 
 input_format = 'gaussian_colore'
 
-def get_alpha(z,C0,C1,C2,z0=3.0,oneplusz=True):
-    if oneplusz:
-        x = (1 + z)/(1 + z0)
-    else:
-        x = z / z0
-    #Power law in x with constant
-    alpha = C0 * (x ** C1) + C2
-    #Quadratic in log x
-    alpha = C0 * (x ** (C1 + C2 * np.log(x)))
+#Function to produce a parameter as a function of z.
+def get_parameter(z,A0,A1,A2,z0=3.0):
+    x = (1 + z)/(1 + z0)
+    alpha = np.exp(utils.quadratic_log(x,A0,A1,A2))
     return alpha
-
-def get_sigma_G(z,D0,D1,D2,z0=3.0,oneplusz=True):
-    if oneplusz:
-        x = (1 + z)/(1 + z0)
-    else:
-        x = z / z0
-    #Power law in x with constant
-    sigma_G = D0 * (x ** D1) + D2
-    #Quadratic in log x
-    sigma_G = D0 * (x ** (D1 + D2 * np.log(x)))
-    return sigma_G
-
 
 #get pixels from those directories created by make_master.py
 dirs = glob.glob(base_file_location+new_file_structure.format('*','*'))
@@ -145,9 +131,9 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
     #data.trim_skewers(lambda_min_val,min_cat_z,extra_cells=1)
 
     #Expand the C and D parameters into functions of z.
-    alpha = get_alpha(data.Z,C0,C1,C2)
+    alpha = get_parameter(data.Z,C0,C1,C2)
     beta = np.ones_like(alpha) * beta_value
-    extra_sigma_G = get_sigma_G(data.Z,D0,D1,D2)
+    extra_sigma_G = get_parameter(data.Z,D0,D1,D2)
 
     #add small scale fluctuations
     generator = np.random.RandomState(seed)
@@ -157,9 +143,9 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
     data.compute_physical_skewers()
 
     #Update the alpha and beta lengths.
-    alpha = get_alpha(data.Z,C0,C1,C2)
+    alpha = get_parameter(data.Z,C0,C1,C2)
     beta = np.ones_like(alpha) * beta_value
-    extra_sigma_G = get_sigma_G(data.Z,D0,D1,D2)
+    extra_sigma_G = get_parameter(data.Z,D0,D1,D2)
 
     #Way to get exact same alpha as in make_transmission
     #z = np.linspace(1.6,4.0,2401)
@@ -168,7 +154,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
     #extra_sigma_G = get_sigma_G(z,D0,D1,D2)
     #alpha = np.exp(np.interp(np.log(data.Z),np.log(z),np.log(alpha)))
     #beta = np.exp(np.interp(np.log(data.Z),np.log(z),np.log(beta)))
-    #extra_sigma_G = np.exp(np.interp(np.log(data.Z),np.log(z),np.log(extra_sigma_G))) 
+    #extra_sigma_G = np.exp(np.interp(np.log(data.Z),np.log(z),np.log(extra_sigma_G)))
 
     """
     #HACK
@@ -201,10 +187,8 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
             measurement.add_mean_F_measurement(data)
             measurement.add_Pk1D_measurement(data)
             measurement.add_sigma_F_measurement(data)
-            measurement.add_mean_F_chi2(eps=eps_mean_F)
-            measurement.add_Pk1D_chi2(max_k=max_k,denom="npower_cutoff")
-            measurement.add_sigma_F_chi2(eps=0.05)
-            measurement.add_total_chi2()
+            measurement.add_bias_delta_measurement(data,beta,d=d)
+            measurement.add_bias_eta_measurement(data,alpha,beta,d=d)
             measurements += [measurement]
         #print('{:3.2f} checkpoint measurements'.format(time.time()-start))
         return measurements
@@ -234,7 +218,6 @@ print('done!')
 def f(C0,C1,C2,beta,D0,D1,D2,n,k1,return_measurements=False):
 
     ################################################################################
-
     """
     #Define the multiprocessing tracking functions
     """
@@ -276,35 +259,26 @@ def f(C0,C1,C2,beta,D0,D1,D2,n,k1,return_measurements=False):
 
     Pk_kms_chi2 = 0.
     mean_F_chi2 = 0.
-    overall_chi2 = 0.
-
-    sigma_F_chi2 = 0.
+    bias_delta_chi2 = 0.
+    bias_eta_chi2 = 0.
 
     for m in combined_pixels_set.measurements:
 
         m.add_mean_F_chi2(eps=eps_mean_F)
         m.add_Pk1D_chi2(max_k=max_k,denom="npower_cutoff")
         m.add_sigma_F_chi2(eps=0.05)
-        m.add_total_chi2()
+        m.add_bias_delta_chi2(eps=eps_bias_delta)
+        m.add_bias_eta_chi2(eps=eps_bias_eta)
+
         Pk_kms_chi2 += m.Pk_kms_chi2
         mean_F_chi2 += m.mean_F_chi2
-        overall_chi2 += m.total_chi2
-
-        sigma_F_chi2 += m.sigma_F_chi2
+        bias_delta_chi2 += m.bias_delta_chi2
+        bias_eta_chi2 += m.bias_eta_chi2
         #print('z =',m.z_value,'number of k values =',m.k_kms.shape,'number of k values < max k =',np.sum(m.k_kms<max_k))
-    #chi2 = mean_F_chi2 + sigma_F_chi2
-    chi2 = mean_F_chi2 + Pk_kms_chi2
-    #chi2 = mean_F_chi2
 
-    """
-    combined_z_pixels_set = measurement_set.combine_zs()
-
-    if len(combined_z_pixels_set.measurements) == 1:
-        m = combined_z_pixels_set.measurements[0]
-    """
+    chi2 = mean_F_chi2 + Pk_kms_chi2 + bias_delta_chi2 + bias_eta_chi2
 
     print('chi2: Pk {:2.4f}, mean F {:2.4f}, overall {:2.4f}'.format(Pk_kms_chi2,mean_F_chi2,overall_chi2))
-    #print('chi2: sF {:2.4f}, mean F {:2.4f}, overall {:2.4f}'.format(sigma_F_chi2,mean_F_chi2,overall_chi2))
     print(' ')
 
     with open("parameter_log.txt","a") as f:
@@ -342,84 +316,6 @@ sG_kwargs = {'D0' : 4.971,     'error_D0' : 1.0,  'fix_D0' : fix_all|fix_D0, 'li
 s_kwargs = {'n'  : 1.1648,     'error_n' : 1.0,   'limit_n' : (-2., 10.),   'fix_n' : fix_all|False|fix_n,
             'k1' : 0.025638,   'error_k1' : 0.001,'limit_k1' : (0., 0.1),  'fix_k1' : fix_all|False|fix_k1,
             }
-
-"""
-a_kwargs = {'C0' : 0.5097990142866043,     'error_C0' : 1.0,  'fix_C0' : fix_all|fix_C0, 'limit_C0' : (0., 100.),
-            'C1' : 4.5,     'error_C1' : 1.0,  'fix_C1' : fix_all|fix_C1, #'limit_C1' : (0., 20.),
-            'C2' : 0.0,     'error_C2' : 1.0,  'fix_C2' : fix_all|fix_C2, #'limit_C2' : (0., 20.),
-            }
-
-b_kwargs = {'beta' : beta_value, 'error_beta' : 1.0, 'fix_beta' : fix_all|fix_beta, 'limit_beta' : (0.,5.)
-            }
-
-sG_kwargs = {'D0' : 5.438035741056513,     'error_D0' : 1.0,  'fix_D0' : fix_all|fix_D0, 'limit_D0' : (0., 100.),
-             'D1' : 0.0,     'error_D1' : 0.2,  'fix_D1' : fix_all|fix_D1, #'limit_D1' : (0., 20.),
-             'D2' : 0.0,     'error_D2' : 1.0,  'fix_D2' : fix_all|fix_D2, #'limit_D2' : (0., 20.),
-             }
-
-s_kwargs = {'n'  : 1.203975497931822,     'error_n' : 1.0,   'limit_n' : (-2., 10.),   'fix_n' : fix_all|False|fix_n,
-            'k1' : 0.01424037777544643,   'error_k1' : 0.001,'limit_k1' : (0., 0.1),  'fix_k1' : fix_all|False|fix_k1,
-            }
-"""
-
-"""
-#best fit values and errors from 128 pixels using beta = 2.0 and exponential correction in P1D measurements
-a_kwargs = {'C0' : 1.3154969350591683,     'error_C0' : 0.1286,  'fix_C0' : fix_all|False, 'limit_C0' : (0., 100.),
-            'C1' : 2.350679336223662,     'error_C1' : 0.5592,  'fix_C1' : fix_all|False, #'limit_C1' : (0., 20.),
-            'C2' : 2.5293720049184585,     'error_C2' : 2.996,  'fix_C2' : fix_all|False, #'limit_C2' : (0., 20.),
-            }
-
-b_kwargs = {'beta' : beta_value, 'error_beta' : 0.35, 'fix_beta' : fix_all|False|fix_beta, 'limit_beta' : (0.,5.)
-            }
-
-sG_kwargs = {'D0' : 5.880183902177027,     'error_D0' : 0.1863,  'fix_D0' : fix_all|False, 'limit_D0' : (0., 100.),
-             'D1' : -0.47450456739679137,     'error_D1' : 0.1361,  'fix_D1' : fix_all|False, #'limit_D1' : (0., 20.),
-             'D2' : -0.5976427642608017,     'error_D2' : 0.5034,  'fix_D2' : fix_all|False, #'limit_D2' : (0., 20.),
-             }
-
-s_kwargs = {'n'  : 1.373209501330619,     'error_n' : 0.07786,   'limit_n' : (0., 10.),   'fix_n' : fix_all|False,
-            'k1' : 0.015748938933622343,   'error_k1' : 0.001136,'limit_k1' : (0., 0.1),  'fix_k1' : fix_all|False,
-            }
-"""
-"""
-#NEED TO IMPROVE
-#best fit values and errors from 128 pixels using beta = 2.0
-a_kwargs = {'C0' : 2.3956285688705723,     'error_C0' : 0.313,  'fix_C0' : fix_all|False, 'limit_C0' : (0., 100.),
-            'C1' : 0.9834946879511749,     'error_C1' : 0.7643,  'fix_C1' : fix_all|False, #'limit_C1' : (0., 20.),
-            'C2' : 4.046061740440939,     'error_C2' : 5.131,  'fix_C2' : fix_all|False, #'limit_C2' : (0., 20.),
-            }
-
-b_kwargs = {'beta' : beta_value, 'error_beta' : 0.35, 'fix_beta' : fix_all|False|fix_beta, 'limit_beta' : (0.,5.)
-            }
-
-sG_kwargs = {'D0' : 6.651097670160134,     'error_D0' : 0.1614,  'fix_D0' : fix_all|False, 'limit_D0' : (0., 100.),
-             'D1' : -0.6058577718963353,     'error_D1' : 0.1263,  'fix_D1' : fix_all|False, #'limit_D1' : (0., 20.),
-             'D2' : -0.9244334111344428,     'error_D2' : 0.4242,  'fix_D2' : fix_all|False, #'limit_D2' : (0., 20.),
-             }
-
-s_kwargs = {'n'  : 1.1088302998214994,     'error_n' : 0.06883,   'limit_n' : (0., 10.),   'fix_n' : fix_all|False,
-            'k1' : 0.01335732276225527,   'error_k1' : 0.001158,'limit_k1' : (0., 0.1),  'fix_k1' : fix_all|False,
-            }
-"""
-"""
-#best fit values and errors from 128 pixels using beta=1.65
-a_kwargs = {'C0' : 2.6332653734714553,     'error_C0' : 0.2688,  'fix_C0' : fix_all|False, 'limit_C0' : (0., 100.),
-            'C1' : -0.34320825880102096,     'error_C1' : 0.6182,  'fix_C1' : fix_all|False, #'limit_C1' : (0., 20.),
-            'C2' : 6.015264156788307,     'error_C2' : 2.311,  'fix_C2' : fix_all|False, #'limit_C2' : (0., 20.),
-            }
-
-b_kwargs = {'beta' : beta_value, 'error_beta' : 0.35, 'fix_beta' : fix_all|False|fix_beta, 'limit_beta' : (0.,5.)
-            }
-
-sG_kwargs = {'D0' : 7.0184129350010505,     'error_D0' : 0.1519,  'fix_D0' : fix_all|False, 'limit_D0' : (0., 100.),
-             'D1' : -0.7041099375147687,     'error_D1' : 0.08014,  'fix_D1' : fix_all|False, #'limit_D1' : (0., 20.),
-             'D2' : -0.855862202003979,     'error_D2' : 0.2538,  'fix_D2' : fix_all|False, #'limit_D2' : (0., 20.),
-             }
-
-s_kwargs = {'n'  : 1.2039754979318222,     'error_n' : 0.06131,   'limit_n' : (0., 10.),   'fix_n' : fix_all|False,
-            'k1' : 0.014240377775446435,   'error_k1' : 0.001075,'limit_k1' : (0., 0.1),  'fix_k1' : fix_all|False,
-            }
-"""
 
 other_kwargs = {'return_measurements'  : False,    'fix_return_measurements' : True,
                 'errordef'             : 1,
@@ -475,13 +371,7 @@ def save_tuning_file(filename,overwrite=False):
 
 save_tuning_file(tuning_filename,overwrite=overwrite_tuning)
 
-#Want to do a final run here
-#final_measurements = []
-#for pixel in pixels:
-#    final_measurements += [measure_pixel_segment(pixel,C0,C1,C2,D0,D1,D2,n,k1,RSD_weights_dict[pixel],return_RSD_weights=False)]
-#final_measurements = tuning.measurement_set(measurements=final_measurements)
-#final_measurements = final_measurements.combine_pixels()
-
+#Do a final run to get the measurements.
 final_chi2,final_measurements = f(C0,C1,C2,beta,D0,D1,D2,n,k1,return_measurements=True)
 
 #Plot a graph of mean F with redshift
