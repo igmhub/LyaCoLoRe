@@ -565,6 +565,9 @@ class SimulationData:
         elif quantity == 'FlnF':
             #Use that ln(F)=-tau so FlnF = -F*tau
             skewer_rows = (-self.lya_absorber.transmission() * self.lya_absorber.tau) ** power
+        elif quantity == 'FlnFlnF':
+            #Use that ln(F)=-tau so FlnFlnF = F*tau**2
+            skewer_rows = (self.lya_absorber.transmission() * (self.lya_absorber.tau)**2) ** power
 
         #If no z value, then compute the mean as a function of redshift.
         if not z_value:

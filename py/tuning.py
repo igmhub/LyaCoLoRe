@@ -274,9 +274,9 @@ class function_measurement:
         self.bias_delta = bias.get_bias_delta(pixel_object,betas,self.z_value,z_width=self.z_width,d=d)
 
         return
-    def add_bias_nu_measurement(self,pixel_object,alphas,betas,d=0.001,z_r0=2.5):
+    def add_bias_eta_measurement(self,pixel_object,alphas,betas,d=0.001,z_r0=2.5):
 
-        self.bias_nu = bias.get_bias_nu(pixel_object,alphas,betas,self.z_value,z_width=self.z_width,d=d,z_r0=z_r0)
+        self.bias_eta = bias.get_bias_nu(pixel_object,alphas,betas,self.z_value,z_width=self.z_width,d=d,z_r0=z_r0)
 
         return
     def add_sigma_F_measurement(self,pixel_object):
@@ -341,18 +341,20 @@ class function_measurement:
             n = 2.
             cutoff = 0.02 #kms
             eps = 0.1 * ((1 + (self.k_kms/k0)**n))
-            eps[self.k_kms>cutoff] = 10**6
+            eps[self.k_kms>cutoff] = A
             denom = (eps * model_Pk_kms)**2
         self.Pk_kms_chi2_eps = eps
         chi2 = np.sum(((self.Pk_kms - model_Pk_kms)**2)/denom)
         self.Pk_kms_chi2 = chi2
         return
-    def add_mean_F_chi2(self,min_k=None,max_k=None,eps=0.1,mean_F_model='Becker13'):
+
+    def add_mean_F_chi2(self,eps=0.1,mean_F_model='Becker13'):
         model_mean_F = get_mean_F_model(self.z_value,model=mean_F_model)
         denom = (eps * model_mean_F)**2
         chi2 = np.sum(((self.mean_F - model_mean_F)**2)/denom)
         self.mean_F_chi2 = chi2
         return
+
     def add_sigma_F_chi2(self,min_k=None,max_k=None,eps=0.1,l_hMpc=0.25):
         model_sigma_F = get_sigma_dF_P1D(self.z_value,l_hMpc=l_hMpc)
         denom = (eps * model_sigma_F)**2
@@ -360,11 +362,26 @@ class function_measurement:
         self.sigma_F_chi2 = chi2
         #print(self.z_value,model_sigma_F,self.sigma_F)
         return
+
     def add_total_chi2(self):
         chi2 = self.Pk_kms_chi2 + self.mean_F_chi2
         self.total_chi2 = chi2
         return
-    @classmethod
+
+    def add_bias_delta_chi2(self,eps=0.1,model='BOSS'):
+        model_bias_delta = get_bias_delta_model(self.z_value,model=model)
+        denom = (eps * model_bias_delta)**2
+        chi2 = np.sum(((self.bias_delta - model_bias_delta)**2)/denom)
+        self.bias_delta_chi2 = chi2
+        return
+
+    def add_bias_eta_chi2(self,eps=0.1,model='BOSS'):
+        model_bias_eta = get_bias_eta_model(self.z_value,model=model)
+        denom = (eps * model_bias_eta)**2
+        chi2 = np.sum(((self.bias_eta - model_bias_eta)**2)/denom)
+        self.bias_eta_chi2 = chi2
+        return
+    
     def combine_measurements(cls,m1,m2):
         if utils.confirm_identical(m1.parameter_ID,m2.parameter_ID,item_name='parameter_ID'):
             parameter_ID = m1.parameter_ID
