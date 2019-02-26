@@ -3,7 +3,7 @@ from astropy.io import fits
 import matplotlib.pyplot as plt
 import glob
 
-from . import convert, Pk1D, utils
+from . import bias, convert, Pk1D, utils
 
 lya = utils.lya_rest
 
@@ -159,7 +159,7 @@ class function_measurement:
         self.mean_F_chi2 = np.sum(((self.mean_F - model_mean_F)**2)/denom)
         return
 
-    def add_sigma_F_chi2(self,min_k=None,max_k=None,eps=0.1,l_hMpc=0.25):
+    def add_sigma_dF_chi2(self,min_k=None,max_k=None,eps=0.1,l_hMpc=0.25):
         #Calculate the "model" value and weight.
         model_sigma_F = get_sigma_dF_P1D(self.z_value,l_hMpc=l_hMpc)
         denom = (eps * model_sigma_F)**2
@@ -218,7 +218,7 @@ class function_measurement:
         #Combine measurements by averaging.
         mean_F = (m1.mean_F*m1.N_skewers + m2.mean_F*m2.N_skewers)/(m1.N_skewers + m2.N_skewers)
         Pk_kms = (m1.Pk_kms*m1.N_skewers + m2.Pk_kms*m2.N_skewers)/(m1.N_skewers + m2.N_skewers)
-        sigma_F = np.sqrt(((m1.sigma_F**2)*m1.N_skewers + (m2.sigma_F**2)*m2.N_skewers)/(m1.N_skewers + m2.N_skewers))
+        sigma_dF = np.sqrt(((m1.sigma_dF**2)*m1.N_skewers + (m2.sigma_dF**2)*m2.N_skewers)/(m1.N_skewers + m2.N_skewers))
         bias_delta = (m1.bias_delta*m1.N_skewers + m2.bias_delta*m2.N_skewers)/(m1.N_skewers + m2.N_skewers)
         bias_eta = (m1.bias_eta*m1.N_skewers + m2.bias_eta*m2.N_skewers)/(m1.N_skewers + m2.N_skewers)
 
@@ -343,7 +343,6 @@ class measurement_set:
                 best_measurement = m
         return best_measurement
 
-    @classmethod
     def combine_pixels(self):
         #Determine which z values we have in the set.
         z_values = list(set([m.z_value for m in self.measurements]))
@@ -352,18 +351,18 @@ class measurement_set:
         for z_value in z_values:
             #For each z value, filter the measurements, and get the parameter IDs.
             z_set = self.z_filter(z_value)
-            z_parameter_IDs = list(set([m.parameter_ID for m in z_set]))
+            z_parameter_IDs = list(set([m.parameter_ID for m in z_set.measurements]))
 
             for parameter_ID in z_parameter_IDs:
                 #For each parameter ID, filter the measurements and combine into 1.
                 z_parameter_set = z_set.ID_filter(parameter_ID)
-                c_m = z_parameter_set[0]
-                if len(z_parameter_set) > 1:
-                    for m in z_parameter_set[1:]:
+                c_m = z_parameter_set.measurements[0]
+                if len(z_parameter_set.measurements) > 1:
+                    for m in z_parameter_set.measurements[1:]:
                         c_m = function_measurement.combine_measurements(c_m,m)
                 combined_measurements += [c_m]
 
-        return cls(combined_measurements)
+        return measurement_set(measurements=combined_measurements)
 
     #Don't think this is used?
     def optimize_s_parameters(self,plot_optimal=False,mean_F_model='Becker13'):
@@ -709,7 +708,7 @@ def get_sigma_dF_P1D(z,l_hMpc=0.25,Om=0.3147):
 BOSS_z = np.array([2.4])
 BOSS_beta = np.array([1.650])
 BOSS_beta_err = np.array([0.081])
-BOSS_bias_delta_1plusbeta = np.array([−0.3544])
+BOSS_bias_delta_1plusbeta = np.array([-0.3544])
 BOSS_bias_delta_1plusbeta_err = np.array([0.0038])
 
 BOSS_f = 0.9625
@@ -723,14 +722,14 @@ BOSS_bias_eta = BOSS_beta * BOSS_bias_delta / BOSS_f
 def get_bias_delta_model(z,model='BOSS'):
 
     z_evol = ((1 + z)/(1 + BOSS_z))**BOSS_bias_delta_z_evol_exponent
-    bias_delta_model = BOSS_bia_delta * z_evol
+    bias_delta_model = BOSS_bias_delta * z_evol
 
     return bias_delta_model
 
 def get_bias_eta_model(z,model='BOSS'):
 
     z_evol = ((1 + z)/(1 + BOSS_z))**BOSS_bias_eta_z_evol_exponent
-    bias_eta_model = BOSS_bia_eta * z_evol
+    bias_eta_model = BOSS_bias_eta * z_evol
 
     return bias_eta_model
 
@@ -983,7 +982,7 @@ class tuning_parameters:
 """
 Below: old tuning, no-RSD, theoretical based Method
 """
-"""
+
 #Function to find the value of alpha required to match mean_F to a specified value.
 def find_alpha(sigma_G,mean_F_required,beta,D,alpha_log_low=-3.0,alpha_log_high=10.0,tolerance=0.0001,max_iter=30):
     #print('---> mean_F required={:2.2f}'.format(mean_F_required))
@@ -1115,4 +1114,3 @@ def get_flux_stats(sigma_G,alpha,beta,D,mean_only=False,int_lim_fac=10.0):
         sigma_dF = None
 
     return mean_F, sigma_dF
-"""

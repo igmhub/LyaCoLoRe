@@ -9,6 +9,9 @@ lya = utils.lya_rest
 #Assumes that the object already has tau calculated and RSDs applied.
 def get_bias_delta(data,betas,z_values,d=0.001,z_width=0.2):
 
+    if isinstance(z_values, float):
+        z_values = np.array([z_values])
+
     """
     #Add small extra delta to Gaussian skewers to simulate overdensity
     overdensity = copy.deepcopy(data)
@@ -65,7 +68,10 @@ def get_bias_delta(data,betas,z_values,d=0.001,z_width=0.2):
 
 #Function to get the bias of eta at various z values from a sim data object.
 #Assumes that the object already has tau calculated but with no RSDs applied.
-def get_bias_nu(data,alphas,betas,z_values,d=0.001,z_width=0.2,z_r0=2.5,include_thermal_effects=False):
+def get_bias_eta(data,alphas,betas,z_values,d=0.001,z_width=0.2,z_r0=2.5,include_thermal_effects=False):
+
+    if isinstance(z_values, float):
+        z_values = np.array([z_values])
 
     #Method 1:
     #Use mean of FlnF
