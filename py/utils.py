@@ -357,3 +357,7 @@ def renorm_rebin_picca_file(filepath,old_mean=None,new_mean=None,N_merge=None,IV
     h.close()
 
     return
+
+#Function to produce values of a quadratic log functional form.
+def quadratic_log(x,A0,A1,A2):
+    return A0 + A1*np.log(x) + A2*(np.log(x))**2
