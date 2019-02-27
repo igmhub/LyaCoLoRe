@@ -14,7 +14,7 @@ from pyacolore import convert, Pk1D, utils, independent, tuning, simulation_data
 
 lya = utils.lya_rest
 
-N_files = 1
+N_files = 32
 N_processes = np.min((64,N_files))
 lambda_min = 3550.0
 min_cat_z = 1.8
@@ -30,14 +30,25 @@ eps_bias_delta = 0.025
 eps_bias_eta = 10.**6
 d = 10.**-3
 
+#Choose tuning parameter initial values.
+initial_C0 = 1.071
+initial_C1 = 4.5
+initial_C2 = 0.0
+initial_beta = 1.65
+initial_D0 = 5.619
+initial_D1 = 0.07344
+initial_D2 = 0.0
+initial_n = 0.9565
+initial_k1 = 0.02162
+
 #Choose parameters to fix.
-fix_all = True
+fix_all = False
 fix_C0 = False
 fix_C1 = True
 fix_C2 = True
 fix_beta = True
 fix_D0 = False
-fix_D1 = True
+fix_D1 = False
 fix_D2 = True
 fix_n = False
 fix_k1 = False
@@ -305,21 +316,21 @@ def f(C0,C1,C2,beta,D0,D1,D2,n,k1,return_measurements=False):
 #   sigma_G_required = D0 * (Z**D1) + D2
 
 
-a_kwargs = {'C0' : 0.7787,     'error_C0' : 1.0,  'fix_C0' : fix_all|fix_C0, 'limit_C0' : (0., 100.),
-            'C1' : 4.5,     'error_C1' : 1.0,  'fix_C1' : fix_all|fix_C1, #'limit_C1' : (0., 20.),
-            'C2' : 0.0,     'error_C2' : 1.0,  'fix_C2' : fix_all|fix_C2, #'limit_C2' : (0., 20.),
+a_kwargs = {'C0' : initial_C0,     'error_C0' : 1.0,  'fix_C0' : fix_all|fix_C0, 'limit_C0' : (0., 100.),
+            'C1' : initial_C1,     'error_C1' : 1.0,  'fix_C1' : fix_all|fix_C1, #'limit_C1' : (0., 20.),
+            'C2' : initial_C2,     'error_C2' : 1.0,  'fix_C2' : fix_all|fix_C2, #'limit_C2' : (0., 20.),
             }
 
-b_kwargs = {'beta' : beta_value, 'error_beta' : 1.0, 'fix_beta' : fix_all|fix_beta, 'limit_beta' : (0.,5.)
+b_kwargs = {'beta' : initial_beta, 'error_beta' : 1.0, 'fix_beta' : fix_all|fix_beta, 'limit_beta' : (0.,5.)
             }
 
-sG_kwargs = {'D0' : 4.971,     'error_D0' : 1.0,  'fix_D0' : fix_all|fix_D0, 'limit_D0' : (0., 100.),
-             'D1' : 0.0,     'error_D1' : 0.2,  'fix_D1' : fix_all|fix_D1, #'limit_D1' : (0., 20.),
-             'D2' : 0.0,     'error_D2' : 1.0,  'fix_D2' : fix_all|fix_D2, #'limit_D2' : (0., 20.),
+sG_kwargs = {'D0' : initial_D0,     'error_D0' : 1.0,  'fix_D0' : fix_all|fix_D0, 'limit_D0' : (0., 100.),
+             'D1' : initial_D1,     'error_D1' : 0.2,  'fix_D1' : fix_all|fix_D1, #'limit_D1' : (0., 20.),
+             'D2' : initial_D2,     'error_D2' : 1.0,  'fix_D2' : fix_all|fix_D2, #'limit_D2' : (0., 20.),
              }
 
-s_kwargs = {'n'  : 1.1648,     'error_n' : 1.0,   'limit_n' : (-2., 10.),   'fix_n' : fix_all|False|fix_n,
-            'k1' : 0.025638,   'error_k1' : 0.001,'limit_k1' : (0., 0.1),  'fix_k1' : fix_all|False|fix_k1,
+s_kwargs = {'n'  : initial_n,     'error_n' : 1.0,   'limit_n' : (-2., 10.),   'fix_n' : fix_all|False|fix_n,
+            'k1' : initial_k1,   'error_k1' : 0.001,'limit_k1' : (0., 0.1),  'fix_k1' : fix_all|False|fix_k1,
             }
 
 other_kwargs = {'return_measurements'  : False,    'fix_return_measurements' : True,
