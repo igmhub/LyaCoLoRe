@@ -31,21 +31,21 @@ eps_bias_eta = 10.**6
 d = 10.**-3
 
 #Choose tuning parameter initial values.
-initial_C0 = 1.1938
+initial_C0 = 1.193777043957145
 initial_C1 = 4.5
 initial_C2 = 0.0
 initial_beta = 1.65
-initial_D0 = 5.8610
-initial_D1 = 0.3234
+initial_D0 = 5.861021607666022
+initial_D1 = 0.32337471186643474
 initial_D2 = 0.0
-initial_n = 1.0552
-initial_k1 = 0.020894
+initial_n = 1.0550565023009746
+initial_k1 = 0.020895666329080128
 
 #Choose parameters to fix.
 fix_all = False
 fix_C0 = False
-fix_C1 = True
-fix_C2 = True
+fix_C1 = False
+fix_C2 = False
 fix_beta = True
 fix_D0 = False
 fix_D1 = False
@@ -57,7 +57,7 @@ fix_k1 = False
 k_plot_max = 0.02
 show_plots = False
 save_plots = True
-suffix = '_with_bias'
+suffix = '_with_bias_afree'
 overwrite_tuning = True
 tuning_filename = 'input_files/tuning_data' + suffix + '.fits'
 
@@ -371,6 +371,8 @@ beta = minuit.values['beta']
 D0 = minuit.values['D0']
 D1 = minuit.values['D1']
 D2 = minuit.values['D2']
+n = minuit.values['n']
+k1 = minuit.values['k1']
 
 print(minuit.values)
 
@@ -406,7 +408,7 @@ def save_tuning_file(filename,overwrite=False):
 save_tuning_file(tuning_filename,overwrite=overwrite_tuning)
 
 #Do a final run to get the measurements.
-final_chi2,final_measurements = f(C0,C1,C2,beta,D0,D1,D2,k0,E1,E2,return_measurements=True)
+final_chi2,final_measurements = f(C0,C1,C2,beta,D0,D1,D2,n,k1,return_measurements=True)
 
 #Plot a graph of mean F with redshift
 def plot_mean_F_values(m_set,show_plot=True,save_plot=False):
