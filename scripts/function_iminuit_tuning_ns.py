@@ -31,15 +31,19 @@ eps_bias_eta = 10.**6
 d = 10.**-3
 
 #Choose tuning parameter initial values.
-initial_C0 = 1.1938
+initial_C0 = 1.0925
 initial_C1 = 4.5
 initial_C2 = 0.0
 initial_beta = 1.65
-initial_D0 = 5.8610
-initial_D1 = 0.3234
+initial_D0 = 5.7493
+initial_D1 = 0.3147
 initial_D2 = 0.0
-initial_n = 1.0552
-initial_k1 = 0.020894
+initial_k0 = 0.001
+initial_E1 = -0.55
+initial_E2 = 0.0
+
+initial_n = 1.1158
+initial_k1 = 0.019184
 
 #Choose parameters to fix.
 fix_all = False
@@ -50,6 +54,10 @@ fix_beta = True
 fix_D0 = False
 fix_D1 = False
 fix_D2 = True
+fix_k0 = False
+fix_E1 = False
+fix_E2 = False
+
 fix_n = False
 fix_k1 = False
 
@@ -117,7 +125,7 @@ def log_error(retval):
 ################################################################################
 
 # TODO: want to move this to tuning.py eventually
-def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,prep=False):
+def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,k0,E1,E1,RSD_weights,prep=False):
     t = time.time()
     seed = int(pixel * 10**5 + global_seed)
 
@@ -150,7 +158,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
 
     #add small scale fluctuations
     generator = np.random.RandomState(seed)
-    data.add_small_scale_gaussian_fluctuations(cell_size,data.Z,extra_sigma_G,generator,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=IVAR_cutoff,n=n,k1=k1,R_kms=R_kms)
+    data.add_small_scale_gaussian_fluctuations(cell_size,data.Z,extra_sigma_G,generator,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=IVAR_cutoff,k0=k0,E1=E1,E2=E2,R_kms=R_kms)
 
     #print('{:3.2f} checkpoint extra power'.format(time.time()-t))
     t = time.time()
@@ -233,7 +241,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
 #Pre-prep for future processings by getting RSD maps and independent skewers
 print('producing preparatory data (RSD maps)')
 #tasks = [(pixel,104.5,-4.62,1.654,54.6,-0.068,-43.81,1.52,0.0166,None,True) for pixel in pixels]
-tasks = [(pixel,3.,0.,0.,beta_value,7.,0.,0.,1.0,0.001,None,True) for pixel in pixels]
+tasks = [(pixel,3.,0.,0.,beta_value,7.,0.,0.,0.001,0.,0.,None,True) for pixel in pixels]
 
 if __name__ == '__main__':
     pool = Pool(processes = N_processes)
@@ -252,7 +260,7 @@ for result in results:
     RSD_weights_dict[result[0]] = result[1]
 print('done!')
 
-def f(C0,C1,C2,beta,D0,D1,D2,n,k1,return_measurements=False):
+def f(C0,C1,C2,beta,D0,D1,D2,k0,E1,E2,return_measurements=False):
 
     ################################################################################
     """
@@ -271,9 +279,9 @@ def f(C0,C1,C2,beta,D0,D1,D2,n,k1,return_measurements=False):
     ################################################################################
 
     print('starting at',time.ctime())
-    print('looking at params: C=({:2.4f},{:2.4f},{:2.4f}), beta={:1.2f},  D=({:2.4f},{:2.4f},{:2.4f}), n={:2.4f}, k1={:2.6f}'.format(C0,C1,C2,beta,D0,D1,D2,n,k1))
+    print('looking at params: C=({:2.4f},{:2.4f},{:2.4f}), beta={:1.2f},  D=({:2.4f},{:2.4f},{:2.4f}), k0={:2.6f}, E=({:2.4f},{:2.4f})'.format(C0,C1,C2,beta,D0,D1,D2,k0,E1,E2))
 
-    tasks = [(pixel,C0,C1,C2,beta,D0,D1,D2,n,k1,None) for pixel in pixels]
+    tasks = [(pixel,C0,C1,C2,beta,D0,D1,D2,k0,E1,E2,None) for pixel in pixels]
 
     #Run the multiprocessing pool
     if __name__ == '__main__':
@@ -319,7 +327,7 @@ def f(C0,C1,C2,beta,D0,D1,D2,n,k1,return_measurements=False):
 
     with open("parameter_log.txt","a") as f:
         txt = str(time.ctime()+'\n')
-        txt += 'C0:{}, C1:{}, C2:{}, D0:{}, D1:{}, D2:{}, n:{}, k1:{}, beta:{}\n'.format(C0,C1,C2,D0,D1,D2,n,k1,beta)
+        txt += 'C0:{}, C1:{}, C2:{}, D0:{}, D1:{}, D2:{}, k0:{}, E1:{}, E2:{}, beta:{}\n'.format(C0,C1,C2,D0,D1,D2,k0,E1,E2,beta)
         txt += log_text + '\n\n'
         f.write(txt)
         f.close()
@@ -349,9 +357,16 @@ sG_kwargs = {'D0' : initial_D0,     'error_D0' : 1.0,  'fix_D0' : fix_all|fix_D0
              'D2' : initial_D2,     'error_D2' : 1.0,  'fix_D2' : fix_all|fix_D2, #'limit_D2' : (0., 20.),
              }
 
+s_kwargs = {'k0' : initial_k0,    'error_k0' : 0.001,   'limit_k0' : (0., 0.1),   'fix_k0' : fix_all|fix_k0,
+            'E1' : initial_E1,   'error_E1' : 0.1,      'limit_E1' : (-10.,10.),  'fix_E1' : fix_all|fix_E1,
+            'E2' : initial_E2,   'error_E2' : 0.1,      'limit_E2' : (-10.,10.),  'fix_E2' : fix_all|fix_E2,
+            }
+
+"""
 s_kwargs = {'n'  : initial_n,     'error_n' : 1.0,   'limit_n' : (-2., 10.),   'fix_n' : fix_all|False|fix_n,
             'k1' : initial_k1,   'error_k1' : 0.001,'limit_k1' : (0., 0.1),  'fix_k1' : fix_all|False|fix_k1,
             }
+"""
 
 other_kwargs = {'return_measurements'  : False,    'fix_return_measurements' : True,
                 'errordef'             : 1,
@@ -371,6 +386,12 @@ beta = minuit.values['beta']
 D0 = minuit.values['D0']
 D1 = minuit.values['D1']
 D2 = minuit.values['D2']
+k0 = minuit.values['k0']
+E1 = minuit.values['E1']
+E2 = minuit.values['E2']
+
+n = minuit.values['n']
+k1 = minuit.values['k1']
 
 print(minuit.values)
 
@@ -387,8 +408,9 @@ def save_tuning_file(filename,overwrite=False):
     header['D0'] = D0
     header['D1'] = D1
     header['D2'] = D2
-    header['n'] = n
-    header['k1'] = k1
+    header['k0'] = k0
+    header['E1'] = E1
+    header['E2'] = E2
 
     prihdr = fits.Header()
     prihdu = fits.PrimaryHDU(header=prihdr)

@@ -229,7 +229,7 @@ class function_measurement:
         combined.mean_F = mean_F
         combined.k_kms = k_kms
         combined.Pk_kms = Pk_kms
-        combined.sigma_dF = sigma_dF
+        #combined.sigma_dF = sigma_dF
         combined.bias_delta = bias_delta
         combined.bias_eta = bias_eta
 
