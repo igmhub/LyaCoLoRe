@@ -14,7 +14,7 @@ from pyacolore import convert, Pk1D, utils, independent, tuning, simulation_data
 
 lya = utils.lya_rest
 
-N_files = 32
+N_files = 1
 N_processes = np.min((64,N_files))
 lambda_min = 3550.0
 min_cat_z = 1.8
@@ -118,7 +118,7 @@ def log_error(retval):
 
 # TODO: want to move this to tuning.py eventually
 def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,prep=False):
-    start = time.time()
+    t = time.time()
     seed = int(pixel * 10**5 + global_seed)
 
     #print('start pixel {} at {}'.format(pixel,time.ctime()))
@@ -129,7 +129,8 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
 
     #Make a pixel object from it.
     data = simulation_data.SimulationData.get_gaussian_skewers_object(location+gaussian_filename,None,input_format,IVAR_cutoff=IVAR_cutoff)
-    #print('{:3.2f} checkpoint sim_dat'.format(time.time()-start))
+    print('{:3.2f} checkpoint sim_dat'.format(time.time()-t))
+    t = time.time()
 
     #trim skewers to the minimal length
     extra = 0.1
@@ -150,6 +151,9 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
     #add small scale fluctuations
     generator = np.random.RandomState(seed)
     data.add_small_scale_gaussian_fluctuations(cell_size,data.Z,extra_sigma_G,generator,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n=n,k1=k1,R_kms=R_kms)
+
+    print('{:3.2f} checkpoint extra power'.format(time.time()-t))
+    t = time.time()
 
     #Copmute the physical skewers
     data.compute_physical_skewers()
@@ -189,25 +193,41 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
         data.add_all_RSDs(thermal=False,weights=RSD_weights)
         data.trim_skewers(lambda_min,min_cat_z,extra_cells=1)
 
+        print('{:3.2f} checkpoint RSDs'.format(time.time()-t))
+        t = time.time()
+
         #Recompute alpha and beta.
         alpha = get_parameter(data.Z,C0,C1,C2)
         beta = np.ones_like(alpha) * beta_value
         extra_sigma_G = get_parameter(data.Z,D0,D1,D2)
 
-        #print('after final trim, N_cells=',data.N_cells)
-        #print('{:3.2f} checkpoint RSDs applied'.format(time.time()-start))
         measurements = []
+        times_m = np.zeros(6)
         for z_value in z_values:
-            #print('z={}: alpha={}, sigma_G={}'.format(z_value,np.interp(z_value,data.Z,alpha),np.interp(z_value,data.Z,sigma_G_required)))
             ID = n
+            t_m = time.time()
             measurement = tuning.function_measurement(ID,z_value,z_width,data.N_qso,n,k1,C0,C1,C2,beta_value,D0,D1,D2,pixels=[pixel])
+            times_m[0] += time.time() - t_m
+            t_m = time.time()
             measurement.add_mean_F_measurement(data)
+            times_m[1] += time.time() - t_m
+            t_m = time.time()
             measurement.add_Pk1D_measurement(data)
-            measurement.add_sigma_dF_measurement(data)
+            times_m[2] += time.time() - t_m
+            t_m = time.time()
+            #measurement.add_sigma_dF_measurement(data)
+            times_m[3] += time.time() - t_m
+            t_m = time.time()
             measurement.add_bias_delta_measurement(data,beta,d=d)
+            times_m[4] += time.time() - t_m
+            t_m = time.time()
             measurement.add_bias_eta_measurement(data,alpha,beta,d=d)
+            times_m[5] += time.time() - t_m
             measurements += [measurement]
-        #print('{:3.2f} checkpoint measurements'.format(time.time()-start))
+
+        print('{:3.2f} checkpoint measurements'.format(time.time()-t))
+        print('--> measurement_times: {:3.2f}, {:3.2f}, {:3.2f}, {:3.2f}, {:3.2f}, {:3.2f}'.format(times_m[0],times_m[1],times_m[2],times_m[3],times_m[4],times_m[5]))
+
         return measurements
 
 #Pre-prep for future processings by getting RSD maps and independent skewers

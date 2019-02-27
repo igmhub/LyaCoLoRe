@@ -218,7 +218,7 @@ class function_measurement:
         #Combine measurements by averaging.
         mean_F = (m1.mean_F*m1.N_skewers + m2.mean_F*m2.N_skewers)/(m1.N_skewers + m2.N_skewers)
         Pk_kms = (m1.Pk_kms*m1.N_skewers + m2.Pk_kms*m2.N_skewers)/(m1.N_skewers + m2.N_skewers)
-        sigma_dF = np.sqrt(((m1.sigma_dF**2)*m1.N_skewers + (m2.sigma_dF**2)*m2.N_skewers)/(m1.N_skewers + m2.N_skewers))
+        #sigma_dF = np.sqrt(((m1.sigma_dF**2)*m1.N_skewers + (m2.sigma_dF**2)*m2.N_skewers)/(m1.N_skewers + m2.N_skewers))
         bias_delta = (m1.bias_delta*m1.N_skewers + m2.bias_delta*m2.N_skewers)/(m1.N_skewers + m2.N_skewers)
         bias_eta = (m1.bias_eta*m1.N_skewers + m2.bias_eta*m2.N_skewers)/(m1.N_skewers + m2.N_skewers)
 
