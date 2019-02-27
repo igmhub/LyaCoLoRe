@@ -225,10 +225,11 @@ class function_measurement:
         #Make the combined object.
         combined = cls(parameter_ID,z_value,z_width,N_skewers,n,k1,C0,C1,C2,beta,D0,D1,D2,pixels=pixels)
 
-        #Add measurements to the combined object.
+        #Add details to the combined object.
         combined.mean_F = mean_F
+        combined.k_kms = k_kms
         combined.Pk_kms = Pk_kms
-        combined.sigma_F = sigma_F
+        combined.sigma_dF = sigma_dF
         combined.bias_delta = bias_delta
         combined.bias_eta = bias_eta
 
