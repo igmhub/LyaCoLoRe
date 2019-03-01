@@ -31,33 +31,36 @@ eps_bias_eta = 10.**6
 d = 10.**-3
 
 #Choose tuning parameter initial values.
-initial_C0 = 1.193777043957145
+initial_C0 = 0.9651932683748032
 initial_C1 = 4.5
 initial_C2 = 0.0
 initial_beta = 1.65
-initial_D0 = 5.861021607666022
-initial_D1 = 0.32337471186643474
+initial_D0 = 5.624224029894514
+initial_D1 = 0.2418002413094384
 initial_D2 = 0.0
-initial_n = 1.0550565023009746
-initial_k1 = 0.020895666329080128
+initial_k0 = 0.01321420552041682
+initial_E1 = -0.3951588215602211
+initial_E2 = -0.09091922933149028
 
 #Choose parameters to fix.
 fix_all = False
 fix_C0 = False
 fix_C1 = False
-fix_C2 = False
+fix_C2 = True
 fix_beta = True
 fix_D0 = False
 fix_D1 = False
 fix_D2 = True
-fix_n = False
-fix_k1 = False
+fix_k0 = False
+fix_E1 = False
+fix_E2 = False
 
 #Admin options
 k_plot_max = 0.02
-show_plots = False
+show_plots = True
 save_plots = True
-suffix = '_with_bias_afree'
+suffix = '_with_bias_newshape_afree'
+save_tuning = True
 overwrite_tuning = True
 tuning_filename = 'input_files/tuning_data' + suffix + '.fits'
 
@@ -117,7 +120,7 @@ def log_error(retval):
 ################################################################################
 
 # TODO: want to move this to tuning.py eventually
-def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,prep=False):
+def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,k0,E1,E2,RSD_weights,prep=False):
     t = time.time()
     seed = int(pixel * 10**5 + global_seed)
 
@@ -150,7 +153,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
 
     #add small scale fluctuations
     generator = np.random.RandomState(seed)
-    data.add_small_scale_gaussian_fluctuations(cell_size,data.Z,extra_sigma_G,generator,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=IVAR_cutoff,n=n,k1=k1,R_kms=R_kms)
+    data.add_small_scale_gaussian_fluctuations(cell_size,data.Z,extra_sigma_G,generator,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=IVAR_cutoff,k0=k0,E1=E1,E2=E2,R_kms=R_kms)
 
     #print('{:3.2f} checkpoint extra power'.format(time.time()-t))
     t = time.time()
@@ -204,25 +207,25 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
         measurements = []
         times_m = np.zeros(6)
         for z_value in z_values:
-            ID = n
-            #t_m = time.time()
-            measurement = tuning.function_measurement(ID,z_value,z_width,data.N_qso,n,k1,C0,C1,C2,beta_value,D0,D1,D2,pixels=[pixel])
-            #times_m[0] += time.time() - t_m
-            #t_m = time.time()
+            ID = k0
+            t_m = time.time()
+            measurement = tuning.function_measurement(ID,z_value,z_width,data.N_qso,k0,E1,E2,C0,C1,C2,beta_value,D0,D1,D2,pixels=[pixel])
+            times_m[0] += time.time() - t_m
+            t_m = time.time()
             measurement.add_mean_F_measurement(data)
-            #times_m[1] += time.time() - t_m
-            #t_m = time.time()
+            times_m[1] += time.time() - t_m
+            t_m = time.time()
             measurement.add_Pk1D_measurement(data)
-            #times_m[2] += time.time() - t_m
-            #t_m = time.time()
+            times_m[2] += time.time() - t_m
+            t_m = time.time()
             #measurement.add_sigma_dF_measurement(data)
-            #times_m[3] += time.time() - t_m
-            #t_m = time.time()
+            times_m[3] += time.time() - t_m
+            t_m = time.time()
             measurement.add_bias_delta_measurement(data,beta,d=d)
-            #times_m[4] += time.time() - t_m
-            #t_m = time.time()
+            times_m[4] += time.time() - t_m
+            t_m = time.time()
             measurement.add_bias_eta_measurement(data,alpha,beta,d=d)
-            #times_m[5] += time.time() - t_m
+            times_m[5] += time.time() - t_m
             measurements += [measurement]
 
         #print('{:3.2f} checkpoint measurements'.format(time.time()-t))
@@ -233,7 +236,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
 #Pre-prep for future processings by getting RSD maps and independent skewers
 print('producing preparatory data (RSD maps)')
 #tasks = [(pixel,104.5,-4.62,1.654,54.6,-0.068,-43.81,1.52,0.0166,None,True) for pixel in pixels]
-tasks = [(pixel,3.,0.,0.,beta_value,7.,0.,0.,1.0,0.001,None,True) for pixel in pixels]
+tasks = [(pixel,3.,0.,0.,beta_value,7.,0.,0.,0.001,0.,0.,None,True) for pixel in pixels]
 
 if __name__ == '__main__':
     pool = Pool(processes = N_processes)
@@ -252,7 +255,7 @@ for result in results:
     RSD_weights_dict[result[0]] = result[1]
 print('done!')
 
-def f(C0,C1,C2,beta,D0,D1,D2,n,k1,return_measurements=False):
+def f(C0,C1,C2,beta,D0,D1,D2,k0,E1,E2,return_measurements=False):
 
     ################################################################################
     """
@@ -271,9 +274,9 @@ def f(C0,C1,C2,beta,D0,D1,D2,n,k1,return_measurements=False):
     ################################################################################
 
     print('starting at',time.ctime())
-    print('looking at params: C=({:2.4f},{:2.4f},{:2.4f}), beta={:1.2f},  D=({:2.4f},{:2.4f},{:2.4f}), n={:2.4f}, k1={:2.6f}'.format(C0,C1,C2,beta,D0,D1,D2,n,k1))
+    print('looking at params: C=({:2.4f},{:2.4f},{:2.4f}), beta={:1.2f},  D=({:2.4f},{:2.4f},{:2.4f}), k0={:2.6f}, E=({:2.4f},{:2.4f})'.format(C0,C1,C2,beta,D0,D1,D2,k0,E1,E2))
 
-    tasks = [(pixel,C0,C1,C2,beta,D0,D1,D2,n,k1,None) for pixel in pixels]
+    tasks = [(pixel,C0,C1,C2,beta,D0,D1,D2,k0,E1,E2,None) for pixel in pixels]
 
     #Run the multiprocessing pool
     if __name__ == '__main__':
@@ -319,7 +322,7 @@ def f(C0,C1,C2,beta,D0,D1,D2,n,k1,return_measurements=False):
 
     with open("parameter_log.txt","a") as f:
         txt = str(time.ctime()+'\n')
-        txt += 'C0:{}, C1:{}, C2:{}, D0:{}, D1:{}, D2:{}, n:{}, k1:{}, beta:{}\n'.format(C0,C1,C2,D0,D1,D2,n,k1,beta)
+        txt += 'C0:{}, C1:{}, C2:{}, D0:{}, D1:{}, D2:{}, k0:{}, E1:{}, E2:{}, beta:{}\n'.format(C0,C1,C2,D0,D1,D2,k0,E1,E2,beta)
         txt += log_text + '\n\n'
         f.write(txt)
         f.close()
@@ -349,9 +352,11 @@ sG_kwargs = {'D0' : initial_D0,     'error_D0' : 1.0,  'fix_D0' : fix_all|fix_D0
              'D2' : initial_D2,     'error_D2' : 1.0,  'fix_D2' : fix_all|fix_D2, #'limit_D2' : (0., 20.),
              }
 
-s_kwargs = {'n'  : initial_n,     'error_n' : 1.0,   'limit_n' : (-2., 10.),   'fix_n' : fix_all|False|fix_n,
-            'k1' : initial_k1,   'error_k1' : 0.001,'limit_k1' : (0., 0.1),  'fix_k1' : fix_all|False|fix_k1,
+s_kwargs = {'k0' : initial_k0,    'error_k0' : 0.001,   'fix_k0' : fix_all|fix_k0, #'limit_k0' : (0., 0.1),
+            'E1' : initial_E1,   'error_E1' : 0.1,      'fix_E1' : fix_all|fix_E1, #'limit_E1' : (-10.,10.),
+            'E2' : initial_E2,   'error_E2' : 0.1,      'fix_E2' : fix_all|fix_E2, #'limit_E2' : (-10.,10.),  
             }
+
 
 other_kwargs = {'return_measurements'  : False,    'fix_return_measurements' : True,
                 'errordef'             : 1,
@@ -371,8 +376,9 @@ beta = minuit.values['beta']
 D0 = minuit.values['D0']
 D1 = minuit.values['D1']
 D2 = minuit.values['D2']
-n = minuit.values['n']
-k1 = minuit.values['k1']
+k0 = minuit.values['k0']
+E1 = minuit.values['E1']
+E2 = minuit.values['E2']
 
 print(minuit.values)
 
@@ -389,8 +395,9 @@ def save_tuning_file(filename,overwrite=False):
     header['D0'] = D0
     header['D1'] = D1
     header['D2'] = D2
-    header['n'] = n
-    header['k1'] = k1
+    header['k0'] = k0
+    header['E1'] = E1
+    header['E2'] = E2
 
     prihdr = fits.Header()
     prihdu = fits.PrimaryHDU(header=prihdr)
@@ -405,10 +412,11 @@ def save_tuning_file(filename,overwrite=False):
 
     return
 
-save_tuning_file(tuning_filename,overwrite=overwrite_tuning)
+if save_tuning:
+    save_tuning_file(tuning_filename,overwrite=overwrite_tuning)
 
 #Do a final run to get the measurements.
-final_chi2,final_measurements = f(C0,C1,C2,beta,D0,D1,D2,n,k1,return_measurements=True)
+final_chi2,final_measurements = f(C0,C1,C2,beta,D0,D1,D2,k0,E1,E2,return_measurements=True)
 
 #Plot a graph of mean F with redshift
 def plot_mean_F_values(m_set,show_plot=True,save_plot=False):
@@ -437,6 +445,50 @@ def plot_mean_F_values(m_set,show_plot=True,save_plot=False):
         plt.show()
     return
 
+#Plot a graph of mean F with redshift
+def plot_scalar_measurement_values(m_set,data_type='mean_F',show_plot=True,save_plot=False):
+    data = []
+    for m in m_set.measurements:
+        if data_type == 'mean_F':
+            data += [(m.z_value,m.mean_F)]
+        elif data_type == 'bias_delta':
+            data += [(m.z_value,m.bias_delta)]
+        elif data_type == 'bias_eta':
+            data += [(m.z_value,m.bias_eta)]
+    dtype = [('z', 'd'), ('data', 'd')]
+    data = np.array(data,dtype=dtype)
+    data = np.sort(data,order=['z'])
+
+    if data_type == 'mean_F':
+        text = r'$\bar{F}$'
+        model = tuning.get_mean_F_model(np.array(z_values))
+    elif data_type == 'bias_delta':
+        text = r'$b_\delta$'
+        model = tuning.get_bias_delta_model(np.array(z_values))
+    elif data_type == 'bias_eta':
+        text = r'$b_\eta$'
+        model = tuning.get_bias_eta_model(np.array(z_values))
+
+    plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
+    plt.plot(data['z'],data['data'],label=text+' mocks',marker='o')
+
+    plt.plot(z_values,model,label=text+' model',marker='x',c=[0.5,0.5,0.5])
+    plt.fill_between(z_values,model*1.1,model*0.9,color=[0.5,0.5,0.5],alpha=0.3)
+    plt.grid()
+    plt.legend()
+
+    z = data['z']
+    min_z = np.min(z) - (np.max(z) - np.min(z))*0.1
+    max_z = np.max(z) + (np.max(z) - np.min(z))*0.1
+    plt.xlim(min_z,max_z)
+    plt.xlabel(r'$z$',fontsize=12)
+    plt.ylabel(text,fontsize=12)
+    if save_plot:
+        plt.savefig(data_type + suffix + '.pdf')
+    if show_plot:
+        plt.show()
+    return
+
 #Plot the power spectra
 def plot_P1D_values(m_set,show_plot=True,save_plot=False):
     plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
@@ -459,7 +511,7 @@ def plot_P1D_values(m_set,show_plot=True,save_plot=False):
         #plt.fill_between(m.k_kms,upper,lower,color=[0.8,0.8,0.8],alpha=0.3)
         max_power_plot = np.max((max_power_plot,np.max(model_Pk_kms[m.k_kms<k_plot_max])))
         min_power_plot = np.min((min_power_plot,np.min(model_Pk_kms[m.k_kms<k_plot_max])))
-    plt.title('C=({:2.4f},{:2.4f},{:2.4f}), D=({:2.4f},{:2.4f},{:2.4f}), n={:2.4f}, k1={:2.6f}'.format(m.C0,m.C1,m.C2,m.D0,m.D1,m.D2,m.n,m.k1),fontsize=12)
+    plt.title('C=({:2.4f},{:2.4f},{:2.4f}), D=({:2.4f},{:2.4f},{:2.4f}), k0={:2.6f}, E=({:2.4f},{:2.4f})'.format(C0,C1,C2,D0,D1,D2,k0,E1,E2),fontsize=12)
     plt.axvline(x=max_k,color='k')
     plt.semilogy()
     plt.semilogx()
@@ -485,8 +537,9 @@ def plot_parameter_values(minuit_results,z_min=1.8,z_max=4.0,z_size=0.01,show_pl
     D0 = minuit.values['D0']
     D1 = minuit.values['D1']
     D2 = minuit.values['D2']
-    n = minuit.values['n']
-    k1 = minuit.values['k1']
+    k0 = minuit.values['k0']
+    E1 = minuit.values['E1']
+    E2 = minuit.values['E2']
 
     z = np.linspace(z_min,z_max,(z_max-z_min)/z_size+1)
     alpha = get_parameter(z,C0,C1,C2)
@@ -504,7 +557,7 @@ def plot_parameter_values(minuit_results,z_min=1.8,z_max=4.0,z_size=0.01,show_pl
     plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
     plt.plot(z,alpha,label=r'$\alpha$')
     plt.plot(z,sigma_G,label=r'$\sigma_\epsilon$')
-    plt.title('C=({:2.4f},{:2.4f},{:2.4f}), D=({:2.4f},{:2.4f},{:2.4f}), n={:2.4f}, k1={:2.6f}'.format(C0,C1,C2,D0,D1,D2,n,k1),fontsize=12)
+    plt.title('C=({:2.4f},{:2.4f},{:2.4f}), D=({:2.4f},{:2.4f},{:2.4f}), k0={:2.6f}, E=({:2.4f},{:2.4f})'.format(C0,C1,C2,D0,D1,D2,k0,E1,E2),fontsize=12)
     plt.grid()
     plt.legend(fontsize=12)
     plt.ylabel('Parameters',fontsize=12)
@@ -518,6 +571,10 @@ def plot_parameter_values(minuit_results,z_min=1.8,z_max=4.0,z_size=0.01,show_pl
         plt.show()
     return
 
-plot_mean_F_values(final_measurements,show_plot=show_plots,save_plot=save_plots)
+plot_scalar_measurement_values(final_measurements,data_type='mean_F',show_plot=show_plots,save_plot=save_plots)
+plot_scalar_measurement_values(final_measurements,data_type='bias_delta',show_plot=show_plots,save_plot=save_plots)
+plot_scalar_measurement_values(final_measurements,data_type='bias_eta',show_plot=show_plots,save_plot=save_plots)
+
+#plot_mean_F_values(final_measurements,show_plot=show_plots,save_plot=save_plots)
 plot_P1D_values(final_measurements,show_plot=show_plots,save_plot=save_plots)
 plot_parameter_values(minuit,z_min=min(z_values)-z_width/2.,z_max=max(z_values)+z_width/2.,show_plot=show_plots,save_plot=save_plots)

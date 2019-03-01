@@ -13,15 +13,16 @@ Below: new tuning, measurement based
 """
 
 class function_measurement:
-    def __init__(self,parameter_ID,z_value,z_width,N_skewers,n,k1,C0,C1,C2,beta,D0,D1,D2,pixels=[]):
+    def __init__(self,parameter_ID,z_value,z_width,N_skewers,k0,E1,E2,C0,C1,C2,beta,D0,D1,D2,pixels=[]):
 
         self.parameter_ID = parameter_ID
         self.z_value = z_value
         self.z_width = z_width
         self.N_skewers = N_skewers
 
-        self.n = n
-        self.k1 = k1
+        self.k0 = k0
+        self.E1 = E1
+        self.E2 = E2
         self.C0 = C0
         self.C1 = C1
         self.C2 = C2
@@ -31,6 +32,12 @@ class function_measurement:
         self.D2 = D2
 
         self.pixels = pixels
+
+        self.mean_F = None
+        self.k_kms = None
+        self.Pk_kms = None
+        self.bias_delta = None
+        self.bias_eta = None
 
         return
 
@@ -195,8 +202,9 @@ class function_measurement:
         #Check that the measurements are combinable.
         if utils.confirm_identical(m1.parameter_ID,m2.parameter_ID,item_name='parameter_ID'):
             parameter_ID = m1.parameter_ID
-            n = m1.n
-            k1 = m1.k1
+            k0 = m1.k0
+            E1 = m1.E1
+            E2 = m1.E2
             C0 = m1.C0
             C1 = m1.C1
             C2 = m1.C2
@@ -223,7 +231,7 @@ class function_measurement:
         bias_eta = (m1.bias_eta*m1.N_skewers + m2.bias_eta*m2.N_skewers)/(m1.N_skewers + m2.N_skewers)
 
         #Make the combined object.
-        combined = cls(parameter_ID,z_value,z_width,N_skewers,n,k1,C0,C1,C2,beta,D0,D1,D2,pixels=pixels)
+        combined = cls(parameter_ID,z_value,z_width,N_skewers,k0,E1,E2,C0,C1,C2,beta,D0,D1,D2,pixels=pixels)
 
         #Add details to the combined object.
         combined.mean_F = mean_F
@@ -242,8 +250,9 @@ class function_measurement:
         z_width = hdu.header['z_width']
         N_skewers = hdu.header['N_skw']
 
-        n = hdu.header['n']
-        k1 = hdu.header['k1']
+        k0 = hdu.header['k0']
+        E1 = hdu.header['E1']
+        E2 = hdu.header['E2']
         alpha = hdu.header['alpha']
         beta = hdu.header['beta']
         sigma_G = hdu.header['sigma_G']
