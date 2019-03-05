@@ -25,7 +25,7 @@ global_seed = 123
 beta_value = 2.0
 R_kms = 25.0
 eps_Pk1D = 0.1
-eps_mean_F = 0.025
+eps_mean_F = 0.01
 eps_bias_delta = 0.025
 eps_bias_eta = 10.**6
 d = 10.**-3
@@ -44,8 +44,8 @@ initial_k1 = 0.020895666329080128
 #Choose parameters to fix.
 fix_all = False
 fix_C0 = False
-fix_C1 = False
-fix_C2 = False
+fix_C1 = True
+fix_C2 = True
 fix_beta = True
 fix_D0 = False
 fix_D1 = False
@@ -57,7 +57,7 @@ fix_k1 = False
 k_plot_max = 0.02
 show_plots = False
 save_plots = True
-suffix = '_with_bias_afree'
+suffix = '_with_bias_mFp'
 overwrite_tuning = True
 tuning_filename = 'input_files/tuning_data' + suffix + '.fits'
 
@@ -150,7 +150,9 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
 
     #add small scale fluctuations
     generator = np.random.RandomState(seed)
-    data.add_small_scale_gaussian_fluctuations(cell_size,data.Z,extra_sigma_G,generator,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=IVAR_cutoff,n=n,k1=k1,R_kms=R_kms)
+    def seps_z(z):
+        return get_parameter(z,D0,D1,D2)
+    data.add_small_scale_gaussian_fluctuations(cell_size,seps_z,generator,white_noise=False,lambda_min=0.0,IVAR_cutoff=IVAR_cutoff,n=n,k1=k1,R_kms=R_kms)
 
     #print('{:3.2f} checkpoint extra power'.format(time.time()-t))
     t = time.time()
