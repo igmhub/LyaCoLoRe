@@ -553,7 +553,10 @@ class SimulationData:
         return mean
 
     #Function to measure pdf.
-    def get_pdf_quantity(self,quantity,z_value=None,z_width=None,single_value=True,N_bins=100,power=1):
+    def get_pdf_quantity(self,quantity,z_value=None,z_width=None,single_value=True,bins=100,power=1):
+
+        if type(bins) != float:
+            N_bins = bins.shape[0]
 
         if quantity == 'gaussian':
             skewer_rows = self.GAUSSIAN_DELTA_rows ** power
@@ -575,7 +578,7 @@ class SimulationData:
             hist = np.zeros(N_bins,self.N_cells)
             edges = np.zeros(N_bins+1,self.N_cells)
             for i in range(self.N_cells):
-                hist_i,edges_i = np.histogram(skewer_rows[:,i],bins=N_bins,weights=self.IVAR_rows[:,i],density=True)
+                hist_i,edges_i = np.histogram(skewer_rows[:,i],bins=bins,weights=self.IVAR_rows[:,i],density=True)
                 hist[:,i] = hist_i
                 edges[:,i] = edges_i
 
@@ -597,19 +600,19 @@ class SimulationData:
             weights[:,0] *= weight_lower
             weights[:,1] *= weight_upper
 
-            hist,edges = np.histogram(skewer_rows[relevant_rows,j_value_lower,j_value_upper+1],bins=N_bins,weights=weights,density=True)
+            hist,edges = np.histogram(skewer_rows[relevant_rows,j_value_lower,j_value_upper+1],bins=bins,weights=weights,density=True)
 
         #Else, compute the mean of the chunk of width z_width centred on z_value.
         else:
             j_value_upper = np.searchsorted(self.Z,z_value + z_width/2.) - 1
             j_value_lower = np.max([0,np.searchsorted(self.Z,z_value - z_width/2.)])
             if single_value:
-                hist,edges = np.histogram(skewer_rows[:,j_value_lower,j_value_upper+1],bins=N_bins,weights=self.IVAR_rows[:,j_value_lower,j_value_upper+1],density=True)
+                hist,edges = np.histogram(skewer_rows[:,j_value_lower,j_value_upper+1],bins=bins,weights=self.IVAR_rows[:,j_value_lower,j_value_upper+1],density=True)
             else:
                 hist = np.zeros(N_bins,j_value_upper+1-j_value_lower)
                 edges = np.zeros(N_bins+1,j_value_upper+1-j_value_lower)
                 for i in range(j_value_upper+1-j_value_lower):
-                    hist_i,edges_i = np.histogram(skewer_rows[:,i],bins=N_bins,weights=self.IVAR_rows[:,i],density=True)
+                    hist_i,edges_i = np.histogram(skewer_rows[:,i],bins=bins,weights=self.IVAR_rows[:,i],density=True)
                     hist[:,i] = hist_i
                     edges[:,i] = edges_i
 
