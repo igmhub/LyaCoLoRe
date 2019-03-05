@@ -607,7 +607,7 @@ class SimulationData:
             j_value_upper = np.searchsorted(self.Z,z_value + z_width/2.) - 1
             j_value_lower = np.max([0,np.searchsorted(self.Z,z_value - z_width/2.)])
             if single_value:
-                hist,edges = np.histogram(skewer_rows[:,j_value_lower,j_value_upper+1],bins=bins,weights=self.IVAR_rows[:,j_value_lower,j_value_upper+1],density=True)
+                hist,edges = np.histogram(skewer_rows[:,j_value_lower:j_value_upper+1],bins=bins,weights=self.IVAR_rows[:,j_value_lower:j_value_upper+1],density=True)
             else:
                 hist = np.zeros(N_bins,j_value_upper+1-j_value_lower)
                 edges = np.zeros(N_bins+1,j_value_upper+1-j_value_lower)
