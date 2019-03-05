@@ -215,6 +215,7 @@ def get_fit_from_result(filepath):
             par_dict['value'] = value
             par_dict['error'] = error
             fit[par] = par_dict
+            print('{} = {} +/- {}'.format(par,value,error))
 
     # TODO: This won't work if it's not the lya auto correlation
     fit['xi_grid'] = ff['LYA(LYA)xLYA(LYA)/fit'][...]

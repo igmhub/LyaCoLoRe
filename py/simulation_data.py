@@ -122,8 +122,6 @@ class SimulationData:
         first_relevant_cell = np.searchsorted(h_lya_lambdas,lambda_min)
         actual_lambda_min = h_lya_lambdas[first_relevant_cell]
 
-        times += [time.time()-start-np.sum(times[:-1])]
-
         if input_format == 'physical_colore':
 
             #Extract data from the HDUlist.
