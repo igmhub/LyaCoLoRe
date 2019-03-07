@@ -42,7 +42,7 @@ def get_ID_data(original_file_location,original_filename_structure,file_number,i
     ID_sort = np.sort(ID, order=['PIXNUM','MOCKID'])
 
     #Also filter out the objects not in the pixels we want.
-    if pixels:
+    if isinstance(pixels,np.ndarray):
         for pix in set(pixel_ID):
             if pix not in pixels:
                 ID_sort = ID_sort[ID_sort['PIXNUM'] != pix]

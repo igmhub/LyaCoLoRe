@@ -76,16 +76,15 @@ N_processes = args.nproc
 parameter_filename = args.param_file
 N_skewers = args.nskewers
 add_picca_drqs = args.add_picca_drqs
-if args.desi_footprint or args.desi_footprint_plus:
+desi_footprint = args.desi_footprint
+desi_footprint_plus = args.desi_footprint_plus
+if desi_footprint or desi_footprint_plus:
     desi_footprint = args.desi_footprint
     desi_footprint_plus = args.desi_footprint_plus
     try:
-        from desimodel.footprint import is_point_in_desi
-        from desimodel.io import load_tiles
+        from desimodel.footprint import tiles2pix
     except ModuleNotFoundError:
-        print('Unable to use DESI footprint: desimodel is not installed.')
-        print('Please remove the flag or install desimodel.')
-        break
+        raise InputError('Unable to use DESI footprint: desimodel is not installed.')
 subsampling = args.subsampling
 
 # TODO: print to confirm the arguments. e.g. "DLAs will be added"
@@ -145,9 +144,9 @@ start = time.time()
 
 #Choose the pixels we want.
 if desi_footprint:
-    pixels = desimodel.footprint.tiles2pix(N_side)
+    pixels = tiles2pix(N_side)
 elif desi_footprint_plus:
-    pixels = desimodel.footprint.tiles2pix(N_side)
+    pixels = tiles2pix(N_side)
     pixels = utils.add_pixel_neighbours(pixels)
 else:
     pixels = None
