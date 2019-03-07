@@ -4,7 +4,7 @@ from astropy.io import fits
 from . import utils, read_files
 
 #Function to extract data suitable for making ID files from a set of colore or picca format files.
-def get_ID_data(original_file_location,original_filename_structure,file_number,input_format,N_side,minimum_z=0.0,pixels=None):
+def get_ID_data(original_file_location,original_filename_structure,file_number,input_format,N_side,minimum_z=0.0,pixels=None,downsampling=1.0):
 
     ID_data = []
     cosmology = []
@@ -47,6 +47,13 @@ def get_ID_data(original_file_location,original_filename_structure,file_number,i
             if pix not in pixels:
                 ID_sort = ID_sort[ID_sort['PIXNUM'] != pix]
 
+    #Downsample if we want.
+    if downsampling < 1.0:
+        N_qso = ID_sort.shape[0]
+        final_N_qso = round(N_qso*downsampling)
+        random_QSOs = np.sort(np.random.choice(N_qso,size=final_N_qso,replace=False))
+        ID_sort = ID_sort[random_QSOs]
+        
     #Make file-pixel map element and MOCKID lookup.
     pixel_ID_set = list(sorted(set([pixel for pixel in ID_sort['PIXNUM'] if pixel>=0])))
     file_pixel_map_element = np.zeros(N_pixels)
