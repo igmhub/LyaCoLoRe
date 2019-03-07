@@ -362,6 +362,8 @@ start_time = time.time()
 
 def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,measured_SIGMA_G,n,k1):
 
+    t = time.time()
+
     #Define a random seed for use in this pixel.
     seed = int(pixel * 10**5 + global_seed)
 
@@ -372,6 +374,8 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
     #Make a pixel object from it.
     file_number = None
     pixel_object = simulation_data.SimulationData.get_gaussian_skewers_object(gaussian_filename,file_number,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
+
+    #print('{:3.2f} checkpoint object'.format(time.time()-t)); t = time.time()
 
     #Add Lyb and metal absorbers if needed.
     if add_Lyb:
@@ -410,12 +414,16 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
         filename = utils.get_file_name(location,'picca-density-colorecell',N_side,pixel)
         pixel_object.save_as_picca_delta('density',filename,header,overwrite=overwrite)
 
+    #print('{:3.2f} checkpoint colore files'.format(time.time()-t)); t = time.time()
+
     #Add a table with DLAs in to the pixel object.
     # TODO: in future, we want DLAs all the way down to z=0.
     #That means we need to store skewers all the way down to z=0.
     #May need to adjust how many nodes are used when running.
     if add_DLAs:
         pixel_object.add_DLA_table(seed,dla_bias=dla_bias,method=dla_bias_method)
+
+    #print('{:3.2f} checkpoint DLAs'.format(time.time()-t)); t = time.time()
 
     #Add small scale power to the gaussian skewers:
     if add_ssf:
@@ -426,6 +434,8 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
         del header['SIGMA_G']
         sigma_G = np.sqrt(tuning_sigma_Gs**2 + measured_SIGMA_G**2)
         pixel_object.SIGMA_G = np.exp(np.interp(np.log(pixel_object.Z),np.log(tuning_z_values),np.log(sigma_G)))
+
+    #print('{:3.2f} checkpoint SSF'.format(time.time()-t)); t = time.time()
 
     #Recompute physical skewers.
     pixel_object.compute_physical_skewers()
@@ -458,9 +468,13 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
     filename = 'statistics-noRSD-16-{}.fits'.format(pixel)
     statistics = pixel_object.save_statistics(location,filename,overwrite=overwrite)
 
+    #print('{:3.2f} checkpoint noRSD files'.format(time.time()-t)); t = time.time()
+
     #Add RSDs from the velocity skewers provided by CoLoRe.
     if add_RSDs == True:
         pixel_object.add_all_RSDs(thermal=include_thermal_effects)
+
+    #print('{:3.2f} checkpoint RSDs'.format(time.time()-t)); t = time.time()
 
     #Trim the skewers (remove low lambda cells). Exit if no QSOs are left.
     #We now cut hard at lambda min as RSDs have been implemented.
@@ -491,6 +505,8 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
     #Save the final statistics file for this pixel.
     filename = 'statistics-16-{}.fits'.format(pixel)
     statistics = pixel_object.save_statistics(location,filename,overwrite=overwrite)
+
+    #print('{:3.2f} checkpoint RSD files'.format(time.time()-t)); t = time.time()
 
     return new_cosmology
 
