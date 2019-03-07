@@ -323,15 +323,12 @@ class SimulationData:
         self.D = self.D[first_relevant_cell:last_relevant_cell + 1]
         self.V = self.V[first_relevant_cell:last_relevant_cell + 1]
         self.LOGLAM_MAP = self.LOGLAM_MAP[first_relevant_cell:last_relevant_cell + 1]
-        try:
+        if not isinstance(self.SIGMA_G,float):
             self.SIGMA_G = self.SIGMA_G[first_relevant_cell:last_relevant_cell + 1]
-        except TypeError:
-            self.SIGMA_G = self.SIGMA_G
-
         return
 
     #Function to add small scale gaussian fluctuations.
-    def add_small_scale_gaussian_fluctuations(self,cell_size,seps_z,generator,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n=0.7,k1=0.001,A0=58.6,R_kms=25.0):
+    def add_small_scale_gaussian_fluctuations(self,cell_size,sigma_G_z_values,extra_sigma_G_values,generator,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n=0.7,k1=0.001,A0=58.6,R_kms=25.0):
         times = []
         start = time.time(); times += [start]
         # TODO: Is NGP really the way to go?
@@ -384,8 +381,8 @@ class SimulationData:
         extra_var = np.zeros(expanded_GAUSSIAN_DELTA_rows.shape)
 
         #Interpolate the extra sigma_G values using logs.
-        #extra_sigma_G = np.exp(np.interp(np.log(self.Z),np.log(sigma_G_z_values),np.log(extra_sigma_G_values)))
-        extra_sigma_G = seps_z(self.Z)
+        extra_sigma_G = np.exp(np.interp(np.log(self.Z),np.log(sigma_G_z_values),np.log(extra_sigma_G_values)))
+        #extra_sigma_G = seps_z(self.Z)
 
         # TODO: dv is not constant at the moment - how to deal with this
         #Generate extra variance, either white noise or correlated.

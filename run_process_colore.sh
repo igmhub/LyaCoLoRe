@@ -9,7 +9,7 @@ LAMBDA_MIN=3550.0
 MIN_CAT_Z=1.8
 
 # specify process flags
-FLAGS="--add-RSDs --add-DLAs"
+FLAGS="--add-small-scale-fluctuations --add-RSDs --add-DLAs --add-QSO-RSDs"
 
 # specify details of colore output
 COLORE_NGRID=4096

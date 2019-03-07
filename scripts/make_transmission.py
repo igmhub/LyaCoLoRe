@@ -66,6 +66,9 @@ parser.add_argument('--param-file', type = str, default = 'out_params.cfg', requ
 parser.add_argument('--tuning-file', type = str, default = 'input_files/tuning_data_151118.fits', required=False,
                     help = 'file name for data about tuning sigma_G/alpha')
 
+parser.add_argument('--add-small-scale-fluctuations', action="store_true", default = False, required=False,
+                    help = 'add small scale fluctuations to the Gaussian skewers')
+
 parser.add_argument('--add-DLAs', action="store_true", default = False, required=False,
                     help = 'add DLAs to the transmission file')
 
@@ -138,6 +141,7 @@ IVAR_cutoff = args.IVAR_cut
 final_cell_size = args.cell_size
 N_processes = args.nproc
 parameter_filename = args.param_file
+add_ssf = args.add_small_scale_fluctuations
 add_DLAs = args.add_DLAs
 dla_bias = args.DLA_bias
 dla_bias_method = args.DLA_bias_method
@@ -414,13 +418,14 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
         pixel_object.add_DLA_table(seed,dla_bias=dla_bias,method=dla_bias_method)
 
     #Add small scale power to the gaussian skewers:
-    generator = np.random.RandomState(seed)
-    pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,tuning_z_values,tuning_sigma_Gs,generator,white_noise=False,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff,n=n,k1=k1,R_kms=R_kms)
+    if add_ssf:
+        generator = np.random.RandomState(seed)
+        pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,tuning_z_values,tuning_sigma_Gs,generator,white_noise=False,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff,n=n,k1=k1,R_kms=R_kms)
 
-    #Remove the 'SIGMA_G' header as SIGMA_G now varies with z, so can't be stored in a header.
-    del header['SIGMA_G']
-    sigma_G = np.sqrt(tuning_sigma_Gs**2 + measured_SIGMA_G**2)
-    pixel_object.SIGMA_G = np.exp(np.interp(np.log(pixel_object.Z),np.log(tuning_z_values),np.log(sigma_G)))
+        #Remove the 'SIGMA_G' header as SIGMA_G now varies with z, so can't be stored in a header.
+        del header['SIGMA_G']
+        sigma_G = np.sqrt(tuning_sigma_Gs**2 + measured_SIGMA_G**2)
+        pixel_object.SIGMA_G = np.exp(np.interp(np.log(pixel_object.Z),np.log(tuning_z_values),np.log(sigma_G)))
 
     #Recompute physical skewers.
     pixel_object.compute_physical_skewers()
