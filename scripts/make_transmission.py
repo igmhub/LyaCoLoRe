@@ -361,7 +361,7 @@ h.close()
 
 #Make a transformation object to store all of this data
 #Once the parameterisation of the transformation is finalised, can use transformation.add_parameters_from_functions with utils.quadratic_log
-transformation = tuning.transformation
+transformation = tuning.transformation()
 transformation.add_parameters_from_data(tuning_z_values,tuning_alphas,tuning_betas,tuning_sigma_Gs)
 
 ################################################################################
