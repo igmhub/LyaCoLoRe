@@ -20,30 +20,30 @@ lambda_min = 3550.0
 min_cat_z = 1.8
 IVAR_cutoff = 1150.0
 global_seed = 123
+add_ssf = True
 
 #Choose parameter values.
-beta_value = 2.0
 R_kms = 25.0
 eps_Pk1D = 0.1
-eps_mean_F = 0.01
+eps_mean_F = 0.025
 eps_bias_delta = 0.025
 eps_bias_eta = 10.**6
 d = 10.**-3
 
 #Choose tuning parameter initial values.
-initial_C0 = 1.193777043957145
+initial_C0 = 2.0
 initial_C1 = 4.5
 initial_C2 = 0.0
 initial_beta = 1.65
-initial_D0 = 5.861021607666022
-initial_D1 = 0.32337471186643474
+initial_D0 = 6.3517272359277674
+initial_D1 = 0.24478374416739157
 initial_D2 = 0.0
-initial_n = 1.0550565023009746
-initial_k1 = 0.020895666329080128
+initial_n = 0.4389855688400637
+initial_k1 = 0.046521937325350024
 
 #Choose parameters to fix.
 fix_all = False
-fix_C0 = False
+fix_C0 = True
 fix_C1 = True
 fix_C2 = True
 fix_beta = True
@@ -57,7 +57,7 @@ fix_k1 = False
 k_plot_max = 0.02
 show_plots = False
 save_plots = True
-suffix = '_with_bias_mFp'
+suffix = '_with_bias_a2.0_b1.65'
 overwrite_tuning = True
 tuning_filename = 'input_files/tuning_data' + suffix + '.fits'
 
@@ -149,13 +149,12 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
     extra_sigma_G = get_parameter(data.Z,D0,D1,D2)
 
     #add small scale fluctuations
-    generator = np.random.RandomState(seed)
-    def seps_z(z):
-        return get_parameter(z,D0,D1,D2)
-    data.add_small_scale_gaussian_fluctuations(cell_size,seps_z,generator,white_noise=False,lambda_min=0.0,IVAR_cutoff=IVAR_cutoff,n=n,k1=k1,R_kms=R_kms)
+    if add_ssf:
+        generator = np.random.RandomState(seed)
+        data.add_small_scale_gaussian_fluctuations(cell_size,data.Z,extra_sigma_G,generator,white_noise=False,lambda_min=0.0,IVAR_cutoff=IVAR_cutoff,n=n,k1=k1,R_kms=R_kms)
 
-    #print('{:3.2f} checkpoint extra power'.format(time.time()-t))
-    t = time.time()
+        #print('{:3.2f} checkpoint extra power'.format(time.time()-t))
+        t = time.time()
 
     #Copmute the physical skewers
     data.compute_physical_skewers()
@@ -235,7 +234,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
 #Pre-prep for future processings by getting RSD maps and independent skewers
 print('producing preparatory data (RSD maps)')
 #tasks = [(pixel,104.5,-4.62,1.654,54.6,-0.068,-43.81,1.52,0.0166,None,True) for pixel in pixels]
-tasks = [(pixel,3.,0.,0.,beta_value,7.,0.,0.,1.0,0.001,None,True) for pixel in pixels]
+tasks = [(pixel,3.,0.,0.,initial_beta,7.,0.,0.,1.0,0.001,None,True) for pixel in pixels]
 
 if __name__ == '__main__':
     pool = Pool(processes = N_processes)
@@ -303,7 +302,7 @@ def f(C0,C1,C2,beta,D0,D1,D2,n,k1,return_measurements=False):
     for m in combined_pixels_set.measurements:
 
         m.add_mean_F_chi2(eps=eps_mean_F)
-        m.add_Pk1D_chi2(max_k=max_k,denom="npower_cutoff")
+        m.add_Pk1D_chi2(max_k=max_k,denom="npower_cutoff",eps=eps_Pk1D)
         m.add_bias_delta_chi2(eps=eps_bias_delta)
         m.add_bias_eta_chi2(eps=eps_bias_eta)
 
@@ -412,29 +411,46 @@ save_tuning_file(tuning_filename,overwrite=overwrite_tuning)
 #Do a final run to get the measurements.
 final_chi2,final_measurements = f(C0,C1,C2,beta,D0,D1,D2,n,k1,return_measurements=True)
 
-#Plot a graph of mean F with redshift
-def plot_mean_F_values(m_set,show_plot=True,save_plot=False):
-    mean_F_data = []
+#Plot a graph of mean_F, bias_delta or bias_eta with redshift
+def plot_scalar_measurement_values(m_set,data_type='mean_F',show_plot=True,save_plot=False):
+    data = []
     for m in m_set.measurements:
-        mean_F_data += [(m.z_value,m.mean_F)]
-    dtype = [('z', 'd'), ('mean_F', 'd')]
-    mean_F_data = np.array(mean_F_data,dtype=dtype)
-    mean_F_data = np.sort(mean_F_data,order=['z'])
+        if data_type == 'mean_F':
+            data += [(m.z_value,m.mean_F)]
+        elif data_type == 'bias_delta':
+            data += [(m.z_value,m.bias_delta)]
+        elif data_type == 'bias_eta':
+            data += [(m.z_value,m.bias_eta)]
+    dtype = [('z', 'd'), ('data', 'd')]
+    data = np.array(data,dtype=dtype)
+    data = np.sort(data,order=['z'])
+
+    if data_type == 'mean_F':
+        text = r'$\bar{F}$'
+        model = tuning.get_mean_F_model(np.array(z_values))
+    elif data_type == 'bias_delta':
+        text = r'$b_\delta$'
+        model = tuning.get_bias_delta_model(np.array(z_values))
+    elif data_type == 'bias_eta':
+        text = r'$b_\eta$'
+        model = tuning.get_bias_eta_model(np.array(z_values))
+
     plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
-    plt.plot(mean_F_data['z'],mean_F_data['mean_F'],label='Mocks',marker='o')
-    model_mean_F = tuning.get_mean_F_model(np.array(z_values))
-    plt.plot(z_values,model_mean_F,label='Becker 2013',marker='o')
-    plt.fill_between(z_values,model_mean_F*1.1,model_mean_F*0.9,color=[0.5,0.5,0.5],alpha=0.3)
+    plt.plot(data['z'],data['data'],label=text+' mocks',marker='o')
+
+    plt.plot(z_values,model,label=text+' model',marker='x',c=[0.5,0.5,0.5])
+    plt.fill_between(z_values,model*1.1,model*0.9,color=[0.5,0.5,0.5],alpha=0.3)
     plt.grid()
     plt.legend()
-    z = mean_F_data['z']
+
+    z = data['z']
     min_z = np.min(z) - (np.max(z) - np.min(z))*0.1
     max_z = np.max(z) + (np.max(z) - np.min(z))*0.1
     plt.xlim(min_z,max_z)
     plt.xlabel(r'$z$',fontsize=12)
-    plt.ylabel(r'$\bar{F}$')
+    plt.ylabel(text,fontsize=12)
     if save_plot:
-        plt.savefig('mean_F' + suffix + '.pdf')
+        plt.savefig(data_type + suffix + '.pdf')
     if show_plot:
         plt.show()
     return
@@ -520,6 +536,8 @@ def plot_parameter_values(minuit_results,z_min=1.8,z_max=4.0,z_size=0.01,show_pl
         plt.show()
     return
 
-plot_mean_F_values(final_measurements,show_plot=show_plots,save_plot=save_plots)
+plot_scalar_measurement_values(final_measurements,data_type='mean_F',show_plot=show_plots,save_plot=save_plots)
+plot_scalar_measurement_values(final_measurements,data_type='bias_delta',show_plot=show_plots,save_plot=save_plots)
+plot_scalar_measurement_values(final_measurements,data_type='bias_eta',show_plot=show_plots,save_plot=save_plots)
 plot_P1D_values(final_measurements,show_plot=show_plots,save_plot=save_plots)
 plot_parameter_values(minuit,z_min=min(z_values)-z_width/2.,z_max=max(z_values)+z_width/2.,show_plot=show_plots,save_plot=save_plots)
