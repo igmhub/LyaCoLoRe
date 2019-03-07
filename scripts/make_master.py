@@ -53,6 +53,15 @@ parser.add_argument('--nskewers', type = int, default = None, required=False,
 parser.add_argument('--add-picca-drqs', action="store_true", default = False, required=False,
                     help = 'save picca format drq files')
 
+parser.add_argument('--desi-footprint', action="store_true", default = False, required=False,
+                    help = 'use the desi footprint (requires desimodel)')
+
+parser.add_argument('--desi-footprint-plus', action="store_true", default = False, required=False,
+                    help = 'use the desi footprint plus neighbouring pixels (requires desimodel)')
+
+parser.add_argument('--subsampling', type = float, default = 1.0, required=False,
+                    help = 'fraction by which to subsample the CoLoRe output')
+
 ################################################################################
 
 args = parser.parse_args()
@@ -67,6 +76,17 @@ N_processes = args.nproc
 parameter_filename = args.param_file
 N_skewers = args.nskewers
 add_picca_drqs = args.add_picca_drqs
+if args.desi_footprint or args.desi_footprint_plus:
+    desi_footprint = args.desi_footprint
+    desi_footprint_plus = args.desi_footprint_plus
+    try:
+        from desimodel.footprint import is_point_in_desi
+        from desimodel.io import load_tiles
+    except ModuleNotFoundError:
+        print('Unable to use DESI footprint: desimodel is not installed.')
+        print('Please remove the flag or install desimodel.')
+        break
+subsampling = args.subsampling
 
 # TODO: print to confirm the arguments. e.g. "DLAs will be added"
 
@@ -123,10 +143,19 @@ Save the master file, and a similarly structured file containing QSOs with 'bad 
 print('\nWorking on master data...')
 start = time.time()
 
+#Choose the pixels we want.
+if desi_footprint:
+    pixels = desimodel.footprint.tiles2pix(N_side)
+elif desi_footprint_plus:
+    pixels = desimodel.footprint.tiles2pix(N_side)
+    pixels = utils.add_pixel_neighbours(pixels)
+else:
+    pixels = None
+
 #Define the process to make the master data.
 def make_master_data(original_file_location,original_filename_structure,file_number,input_format,N_side,minimum_z=min_catalog_z):
 
-    file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element = catalog.get_ID_data(original_file_location,original_filename_structure,file_number,input_format,N_side,minimum_z=min_catalog_z)
+    file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element = catalog.get_ID_data(original_file_location,original_filename_structure,file_number,input_format,N_side,minimum_z=min_catalog_z,pixels=pixels)
 
     return [file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element]
 
@@ -149,7 +178,7 @@ print('\nSaving the master files...')
 
 #Join the multiprocessing results into 'master' and 'bad_coordinates' arrays.
 master_data, bad_coordinates_data, cosmology_data, file_pixel_map, MOCKID_lookup = catalog.join_ID_data(results,N_side)
-    
+
 #Write master and bad coordinates files.
 master_filename = new_base_file_location + '/master.fits'
 catalog.write_ID(master_filename,master_data,cosmology_data,N_side)

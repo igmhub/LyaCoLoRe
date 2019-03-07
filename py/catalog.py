@@ -4,7 +4,7 @@ from astropy.io import fits
 from . import utils, read_files
 
 #Function to extract data suitable for making ID files from a set of colore or picca format files.
-def get_ID_data(original_file_location,original_filename_structure,file_number,input_format,N_side,minimum_z=0.0):
+def get_ID_data(original_file_location,original_filename_structure,file_number,input_format,N_side,minimum_z=0.0,pixels=None):
 
     ID_data = []
     cosmology = []
@@ -35,11 +35,17 @@ def get_ID_data(original_file_location,original_filename_structure,file_number,i
     ID_data = list(zip(RA,DEC,Z_QSO_NO_RSD,Z_QSO_RSD,MOCKID,pixel_ID,file_numbers))
 
     #Sort the MOCKIDs and pixel_IDs into the right order: first by pixel number, and then by MOCKID.
-    #Also filter out the objects with Z_QSO<minimum_z
+    #Also filter out the objects with Z_QSO<minimum_z.
     dtype = [('RA', 'd'), ('DEC', 'd'), ('Z_QSO_NO_RSD', 'd'), ('Z_QSO_RSD', 'd'), ('MOCKID', int), ('PIXNUM', int), ('FILENUM', int)]
     ID = np.array(ID_data, dtype=dtype)
     ID = ID[ID['Z_QSO_NO_RSD']>minimum_z]
     ID_sort = np.sort(ID, order=['PIXNUM','MOCKID'])
+
+    #Also filter out the objects not in the pixels we want.
+    if pixels:
+        for pix in set(pixel_ID):
+            if pix not in pixels:
+                ID_sort = ID_sort[ID_sort['PIXNUM'] != pix]
 
     #Make file-pixel map element and MOCKID lookup.
     pixel_ID_set = list(sorted(set([pixel for pixel in ID_sort['PIXNUM'] if pixel>=0])))
