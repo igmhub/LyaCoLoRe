@@ -59,7 +59,7 @@ parser.add_argument('--desi-footprint', action="store_true", default = False, re
 parser.add_argument('--desi-footprint-plus', action="store_true", default = False, required=False,
                     help = 'use the desi footprint plus neighbouring pixels (requires desimodel)')
 
-parser.add_argument('--subsampling', type = float, default = 1.0, required=False,
+parser.add_argument('--downsampling', type = float, default = 1.0, required=False,
                     help = 'fraction by which to subsample the CoLoRe output')
 
 ################################################################################
@@ -85,7 +85,7 @@ if desi_footprint or desi_footprint_plus:
         from desimodel.footprint import tiles2pix
     except ModuleNotFoundError:
         raise InputError('Unable to use DESI footprint: desimodel is not installed.')
-subsampling = args.subsampling
+downsampling = args.downsampling
 
 # TODO: print to confirm the arguments. e.g. "DLAs will be added"
 
@@ -154,7 +154,7 @@ else:
 #Define the process to make the master data.
 def make_master_data(original_file_location,original_filename_structure,file_number,input_format,N_side,minimum_z=min_catalog_z):
 
-    file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element = catalog.get_ID_data(original_file_location,original_filename_structure,file_number,input_format,N_side,minimum_z=min_catalog_z,pixels=pixels)
+    file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element = catalog.get_ID_data(original_file_location,original_filename_structure,file_number,input_format,N_side,minimum_z=min_catalog_z,pixels=pixels,downsampling=downsampling)
 
     return [file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element]
 
