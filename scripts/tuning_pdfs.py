@@ -45,6 +45,10 @@ def pdf_tuning(pixel_object,tuning_filename,z_values,z_width=0.2,bins=100):
     k1 = h[1].header['k1']
     h.close()
 
+    transformation = tuning.transformation
+    transformation.add_parameters_from_data(tuning_z_values,tuning_alphas,tuning_betas,tuning_sigma_Gs)
+    pixel_object.transformation = transformation
+
     #Trim the skewers (remove low lambda cells). Exit if no QSOs are left.
     #We don't cut too tightly on the low lambda to allow for RSDs.
     lambda_buffer = 100. #A
@@ -55,20 +59,13 @@ def pdf_tuning(pixel_object,tuning_filename,z_values,z_width=0.2,bins=100):
 
     #Add small scale power to the gaussian skewers:
     generator = np.random.RandomState(seed)
-    pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,tuning_z_values,tuning_sigma_Gs,generator,white_noise=False,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff,n=n,k1=k1,R_kms=R_kms)
-
-    #Remove the 'SIGMA_G' header as SIGMA_G now varies with z, so can't be stored in a header.
-    sigma_G = np.sqrt(tuning_sigma_Gs**2 + measured_SIGMA_G**2)
-    pixel_object.SIGMA_G = np.exp(np.interp(np.log(pixel_object.Z),np.log(tuning_z_values),np.log(sigma_G)))
+    pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,generator,white_noise=False,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff,n=n,k1=k1,R_kms=R_kms)
 
     #Recompute physical skewers.
     pixel_object.compute_physical_skewers()
 
     #Add tau skewers to the object, starting with Lyman-alpha
-    alphas = np.exp(np.interp(np.log(pixel_object.Z),np.log(tuning_z_values),np.log(tuning_alphas)))
-    betas = np.exp(np.interp(np.log(pixel_object.Z),np.log(tuning_z_values),np.log(tuning_betas)))
-    sigma_Gs = np.exp(np.interp(np.log(pixel_object.Z),np.log(tuning_z_values),np.log(tuning_sigma_Gs)))
-    pixel_object.compute_all_tau_skewers(alphas,betas)
+    pixel_object.compute_all_tau_skewers()
 
     #Add RSDs from the velocity skewers provided by CoLoRe.
     pixel_object.add_all_RSDs(thermal=include_thermal_effects)
@@ -76,11 +73,6 @@ def pdf_tuning(pixel_object,tuning_filename,z_values,z_width=0.2,bins=100):
     #Trim the skewers (remove low lambda cells). Exit if no QSOs are left.
     #We now cut hard at lambda min as RSDs have been implemented.
     pixel_object.trim_skewers(lambda_min,min_catalog_z,extra_cells=1)
-
-    #Recompute alphas and betas etc to take into account trimming.
-    alphas = np.exp(np.interp(np.log(pixel_object.Z),np.log(tuning_z_values),np.log(tuning_alphas)))
-    betas = np.exp(np.interp(np.log(pixel_object.Z),np.log(tuning_z_values),np.log(tuning_betas)))
-    sigma_Gs = np.exp(np.interp(np.log(pixel_object.Z),np.log(tuning_z_values),np.log(tuning_sigma_Gs)))
 
     histograms = {}
     for z_value in z_values:

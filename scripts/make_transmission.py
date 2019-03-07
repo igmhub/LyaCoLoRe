@@ -335,7 +335,30 @@ tuning_z_values = h[1].data['z']
 tuning_alphas = h[1].data['alpha']
 tuning_betas = h[1].data['beta']
 tuning_sigma_Gs = h[1].data['sigma_G']
+
+#Parameters for tau0.
+#C0 = h[1].header['C0']
+#C1 = h[1].header['C1']
+#C2 = h[1].header['C2']
+
+#Parameters for exponent.
+
+#Parameters for sigma epsilon.
+#D0 = h[1].header['D0']
+#D1 = h[1].header['D1']
+#D2 = h[1].header['D2']
+
+#Parameters for extra power's shape.
+#k0 = h[1].header['k0']
+#E1 = h[1].header['E1']
+#E2 = h[1].header['E2']
+
 h.close()
+
+#Make a transformation object to store all of this data
+#Once the parameterisation of the transformation is finalised, can use transformation.add_parameters_from_functions with utils.quadratic_log
+transformation = tuning.transformation
+transformation.add_parameters_from_data(tuning_z_values,tuning_alphas,tuning_betas,tuning_sigma_Gs)
 
 ################################################################################
 
@@ -368,6 +391,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
     #Make a pixel object from it.
     file_number = None
     pixel_object = simulation_data.SimulationData.get_gaussian_skewers_object(gaussian_filename,file_number,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
+    pixel_object.transformation = transformation
 
     #Add Lyb and metal absorbers if needed.
     if add_Lyb:
@@ -415,21 +439,16 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
 
     #Add small scale power to the gaussian skewers:
     generator = np.random.RandomState(seed)
-    pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,tuning_z_values,tuning_sigma_Gs,generator,white_noise=False,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff,n=n,k1=k1,R_kms=R_kms)
+    pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,generator,white_noise=False,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff,n=n,k1=k1,R_kms=R_kms)
 
     #Remove the 'SIGMA_G' header as SIGMA_G now varies with z, so can't be stored in a header.
     del header['SIGMA_G']
-    sigma_G = np.sqrt(tuning_sigma_Gs**2 + measured_SIGMA_G**2)
-    pixel_object.SIGMA_G = np.exp(np.interp(np.log(pixel_object.Z),np.log(tuning_z_values),np.log(sigma_G)))
 
     #Recompute physical skewers.
     pixel_object.compute_physical_skewers()
 
     #Add tau skewers to the object, starting with Lyman-alpha
-    alphas = np.exp(np.interp(np.log(pixel_object.Z),np.log(tuning_z_values),np.log(tuning_alphas)))
-    betas = np.exp(np.interp(np.log(pixel_object.Z),np.log(tuning_z_values),np.log(tuning_betas)))
-    sigma_Gs = np.exp(np.interp(np.log(pixel_object.Z),np.log(tuning_z_values),np.log(tuning_sigma_Gs)))
-    pixel_object.compute_all_tau_skewers(alphas,betas)
+    pixel_object.compute_all_tau_skewers()
 
     if transmission_only == False:
 

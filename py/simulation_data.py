@@ -331,7 +331,7 @@ class SimulationData:
         return
 
     #Function to add small scale gaussian fluctuations.
-    def add_small_scale_gaussian_fluctuations(self,cell_size,seps_z,generator,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n=0.7,k1=0.001,A0=58.6,R_kms=25.0):
+    def add_small_scale_gaussian_fluctuations(self,cell_size,generator,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n=0.7,k1=0.001,A0=58.6,R_kms=25.0):
         times = []
         start = time.time(); times += [start]
         # TODO: Is NGP really the way to go?
@@ -385,7 +385,8 @@ class SimulationData:
 
         #Interpolate the extra sigma_G values using logs.
         #extra_sigma_G = np.exp(np.interp(np.log(self.Z),np.log(sigma_G_z_values),np.log(extra_sigma_G_values)))
-        extra_sigma_G = seps_z(self.Z)
+        #extra_sigma_G = seps_z(self.Z)
+        extra_sigma_G = self.transformation.f_seps_z()
 
         # TODO: dv is not constant at the moment - how to deal with this
         #Generate extra variance, either white noise or correlated.
@@ -427,14 +428,17 @@ class SimulationData:
         return
 
     #Function to add tau skewers to an absorber using FGPA.
-    def compute_tau_skewers(self,absorber,alpha,beta):
+    def compute_tau_skewers(self,absorber):
+
+        tau0 = self.transformation.f_tau0_z()
+        texp = self.transformation.f_texp_z()
 
         # scale optical depth for this particular absorber (=1 for Lya)
-        absorber_alpha = alpha*absorber.flux_transform_m
+        absorber_tau0 = tau0*absorber.flux_transform_m
         #print('absorber',absorber.name,'has m =',absorber.flux_transform_m)
         #print('absorber',absorber.name,'has first alphas =',absorber_alpha[0:5])
 
-        absorber.tau = convert.density_to_tau(self.DENSITY_DELTA_rows+1,absorber_alpha,beta)
+        absorber.tau = convert.density_to_tau(self.DENSITY_DELTA_rows+1,absorber_tau0,texp)
 
         #Set tau to 0 beyond the quasars.
         for i in range(self.N_qso):
@@ -444,19 +448,19 @@ class SimulationData:
         return
 
     #Function to compute tau for all absorbers.
-    def compute_all_tau_skewers(self,alpha,beta):
+    def compute_all_tau_skewers(self):
 
         # for each absorber, compute its optical depth skewers
-        self.compute_tau_skewers(self.lya_absorber,alpha,beta)
+        self.compute_tau_skewers(self.lya_absorber)
 
         # optical depth for Ly_b
         if self.lyb_absorber is not None:
-            self.compute_tau_skewers(self.lyb_absorber,alpha,beta)
+            self.compute_tau_skewers(self.lyb_absorber)
 
         # loop over metals in dictionary
         if self.metals is not None:
             for metal in iter(self.metals.values()):
-                self.compute_tau_skewers(metal,alpha,beta)
+                self.compute_tau_skewers(metal)
 
         return
 
