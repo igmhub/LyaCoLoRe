@@ -31,15 +31,15 @@ eps_bias_eta = 10.**6
 d = 10.**-3
 
 #Choose tuning parameter initial values.
-initial_C0 = 2.0
+initial_C0 = 3.0
 initial_C1 = 4.5
 initial_C2 = 0.0
 initial_beta = 1.65
-initial_D0 = 6.3517272359277674
-initial_D1 = 0.24478374416739157
+initial_D0 = 6.466417575886396
+initial_D1 = 0.3423936168262655
 initial_D2 = 0.0
-initial_n = 0.4389855688400637
-initial_k1 = 0.046521937325350024
+initial_n = 0.5069879302206717
+initial_k1 = 0.03172293780336079
 
 #Choose parameters to fix.
 fix_all = False
@@ -55,9 +55,9 @@ fix_k1 = False
 
 #Admin options
 k_plot_max = 0.02
-show_plots = False
+show_plots = True
 save_plots = True
-suffix = '_with_bias_a2.0_b1.65'
+suffix = '_with_bias_a{}_b{}'.format(initial_C0,initial_beta)
 overwrite_tuning = True
 tuning_filename = 'input_files/tuning_data' + suffix + '.fits'
 
@@ -132,7 +132,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
     #print('{:3.2f} checkpoint sim_dat'.format(time.time()-t))
     t = time.time()
 
-    transformation = tuning.transformation
+    transformation = tuning.transformation()
     def f_tau0_z(z):
         return get_parameter(z,C0,C1,C2)
     def f_texp_z(z):
@@ -140,7 +140,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
     def f_seps_z(z):
         return get_parameter(z,D0,D1,D2)
     transformation.add_parameters_from_functions(f_tau0_z,f_texp_z,f_seps_z)
-    pixel_object.transformation = transformation
+    data.transformation = transformation
 
     #trim skewers to the minimal length
     extra = 0.1
