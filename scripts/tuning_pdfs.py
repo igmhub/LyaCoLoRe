@@ -15,8 +15,9 @@ tuning_files = glob.glob('./input_files/tuning_data_a?.?_b1.65.fits')
 #tuning_files = glob.glob('./input_files/tuning_data_apow4.5_sGconst.fits')
 z_values = np.array([2.0,2.2,2.4,2.6,2.8,3.0,3.2])
 N_bins = 1000
+bin_width = 1./N_bins
 z_width_value = 0.1
-N_pixels = 32
+N_pixels = 4
 f = 0.9625
 
 plot_option = 'plot_per_z_value' #'plot_per_tuning'
@@ -59,9 +60,7 @@ def pdf_tuning(pixel_object,tuning_filename,z_values,z_width=0.2,bins=100):
 
     #Add small scale power to the gaussian skewers:
     generator = np.random.RandomState(seed)
-    def seps_z(z):
-        return np.exp(np.interp(np.log(z),np.log(tuning_z_values),np.log(tuning_sigma_Gs)))
-    pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,seps_z,generator,white_noise=False,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff,n=n,k1=k1,R_kms=R_kms)
+    pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,tuning_z_values,tuning_sigma_Gs,generator,white_noise=False,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff,n=n,k1=k1,R_kms=R_kms)
 
     #Remove the 'SIGMA_G' header as SIGMA_G now varies with z, so can't be stored in a header.
     sigma_G = np.sqrt(tuning_sigma_Gs**2 + measured_SIGMA_G**2)
@@ -90,12 +89,13 @@ def pdf_tuning(pixel_object,tuning_filename,z_values,z_width=0.2,bins=100):
 
     histograms = {}
     for z_value in z_values:
-        #Calculate biases.
+        #Calculate histograms.
         hist,edges = pixel_object.get_pdf_quantity('flux',z_value=z_value,z_width=z_width,bins=bins)
         z_hist = {}
         z_hist['hist'] = hist
         z_hist['edges'] = edges
         histograms[z_value] = z_hist
+        centres = edges[:-1]/2. + edges[1:]/2.
     
     return histograms
 
@@ -166,24 +166,26 @@ for tuning_filename in tuning_files:
 if plot_option == 'plot_per_z_value':
     for z_value in z_values:
         for tuning_filename in tuning_files:
-            histogram = histograms[tuning_filename][z_value]['hist']
+            hist = histograms[tuning_filename][z_value]['hist']
             edges = histograms[tuning_filename][z_value]['edges']
             centres = edges[:-1]/2.+edges[1:]/2.
-            b_eta = np.trapz(centres*np.log(centres)*histogram,centres)
+            b_eta = np.sum(centres*hist*np.log(centres)*bin_width)/np.sum(centres*hist*bin_width)
             label = tuning_filename[tuning_filename.rfind('/'):]
             plt.step(centres,histogram,where='mid',label=label+', b_eta={:2.4f}'.format(b_eta))
         plt.title(r'$z={}$'.format(z_value))
         plt.semilogy()
         plt.legend()
         plt.grid()
+        plt.savefig('pdf_z{}.pdf'.format(z_value))
         plt.show()
+
 elif plot_option == 'plot_per_tuning':
     for tuning_filename in tuning_files:
         for z_value in z_values:
-            histogram = histograms[tuning_filename][z_value]['hist']
+            hist = histograms[tuning_filename][z_value]['hist']
             edges = histograms[tuning_filename][z_value]['edges']
             centres = edges[:-1]/2.+edges[1:]/2.
-            b_eta = np.trapz(centres*np.log(centres)*histogram,centres)
+            b_eta = np.sum(centres*hist*np.log(centres)*bin_width)/np.sum(centres*hist*bin_width)
             plt.step(centres,histogram,where='mid',label=r'$z={}, b_\eta={:2.4f}$'.format(z_value,b_eta))
         title = tuning_filename[tuning_filename.rfind('/'):]
         plt.title(title)
