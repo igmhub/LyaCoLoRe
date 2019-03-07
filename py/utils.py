@@ -40,13 +40,17 @@ def make_file_structure(base_location,numbers):
     first_level_set = list(sorted(set(first_level)))
 
     for i in first_level_set:
-
-        os.mkdir(base_location+'/'+str(i))
-
+        try:
+            os.mkdir(base_location+'/'+str(i))
+        except FileExistsError:
+            pass
         for j, number in enumerate(numbers):
 
             if first_level[j] == i:
-                os.mkdir(base_location+'/'+str(i)+'/'+str(number))
+                try:
+                    os.mkdir(base_location+'/'+str(i)+'/'+str(number))
+                except FileExistsError:
+                    pass
 
     return
 
