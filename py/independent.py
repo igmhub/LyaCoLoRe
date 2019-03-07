@@ -104,12 +104,7 @@ def power_kms(z_c,k_kms,dv_kms,white_noise=False,n=0.7,k1=0.001,A0=58.6,R_kms=25
         P /= sigma2
     return P
 
-<<<<<<< HEAD
-def alternative_power_kms(z_c,k_kms,dv_kms,A0=58.6,k0=0.009,E1=-0.55,E2=-0.1,R_kms=25.0,smooth=True,norm=False):
-
-=======
 def alternative_power_kms(z_c,k_kms,dv_kms,white_noise=False,A0=58.6,k0=0.009,E1=-0.55,E2=-0.1,R_kms=25.0,smooth=True,norm=False):
->>>>>>> 4ef8fc59f46b850736c47fece32e96f54c2d0169
 
     A = power_amplitude(z_c,A0=A0)
     P = np.zeros(k_kms.shape)
