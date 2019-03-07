@@ -132,6 +132,16 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
     #print('{:3.2f} checkpoint sim_dat'.format(time.time()-t))
     t = time.time()
 
+    transformation = tuning.transformation
+    def f_tau0_z(z):
+        return get_parameter(z,C0,C1,C2)
+    def f_texp_z(z):
+        return get_parameter(z,beta_value,0.,0.)
+    def f_seps_z(z):
+        return get_parameter(z,D0,D1,D2)
+    transformation.add_parameters_from_functions(f_tau0_z,f_texp_z,f_seps_z)
+    pixel_object.transformation = transformation
+
     #trim skewers to the minimal length
     extra = 0.1
     z_lower_cut = np.min(z_values) - z_width*(1+extra)/2.
@@ -143,26 +153,16 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
     #lambda_min_val = lambda_min-100.
     #data.trim_skewers(lambda_min_val,min_cat_z,extra_cells=1)
 
-    #Expand the C and D parameters into functions of z.
-    alpha = get_parameter(data.Z,C0,C1,C2)
-    beta = np.ones_like(alpha) * beta_value
-    extra_sigma_G = get_parameter(data.Z,D0,D1,D2)
-
     #add small scale fluctuations
     if add_ssf:
         generator = np.random.RandomState(seed)
-        data.add_small_scale_gaussian_fluctuations(cell_size,data.Z,extra_sigma_G,generator,white_noise=False,lambda_min=0.0,IVAR_cutoff=IVAR_cutoff,n=n,k1=k1,R_kms=R_kms)
+        data.add_small_scale_gaussian_fluctuations(cell_size,generator,white_noise=False,lambda_min=0.0,IVAR_cutoff=IVAR_cutoff,n=n,k1=k1,R_kms=R_kms)
 
         #print('{:3.2f} checkpoint extra power'.format(time.time()-t))
         t = time.time()
 
     #Copmute the physical skewers
     data.compute_physical_skewers()
-
-    #Update the alpha and beta lengths.
-    alpha = get_parameter(data.Z,C0,C1,C2)
-    beta = np.ones_like(alpha) * beta_value
-    extra_sigma_G = get_parameter(data.Z,D0,D1,D2)
 
     #Way to get exact same alpha as in make_transmission
     #z = np.linspace(1.6,4.0,2401)
@@ -183,7 +183,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
     """
 
     #Compute the tau skewers and add RSDs
-    data.compute_tau_skewers(data.lya_absorber,alpha=alpha,beta=beta)
+    data.compute_tau_skewers(data.lya_absorber)
 
     if prep:
         RSD_weights = data.get_RSD_weights(thermal=False)
@@ -196,11 +196,6 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
 
         #print('{:3.2f} checkpoint RSDs'.format(time.time()-t))
         t = time.time()
-
-        #Recompute alpha and beta.
-        alpha = get_parameter(data.Z,C0,C1,C2)
-        beta = np.ones_like(alpha) * beta_value
-        extra_sigma_G = get_parameter(data.Z,D0,D1,D2)
 
         measurements = []
         times_m = np.zeros(6)
@@ -219,10 +214,10 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
             #measurement.add_sigma_dF_measurement(data)
             #times_m[3] += time.time() - t_m
             #t_m = time.time()
-            measurement.add_bias_delta_measurement(data,beta,d=d)
+            measurement.add_bias_delta_measurement(data,d=d)
             #times_m[4] += time.time() - t_m
             #t_m = time.time()
-            measurement.add_bias_eta_measurement(data,alpha,beta,d=d)
+            measurement.add_bias_eta_measurement(data,d=d)
             #times_m[5] += time.time() - t_m
             measurements += [measurement]
 
