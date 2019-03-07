@@ -323,10 +323,8 @@ class SimulationData:
         self.D = self.D[first_relevant_cell:last_relevant_cell + 1]
         self.V = self.V[first_relevant_cell:last_relevant_cell + 1]
         self.LOGLAM_MAP = self.LOGLAM_MAP[first_relevant_cell:last_relevant_cell + 1]
-        try:
+        if not isinstance(self.SIGMA_G,float):
             self.SIGMA_G = self.SIGMA_G[first_relevant_cell:last_relevant_cell + 1]
-        except TypeError:
-            self.SIGMA_G = self.SIGMA_G
 
         return
 
@@ -386,7 +384,7 @@ class SimulationData:
         #Interpolate the extra sigma_G values using logs.
         #extra_sigma_G = np.exp(np.interp(np.log(self.Z),np.log(sigma_G_z_values),np.log(extra_sigma_G_values)))
         #extra_sigma_G = seps_z(self.Z)
-        extra_sigma_G = self.transformation.f_seps_z()
+        extra_sigma_G = self.transformation.get_seps(self.Z)
 
         # TODO: dv is not constant at the moment - how to deal with this
         #Generate extra variance, either white noise or correlated.
@@ -430,8 +428,8 @@ class SimulationData:
     #Function to add tau skewers to an absorber using FGPA.
     def compute_tau_skewers(self,absorber):
 
-        tau0 = self.transformation.f_tau0_z()
-        texp = self.transformation.f_texp_z()
+        tau0 = self.transformation.get_tau0(self.Z)
+        texp = self.transformation.get_texp(self.Z)
 
         # scale optical depth for this particular absorber (=1 for Lya)
         absorber_tau0 = tau0*absorber.flux_transform_m

@@ -51,28 +51,16 @@ class transformation:
         return
 
     #Function to evaluate tau0, the normalisation of the FGPA.
-    def tau0(self,z=None):
-        if z:
-            tau0 = self.f_tau0_z(z)
-        else:
-            tau0 = self.f_tau0_z(self.Z)
-        return tau0
+    def get_tau0(self,z):
+        return self.f_tau0_z(z)
 
     #Function to evaluate texp, the exponent of the FGPA.
-    def texp(self,z=None):
-        if z:
-            texp = self.f_texp_z(z)
-        else:
-            texp = self.f_texp_z(self.Z)
-        return texp
+    def get_texp(self,z):
+        return self.f_texp_z(z)
 
     #Function to evaluate sigma_epsilon, the std of the extra power.
-    def seps(self,z=None):
-        if z:
-            seps = self.f_seps_z(z)
-        else:
-            seps = self.f_seps_z(self.Z)
-        return seps
+    def get_seps(self,z):
+        return self.f_seps_z(z)
 
 class function_measurement:
     def __init__(self,parameter_ID,z_value,z_width,N_skewers,n,k1,C0,C1,C2,beta,D0,D1,D2,pixels=[]):
