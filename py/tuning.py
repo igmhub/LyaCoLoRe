@@ -12,6 +12,56 @@ lya = utils.lya_rest
 Below: new tuning, measurement based
 """
 
+#Object to store the transformation used to go from CoLoRe's Gaussian skewers to
+#flux skewers. Stores functions of redshift.
+class transformation:
+    def __init__(self):
+        return
+
+    #Function to add the transformation functions by interpolating data.
+    def add_parameters_from_data(self,z_values,tau0_values,texp_values,seps_values):
+        def f_tau0_z(z):
+            return np.exp(np.interp(np.log(z),np.log(z_values),np.log(tau0_values)))
+        self.f_tau0_z = f_tau0_z
+        def f_texp_z(z):
+            return np.exp(np.interp(np.log(z),np.log(z_values),np.log(texp_values)))
+        self.f_texp_z = f_texp_z
+        def f_seps_z(z):
+            return np.exp(np.interp(np.log(z),np.log(z_values),np.log(seps_values)))
+        self.f_seps_z = f_seps_z
+        return
+
+    # TODO: UPDATE TUNING FILE COLUMN NAMES
+    #Function to add the transformation functions by interpolating data from a
+    #given tuning file.
+    def add_parameters_from_file(self,filepath):
+        h = fits.open(filepath)
+        z = h[1].data['z']
+        tau0 = h[1].data['alpha']
+        texp = h[1].data['beta']
+        seps = h[1].data['sigma_G']
+        self.add_parameters_from_data(z,tau0,texp,seps)
+        return
+
+    #Function to add the transformation functions by given the functions.
+    def add_parameters_from_functions(self,f_tau0_z,f_texp_z,f_seps_z):
+        self.f_tau0_z = f_tau0_z
+        self.f_texp_z = f_texp_z
+        self.f_seps_z = f_seps_z
+        return
+
+    #Function to evaluate tau0, the normalisation of the FGPA.
+    def get_tau0(self,z):
+        return self.f_tau0_z(z)
+
+    #Function to evaluate texp, the exponent of the FGPA.
+    def get_texp(self,z):
+        return self.f_texp_z(z)
+
+    #Function to evaluate sigma_epsilon, the std of the extra power.
+    def get_seps(self,z):
+        return self.f_seps_z(z)
+
 class function_measurement:
     def __init__(self,parameter_ID,z_value,z_width,N_skewers,n,k1,C0,C1,C2,beta,D0,D1,D2,pixels=[]):
 
@@ -84,14 +134,14 @@ class function_measurement:
         self.mean_F = np.average(pixel_object.get_mean_quantity('flux',z_value=self.z_value,z_width=self.z_width,single_value=False))
         return
 
-    def add_bias_delta_measurement(self,pixel_object,betas,d=0.001):
+    def add_bias_delta_measurement(self,pixel_object,d=0.001):
         #Get bias_delta and add it to the measurement object.
-        self.bias_delta = bias.get_bias_delta(pixel_object,betas,self.z_value,z_width=self.z_width,d=d)
+        self.bias_delta = bias.get_bias_delta(pixel_object,self.z_value,z_width=self.z_width,d=d)
         return
 
-    def add_bias_eta_measurement(self,pixel_object,alphas,betas,d=0.001):
+    def add_bias_eta_measurement(self,pixel_object,d=0.001):
         #Get bias_eta and add it to the measurement object.
-        self.bias_eta = bias.get_bias_eta(pixel_object,alphas,betas,self.z_value,z_width=self.z_width,d=d,z_r0=self.z_value)
+        self.bias_eta = bias.get_bias_eta(pixel_object,self.z_value,z_width=self.z_width,d=d,z_r0=self.z_value)
         return
 
     def add_sigma_dF_measurement(self,pixel_object):
@@ -99,7 +149,7 @@ class function_measurement:
         self.sigma_dF = pixel_object.get_sigma_dF(pixel_object.lya_absorber,z_value=self.z_value,z_width=self.z_width)
         return
 
-    def add_Pk1D_chi2(self,min_k=None,max_k=None,denom="krange10"):
+    def add_Pk1D_chi2(self,min_k=None,max_k=None,denom="krange",eps=0.1):
         #Calculate the "model" values.
         model_Pk_kms = P1D_z_kms_PD2013(self.z_value,self.k_kms)
         if min_k:
@@ -115,37 +165,31 @@ class function_measurement:
 
         #Determine the denominator (i.e. weighting scheme).
         A = 10**6
-        if denom == "uniform5":
-            denom = (0.05 * model_Pk_kms)**2
-        elif denom == "uniform10":
-            denom = (0.10 * model_Pk_kms)**2
-        elif denom == "krange5":
-            eps = A * np.ones(self.k_kms.shape)
-            eps[min_j:max_j] *= 0.05 / A
+        if denom == "uniform":
             denom = (eps * model_Pk_kms)**2
-        elif denom == "krange10":
+        elif denom == "krange":
             eps = A * np.ones(self.k_kms.shape)
-            eps[min_j:max_j] *= 0.1 / A
+            eps[min_j:max_j] *= eps / A
             denom = (eps * model_Pk_kms)**2
-        elif denom == "krange10_smooth":
+        elif denom == "krange_smooth":
             eps = A * np.ones(self.k_kms.shape)
-            eps[min_j:max_j] *= 0.1 / A
+            eps[min_j:max_j] *= eps / A
             smooth_width = (max_k - min_k)/0.01
-            lower_smooth = A + (0.1 - A)*np.exp(-((self.k_kms - min_k)**2)/(2*smooth_width**2))
-            upper_smooth = A + (0.1 - A)*np.exp(-((self.k_kms - max_k)**2)/(2*smooth_width**2))
+            lower_smooth = A + (eps - A)*np.exp(-((self.k_kms - min_k)**2)/(2*smooth_width**2))
+            upper_smooth = A + (eps - A)*np.exp(-((self.k_kms - max_k)**2)/(2*smooth_width**2))
             eps[:min_j] = lower_smooth[:min_j]
             eps[max_j:] = upper_smooth[max_j:]
             denom = (eps * model_Pk_kms)**2
         elif denom == "npower":
             k0 = max_k
             n = 2.
-            eps = 0.1 * ((1 + (self.k_kms/k0)**n))
+            eps = eps * ((1 + (self.k_kms/k0)**n))
             denom = (eps * model_Pk_kms)**2
         elif denom == "npower_cutoff":
             k0 = max_k
             n = 2.
             cutoff = 0.02 #kms
-            eps = 0.1 * ((1 + (self.k_kms/k0)**n))
+            eps = eps * ((1 + (self.k_kms/k0)**n))
             eps[self.k_kms>cutoff] = A
             denom = (eps * model_Pk_kms)**2
 

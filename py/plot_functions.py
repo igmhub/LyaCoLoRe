@@ -58,23 +58,25 @@ class picca_correlation:
         self.growth_rate = f['growth_rate']['value']
         self.growth_rate_err = f['growth_rate']['error']
 
-        self.beta_LYA = f['beta_LYA']['value']
-        self.beta_LYA_err = f['beta_LYA']['error']
+        if self.correl_type == 'cf' or self.correl_type == 'xcf':
+            self.beta_LYA = f['beta_LYA']['value']
+            self.beta_LYA_err = f['beta_LYA']['error']
 
-        self.beta_QSO = f['beta_QSO']['value']
-        self.beta_QSO_err = f['beta_QSO']['error']
+            self.bias_LYA_eta = f['bias_eta_LYA']['value']
+            self.bias_LYA_eta_err = f['bias_eta_LYA']['error']
 
-        self.bias_LYA_eta = f['bias_eta_LYA']['value']
-        self.bias_LYA_eta_err = f['bias_eta_LYA']['error']
+            self.bias_LYA = self.bias_LYA_eta * self.growth_rate / self.beta_LYA
+            self.bias_LYA_err = abs(self.bias_LYA * np.sqrt((self.bias_LYA_eta_err/self.bias_LYA_eta)**2 + (self.beta_LYA_err/self.beta_LYA)**2 + (self.growth_rate_err/self.growth_rate)**2))
 
-        self.bias_QSO_eta = f['bias_QSO']['value']
-        self.bias_QSO_eta_err = f['bias_QSO']['error']
+        if self.correl_type == 'xcf' or self.correl_type == 'co':
+            self.beta_QSO = f['beta_QSO']['value']
+            self.beta_QSO_err = f['beta_QSO']['error']
 
-        self.bias_LYA = self.bias_LYA_eta * self.growth_rate / self.beta_LYA
-        self.bias_LYA_err = abs(self.bias_LYA * np.sqrt((self.bias_LYA_eta_err/self.bias_LYA_eta)**2 + (self.beta_LYA_err/self.beta_LYA)**2 + (self.growth_rate_err/self.growth_rate)**2))
+            self.bias_QSO_eta = f['bias_eta_QSO']['value']
+            self.bias_QSO_eta_err = f['bias_eta_QSO']['error']
 
-        self.bias_QSO = f['bias_QSO']['value'] * self.growth_rate / self.beta_QSO
-        self.bias_QSO_err = abs(self.bias_LYA * np.sqrt((self.bias_QSO_eta_err/self.bias_QSO_eta)**2 + (self.beta_QSO_err/self.beta_QSO)**2 + (self.growth_rate_err/self.growth_rate)**2))
+            self.bias_QSO = self.bias_QSO_eta * self.growth_rate / self.beta_QSO
+            self.bias_QSO_err = abs(self.bias_LYA * np.sqrt((self.bias_QSO_eta_err/self.bias_QSO_eta)**2 + (self.beta_QSO_err/self.beta_QSO)**2 + (self.growth_rate_err/self.growth_rate)**2))
 
         self.ap = f['ap']['value']
         self.ap_err = f['ap']['error']
@@ -90,7 +92,6 @@ class picca_correlation:
         if self.correl_type == 'cf':
             bias1 = self.bias_LYA
             bias2 = self.bias_LYA
-
             beta1 = self.beta_LYA
             beta2 = self.beta_LYA
         elif self.correl_type == 'xcf':
@@ -207,7 +208,7 @@ def get_fit_from_result(filepath):
     npar = ff['best fit'].attrs['npar']
     fit['npar'] = npar
 
-    cosmo_pars = ["bias_eta_LYA","beta_LYA","bias_QSO","beta_QSO","ap","at","growth_rate"]
+    cosmo_pars = ["bias_eta_LYA","beta_LYA","bias_eta_QSO","beta_QSO","ap","at","growth_rate"]
     for par in cosmo_pars:
         if par in ff['best fit'].attrs:
             par_dict = {}
@@ -215,6 +216,7 @@ def get_fit_from_result(filepath):
             par_dict['value'] = value
             par_dict['error'] = error
             fit[par] = par_dict
+            print('{} = {} +/- {}'.format(par,value,error))
 
     # TODO: This won't work if it's not the lya auto correlation
     fit['xi_grid'] = ff['LYA(LYA)xLYA(LYA)/fit'][...]

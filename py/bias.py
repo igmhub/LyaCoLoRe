@@ -7,7 +7,9 @@ lya = utils.lya_rest
 
 #Function to get the bias of delta at various z values from a sim data object.
 #Assumes that the object already has tau calculated and RSDs applied.
-def get_bias_delta(data,betas,z_values,d=0.001,z_width=0.2):
+def get_bias_delta(data,z_values,d=0.001,z_width=0.2):
+
+    betas = data.transformation.get_texp(data.Z)
 
     if isinstance(z_values, float):
         z_values = np.array([z_values])
@@ -68,7 +70,10 @@ def get_bias_delta(data,betas,z_values,d=0.001,z_width=0.2):
 
 #Function to get the bias of eta at various z values from a sim data object.
 #Assumes that the object already has tau calculated but with no RSDs applied.
-def get_bias_eta(data,alphas,betas,z_values,d=0.001,z_width=0.2,z_r0=2.5,include_thermal_effects=False):
+def get_bias_eta(data,z_values,d=0.001,z_width=0.2,z_r0=2.5,include_thermal_effects=False):
+
+    alphas = data.transformation.get_tau0(data.Z)
+    betas = data.transformation.get_texp(data.Z)
 
     if isinstance(z_values, float):
         z_values = np.array([z_values])
@@ -251,7 +256,7 @@ def get_bias_eta(data,alphas,betas,z_values,d=0.001,z_width=0.2,z_r0=2.5,include
 #Function to get beta at various z values from a sim data object.
 #Assumes that the object already has tau calculated but with no RSDs applied.
 def get_beta(data,alphas,betas,f,z_values,d=0.001,z_width=0.2,z_r0=2.5,include_thermal_effects=False):
-    
+
     biases_delta = get_bias_delta(data,betas,z_values,d=d,z_width=z_width)
     biases_nu = get_bias_nu(data,alphas,betas,z_values,d=d,z_width=z_width,z_r0=z_r0,include_thermal_effects=include_thermal_effects)
 

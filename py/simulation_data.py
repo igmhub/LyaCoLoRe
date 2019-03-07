@@ -41,12 +41,11 @@ def make_gaussian_pixel_object(pixel,base_filename,input_format,MOCKID_lookup,la
 #Definition of a generic SimulationData class, from which it is easy to save in new formats.
 class SimulationData:
     #Initialisation function.
-    def __init__(self,N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,R,Z,D,V,LOGLAM_MAP,A):
+    def __init__(self,N_qso,N_cells,SIGMA_G,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,R,Z,D,V,LOGLAM_MAP):
 
         self.N_qso = N_qso
         self.N_cells = N_cells
         self.SIGMA_G = SIGMA_G
-        self.ALPHA = ALPHA
 
         # catalog information
         self.TYPE = TYPE
@@ -73,7 +72,6 @@ class SimulationData:
         self.Z = Z
         self.D = D
         self.V = V
-        self.A = A
 
         # these will store the absorbing fields (Lya, Lyb, metals...)
         self.lya_absorber=absorber.AbsorberData(name='Lya',rest_wave=lya,flux_transform_m=1.0)
@@ -102,16 +100,12 @@ class SimulationData:
     @classmethod
     def get_gaussian_skewers_object(cls,filename,file_number,input_format,MOCKIDs=None,lambda_min=0,IVAR_cutoff=lya,SIGMA_G=None):
 
-        start = time.time()
-        times = [0.]
-
         h = fits.open(filename)
 
         h_MOCKID = read_files.get_MOCKID(h,input_format,file_number)
         h_R, h_Z, h_D, h_V = read_files.get_COSMO(h,input_format)
         h_lya_lambdas = read_files.get_lya_lambdas(h,input_format)
 
-        times += [time.time()-start-np.sum(times[:-1])]
 
         if MOCKIDs is not None:
             #Work out which rows in the hdulist we are interested in.
@@ -127,8 +121,6 @@ class SimulationData:
         #Calculate the first_relevant_cell.
         first_relevant_cell = np.searchsorted(h_lya_lambdas,lambda_min)
         actual_lambda_min = h_lya_lambdas[first_relevant_cell]
-
-        times += [time.time()-start-np.sum(times[:-1])]
 
         if input_format == 'physical_colore':
 
@@ -163,8 +155,6 @@ class SimulationData:
 
             #Set the remaining variables to None
             DENSITY_DELTA_rows = None
-            A = None
-            ALPHA = None
 
             #Insert placeholder values for remaining variables.
             PLATE = MOCKID
@@ -206,8 +196,6 @@ class SimulationData:
 
             #Set the remaining variables to None
             DENSITY_DELTA_rows = None
-            A = None
-            ALPHA = None
 
             #Insert placeholder values for remaining variables.
             PLATE = MOCKID
@@ -247,8 +235,6 @@ class SimulationData:
 
             #Set the remaining variables to None
             DENSITY_DELTA_rows = None
-            A = None
-            ALPHA = None
 
             """
             Can we calculate DZ_RSD,R,D,V?
@@ -266,13 +252,9 @@ class SimulationData:
             print('Input format not recognised: current options are "colore" and "picca".')
             print('Please choose one of these options and try again.')
 
-        times += [time.time()-start-np.sum(times[:-1])]
-
         h.close()
 
-        #print('{:3.0%} {:3.0%} {:3.0%} {:3.0%}'.format(times[0]/np.sum(times),times[1]/np.sum(times),times[2]/np.sum(times),times[3]/np.sum(times)))
-
-        return cls(N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,R,Z,D,V,LOGLAM_MAP,A)
+        return cls(N_qso,N_cells,SIGMA_G,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,R,Z,D,V,LOGLAM_MAP)
 
     #Function to trim skewers according to a minimum value of lambda. QSOs with no relevant cells are removed.
     def trim_skewers(self,lambda_min,min_catalog_z,extra_cells=0,lambda_max=None,whole_lambda_range=False):
@@ -341,15 +323,14 @@ class SimulationData:
         self.D = self.D[first_relevant_cell:last_relevant_cell + 1]
         self.V = self.V[first_relevant_cell:last_relevant_cell + 1]
         self.LOGLAM_MAP = self.LOGLAM_MAP[first_relevant_cell:last_relevant_cell + 1]
-        try:
+        if not isinstance(self.SIGMA_G,float):
             self.SIGMA_G = self.SIGMA_G[first_relevant_cell:last_relevant_cell + 1]
-        except TypeError:
-            self.SIGMA_G = self.SIGMA_G
 
         return
 
     #Function to add small scale gaussian fluctuations.
-    def add_small_scale_gaussian_fluctuations(self,cell_size,sigma_G_z_values,extra_sigma_G_values,generator,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n=0.7,k1=0.001,A0=58.6,R_kms=25.0):
+    def add_small_scale_gaussian_fluctuations(self,cell_size,generator,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n=0.7,k1=0.001,A0=58.6,R_kms=25.0):
+
         times = []
         start = time.time(); times += [start]
         # TODO: Is NGP really the way to go?
@@ -402,7 +383,10 @@ class SimulationData:
         extra_var = np.zeros(expanded_GAUSSIAN_DELTA_rows.shape)
 
         #Interpolate the extra sigma_G values using logs.
-        extra_sigma_G = np.exp(np.interp(np.log(self.Z),np.log(sigma_G_z_values),np.log(extra_sigma_G_values)))
+        #extra_sigma_G = np.exp(np.interp(np.log(self.Z),np.log(sigma_G_z_values),np.log(extra_sigma_G_values)))
+        #extra_sigma_G = seps_z(self.Z)
+        extra_sigma_G = self.transformation.get_seps(self.Z)
+
 
         # TODO: dv is not constant at the moment - how to deal with this
         #Generate extra variance, either white noise or correlated.
@@ -418,46 +402,9 @@ class SimulationData:
         mask = utils.make_IVAR_rows(lya,self.Z_QSO,self.LOGLAM_MAP)
         extra_var *= mask
 
-        expanded_GAUSSIAN_DELTA_rows += amplitude*extra_var
+        expanded_GAUSSIAN_DELTA_rows += extra_var
         times += [time.time()]
 
-        """
-        # TODO: Improve this
-        #1 by 1? Or just N_skewers=N_qso?
-        extra_variance = get_gaussian_fields(z,self.N_cells,sigma_G=extra_sigma_G,dv_kms=10.0,N_skewers=self.N_qso,white_noise=white_noise)
-        final_GAUSSIAN_DELTA_rows = expanded_GAUSSIAN_DELTA_rows + amplitude*extra_variance
-
-        for j in range(self.N_cells):
-            relevant_QSOs = [i for i in range(self.N_qso) if first_relevant_cells[i]<=j and last_relevant_cells[i]>=j]
-            extra_var[relevant_QSOs,j] = generator.normal(scale=extra_sigma_G[j],size=len(relevant_QSOs))
-
-        for i in range(self.N_qso):
-            first_relevant_cell = first_relevant_cells[i].astype('int32')
-            last_relevant_cell = last_relevant_cells[i].astype('int32')
-
-            #Number of cells needed is either the dist between the first and last relevant cells, or 0
-            N_cells_needed = np.max([(last_relevant_cell - first_relevant_cell).astype('int32'),0])
-
-            extra_var = np.zeros(N_cells_needed)
-
-
-            #Pass the generator to get_gaussian_skewers, along with the required sigma, and the size, and the seed
-            seed = self.MOCKID[i]
-            extra_var = get_gaussian_skewers(generator,N_cells_needed,extra_sigma_G[first_relevant_cell:last_relevant_cell],new_seed=seed)
-            #Generate a skewer of the right size with the given seed into 'extra_var'
-            #Add on extra var *amplitude
-
-
-            for j in range(first_relevant_cell,last_relevant_cell):
-                extra_sigma_G_cell = extra_sigma_G[j]
-                extra_var[j-first_relevant_cell] = get_gaussian_skewers(1,extra_sigma_G_cell)
-
-            if last_relevant_cell >= 0:
-
-                expanded_GAUSSIAN_DELTA_rows[i,first_relevant_cell:last_relevant_cell] += amplitude*extra_var
-            """
-
-        #self.COLORE_GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows
         self.GAUSSIAN_DELTA_rows = expanded_GAUSSIAN_DELTA_rows
         self.SIGMA_G = np.sqrt(extra_sigma_G**2 + (self.SIGMA_G)**2)
 
@@ -473,7 +420,6 @@ class SimulationData:
 
         return cosmology
 
-
     #Function to add physical skewers to the object via a lognormal transformation.
     def compute_physical_skewers(self,density_type='lognormal'):
 
@@ -482,14 +428,17 @@ class SimulationData:
         return
 
     #Function to add tau skewers to an absorber using FGPA.
-    def compute_tau_skewers(self,absorber,alpha,beta):
+    def compute_tau_skewers(self,absorber):
+
+        tau0 = self.transformation.get_tau0(self.Z)
+        texp = self.transformation.get_texp(self.Z)
 
         # scale optical depth for this particular absorber (=1 for Lya)
-        absorber_alpha = alpha*absorber.flux_transform_m
+        absorber_tau0 = tau0*absorber.flux_transform_m
         #print('absorber',absorber.name,'has m =',absorber.flux_transform_m)
         #print('absorber',absorber.name,'has first alphas =',absorber_alpha[0:5])
 
-        absorber.tau = convert.density_to_tau(self.DENSITY_DELTA_rows+1,absorber_alpha,beta)
+        absorber.tau = convert.density_to_tau(self.DENSITY_DELTA_rows+1,absorber_tau0,texp)
 
         #Set tau to 0 beyond the quasars.
         for i in range(self.N_qso):
@@ -499,19 +448,19 @@ class SimulationData:
         return
 
     #Function to compute tau for all absorbers.
-    def compute_all_tau_skewers(self,alpha,beta):
+    def compute_all_tau_skewers(self):
 
         # for each absorber, compute its optical depth skewers
-        self.compute_tau_skewers(self.lya_absorber,alpha,beta)
+        self.compute_tau_skewers(self.lya_absorber)
 
         # optical depth for Ly_b
         if self.lyb_absorber is not None:
-            self.compute_tau_skewers(self.lyb_absorber,alpha,beta)
+            self.compute_tau_skewers(self.lyb_absorber)
 
         # loop over metals in dictionary
         if self.metals is not None:
             for metal in iter(self.metals.values()):
-                self.compute_tau_skewers(metal,alpha,beta)
+                self.compute_tau_skewers(metal)
 
         return
 
@@ -607,6 +556,72 @@ class SimulationData:
 
         return mean
 
+    #Function to measure pdf.
+    def get_pdf_quantity(self,quantity,z_value=None,z_width=None,single_value=True,bins=100,power=1):
+
+        if type(bins) != float:
+            N_bins = bins.shape[0]
+
+        if quantity == 'gaussian':
+            skewer_rows = self.GAUSSIAN_DELTA_rows ** power
+        elif quantity == 'density':
+            skewer_rows = (self.DENSITY_DELTA_rows + 1) ** power
+        elif quantity == 'tau':
+            skewer_rows = self.lya_absorber.tau ** power
+        elif quantity == 'flux':
+            skewer_rows = self.lya_absorber.transmission() ** power
+        elif quantity == 'FlnF':
+            #Use that ln(F)=-tau so FlnF = -F*tau
+            skewer_rows = (-self.lya_absorber.transmission() * self.lya_absorber.tau) ** power
+        elif quantity == 'FlnFlnF':
+            #Use that ln(F)=-tau so FlnFlnF = F*tau**2
+            skewer_rows = (self.lya_absorber.transmission() * (self.lya_absorber.tau)**2) ** power
+
+        #If no z value, then compute the pdf as a function of redshift.
+        if not z_value:
+            hist = np.zeros(N_bins,self.N_cells)
+            edges = np.zeros(N_bins+1,self.N_cells)
+            for i in range(self.N_cells):
+                hist_i,edges_i = np.histogram(skewer_rows[:,i],bins=bins,weights=self.IVAR_rows[:,i],density=True)
+                hist[:,i] = hist_i
+                edges[:,i] = edges_i
+
+        #Else if there's no width, compute the pef of the cells neighbouring the z_value.
+        elif not z_width:
+            j_value_upper = np.searchsorted(self.Z,z_value)
+            j_value_lower = max(j_value_upper - 1,0)
+            relevant_rows = [i for i in range(self.N_qso) if np.sum(self.IVAR_rows[j_value_lower,j_value_upper]) == 2]
+
+            if j_value_lower > -1:
+                weight_upper = (z_value - self.Z[j_value_lower])/(self.Z[j_value_upper] - self.Z[j_value_lower])
+                weight_lower = (self.Z[j_value_upper] - z_value)/(self.Z[j_value_upper] - self.Z[j_value_lower])
+
+            else:
+                weight_upper = 1
+                weight_lower = 0
+
+            weights = np.ones((self.N_qso,2))
+            weights[:,0] *= weight_lower
+            weights[:,1] *= weight_upper
+
+            hist,edges = np.histogram(skewer_rows[relevant_rows,j_value_lower,j_value_upper+1],bins=bins,weights=weights,density=True)
+
+        #Else, compute the mean of the chunk of width z_width centred on z_value.
+        else:
+            j_value_upper = np.searchsorted(self.Z,z_value + z_width/2.) - 1
+            j_value_lower = np.max([0,np.searchsorted(self.Z,z_value - z_width/2.)])
+            if single_value:
+                hist,edges = np.histogram(skewer_rows[:,j_value_lower:j_value_upper+1],bins=bins,weights=self.IVAR_rows[:,j_value_lower:j_value_upper+1],density=True)
+            else:
+                hist = np.zeros(N_bins,j_value_upper+1-j_value_lower)
+                edges = np.zeros(N_bins+1,j_value_upper+1-j_value_lower)
+                for i in range(j_value_upper+1-j_value_lower):
+                    hist_i,edges_i = np.histogram(skewer_rows[:,i],bins=bins,weights=self.IVAR_rows[:,i],density=True)
+                    hist[:,i] = hist_i
+                    edges[:,i] = edges_i
+
+        return hist,edges
+
     #Function to measure sigma dF.
     def get_sigma_dF(self,absorber,z_value=None,z_width=None,mean_F=None):
 
@@ -650,7 +665,6 @@ class SimulationData:
 
         N_cells = object_A.N_cells
         SIGMA_G = object_A.SIGMA_G
-        ALPHA = object_A.ALPHA
 
         TYPE = np.concatenate((object_A.TYPE,object_B.TYPE),axis=0)
         RA = np.concatenate((object_A.RA,object_B.RA),axis=0)
@@ -679,9 +693,8 @@ class SimulationData:
         R = object_A.R
         D = object_A.D
         V = object_A.V
-        A = object_A.A
 
-        return cls(N_qso,N_cells,SIGMA_G,ALPHA,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,R,Z,D,V,LOGLAM_MAP,A)
+        return cls(N_qso,N_cells,SIGMA_G,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,R,Z,D,V,LOGLAM_MAP)
 
     #Function to save in the colore format.
     def save_as_colore(self,quantity,filename,header,overwrite=False,cell_size=None):
@@ -796,7 +809,7 @@ class SimulationData:
         picca_3_data = list(zip(self.RA[relevant_QSOs],self.DEC[relevant_QSOs],Z_QSO[relevant_QSOs],self.PLATE[relevant_QSOs],self.MJD[relevant_QSOs],self.FIBER[relevant_QSOs],self.MOCKID[relevant_QSOs]))
         dtype = [('RA', 'f8'), ('DEC', 'f8'), ('Z', 'f8'), ('PLATE', int), ('MJD', 'f8'), ('FIBER', int), ('THING_ID', int)]
         picca_3 = np.array(picca_3_data,dtype=dtype)
-        
+
         """
         picca_3_data = []
         for i in range(self.N_qso):

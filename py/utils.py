@@ -40,13 +40,17 @@ def make_file_structure(base_location,numbers):
     first_level_set = list(sorted(set(first_level)))
 
     for i in first_level_set:
-
-        os.mkdir(base_location+'/'+str(i))
-
+        try:
+            os.mkdir(base_location+'/'+str(i))
+        except FileExistsError:
+            pass
         for j, number in enumerate(numbers):
 
             if first_level[j] == i:
-                os.mkdir(base_location+'/'+str(i)+'/'+str(number))
+                try:
+                    os.mkdir(base_location+'/'+str(i)+'/'+str(number))
+                except FileExistsError:
+                    pass
 
     return
 
@@ -100,6 +104,20 @@ def make_pixel_ID(N_side,RA,DEC):
             pixel_ID[i] = -1
 
     return pixel_ID
+
+#Function to return the neighbouring HEALPix pixels to a given HEALPix pixel.
+def get_pixel_neighbours(pixel,N_side=16):
+    theta,phi = hp.pix2ang(N_side,pixel)
+    neighbours = hp.get_all_neighbours(N_side,theta=theta,phi=phi)
+    return neighbours
+
+#Function to add neighbouring HEALPix pixels to an array of HEALPix pixels.
+def add_pixel_neighbours(pixels,N_side=16):
+    final_pixel_set = set(pixels)
+    for pixel in pixels:
+        neighbours = get_pixel_neighbours(pixel,N_side=N_side)
+        final_pixel_set = final_pixel_set.union(set(neighbours))
+    return np.array(list(final_pixel_set))
 
 #Function to make ivar mask
 def make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP):

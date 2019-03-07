@@ -4,7 +4,7 @@ from astropy.io import fits
 from . import utils, read_files
 
 #Function to extract data suitable for making ID files from a set of colore or picca format files.
-def get_ID_data(original_file_location,original_filename_structure,file_number,input_format,N_side,minimum_z=0.0):
+def get_ID_data(original_file_location,original_filename_structure,file_number,input_format,N_side,minimum_z=0.0,pixels=None,downsampling=1.0):
 
     ID_data = []
     cosmology = []
@@ -35,11 +35,24 @@ def get_ID_data(original_file_location,original_filename_structure,file_number,i
     ID_data = list(zip(RA,DEC,Z_QSO_NO_RSD,Z_QSO_RSD,MOCKID,pixel_ID,file_numbers))
 
     #Sort the MOCKIDs and pixel_IDs into the right order: first by pixel number, and then by MOCKID.
-    #Also filter out the objects with Z_QSO<minimum_z
+    #Also filter out the objects with Z_QSO<minimum_z.
     dtype = [('RA', 'd'), ('DEC', 'd'), ('Z_QSO_NO_RSD', 'd'), ('Z_QSO_RSD', 'd'), ('MOCKID', int), ('PIXNUM', int), ('FILENUM', int)]
     ID = np.array(ID_data, dtype=dtype)
     ID = ID[ID['Z_QSO_NO_RSD']>minimum_z]
     ID_sort = np.sort(ID, order=['PIXNUM','MOCKID'])
+
+    #Also filter out the objects not in the pixels we want.
+    if isinstance(pixels,np.ndarray):
+        for pix in set(pixel_ID):
+            if pix not in pixels:
+                ID_sort = ID_sort[ID_sort['PIXNUM'] != pix]
+
+    #Downsample if we want.
+    if downsampling < 1.0:
+        N_qso = ID_sort.shape[0]
+        final_N_qso = round(N_qso*downsampling)
+        random_QSOs = np.sort(np.random.choice(N_qso,size=final_N_qso,replace=False))
+        ID_sort = ID_sort[random_QSOs]
 
     #Make file-pixel map element and MOCKID lookup.
     pixel_ID_set = list(sorted(set([pixel for pixel in ID_sort['PIXNUM'] if pixel>=0])))
@@ -89,7 +102,7 @@ def join_ID_data(results,N_side):
     return master_data, bad_coordinates_data, cosmology_data, file_pixel_map, MOCKID_lookup
 
 #Function to write a single ID file, given the data.
-def write_ID(filename,ID_data,cosmology_data,N_side):
+def write_ID(filename,ID_data,cosmology_data,N_side,overwrite=False):
 
     #Make an appropriate header.
     header = fits.Header()
@@ -105,13 +118,13 @@ def write_ID(filename,ID_data,cosmology_data,N_side):
 
     #Make the .fits file.
     hdulist = fits.HDUList([prihdu,hdu_ID,hdu_cosmology])
-    hdulist.writeto(filename)
+    hdulist.writeto(filename,overwrite=overwrite)
     hdulist.close()
 
     return
 
 #Function to make the drq files needed for picca xcf functions.
-def write_DRQ(filename,RSD_option,ID_data,N_side):
+def write_DRQ(filename,RSD_option,ID_data,N_side,overwrite=False):
 
     #Extract data from the ID_data
     RA = ID_data['RA']
@@ -140,7 +153,7 @@ def write_DRQ(filename,RSD_option,ID_data,N_side):
     hdu_DRQ = fits.BinTableHDU.from_columns(DRQ_data,header=header)
 
     hdulist = fits.HDUList([prihdu,hdu_DRQ])
-    hdulist.writeto(filename)
+    hdulist.writeto(filename,overwrite=overwrite)
     hdulist.close()
 
     return
