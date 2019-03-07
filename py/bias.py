@@ -9,7 +9,7 @@ lya = utils.lya_rest
 #Assumes that the object already has tau calculated and RSDs applied.
 def get_bias_delta(data,z_values,d=0.001,z_width=0.2):
 
-    betas = data.transformation.f_texp_z()
+    betas = data.transformation.get_texp(data.Z)
 
     if isinstance(z_values, float):
         z_values = np.array([z_values])
@@ -72,8 +72,8 @@ def get_bias_delta(data,z_values,d=0.001,z_width=0.2):
 #Assumes that the object already has tau calculated but with no RSDs applied.
 def get_bias_eta(data,z_values,d=0.001,z_width=0.2,z_r0=2.5,include_thermal_effects=False):
 
-    alphas = data.transformation.f_tau0_z()
-    betas = data.transformation.f_texp_z()
+    alphas = data.transformation.get_tau0(data.Z)
+    betas = data.transformation.get_texp(data.Z)
 
     if isinstance(z_values, float):
         z_values = np.array([z_values])
