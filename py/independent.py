@@ -104,22 +104,27 @@ def power_kms(z_c,k_kms,dv_kms,white_noise=False,n=0.7,k1=0.001,A0=58.6,R_kms=25
         P /= sigma2
     return P
 
-def alternative_power_kms(z_c,k_kms,dv_kms,A0=58.6,k0=0.009,E1=-0.55,E2=-0.1,R1=25.0,smooth=True,norm=False):
+def alternative_power_kms(z_c,k_kms,dv_kms,A0=58.6,k0=0.009,E1=-0.55,E2=-0.1,R_kms=25.0,smooth=True,norm=False):
+
 
     A = power_amplitude(z_c,A0=A0)
     P = np.zeros(k_kms.shape)
     cells = k_kms>0
     P[cells] = A * (k_kms[cells]/k0) ** (E1 + E2*np.log(k_kms[cells]/k0))
+    #Flatten the low_k:
+    k_min = k_kms[np.argmax(P)]
+    k_kms = np.fmax(k_kms,k_min)
+    P = A * (k_kms/k0) ** (E1 + E2*np.log(k_kms/k0))
     if smooth:
         # smooth with Gaussian and top hat
         kdv = np.fmax(k_kms*dv_kms,0.000001)
-        P *= np.exp(-pow(k_kms*R1,2)) * pow(np.sin(kdv/2)/(kdv/2),2)
+        P *= np.exp(-pow(k_kms*R_kms,2)) * pow(np.sin(kdv/2)/(kdv/2),2)
     if norm:
         # normalise to have sigma of 1
         sigma2 = (1/np.pi) * np.trapz(P,k_kms)
         P /= sigma2
-    return P
 
+    return P
 
 def get_sigma_G(z_c,k_kms,dv_kms,white_noise=False,n=0.7,k1=0.001,A0=58.6):
 
