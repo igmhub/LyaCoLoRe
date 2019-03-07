@@ -62,6 +62,9 @@ parser.add_argument('--desi-footprint-plus', action="store_true", default = Fals
 parser.add_argument('--downsampling', type = float, default = 1.0, required=False,
                     help = 'fraction by which to subsample the CoLoRe output')
 
+parser.add_argument('--overwrite', action="store_true", default = False, required=False,
+                    help = 'overwrite existing files')
+
 ################################################################################
 
 args = parser.parse_args()
@@ -86,6 +89,7 @@ if desi_footprint or desi_footprint_plus:
     except ModuleNotFoundError:
         raise InputError('Unable to use DESI footprint: desimodel is not installed.')
 downsampling = args.downsampling
+overwrite = args.overwrite
 
 # TODO: print to confirm the arguments. e.g. "DLAs will be added"
 
@@ -180,12 +184,12 @@ master_data, bad_coordinates_data, cosmology_data, file_pixel_map, MOCKID_lookup
 
 #Write master and bad coordinates files.
 master_filename = new_base_file_location + '/master.fits'
-catalog.write_ID(master_filename,master_data,cosmology_data,N_side)
+catalog.write_ID(master_filename,master_data,cosmology_data,N_side,overwrite=overwrite)
 print('\nMaster file contains {} objects.'.format(master_data.shape[0]))
 
 if bad_coordinates_data.shape[0] > 0:
     bad_coordinates_filename = new_base_file_location + '/bad_coordinates.fits'
-    catalog.write_ID(bad_coordinates_filename,bad_coordinates_data,cosmology_data,N_side)
+    catalog.write_ID(bad_coordinates_filename,bad_coordinates_data,cosmology_data,N_side,overwrite=overwrite)
     print('"bad coordinates" file contains {} objects.'.format(bad_coordinates_data.shape[0]))
 
 #If desired, write the DRQ files for picca xcf to deal with.
@@ -193,7 +197,7 @@ if add_picca_drqs:
     print('\nMaster file contains {} objects.'.format(master_data.shape[0]))
     for RSD_option in ['RSD','NO_RSD']:
         DRQ_filename = new_base_file_location + '/master_picca_{}.fits'.format(RSD_option)
-        catalog.write_DRQ(DRQ_filename,RSD_option,master_data,N_side)
+        catalog.write_DRQ(DRQ_filename,RSD_option,master_data,N_side,overwrite=overwrite)
 
 print('Time to make master files: {:4.0f}s.'.format(time.time()-start))
 

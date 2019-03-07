@@ -53,7 +53,7 @@ def get_ID_data(original_file_location,original_filename_structure,file_number,i
         final_N_qso = round(N_qso*downsampling)
         random_QSOs = np.sort(np.random.choice(N_qso,size=final_N_qso,replace=False))
         ID_sort = ID_sort[random_QSOs]
-        
+
     #Make file-pixel map element and MOCKID lookup.
     pixel_ID_set = list(sorted(set([pixel for pixel in ID_sort['PIXNUM'] if pixel>=0])))
     file_pixel_map_element = np.zeros(N_pixels)
@@ -102,7 +102,7 @@ def join_ID_data(results,N_side):
     return master_data, bad_coordinates_data, cosmology_data, file_pixel_map, MOCKID_lookup
 
 #Function to write a single ID file, given the data.
-def write_ID(filename,ID_data,cosmology_data,N_side):
+def write_ID(filename,ID_data,cosmology_data,N_side,overwrite=False):
 
     #Make an appropriate header.
     header = fits.Header()
@@ -118,13 +118,13 @@ def write_ID(filename,ID_data,cosmology_data,N_side):
 
     #Make the .fits file.
     hdulist = fits.HDUList([prihdu,hdu_ID,hdu_cosmology])
-    hdulist.writeto(filename)
+    hdulist.writeto(filename,overwrite=overwrite)
     hdulist.close()
 
     return
 
 #Function to make the drq files needed for picca xcf functions.
-def write_DRQ(filename,RSD_option,ID_data,N_side):
+def write_DRQ(filename,RSD_option,ID_data,N_side,overwrite=False):
 
     #Extract data from the ID_data
     RA = ID_data['RA']
@@ -153,7 +153,7 @@ def write_DRQ(filename,RSD_option,ID_data,N_side):
     hdu_DRQ = fits.BinTableHDU.from_columns(DRQ_data,header=header)
 
     hdulist = fits.HDUList([prihdu,hdu_DRQ])
-    hdulist.writeto(filename)
+    hdulist.writeto(filename,overwrite=overwrite)
     hdulist.close()
 
     return
