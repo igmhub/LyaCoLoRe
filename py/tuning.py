@@ -128,14 +128,14 @@ class function_measurement:
         self.mean_F = np.average(pixel_object.get_mean_quantity('flux',z_value=self.z_value,z_width=self.z_width,single_value=False))
         return
 
-    def add_bias_delta_measurement(self,pixel_object,betas,d=0.001):
+    def add_bias_delta_measurement(self,pixel_object,d=0.001):
         #Get bias_delta and add it to the measurement object.
-        self.bias_delta = bias.get_bias_delta(pixel_object,betas,self.z_value,z_width=self.z_width,d=d)
+        self.bias_delta = bias.get_bias_delta(pixel_object,self.z_value,z_width=self.z_width,d=d)
         return
 
-    def add_bias_eta_measurement(self,pixel_object,alphas,betas,d=0.001):
+    def add_bias_eta_measurement(self,pixel_object,d=0.001):
         #Get bias_eta and add it to the measurement object.
-        self.bias_eta = bias.get_bias_eta(pixel_object,alphas,betas,self.z_value,z_width=self.z_width,d=d,z_r0=self.z_value)
+        self.bias_eta = bias.get_bias_eta(pixel_object,self.z_value,z_width=self.z_width,d=d,z_r0=self.z_value)
         return
 
     def add_sigma_dF_measurement(self,pixel_object):
