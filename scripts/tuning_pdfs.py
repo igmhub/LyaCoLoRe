@@ -4,18 +4,23 @@ import time
 from multiprocessing import Pool
 import multiprocessing
 from astropy.io import fits
+import matplotlib.pyplot as plt
 
 from pyacolore import simulation_data, bias, utils
 
 #base_dir = '../example_data/lya_skewers/'
 base_dir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v5/v5.0.0/'
-tuning_files = glob.glob('./input_files/tuning_data_a?.?_b1.65.fits') + glob.glob('./input_files/tuning_data_a?.?_b2.0.fits')
+tuning_files = glob.glob('./input_files/tuning_data_a?.?_b1.65.fits')
+# + glob.glob('./input_files/tuning_data_a?.?_b2.0.fits')
 #tuning_files = glob.glob('./input_files/tuning_data_apow4.5_sGconst.fits')
-z_values = np.array([2.0,2.2,2.4,2.6,2.8,3.0,3.2,3.4])
-N_bins = 100
+z_values = np.array([2.0,2.2,2.4,2.6,2.8,3.0,3.2])
+N_bins = 1000
+bin_width = 1./N_bins
 z_width_value = 0.1
-N_pixels = 1
+N_pixels = 4
 f = 0.9625
+
+plot_option = 'plot_per_z_value' #'plot_per_tuning'
 
 #pixels = np.random.choice(3072,size=N_pixels,replace=False)
 pixels = list(range(N_pixels))
@@ -76,13 +81,14 @@ def pdf_tuning(pixel_object,tuning_filename,z_values,z_width=0.2,bins=100):
 
     histograms = {}
     for z_value in z_values:
-        #Calculate biases.
-        hist,edges = self.get_pdf_quantity('flux',z_value=z_value,z_width=z_width,bins=bins)
+        #Calculate histograms.
+        hist,edges = pixel_object.get_pdf_quantity('flux',z_value=z_value,z_width=z_width,bins=bins)
         z_hist = {}
         z_hist['hist'] = hist
         z_hist['edges'] = edges
         histograms[z_value] = z_hist
-
+        centres = edges[:-1]/2. + edges[1:]/2.
+    
     return histograms
 
 
@@ -92,7 +98,7 @@ def pixel_tuning_bias(pixel,tuning_filename,z_values,d=0.001,z_width=0.2):
     gaussian_filename = utils.get_file_name(dirname,'gaussian-colore',N_side,pixel)
     file_number = None
     pixel_object = simulation_data.SimulationData.get_gaussian_skewers_object(gaussian_filename,file_number,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
-    bins = np.linspace(0.,1.,N_bins)
+    bins = np.linspace(0.,1.,N_bins+1)
 
     histograms = pdf_tuning(pixel_object,tuning_filename,z_values,z_width=z_width,bins=bins)
 
@@ -119,6 +125,7 @@ def log_error(retval):
 
 ################################################################################
 
+histograms = {}
 for tuning_filename in tuning_files:
     print('looking at',tuning_filename)
     tasks = [(pixel,tuning_filename,z_values,z_width_value) for pixel in pixels]
@@ -135,15 +142,46 @@ for tuning_filename in tuning_files:
         pool.close()
         pool.join()
 
-    for key in z_values:
+    hist_tuning = {}
+    for z_value in z_values:
         histogram = np.zeros(N_bins)
         edges = np.linspace(0.,1.,N_bins+1)
         for result in results:
             histogram += result[z_value]['hist']
         histogram /= len(results)
+        hist_tuning_z_value = {}
+        hist_tuning_z_value['hist'] = histogram
+        hist_tuning_z_value['edges'] = edges
+        hist_tuning[z_value] = hist_tuning_z_value
+    histograms[tuning_filename] = hist_tuning
 
-        plt.bar(edges[:-1],histogram,width=1./N_bins,aligh='edge',label=z_value)
-        plt.title(tuning_filename)
+if plot_option == 'plot_per_z_value':
+    for z_value in z_values:
+        for tuning_filename in tuning_files:
+            hist = histograms[tuning_filename][z_value]['hist']
+            edges = histograms[tuning_filename][z_value]['edges']
+            centres = edges[:-1]/2.+edges[1:]/2.
+            b_eta = np.sum(centres*hist*np.log(centres)*bin_width)/np.sum(centres*hist*bin_width)
+            label = tuning_filename[tuning_filename.rfind('/'):]
+            plt.step(centres,histogram,where='mid',label=label+', b_eta={:2.4f}'.format(b_eta))
+        plt.title(r'$z={}$'.format(z_value))
+        plt.semilogy()
+        plt.legend()
+        plt.grid()
+        plt.savefig('pdf_z{}.pdf'.format(z_value))
+        plt.show()
+
+elif plot_option == 'plot_per_tuning':
+    for tuning_filename in tuning_files:
+        for z_value in z_values:
+            hist = histograms[tuning_filename][z_value]['hist']
+            edges = histograms[tuning_filename][z_value]['edges']
+            centres = edges[:-1]/2.+edges[1:]/2.
+            b_eta = np.sum(centres*hist*np.log(centres)*bin_width)/np.sum(centres*hist*bin_width)
+            plt.step(centres,histogram,where='mid',label=r'$z={}, b_\eta={:2.4f}$'.format(z_value,b_eta))
+        title = tuning_filename[tuning_filename.rfind('/'):]
+        plt.title(title)
+        plt.semilogy()
         plt.legend()
         plt.grid()
         plt.show()

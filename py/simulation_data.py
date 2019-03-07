@@ -330,6 +330,7 @@ class SimulationData:
 
     #Function to add small scale gaussian fluctuations.
     def add_small_scale_gaussian_fluctuations(self,cell_size,generator,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n=0.7,k1=0.001,A0=58.6,R_kms=25.0):
+
         times = []
         start = time.time(); times += [start]
         # TODO: Is NGP really the way to go?
@@ -385,6 +386,7 @@ class SimulationData:
         #extra_sigma_G = np.exp(np.interp(np.log(self.Z),np.log(sigma_G_z_values),np.log(extra_sigma_G_values)))
         #extra_sigma_G = seps_z(self.Z)
         extra_sigma_G = self.transformation.get_seps(self.Z)
+
 
         # TODO: dv is not constant at the moment - how to deal with this
         #Generate extra variance, either white noise or correlated.
@@ -609,7 +611,7 @@ class SimulationData:
             j_value_upper = np.searchsorted(self.Z,z_value + z_width/2.) - 1
             j_value_lower = np.max([0,np.searchsorted(self.Z,z_value - z_width/2.)])
             if single_value:
-                hist,edges = np.histogram(skewer_rows[:,j_value_lower,j_value_upper+1],bins=bins,weights=self.IVAR_rows[:,j_value_lower,j_value_upper+1],density=True)
+                hist,edges = np.histogram(skewer_rows[:,j_value_lower:j_value_upper+1],bins=bins,weights=self.IVAR_rows[:,j_value_lower:j_value_upper+1],density=True)
             else:
                 hist = np.zeros(N_bins,j_value_upper+1-j_value_lower)
                 edges = np.zeros(N_bins+1,j_value_upper+1-j_value_lower)

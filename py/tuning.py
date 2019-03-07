@@ -143,7 +143,7 @@ class function_measurement:
         self.sigma_dF = pixel_object.get_sigma_dF(pixel_object.lya_absorber,z_value=self.z_value,z_width=self.z_width)
         return
 
-    def add_Pk1D_chi2(self,min_k=None,max_k=None,denom="krange10"):
+    def add_Pk1D_chi2(self,min_k=None,max_k=None,denom="krange",eps=0.1):
         #Calculate the "model" values.
         model_Pk_kms = P1D_z_kms_PD2013(self.z_value,self.k_kms)
         if min_k:
@@ -159,37 +159,31 @@ class function_measurement:
 
         #Determine the denominator (i.e. weighting scheme).
         A = 10**6
-        if denom == "uniform5":
-            denom = (0.05 * model_Pk_kms)**2
-        elif denom == "uniform10":
-            denom = (0.10 * model_Pk_kms)**2
-        elif denom == "krange5":
-            eps = A * np.ones(self.k_kms.shape)
-            eps[min_j:max_j] *= 0.05 / A
+        if denom == "uniform":
             denom = (eps * model_Pk_kms)**2
-        elif denom == "krange10":
+        elif denom == "krange":
             eps = A * np.ones(self.k_kms.shape)
-            eps[min_j:max_j] *= 0.1 / A
+            eps[min_j:max_j] *= eps / A
             denom = (eps * model_Pk_kms)**2
-        elif denom == "krange10_smooth":
+        elif denom == "krange_smooth":
             eps = A * np.ones(self.k_kms.shape)
-            eps[min_j:max_j] *= 0.1 / A
+            eps[min_j:max_j] *= eps / A
             smooth_width = (max_k - min_k)/0.01
-            lower_smooth = A + (0.1 - A)*np.exp(-((self.k_kms - min_k)**2)/(2*smooth_width**2))
-            upper_smooth = A + (0.1 - A)*np.exp(-((self.k_kms - max_k)**2)/(2*smooth_width**2))
+            lower_smooth = A + (eps - A)*np.exp(-((self.k_kms - min_k)**2)/(2*smooth_width**2))
+            upper_smooth = A + (eps - A)*np.exp(-((self.k_kms - max_k)**2)/(2*smooth_width**2))
             eps[:min_j] = lower_smooth[:min_j]
             eps[max_j:] = upper_smooth[max_j:]
             denom = (eps * model_Pk_kms)**2
         elif denom == "npower":
             k0 = max_k
             n = 2.
-            eps = 0.1 * ((1 + (self.k_kms/k0)**n))
+            eps = eps * ((1 + (self.k_kms/k0)**n))
             denom = (eps * model_Pk_kms)**2
         elif denom == "npower_cutoff":
             k0 = max_k
             n = 2.
             cutoff = 0.02 #kms
-            eps = 0.1 * ((1 + (self.k_kms/k0)**n))
+            eps = eps * ((1 + (self.k_kms/k0)**n))
             eps[self.k_kms>cutoff] = A
             denom = (eps * model_Pk_kms)**2
 
