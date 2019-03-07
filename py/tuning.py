@@ -12,6 +12,68 @@ lya = utils.lya_rest
 Below: new tuning, measurement based
 """
 
+#Object to store the transformation used to go from CoLoRe's Gaussian skewers to
+#flux skewers. Stores functions of redshift.
+class transformation:
+    def __init__(self):
+        return
+
+    #Function to add the transformation functions by interpolating data.
+    def add_parameters_from_data(self,z_values,tau0_values,texp_values,seps_values):
+        def f_tau0_z(z):
+            return np.exp(np.interp(np.log(z),np.log(z_values),np.log(tau0_values)))
+        self.f_tau0_z = f_tau0_z
+        def f_texp_z(z):
+            return np.exp(np.interp(np.log(z),np.log(z_values),np.log(texp_values)))
+        self.f_texp_z = f_texp_z
+        def f_seps_z(z):
+            return np.exp(np.interp(np.log(z),np.log(z_values),np.log(seps_values)))
+        self.f_seps_z = f_seps_z
+        return
+
+    # TODO: UPDATE TUNING FILE COLUMN NAMES
+    #Function to add the transformation functions by interpolating data from a
+    #given tuning file.
+    def add_parameters_from_file(self,filepath):
+        h = fits.open(filepath)
+        z = h[1].data['z']
+        tau0 = h[1].data['alpha']
+        texp = h[1].data['beta']
+        seps = h[1].data['sigma_G']
+        self.add_parameters_from_data(z,tau0,texp,seps)
+        return
+
+    #Function to add the transformation functions by given the functions.
+    def add_parameters_from_functions(self,f_tau0_z,f_texp_z,f_seps_z):
+        self.f_tau0_z = f_tau0_z
+        self.f_texp_z = f_texp_z
+        self.f_seps_z = f_seps_z
+        return
+
+    #Function to evaluate tau0, the normalisation of the FGPA.
+    def tau0(self,z=None):
+        if z:
+            tau0 = self.f_tau0_z(z)
+        else:
+            tau0 = self.f_tau0_z(self.Z)
+        return tau0
+
+    #Function to evaluate texp, the exponent of the FGPA.
+    def texp(self,z=None):
+        if z:
+            texp = self.f_texp_z(z)
+        else:
+            texp = self.f_texp_z(self.Z)
+        return texp
+
+    #Function to evaluate sigma_epsilon, the std of the extra power.
+    def seps(self,z=None):
+        if z:
+            seps = self.f_seps_z(z)
+        else:
+            seps = self.f_seps_z(self.Z)
+        return seps
+
 class function_measurement:
     def __init__(self,parameter_ID,z_value,z_width,N_skewers,n,k1,C0,C1,C2,beta,D0,D1,D2,pixels=[]):
 
