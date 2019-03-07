@@ -32,6 +32,12 @@ class function_measurement:
 
         self.pixels = pixels
 
+        self.mean_F = None
+        self.k_kms = None
+        self.Pk_kms = None
+        self.bias_delta = None
+        self.bias_eta = None
+
         return
 
     #Get the values of tau0 (FGPA) for the measurement's parameter values.
