@@ -255,7 +255,7 @@ def save_P1D_values(Pk1D_results):
         Pk = Pk1D_results[key]['Pk']
         var = Pk1D_results[key]['var']
 
-        dtype = [('k', 'f8'), ('Pk', 'f8'), ('var', 'f8')]
+        dtype = [('k', 'f4'), ('Pk', 'f4'), ('var', 'f4')]
         data = np.array(list(zip(k,Pk,var)),dtype=dtype)
         hdu = fits.BinTableHDU.from_columns(data,header=header,name=str(key))
         hdus += [hdu]

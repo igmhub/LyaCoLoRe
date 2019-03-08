@@ -188,7 +188,7 @@ def add_DLA_table_to_object(object,dla_bias=2.0,dla_bias_z=2.25,extrapolate_z_do
     #Make the data into a table HDU
     data = [dla_z,dla_z+dla_rsd_dz,dla_NHI,MOCKIDs,DLAIDs]
     names = ('Z_DLA_NO_RSD','Z_DLA_RSD','N_HI_DLA','MOCKID','DLAID')
-    dtype = ('f8','f8','f8','i8','i8')
+    dtype = ('f4','f4','f4',int,int)
     dla_table = astropy.table.Table(data,names=names,dtype=dtype)
 
     ##Only include DLAs where the DLA is at lower z than the QSO

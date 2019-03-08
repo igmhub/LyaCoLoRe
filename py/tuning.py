@@ -331,7 +331,7 @@ class function_measurement:
         header['cf'] = self.cf
 
         Pk_data = list(zip(self.k_kms,self.Pk_kms))
-        dtype = [('k_kms', 'f8'), ('Pk_kms', 'f8')]
+        dtype = [('k_kms', 'f4'), ('Pk_kms', 'f4')]
         measurement_1 = np.array(Pk_data,dtype=dtype)
         cols = fits.ColDefs(measurement_1)
         hdu = fits.BinTableHDU.from_columns(cols,header=header,name='Pk1D')
