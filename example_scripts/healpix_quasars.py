@@ -2,31 +2,44 @@ import numpy as np
 from astropy.io import fits
 import matplotlib.pyplot as plt
 import healpy as hp
+import glob
 
-# identify output file we want to plot
-hdulist = fits.open('../example_data/raw_colore_1000/out_srcs_s1_0.fits')
+N_side = 16
+locations = glob.glob('/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v5/test*/master.fits')
 
-# get quasar catalog
-initial_catalog = hdulist[1].data
+N_pixels = 12*N_side*N_side
 
-# some quasars have Dec=NaN, let's get rid of them for now
-mask = np.invert(np.isnan(initial_catalog['DEC']))
-catalog = initial_catalog[mask]
-print('initial size',len(initial_catalog))
-print('final size',len(catalog))
+for i,location in enumerate(locations):
+    plt.figure()
+    print(location)
 
-# specify Nside parameter in HEALPix maps (power of 2)
-nside=2**1
+    # identify output file we want to plot
+    #hdulist = fits.open('../example_data/raw_colore_1000/out_srcs_s1_0.fits')
+    hdulist = fits.open(location)
 
-# convert (RA,DEC) to (theta,phi) and find HEALPix pixel for each point
-theta,phi = np.radians(90-catalog['DEC']), np.radians(catalog['RA'])
-pixels = hp.ang2pix(nside,theta,phi,nest=True)
+    # get quasar catalog
+    initial_catalog = hdulist[1].data
 
-# plot angular positions of quasars color-coded by HEALPix pixel
-for pix in range(12*nside*nside):
-    plt.plot(catalog['RA'][pixels==pix],catalog['DEC'][pixels==pix],'o')
+    # some quasars have Dec=NaN, let's get rid of them for now
+    mask = np.invert(np.isnan(initial_catalog['DEC']))
+    catalog = initial_catalog[mask]
+    print('initial size',len(initial_catalog))
+    print('final size',len(catalog))
 
-plt.xlabel('RA (deg)')
-plt.ylabel('Dec (deg)')
+    # convert (RA,DEC) to (theta,phi) and find HEALPix pixel for each point
+    theta,phi = np.radians(90-catalog['DEC']), np.radians(catalog['RA'])
+    pixels = hp.ang2pix(N_side,theta,phi,nest=True)
+
+    # plot angular positions of quasars color-coded by HEALPix pixel
+    for pix in range(N_pixels):
+        plt.scatter(catalog['RA'][pixels==pix],catalog['DEC'][pixels==pix])
+
+    plt.xlabel('RA (deg)')
+    plt.ylabel('Dec (deg)')
+    plt.xlim(0.,360.)
+    plt.ylim(-90.,90.)
+    plt.title(location[50:])
+    plt.savefig('QSO_map_{}.png'.format(i))
+    
 plt.show()
 
