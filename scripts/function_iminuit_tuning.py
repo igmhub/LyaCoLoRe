@@ -391,7 +391,7 @@ def save_tuning_file(filename,overwrite=False):
     prihdr = fits.Header()
     prihdu = fits.PrimaryHDU(header=prihdr)
 
-    dtype = [('z', 'f8'), ('alpha', 'f8'), ('beta', 'f8'), ('sigma_G', 'f8')]
+    dtype = [('z', 'f4'), ('alpha', 'f4'), ('beta', 'f4'), ('sigma_G', 'f4')]
     data = np.array(list(zip(z,alpha_arr,beta_arr,sigma_G_arr)),dtype=dtype)
     hdu_tuning = fits.BinTableHDU(data,header=header,name='TUNING')
 

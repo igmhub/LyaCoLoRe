@@ -415,7 +415,7 @@ class SimulationData:
 
     def return_cosmology(self):
 
-        dtype = [('R', 'f8'), ('Z', 'f8'), ('D', 'f8'), ('V', 'f8')]
+        dtype = [('R', 'f4'), ('Z', 'f4'), ('D', 'f4'), ('V', 'f4')]
         cosmology = np.array(list(zip(self.R,self.Z,self.D,self.V)),dtype=dtype)
 
         return cosmology
@@ -816,7 +816,7 @@ class SimulationData:
         for i in range(self.N_qso):
             if i in relevant_QSOs:
                 picca_3_data += [(self.RA[i],self.DEC[i],Z_QSO[i],self.PLATE[i],self.MJD[i],self.FIBER[i],self.MOCKID[i])]
-        dtype = [('RA', 'f8'), ('DEC', 'f8'), ('Z', 'f8'), ('PLATE', int), ('MJD', 'f8'), ('FIBER', int), ('THING_ID', int)]
+        dtype = [('RA', 'f4'), ('DEC', 'f4'), ('Z', 'f4'), ('PLATE', int), ('MJD', 'f4'), ('FIBER', int), ('THING_ID', int)]
         picca_3 = np.array(picca_3_data,dtype=dtype)
         """
 
@@ -975,7 +975,7 @@ class SimulationData:
     ####
     """
     Obsolete functions
-    """
+    
     #Function to save data as a Gaussian colore file.
     def save_as_gaussian_colore(self,filename,header,overwrite=False):
 
@@ -1314,3 +1314,5 @@ class SimulationData:
         hdulist.close()
 
         return
+
+    """

@@ -25,7 +25,7 @@ for z_value in z_values:
     #minuit = iminuit_tuning.tune(z_value,alpha_start,beta_start,sigma_G_start,N_processes,N_pixels)
     #results_list += [(z_value,minuit.values['alpha'],minuit.values['beta'],minuit.values['sigma_G'])]
 
-dtype = [('z', 'f8'), ('alpha', 'f8'), ('beta', 'f8'), ('sigma_G', 'f8')]
+dtype = [('z', 'f4'), ('alpha', 'f4'), ('beta', 'f4'), ('sigma_G', 'f4')]
 results = np.array(results_list,dtype=dtype)
 
 if combine_results:

@@ -140,7 +140,7 @@ def write_DRQ(filename,RSD_option,ID_data,N_side,overwrite=False):
     PLATE = THING_ID
 
     #Make the data array.
-    dtype = [('RA','f8'),('DEC','f8'),('Z','f8'),('THING_ID',int),('MJD','f8'),('FIBERID',int),('PLATE',int),('PIXNUM',int)]
+    dtype = [('RA','f4'),('DEC','f4'),('Z','f4'),('THING_ID',int),('MJD','f4'),('FIBERID',int),('PLATE',int),('PIXNUM',int)]
     DRQ_data = np.array(list(zip(RA,DEC,Z,THING_ID,MJD,FID,PLATE,PIXNUM)),dtype=dtype)
 
     #Make an appropriate header.
