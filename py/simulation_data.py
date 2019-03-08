@@ -703,7 +703,7 @@ class SimulationData:
         colore_1_data = []
         for i in range(self.N_qso):
             colore_1_data += [(self.TYPE[i],self.RA[i],self.DEC[i],self.Z_QSO[i],self.DZ_RSD[i],self.MOCKID[i])]
-        dtype = [('TYPE', 'f8'), ('RA', 'f8'), ('DEC', 'f8'), ('Z_COSMO', 'f8'), ('DZ_RSD', 'f8'), ('MOCKID', int)]
+        dtype = [('TYPE', 'f4'), ('RA', 'f4'), ('DEC', 'f4'), ('Z_COSMO', 'f4'), ('DZ_RSD', 'f4'), ('MOCKID', int)]
         colore_1 = np.array(colore_1_data,dtype=dtype)
 
         #Choose the right skewers according to input quantity.
@@ -715,13 +715,14 @@ class SimulationData:
             colore_2 == self.lya_absorber.tau
         elif quantity == 'flux':
             colore_2 = self.lya_absorber.transmission()
+        colore_2 = colore_2.astype('f4')
 
         #Add the velocity skewers and cosmology data
-        colore_3 = self.VEL_rows
+        colore_3 = self.VEL_rows.astype('f4')
         colore_4_data = []
         for i in range(self.N_cells):
             colore_4_data += [(self.R[i],self.Z[i],self.D[i],self.V[i])]
-        dtype = [('R', 'f8'), ('Z', 'f8'), ('D', 'f8'), ('V', 'f8')]
+        dtype = [('R', 'f4'), ('Z', 'f4'), ('D', 'f4'), ('V', 'f4')]
         colore_4 = np.array(colore_4_data,dtype=dtype)
 
         #Construct HDUs from the data arrays.
@@ -803,11 +804,11 @@ class SimulationData:
             Z_QSO = self.Z_QSO
 
         #Organise the data into picca-format arrays.
-        picca_0 = relevant_skewer_rows.T
+        picca_0 = relevant_skewer_rows.T.astype('f4')
         picca_1 = relevant_IVAR_rows.T
-        picca_2 = relevant_LOGLAM_MAP
+        picca_2 = relevant_LOGLAM_MAP.astype('f4')
         picca_3_data = list(zip(self.RA[relevant_QSOs],self.DEC[relevant_QSOs],Z_QSO[relevant_QSOs],self.PLATE[relevant_QSOs],self.MJD[relevant_QSOs],self.FIBER[relevant_QSOs],self.MOCKID[relevant_QSOs]))
-        dtype = [('RA', 'f8'), ('DEC', 'f8'), ('Z', 'f8'), ('PLATE', int), ('MJD', 'f8'), ('FIBER', int), ('THING_ID', int)]
+        dtype = [('RA', 'f4'), ('DEC', 'f4'), ('Z', 'f4'), ('PLATE', int), ('MJD', 'f4'), ('FIBER', int), ('THING_ID', int)]
         picca_3 = np.array(picca_3_data,dtype=dtype)
 
         """
@@ -861,7 +862,7 @@ class SimulationData:
         wave_min = 3550.
         wave_max = 6500.
         wave_step = 0.2
-        wave_grid = np.arange(wave_min,wave_max,wave_step)
+        wave_grid = np.arange(wave_min,wave_max,wave_step).astype('f4')
 
         # now we should loop over the different absorbers, combine them and
         # write them in HDUs. I suggest to have two HDU:
@@ -869,18 +870,18 @@ class SimulationData:
         # - METALS will contain all metal absorption
 
         # compute Lyman alpha transmission on grid of wavelengths
-        F_grid_Lya = self.compute_grid_transmission(self.lya_absorber,wave_grid)
+        F_grid_Lya = self.compute_grid_transmission(self.lya_absorber,wave_grid).astype('f4')
 
         # compute Lyman beta transmission on grid of wavelengths
         if self.lyb_absorber is None:
-            F_grid_Lyb = np.ones_like(F_grid_Lya)
+            F_grid_Lyb = np.ones_like(F_grid_Lya).astype('f4')
         else:
-            F_grid_Lyb = self.compute_grid_transmission(self.lyb_absorber,wave_grid)
+            F_grid_Lyb = self.compute_grid_transmission(self.lyb_absorber,wave_grid).astype('f4')
 
         # construct quasar catalog HDU
         Z_RSD = self.Z_QSO + self.DZ_RSD
         catalog_data = list(zip(self.RA,self.DEC,Z_RSD,self.Z_QSO,self.MOCKID))
-        dtype = [('RA', 'f8'), ('DEC', 'f8'), ('Z', 'f8'), ('Z_noRSD', 'f8'), ('MOCKID', int)]
+        dtype = [('RA', 'f4'), ('DEC', 'f4'), ('Z', 'f4'), ('Z_noRSD', 'f4'), ('MOCKID', int)]
         catalog_data = np.array(catalog_data,dtype=dtype)
 
         #Construct HDUs from the data arrays.

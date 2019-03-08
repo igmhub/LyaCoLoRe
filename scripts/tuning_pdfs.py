@@ -6,7 +6,7 @@ import multiprocessing
 from astropy.io import fits
 import matplotlib.pyplot as plt
 
-from pyacolore import simulation_data, bias, utils
+from pyacolore import simulation_data, bias, utils, tuning
 
 #base_dir = '../example_data/lya_skewers/'
 base_dir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v5/v5.0.0/'
@@ -50,7 +50,7 @@ def pdf_tuning(pixel_object,tuning_filename,z_values,z_width=0.2,bins=100):
     k1 = h[1].header['k1']
     h.close()
 
-    transformation = tuning.transformation
+    transformation = tuning.transformation()
     transformation.add_parameters_from_data(tuning_z_values,tuning_alphas,tuning_betas,tuning_sigma_Gs)
     pixel_object.transformation = transformation
 
