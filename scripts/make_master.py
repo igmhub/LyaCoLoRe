@@ -56,8 +56,11 @@ parser.add_argument('--add-picca-drqs', action="store_true", default = False, re
 parser.add_argument('--desi-footprint', action="store_true", default = False, required=False,
                     help = 'use the desi footprint (requires desimodel)')
 
-parser.add_argument('--desi-footprint-plus', action="store_true", default = False, required=False,
-                    help = 'use the desi footprint plus neighbouring pixels (requires desimodel)')
+parser.add_argument('--desi-footprint-pixel', action="store_true", default = False, required=False,
+                    help = 'use minimal pixels to cover the desi footprint (requires desimodel)')
+
+parser.add_argument('--desi-footprint-pixel-plus', action="store_true", default = False, required=False,
+                    help = 'use minimal pixels to cover the desi footprint plus neighbouring pixels (requires desimodel)')
 
 parser.add_argument('--downsampling', type = float, default = 1.0, required=False,
                     help = 'fraction by which to subsample the CoLoRe output')
@@ -155,7 +158,7 @@ elif desi_footprint_pixel:
     QSO_filter = tiles2pix(N_side)
 elif desi_footprint_pixel_plus:
     QSO_filter = tiles2pix(N_side)
-    QSO_filter = utils.add_pixel_neighbours(pixels)
+    QSO_filter = utils.add_pixel_neighbours(QSO_filter)
 else:
     QSO_filter = None
 

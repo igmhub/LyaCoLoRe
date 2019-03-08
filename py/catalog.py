@@ -47,14 +47,11 @@ def get_ID_data(original_file_location,original_filename_structure,file_number,i
             if pix not in QSO_filter:
                 ID_sort = ID_sort[ID_sort['PIXNUM'] != pix]
     elif callable(QSO_filter):
-        ID = np.array([QSO for QSO in ID_sort if QSO_filter(QSO['RA'],QSO['DEC'])],dtype=dtype)
-        ID_sort = np.sort(ID, order=['PIXNUM','MOCKID'])
+        QSOs = QSO_filter(ID_sort['RA'],ID_sort['DEC'])
+        ID_sort = ID_sort[QSOs]
 
-    #Also filter out the objects not in the pixels we want.
-    if isinstance(pixels,np.ndarray):
-        for pix in set(pixel_ID):
-            if pix not in pixels:
-                ID_sort = ID_sort[ID_sort['PIXNUM'] != pix]
+        #ID = np.array([QSO for QSO in ID_sort if QSO_filter(QSO['RA'],QSO['DEC'])],dtype=dtype)
+        #ID_sort = np.sort(ID, order=['PIXNUM','MOCKID'])
 
     #Downsample if we want.
     if downsampling < 1.0:

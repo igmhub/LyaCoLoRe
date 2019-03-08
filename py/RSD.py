@@ -192,7 +192,7 @@ def add_skewer_RSDs(initial_tau,initial_density,velocity_skewer_dz,z,r_hMpc,z_qs
                 #new_x_kms_cell = x_kms_cell
 
                 #Shift the cell again to simulate an extra velocity gradient.
-                new_r_hMpc_cell += (new_r_hMpc_cell - r0) * d
+                new_r_hMpc_cell -= (new_r_hMpc_cell - r0) * d
                 new_x_kms_cell = np.interp(new_r_hMpc_cell,r_hMpc,x_kms)
 
                 """
