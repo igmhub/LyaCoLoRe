@@ -4,7 +4,7 @@ from astropy.io import fits
 from . import utils, read_files
 
 #Function to extract data suitable for making ID files from a set of colore or picca format files.
-def get_ID_data(original_file_location,original_filename_structure,file_number,input_format,N_side,minimum_z=0.0,pixels=None,downsampling=1.0):
+def get_ID_data(original_file_location,original_filename_structure,file_number,input_format,N_side,minimum_z=0.0,downsampling=1.0,QSO_filter=None):
 
     ID_data = []
     cosmology = []
@@ -40,6 +40,15 @@ def get_ID_data(original_file_location,original_filename_structure,file_number,i
     ID = np.array(ID_data, dtype=dtype)
     ID = ID[ID['Z_QSO_NO_RSD']>minimum_z]
     ID_sort = np.sort(ID, order=['PIXNUM','MOCKID'])
+
+    #Filter out QSOs that we don't want, either from a list of pixels or a Boolean function on (RA,DEC).
+    if isinstance(QSO_filter,np.ndarray):
+        for pix in set(pixel_ID):
+            if pix not in QSO_filter:
+                ID_sort = ID_sort[ID_sort['PIXNUM'] != pix]
+    elif callable(QSO_filter):
+        ID = np.array([QSO for QSO in ID_sort if QSO_filter(QSO['RA'],QSO['DEC'])],dtype=dtype)
+        ID_sort = np.sort(ID, order=['PIXNUM','MOCKID'])
 
     #Also filter out the objects not in the pixels we want.
     if isinstance(pixels,np.ndarray):

@@ -80,12 +80,13 @@ parameter_filename = args.param_file
 N_skewers = args.nskewers
 add_picca_drqs = args.add_picca_drqs
 desi_footprint = args.desi_footprint
-desi_footprint_plus = args.desi_footprint_plus
-if desi_footprint or desi_footprint_plus:
-    desi_footprint = args.desi_footprint
-    desi_footprint_plus = args.desi_footprint_plus
+desi_footprint_pixel = args.desi_footprint_pixel
+desi_footprint_pixel_plus = args.desi_footprint_pixel_plus
+if desi_footprint or desi_footprint_pixel or desi_footprint_pixel_plus:
     try:
-        from desimodel.footprint import tiles2pix
+        from desimodel.footprint import tiles2pix, is_point_in_desi
+        from desimodel.io import load_tiles
+        tiles = load_tiles()
     except ModuleNotFoundError:
         raise InputError('Unable to use DESI footprint: desimodel is not installed.')
 downsampling = args.downsampling
@@ -146,19 +147,22 @@ Save the master file, and a similarly structured file containing QSOs with 'bad 
 print('\nWorking on master data...')
 start = time.time()
 
-#Choose the pixels we want.
+#Choose the QSO filtering we want.
 if desi_footprint:
-    pixels = tiles2pix(N_side)
-elif desi_footprint_plus:
-    pixels = tiles2pix(N_side)
-    pixels = utils.add_pixel_neighbours(pixels)
+    def QSO_filter(RA,DEC):
+        return is_point_in_desi(tiles,RA,DEC)
+elif desi_footprint_pixel:
+    QSO_filter = tiles2pix(N_side)
+elif desi_footprint_pixel_plus:
+    QSO_filter = tiles2pix(N_side)
+    QSO_filter = utils.add_pixel_neighbours(pixels)
 else:
-    pixels = None
+    QSO_filter = None
 
 #Define the process to make the master data.
 def make_master_data(original_file_location,original_filename_structure,file_number,input_format,N_side,minimum_z=min_catalog_z):
 
-    file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element = catalog.get_ID_data(original_file_location,original_filename_structure,file_number,input_format,N_side,minimum_z=min_catalog_z,pixels=pixels,downsampling=downsampling)
+    file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element = catalog.get_ID_data(original_file_location,original_filename_structure,file_number,input_format,N_side,minimum_z=min_catalog_z,downsampling=downsampling,QSO_filter=QSO_filter)
 
     return [file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element]
 
