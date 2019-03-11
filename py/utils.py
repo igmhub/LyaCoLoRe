@@ -107,7 +107,7 @@ def make_pixel_ID(N_side,RA,DEC):
 
 #Function to return the neighbouring HEALPix pixels to a given HEALPix pixel.
 def get_pixel_neighbours(pixel,N_side=16):
-    theta,phi = hp.pix2ang(N_side,pixel)
+    theta,phi = hp.pix2ang(N_side,pixel,nest=True)
     neighbours = hp.get_all_neighbours(N_side,theta=theta,phi=phi,nest=True)
     return neighbours
 
