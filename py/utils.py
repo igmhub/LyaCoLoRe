@@ -119,6 +119,33 @@ def add_pixel_neighbours(pixels,N_side=16):
         final_pixel_set = final_pixel_set.union(set(neighbours))
     return np.array(list(final_pixel_set))
 
+#Function to return a filter for restricting the QSO footprint.
+def choose_filter(desi_footprint,desi_footprint_pixel,desi_footprint_pixel_plus,desimodel_installed):
+
+    if sum(desi_footprint,desi_footprint_pixel,desi_footprint_pixel_plus) > 1:
+            raise ValueError('Please choose only 1 type of DESI footprint.')
+
+    if desimodel_installed:
+        if desi_footprint:
+            def QSO_filter(RA,DEC):
+                return is_point_in_desi(tiles,RA,DEC)
+        elif desi_footprint_pixel:
+            QSO_filter = tiles2pix(N_side)
+        elif desi_footprint_pixel_plus:
+            QSO_filter = tiles2pix(N_side)
+            QSO_filter = utils.add_pixel_neighbours(QSO_filter)
+        else:
+            QSO_filter = None
+    else:
+        if desi_footprint or desi_footprint_pixel:
+            QSO_filter = np.loadtxt('input_files/DESI_pixels.txt',dtype=int)
+        elif desi_footprint_pixel_plus:
+            QSO_filter = np.loadtxt('input_files/DESI_pixels_plus.txt',dtype=int)
+        else:
+            QSO_filter = None
+
+    return QSO_filter
+
 #Function to make ivar mask
 def make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP):
 
