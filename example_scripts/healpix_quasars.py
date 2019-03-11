@@ -32,7 +32,7 @@ for i,location in enumerate(locations):
 
     # plot angular positions of quasars color-coded by HEALPix pixel
     for pix in range(N_pixels):
-        plt.scatter(catalog['RA'][pixels==pix],catalog['DEC'][pixels==pix])
+        plt.scatter(catalog['RA'][pixels==pix],catalog['DEC'][pixels==pix],marker='.')
 
     plt.xlabel('RA (deg)')
     plt.ylabel('Dec (deg)')
