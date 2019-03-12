@@ -17,7 +17,8 @@ else:
 plot_system = 'plot_per_file' #per bin or per file
 mu_boundaries = [0.0,0.5,0.8,0.95,1.0]
 model = 'Slosar11'
-include_fits = True
+fit = 'manual'
+fit_data = {'b1': 1.0, 'b2': 1.0, 'beta1': 1.0, 'beta2': 1.0}
 r_power = 2
 nr = 40
 rmax = 160. #Mpc/h

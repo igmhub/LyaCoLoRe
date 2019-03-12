@@ -160,19 +160,6 @@ class picca_correlation:
 
     def plot_fit(self,mubin,plot_label,r_power,colour,nr=40,rmax=160.):
 
-        """
-        #Using our model
-        model = 'Slosar11'
-
-        bias1,bias2,beta1,beta2 = self.get_biases_and_betas()
-        r,xi = correlation_model.get_model_xi(model,self.quantity_1,self.quantity_2,bias1,bias2,beta1,beta2,self.zeff,mubin)
-
-        indices = r<rmax
-        r = r[indices]
-        xi = xi[indices]
-        plt.plot(r,(r**r_power) * xi,label=plot_label,c=colour)
-        """
-
         #Using data in picca fit
         mumin = mubin[0]
         mumax = mubin[1]
@@ -187,6 +174,28 @@ class picca_correlation:
                 if i!=j:
                     self.cov_grid[i,j]=0
         """
+
+        r, fit_xi_wed, _ = b.wedge(self.fit_xi_grid,self.cov_grid)
+
+        plt.plot(r,(r**r_power) * fit_xi_wed,c=colour,label=plot_label)
+
+        return
+
+    def plot_manual_model(self,b1,b2,beta1,beta2,mubin,plot_label,r_power,colour,nr=40,rmax=160.):
+
+        #Using data in picca fit
+        mumin = mubin[0]
+        mumax = mubin[1]
+
+        b = wedgize.wedge(mumin=mumin,mumax=mumax,rtmax=self.rtmax,nrt=self.nt,
+            rpmin=self.rpmin,rpmax=self.rpmax,nrp=self.np,nr=nr,rmax=rmax)
+
+        #Using our model
+        model = 'Slosar11'
+        r,xi = correlation_model.get_model_xi(model,self.quantity_1,self.quantity_2,b1,b2,beta1,beta2,self.zeff,mubin)
+        indices = r<rmax
+        r = r[indices]
+        xi = xi[indices]
 
         r, fit_xi_wed, _ = b.wedge(self.fit_xi_grid,self.cov_grid)
 
@@ -273,7 +282,7 @@ def get_correlation_objects(locations,filenames=None,res_name='result.h5'):
 
     return objects
 
-def make_plots(corr_objects,mu_boundaries,plot_system,r_power,include_fits,nr=40,rmin=10.,rmax=160.,save_plots=True,show_plots=True,save_loc='.',suffix=''):
+def make_plots(corr_objects,mu_boundaries,plot_system,r_power,fit='picca',fit_data=None,nr=40,rmin=10.,rmax=160.,save_plots=True,show_plots=True,save_loc='.',suffix=''):
 
     colours = ['C0','C1','C2','C3','C4','C5','C6']
 
@@ -287,8 +296,14 @@ def make_plots(corr_objects,mu_boundaries,plot_system,r_power,include_fits,nr=40
 
             for i,corr_object in enumerate(corr_objects):
                 corr_object.plot_data(mu_bin,'',r_power,colours[i],nr=nr,rmax=rmax)
-                if include_fits:
+                if fit == 'picca':
                     corr_object.plot_fit(mu_bin,'',r_power,colours[i],nr=nr,rmax=rmax)
+                elif fit == 'manual':
+                    b1 = fit_data['b1']
+                    b2 = fit_data['b2']
+                    beta1 = fit_data['beta1']
+                    beta2 = fit_data['beta2']
+                    corr_object.plot_manual_model(b1,b2,beta1,beta2,mu_bin,'',r_power,colours[i],nr=nr,rmax=rmax)
 
             plt.title('{} < mu < {}'.format(mu_bin[0],mu_bin[1]))
             plt.legend(fontsize=12)
@@ -303,9 +318,16 @@ def make_plots(corr_objects,mu_boundaries,plot_system,r_power,include_fits,nr=40
             for i,mu_bin in enumerate(mu_bins):
                 plot_label = '{}<mu<{}'.format(mu_bin[0],mu_bin[1])
                 corr_object.plot_data(mu_bin,plot_label,r_power,colours[i])
-                if include_fits:
+                if fit == 'picca':
                     plot_label += ' (fit)'
                     corr_object.plot_fit(mu_bin,plot_label,r_power,colours[i],nr=nr,rmax=rmax)
+                elif fit == 'manual':
+                    plot_label += ' (model)'
+                    b1 = fit_data['b1']
+                    b2 = fit_data['b2']
+                    beta1 = fit_data['beta1']
+                    beta2 = fit_data['beta2']
+                    corr_object.plot_manual_model(b1,b2,beta1,beta2,mu_bin,plot_label,r_power,colours[i],nr=nr,rmax=rmax)
 
             title_line_1 = r'{} {}{}; {} pix @ Nside {}; ${} < z < {}$; $r_{{min}} = $??'.format(corr_object.correl_type,corr_object.quantity_1,corr_object.quantity_2,corr_object.N_pixels,16,corr_object.zmin,corr_object.zmax)
             title_line_2 = r'$b_\delta = {:1.3f}\pm{:1.3f}$; $\beta = {:1.3f}\pm{:1.3f}$; $\chi^2/(n_d-n_p) = {:5.1f}/({}-{})$; $\alpha_p = {:1.3f}\pm{:1.3f}$, $\alpha_t = {:1.3f}\pm{:1.3f}$'.format(corr_object.bias_LYA,corr_object.bias_LYA_err,corr_object.beta_LYA,corr_object.beta_LYA_err,corr_object.fval,corr_object.ndata,corr_object.npar,corr_object.ap,corr_object.ap_err,corr_object.at,corr_object.at_err)
