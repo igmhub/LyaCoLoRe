@@ -111,6 +111,9 @@ parser.add_argument('--add-QSO-RSDs', action="store_true", default = False, requ
 parser.add_argument('--smoothing-R-kms', type = float, default = 25.0, required=False,
                     help = 'size in km/s of extra power smoothing radius')
 
+parser.add_argument('--velocity-multiplier', type = float, default = 1.0, required=False,
+                    help = 'multiply CoLoRe velocities by this factor')
+
 # TODO: this is now defunct.
 parser.add_argument('--fit-function-to-tuning-data', action="store_true", default = False, required=False,
                     help = 'fit a function of the form A0 * (z^A1) + A2 to the tuning data')
@@ -158,6 +161,7 @@ fit_function_to_tuning_data = args.fit_function_to_tuning_data
 overwrite = args.overwrite
 add_QSO_RSDs = args.add_QSO_RSDs
 R_kms = args.smoothing_R_kms
+vel_mult = args.velocity_multiplier
 
 # TODO: print to confirm the arguments. e.g. "DLAs will be added"
 
@@ -399,6 +403,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
     pixel_object = simulation_data.SimulationData.get_gaussian_skewers_object(gaussian_filename,file_number,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
     pixel_object.transformation = transformation
 
+    pixel_object.VEL_rows *= vel_mult
     #print('{:3.2f} checkpoint object'.format(time.time()-t)); t = time.time()
 
     #Add Lyb and metal absorbers if needed.
