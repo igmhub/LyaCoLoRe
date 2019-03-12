@@ -10,6 +10,14 @@ import argparse
 
 from pyacolore import utils, catalog
 
+try:
+    from desimodel.footprint import tiles2pix, is_point_in_desi
+    desimodel_installed = True
+except ModuleNotFoundError:
+    import warnings
+    warnings.warn('desimodel is not installed; footprint pixel data will be read from file.')
+    desimodel_installed = False
+
 ################################################################################
 
 #Script to produce a master file from CoLoRe's output files.
@@ -88,10 +96,11 @@ desi_footprint_pixel_plus = args.desi_footprint_pixel_plus
 if desi_footprint or desi_footprint_pixel or desi_footprint_pixel_plus:
     try:
         from desimodel.footprint import tiles2pix, is_point_in_desi
-        from desimodel.io import load_tiles
-        tiles = load_tiles()
+        desimodel_installed = True
     except ModuleNotFoundError:
-        raise InputError('Unable to use DESI footprint: desimodel is not installed.')
+        import warnings
+        warnings.warn('desimodel is not installed; using saved footprint pixel data.')
+        desimodel_installed = False
 downsampling = args.downsampling
 overwrite = args.overwrite
 
@@ -151,16 +160,7 @@ print('\nWorking on master data...')
 start = time.time()
 
 #Choose the QSO filtering we want.
-if desi_footprint:
-    def QSO_filter(RA,DEC):
-        return is_point_in_desi(tiles,RA,DEC)
-elif desi_footprint_pixel:
-    QSO_filter = tiles2pix(N_side)
-elif desi_footprint_pixel_plus:
-    QSO_filter = tiles2pix(N_side)
-    QSO_filter = utils.add_pixel_neighbours(QSO_filter)
-else:
-    QSO_filter = None
+QSO_filter = utils.choose_filter(desi_footprint,desi_footprint_pixel,desi_footprint_pixel_plus,desimodel_installed,N_side=N_side)
 
 #Define the process to make the master data.
 def make_master_data(original_file_location,original_filename_structure,file_number,input_format,N_side,minimum_z=min_catalog_z):
