@@ -67,12 +67,12 @@ def get_C4(B1,B2):
 def get_growth_factor_scaling(z,quantity,location=None):
 
     if location == None:
-        location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_newNz_mpz0_seed1003_123_nside16/'
+        location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v5/v5.0.0/'
     if quantity == 'G':
         D_at_z0 = 1
         D_at_zval = 1
-    elif quantity in ['D','F','q']:
-        h = fits.open('/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_newNz_mpz0_seed1003_123_nside16/master.fits')
+    elif quantity in ['D','F','T','q']:
+        h = fits.open('/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v5/v5.0.0/master.fits')
         D = h['COSMO_COL'].data['D']
         z_D = h['COSMO_COL'].data['Z']
         D_at_z0 = np.interp(0,z_D,D)

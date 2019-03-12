@@ -17,16 +17,16 @@ else:
 plot_system = 'plot_per_file' #per bin or per file
 mu_boundaries = [0.0,0.5,0.8,0.95,1.0]
 model = 'Slosar11'
-fit = 'manual'
-fit_data = {'b1': 1.0, 'b2': 1.0, 'beta1': 1.0, 'beta2': 1.0}
+fit_type = 'manual'
+fit_data = {'b1': 1., 'b2': 1., 'beta1': 0., 'beta2': 0.}
 r_power = 2
 nr = 40
 rmax = 160. #Mpc/h
 show_plots = True
 save_plots = True
 
-rmins = [20.,40.,60.]
-afixs = ['free','fixed']
+rmins = [40.]#[20.,40.,60.]
+afixs = ['fixed']#['free','fixed']
 
 for rmin in rmins:
     for afix in afixs:
@@ -40,4 +40,4 @@ for rmin in rmins:
         corr_objects = plot_functions.get_correlation_objects(locations,res_name=res_name)
 
         #Make plots of the objects
-        plot_functions.make_plots(corr_objects,mu_boundaries,plot_system,r_power,include_fits,nr=nr,rmin=rmin,rmax=rmax,save_plots=save_plots,show_plots=show_plots,suffix=suffix)
+        plot_functions.make_plots(corr_objects,mu_boundaries,plot_system,r_power,fit_type=fit_type,fit_data=fit_data,nr=nr,rmin=rmin,rmax=rmax,save_plots=save_plots,show_plots=show_plots,suffix=suffix)
