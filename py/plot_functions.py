@@ -197,9 +197,7 @@ class picca_correlation:
         r = r[indices]
         xi = xi[indices]
 
-        r, fit_xi_wed, _ = b.wedge(self.fit_xi_grid,self.cov_grid)
-
-        plt.plot(r,(r**r_power) * fit_xi_wed,c=colour)#,label=plot_label
+        plt.plot(r,(r**r_power) * xi,c=colour,label=plot_label)
 
         return
 
@@ -244,6 +242,8 @@ def get_correlation_data_from_cf_exp(filepath):
     correlation_data['z'] = h[1].data['Z']
     correlation_data['xi_grid'] = h[1].data['DA']
     correlation_data['cov_grid'] = h[1].data['CO']
+    try:
+
     h.close()
 
     return correlation_data
@@ -282,7 +282,7 @@ def get_correlation_objects(locations,filenames=None,res_name='result.h5'):
 
     return objects
 
-def make_plots(corr_objects,mu_boundaries,plot_system,r_power,fit='picca',fit_data=None,nr=40,rmin=10.,rmax=160.,save_plots=True,show_plots=True,save_loc='.',suffix=''):
+def make_plots(corr_objects,mu_boundaries,plot_system,r_power,fit_type='picca',fit_data=None,nr=40,rmin=10.,rmax=160.,save_plots=True,show_plots=True,save_loc='.',suffix=''):
 
     colours = ['C0','C1','C2','C3','C4','C5','C6']
 
@@ -296,9 +296,9 @@ def make_plots(corr_objects,mu_boundaries,plot_system,r_power,fit='picca',fit_da
 
             for i,corr_object in enumerate(corr_objects):
                 corr_object.plot_data(mu_bin,'',r_power,colours[i],nr=nr,rmax=rmax)
-                if fit == 'picca':
+                if fit_type == 'picca':
                     corr_object.plot_fit(mu_bin,'',r_power,colours[i],nr=nr,rmax=rmax)
-                elif fit == 'manual':
+                elif fit_type == 'manual':
                     b1 = fit_data['b1']
                     b2 = fit_data['b2']
                     beta1 = fit_data['beta1']
@@ -318,10 +318,14 @@ def make_plots(corr_objects,mu_boundaries,plot_system,r_power,fit='picca',fit_da
             for i,mu_bin in enumerate(mu_bins):
                 plot_label = '{}<mu<{}'.format(mu_bin[0],mu_bin[1])
                 corr_object.plot_data(mu_bin,plot_label,r_power,colours[i])
-                if fit == 'picca':
+                if fit_type == 'picca':
                     plot_label += ' (fit)'
                     corr_object.plot_fit(mu_bin,plot_label,r_power,colours[i],nr=nr,rmax=rmax)
-                elif fit == 'manual':
+
+                    title_line_1 = r'{} {}{}; {} pix @ Nside {}; ${} < z < {}$; $r_{{min}} = $??'.format(corr_object.correl_type,corr_object.quantity_1,corr_object.quantity_2,corr_object.N_pixels,16,corr_object.zmin,corr_object.zmax)
+                    title_line_2 = r'$b_\delta = {:1.3f}\pm{:1.3f}$; $\beta = {:1.3f}\pm{:1.3f}$; $\chi^2/(n_d-n_p) = {:5.1f}/({}-{})$; $\alpha_p = {:1.3f}\pm{:1.3f}$, $\alpha_t = {:1.3f}\pm{:1.3f}$'.format(corr_object.bias_LYA,corr_object.bias_LYA_err,corr_object.beta_LYA,corr_object.beta_LYA_err,corr_object.fval,corr_object.ndata,corr_object.npar,corr_object.ap,corr_object.ap_err,corr_object.at,corr_object.at_err)
+
+                elif fit_type == 'manual':
                     plot_label += ' (model)'
                     b1 = fit_data['b1']
                     b2 = fit_data['b2']
@@ -329,8 +333,9 @@ def make_plots(corr_objects,mu_boundaries,plot_system,r_power,fit='picca',fit_da
                     beta2 = fit_data['beta2']
                     corr_object.plot_manual_model(b1,b2,beta1,beta2,mu_bin,plot_label,r_power,colours[i],nr=nr,rmax=rmax)
 
-            title_line_1 = r'{} {}{}; {} pix @ Nside {}; ${} < z < {}$; $r_{{min}} = $??'.format(corr_object.correl_type,corr_object.quantity_1,corr_object.quantity_2,corr_object.N_pixels,16,corr_object.zmin,corr_object.zmax)
-            title_line_2 = r'$b_\delta = {:1.3f}\pm{:1.3f}$; $\beta = {:1.3f}\pm{:1.3f}$; $\chi^2/(n_d-n_p) = {:5.1f}/({}-{})$; $\alpha_p = {:1.3f}\pm{:1.3f}$, $\alpha_t = {:1.3f}\pm{:1.3f}$'.format(corr_object.bias_LYA,corr_object.bias_LYA_err,corr_object.beta_LYA,corr_object.beta_LYA_err,corr_object.fval,corr_object.ndata,corr_object.npar,corr_object.ap,corr_object.ap_err,corr_object.at,corr_object.at_err)
+                    title_line_1 = r'{} {}{}; {} pix @ Nside {}; ${} < z < {}$; $r_{{min}} = $??'.format(corr_object.correl_type,corr_object.quantity_1,corr_object.quantity_2,corr_object.N_pixels,16,corr_object.zmin,corr_object.zmax)
+                    title_line_2 = r'Model is Legendre decomposition using: $b_\delta$s$ = {:1.3f},{:1.3f}$; $\beta$s$ = {:1.3f},{:1.3f}$'.format(b1,b2,beta1,beta2)
+
             title = title_line_1 + '\n' + title_line_2
 
             # TODO: import the LyaCoLoRe nside to use here, use corr_object.correl_type to determine which biases are presented
@@ -341,7 +346,7 @@ def make_plots(corr_objects,mu_boundaries,plot_system,r_power,fit='picca',fit_da
             plt.ylabel(r'$r^2 \xi (r)$',fontsize=12)
 
             if save_plots:
-                plt.savefig(corr_object.location+'/cf'+suffix+'.pdf')
+                plt.savefig(corr_object.location+'/cf'+suffix+'_'+fit_type+'fit.pdf')
 
     if show_plots:
         plt.show()
