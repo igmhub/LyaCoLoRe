@@ -48,42 +48,43 @@ class picca_correlation:
         self.D_cosmology = D_cosmology
         """
 
-        print(f.keys())
-        #fit parameters
-        self.zeff = f['zeff']
-        self.fval = f['fval']
-        self.ndata = f['ndata']
-        self.npar = f['npar']
+        if f:
+            print(f.keys())
+            #fit parameters
+            self.zeff = f['zeff']
+            self.fval = f['fval']
+            self.ndata = f['ndata']
+            self.npar = f['npar']
 
-        self.growth_rate = f['growth_rate']['value']
-        self.growth_rate_err = f['growth_rate']['error']
+            self.growth_rate = f['growth_rate']['value']
+            self.growth_rate_err = f['growth_rate']['error']
 
-        if self.correl_type == 'cf' or self.correl_type == 'xcf':
-            self.beta_LYA = f['beta_LYA']['value']
-            self.beta_LYA_err = f['beta_LYA']['error']
+            if self.correl_type == 'cf' or self.correl_type == 'xcf':
+                self.beta_LYA = f['beta_LYA']['value']
+                self.beta_LYA_err = f['beta_LYA']['error']
 
-            self.bias_LYA_eta = f['bias_eta_LYA']['value']
-            self.bias_LYA_eta_err = f['bias_eta_LYA']['error']
+                self.bias_LYA_eta = f['bias_eta_LYA']['value']
+                self.bias_LYA_eta_err = f['bias_eta_LYA']['error']
 
-            self.bias_LYA = self.bias_LYA_eta * self.growth_rate / self.beta_LYA
-            self.bias_LYA_err = abs(self.bias_LYA * np.sqrt((self.bias_LYA_eta_err/self.bias_LYA_eta)**2 + (self.beta_LYA_err/self.beta_LYA)**2 + (self.growth_rate_err/self.growth_rate)**2))
+                self.bias_LYA = self.bias_LYA_eta * self.growth_rate / self.beta_LYA
+                self.bias_LYA_err = abs(self.bias_LYA * np.sqrt((self.bias_LYA_eta_err/self.bias_LYA_eta)**2 + (self.beta_LYA_err/self.beta_LYA)**2 + (self.growth_rate_err/self.growth_rate)**2))
 
-        if self.correl_type == 'xcf' or self.correl_type == 'co':
-            self.beta_QSO = f['beta_QSO']['value']
-            self.beta_QSO_err = f['beta_QSO']['error']
+            if self.correl_type == 'xcf' or self.correl_type == 'co':
+                self.beta_QSO = f['beta_QSO']['value']
+                self.beta_QSO_err = f['beta_QSO']['error']
 
-            self.bias_QSO_eta = f['bias_eta_QSO']['value']
-            self.bias_QSO_eta_err = f['bias_eta_QSO']['error']
+                self.bias_QSO_eta = f['bias_eta_QSO']['value']
+                self.bias_QSO_eta_err = f['bias_eta_QSO']['error']
 
-            self.bias_QSO = self.bias_QSO_eta * self.growth_rate / self.beta_QSO
-            self.bias_QSO_err = abs(self.bias_LYA * np.sqrt((self.bias_QSO_eta_err/self.bias_QSO_eta)**2 + (self.beta_QSO_err/self.beta_QSO)**2 + (self.growth_rate_err/self.growth_rate)**2))
+                self.bias_QSO = self.bias_QSO_eta * self.growth_rate / self.beta_QSO
+                self.bias_QSO_err = abs(self.bias_LYA * np.sqrt((self.bias_QSO_eta_err/self.bias_QSO_eta)**2 + (self.beta_QSO_err/self.beta_QSO)**2 + (self.growth_rate_err/self.growth_rate)**2))
 
-        self.ap = f['ap']['value']
-        self.ap_err = f['ap']['error']
-        self.at = f['at']['value']
-        self.at_err = f['at']['error']
+            self.ap = f['ap']['value']
+            self.ap_err = f['ap']['error']
+            self.at = f['at']['value']
+            self.at_err = f['at']['error']
 
-        self.fit_xi_grid = f['xi_grid']
+            self.fit_xi_grid = f['xi_grid']
 
         return
 
@@ -120,8 +121,11 @@ class picca_correlation:
         #get cosmology data
         #yet to do this
 
-        #get fit paramters
-        fit_parameters = get_fit_from_result(location+res_name)
+        if res_name:
+            #get fit paramters
+            fit_parameters = get_fit_from_result(location+res_name)
+        else:
+            fit_parameters = None
 
         return cls(location,parameters,correlation_data,fit_parameters)
 
@@ -158,14 +162,19 @@ class picca_correlation:
 
         return
 
-    def plot_grid(self,mubin,plot_label,r_power,colour):
+    def plot_grid(self,plot_label,r_power,vmax=10**-4):
 
         grid = self.xi_grid.reshape((self.np,self.nt))
         rp_grid = self.rp.reshape((self.np,self.nt))
         rt_grid = self.rt.reshape((self.np,self.nt))
 
-        
-        plt.imshow(self.xi_grid,origin=lower)
+        r = np.sqrt(rp_grid**2 + rt_grid**2)
+
+        plt.imshow(grid * (r**r_power),aspect='auto',origin='lower',vmin=0.,
+                    vmax=vmax,extent=[min(rt_grid),max(rt_grid),min(rp_grid),
+                    max(rp_grid)])
+
+        plt.colorbar()
 
         return
 
@@ -244,7 +253,6 @@ def get_fit_from_result(filepath):
 
     return fit
 
-
 def get_correlation_data(location):
 
     #Use the cf_exp file.
@@ -293,7 +301,24 @@ def get_correlation_objects(locations,filenames=None,res_name='result.h5'):
 
     return objects
 
-def make_plots(corr_objects,mu_boundaries,plot_system,r_power,fit_type='picca',fit_data=None,nr=40,rmin=10.,rmax=160.,save_plots=True,show_plots=True,save_loc='.',suffix=''):
+def make_colour_plots(corr_objects,r_power=0.,v_max=10**-4,save_plots=True,show_plots=True,suffix=''):
+
+    for i,corr_object in enumerate(corr_objects):
+        corr_object.plot_grid('',r_power,vmax=vmax)
+
+        plt.title(title)
+        plt.legend(fontsize=12)
+        plt.grid()
+        plt.xlabel(r'$r_t\ /\ Mpc/h$',fontsize=12)
+        plt.ylabel(r'$r_p\ /\ Mpc/h$',fontsize=12)
+
+        if save_plots:
+            plt.savefig(corr_object.location+'/cf_colour'+suffix+'.pdf')
+
+        if show_plots:
+            plt.show()
+
+def make_wedge_plots(corr_objects,mu_boundaries,plot_system,r_power,fit_type='picca',fit_data=None,nr=40,rmin=10.,rmax=160.,save_plots=True,show_plots=True,save_loc='.',suffix=''):
 
     colours = ['C0','C1','C2','C3','C4','C5','C6']
 
