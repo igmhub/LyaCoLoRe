@@ -13,6 +13,7 @@ min_number_cells = 2
 pixels = np.array(list(range(200)))
 N_processes = 4
 overwrite = True
+small = 10**-10
 
 statistics_file = basedir + '/statistics.fits'
 
@@ -45,19 +46,23 @@ def convert_picca_tau_to_flux(pixel):
     #Exponentiate to flux.
     skewer_rows = np.exp(-skewer_rows)
 
+    #Get the average.
+    mean_F = np.average(skewer_rows,weights=IVAR_rows+small,axis=0)
+    weights = np.sum(IVAR_rows,axis=0)
+
+    """
     #Convert from F to delta_F.
     s = fits.open(statistics_file)
     mean_F_full = s[1].data['F_MEAN']
     mean_F_full_z = s[1].data['z']
-
     mean_F = np.interp(Z,mean_F_full_z,mean_F_full)
     #mean_F = utils.merge_cells(mean_F,N_merge)
-    
     for i in range(skewer_rows.shape[0]):
         cells = Z < CATALOG['Z'][i]
         skewer_rows[i,cells] /= mean_F[cells]
     skewer_rows -= 1.
     s.close()
+    """
 
     #Reconstruct the non-delta HDUs.
     hdu_deltas_new = fits.PrimaryHDU(data=skewer_rows.T,header=header)
@@ -66,10 +71,12 @@ def convert_picca_tau_to_flux(pixel):
     hdu_CATALOG_new = fits.BinTableHDU(CATALOG,header=h[3].header,name='CATALOG')
 
     hdulist = fits.HDUList([hdu_deltas_new, hdu_iv_new, hdu_LOGLAM_MAP_new, hdu_CATALOG_new])
-    out_filepath = utils.get_file_name(dirname,'picca-flux-rebin-{}-new'.format(N_merge),16,pixel)
+    out_filepath = utils.get_file_name(dirname,'picca-flux-notnorm-rebin-{}-new'.format(N_merge),16,pixel)
     hdulist.writeto(out_filepath,overwrite=overwrite)
     hdulist.close()
     h.close()
+
+    return (mean_F, weights)
 
 ################################################################################
 
@@ -102,6 +109,57 @@ if __name__ == '__main__':
 
     for task in tasks:
         pool.apply_async(convert_picca_tau_to_flux,task,callback=log_result,error_callback=log_error)
+
+    pool.close()
+    pool.join()
+
+#Process the results to get the mean over all pixels.
+means = []
+weights = []
+for result in results:
+    means += result[0]
+    weights += result[1]
+
+means = np.array(means)
+weights = np.array(weights)
+
+mean_F = np.average(means,weights=weights+small,axis=0)
+cells = (mean_F > 0)
+
+################################################################################
+
+def renormalise_pixel(pixel):
+
+    dirname = utils.get_dir_name(basedir,pixel)
+    filepath = utils.get_file_name(dirname,'picca-flux-notnorm-rebin-{}-new'.format(N_merge),16,pixel)
+    h = fits.open('filepath')
+    skewer_delta_rows = h[0].data.T[:,cells] / mean_F[cells] - 1
+
+    hdu_deltas_new = fits.PrimaryHDU(data=skewer_delta_rows.T,header=h[0].header)
+    hdu_iv_new = h[1]
+    hdu_LOGLAM_MAP_new = h[2]
+    hdu_CATALOG_new = h[3]
+
+    hdulist = fits.HDUList([hdu_deltas_new, hdu_iv_new, hdu_LOGLAM_MAP_new, hdu_CATALOG_new])
+    out_filepath = utils.get_file_name(dirname,'picca-flux-rebin-{}-new'.format(N_merge),16,pixel)
+    hdulist.writeto(out_filepath,overwrite=overwrite)
+    hdulist.close()
+    h.close()
+
+    return
+
+################################################################################
+
+tasks = [(pixel,) for pixel in pixels]
+
+#Run the multiprocessing pool
+if __name__ == '__main__':
+    pool = Pool(processes = N_processes)
+    results = []
+    start_time = time.time()
+
+    for task in tasks:
+        pool.apply_async(renormalise_pixel,task,callback=log_result,error_callback=log_error)
 
     pool.close()
     pool.join()
