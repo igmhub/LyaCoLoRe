@@ -108,14 +108,14 @@ class picca_correlation:
         return bias1,bias2,beta1,beta2
 
     @classmethod
-    def make_correlation_object(cls,location,cf_exp_filename,res_name='result.h5'):
+    def make_correlation_object(cls,location,res_name='result.h5'):
 
         #get parameters
         #replace with get_parameters_from_param_file when written
         parameters = get_parameters_from_param_file(location+'/parameters.txt')
 
         #get correlation data
-        correlation_data = get_correlation_data_from_cf_exp(location+'/'+cf_exp_filename)
+        correlation_data = get_correlation_data(location)
 
         #get cosmology data
         #yet to do this
@@ -125,7 +125,7 @@ class picca_correlation:
 
         return cls(location,parameters,correlation_data,fit_parameters)
 
-    def plot_data(self,mubin,plot_label,r_power,colour,nr=40,rmax=160.):
+    def plot_wedge(self,mubin,plot_label,r_power,colour,nr=40,rmax=160.):
 
         mumin = mubin[0]
         mumax = mubin[1]
@@ -155,6 +155,17 @@ class picca_correlation:
         err_wed = err_wed[cut]
 
         plt.errorbar(r,(r**r_power) * xi_wed,yerr=(r**r_power) * err_wed,fmt='o',label=plot_label)
+
+        return
+
+    def plot_grid(self,mubin,plot_label,r_power,colour):
+
+        grid = self.xi_grid.reshape((self.np,self.nt))
+        rp_grid = self.rp.reshape((self.np,self.nt))
+        rt_grid = self.rt.reshape((self.np,self.nt))
+
+        
+        plt.imshow(self.xi_grid,origin=lower)
 
         return
 
@@ -201,6 +212,7 @@ class picca_correlation:
 
         return
 
+
 def get_fit_from_result(filepath):
 
     ff = h5py.File(filepath,'r')
@@ -233,17 +245,16 @@ def get_fit_from_result(filepath):
     return fit
 
 
-def get_correlation_data_from_cf_exp(filepath):
+def get_correlation_data(location):
 
-    h = fits.open(filepath)
+    #Use the cf_exp file.
+    h = fits.open(location + '/cf_exp.fits.gz')
     correlation_data = {}
     correlation_data['rp'] = h[1].data['RP']
     correlation_data['rt'] = h[1].data['RT']
     correlation_data['z'] = h[1].data['Z']
     correlation_data['xi_grid'] = h[1].data['DA']
     correlation_data['cov_grid'] = h[1].data['CO']
-    try:
-
     h.close()
 
     return correlation_data
@@ -295,7 +306,7 @@ def make_plots(corr_objects,mu_boundaries,plot_system,r_power,fit_type='picca',f
             plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
 
             for i,corr_object in enumerate(corr_objects):
-                corr_object.plot_data(mu_bin,'',r_power,colours[i],nr=nr,rmax=rmax)
+                corr_object.plot_wedge(mu_bin,'',r_power,colours[i],nr=nr,rmax=rmax)
                 if fit_type == 'picca':
                     corr_object.plot_fit(mu_bin,'',r_power,colours[i],nr=nr,rmax=rmax)
                 elif fit_type == 'manual':
@@ -317,7 +328,7 @@ def make_plots(corr_objects,mu_boundaries,plot_system,r_power,fit_type='picca',f
 
             for i,mu_bin in enumerate(mu_bins):
                 plot_label = '{}<mu<{}'.format(mu_bin[0],mu_bin[1])
-                corr_object.plot_data(mu_bin,plot_label,r_power,colours[i])
+                corr_object.plot_wedge(mu_bin,plot_label,r_power,colours[i])
                 if fit_type == 'picca':
                     plot_label += ' (fit)'
                     corr_object.plot_fit(mu_bin,plot_label,r_power,colours[i],nr=nr,rmax=rmax)
