@@ -108,14 +108,14 @@ class picca_correlation:
         return bias1,bias2,beta1,beta2
 
     @classmethod
-    def make_correlation_object(cls,location,res_name='result.h5'):
+    def make_correlation_object(cls,location,file_name,res_name='result.h5'):
 
         #get parameters
         #replace with get_parameters_from_param_file when written
         parameters = get_parameters_from_param_file(location+'/parameters.txt')
 
         #get correlation data
-        correlation_data = get_correlation_data(location)
+        correlation_data = get_correlation_data(location+file_name)
 
         #get cosmology data
         #yet to do this
@@ -245,10 +245,10 @@ def get_fit_from_result(filepath):
     return fit
 
 
-def get_correlation_data(location):
+def get_correlation_data(filepath):
 
     #Use the cf_exp file.
-    h = fits.open(location + '/cf_exp.fits.gz')
+    h = fits.open(filepath)
     correlation_data = {}
     correlation_data['rp'] = h[1].data['RP']
     correlation_data['rt'] = h[1].data['RT']
