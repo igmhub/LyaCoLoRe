@@ -40,4 +40,4 @@ for rmin in rmins:
         corr_objects = plot_functions.get_correlation_objects(locations,res_name=res_name)
 
         #Make plots of the objects
-        plot_functions.make_plots(corr_objects,mu_boundaries,plot_system,r_power,fit_type=fit_type,fit_data=fit_data,nr=nr,rmin=rmin,rmax=rmax,save_plots=save_plots,show_plots=show_plots,suffix=suffix)
+        plot_functions.make_wedge_plots(corr_objects,mu_boundaries,plot_system,r_power,fit_type=fit_type,fit_data=fit_data,nr=nr,rmin=rmin,rmax=rmax,save_plots=save_plots,show_plots=show_plots,suffix=suffix)
