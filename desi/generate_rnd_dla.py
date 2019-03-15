@@ -33,4 +33,4 @@ def generate_rnd(factor=3, out_path=None):
 
     return None
 # Execute
-generate_rnd(factor=10,out_path='/global/projecta/projectdirs/desi/mocks/lya_forest/london/v5.0.0/master_DLA_randoms.fits')
+generate_rnd(factor=10,out_path='/global/projecta/projectdirs/desi/mocks/lya_forest/london/v6.0/v6.0.0/master_DLA_randoms.fits')
