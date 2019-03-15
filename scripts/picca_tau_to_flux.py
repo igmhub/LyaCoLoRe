@@ -8,7 +8,7 @@ from astropy.io import fits
 from pyacolore import utils
 
 basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v5/test_runs_with_bias/test_a2.0_b1.65_wb/'
-N_merge = 10
+N_merge = 5
 min_number_cells = 2
 pixels = np.array(list(range(200)))
 N_processes = 4
@@ -117,8 +117,8 @@ if __name__ == '__main__':
 means = []
 weights = []
 for result in results:
-    means += result[0]
-    weights += result[1]
+    means += [result[0]]
+    weights += [result[1]]
 
 means = np.array(means)
 weights = np.array(weights)
@@ -132,7 +132,7 @@ def renormalise_pixel(pixel):
 
     dirname = utils.get_dir_name(basedir,pixel)
     filepath = utils.get_file_name(dirname,'picca-flux-notnorm-rebin-{}-new'.format(N_merge),16,pixel)
-    h = fits.open('filepath')
+    h = fits.open(filepath)
     skewer_delta_rows = h[0].data.T[:,cells] / mean_F[cells] - 1
 
     hdu_deltas_new = fits.PrimaryHDU(data=skewer_delta_rows.T,header=h[0].header)
