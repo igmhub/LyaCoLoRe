@@ -17,7 +17,7 @@ else:
 plot_system = 'plot_per_file' #per bin or per file
 mu_boundaries = [0.0,0.5,0.8,0.95,1.0]
 model = 'Slosar11'
-fit_type = 'manual'
+fit_type = 'picca'
 fit_data = {'b1': 1., 'b2': 1., 'beta1': 0., 'beta2': 0.}
 r_power = 2
 nr = 40

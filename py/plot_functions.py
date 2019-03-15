@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import ImageGrid
 from astropy.io import fits
 from picca import wedgize
 import sys
@@ -162,7 +163,23 @@ class picca_correlation:
 
         return
 
-    def plot_grid(self,plot_label,r_power,vmax=10**-4):
+    def plot_grid(self,plot_label,r_power,vmax=10**-4,xlabel='',ylabel='',label_fontsize=12,show_grid=True):
+
+        fig = plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
+
+        im_grid = ImageGrid(fig, 111,          # as in plt.subplot(111)
+                 nrows_ncols=(1,2),
+                 axes_pad=0.15,
+                 share_all=True,
+                 cbar_location="right",
+                 cbar_mode="single",
+                 cbar_size="7%",
+                 cbar_pad=0.15,
+                 )
+
+
+        #Add subplot containing the data.
+        ax = im_grid[0]
 
         grid = self.xi_grid.reshape((self.np,self.nt))
         rp_grid = self.rp.reshape((self.np,self.nt))
@@ -170,11 +187,51 @@ class picca_correlation:
 
         r = np.sqrt(rp_grid**2 + rt_grid**2)
 
-        plt.imshow(grid * (r**r_power),aspect='auto',origin='lower',vmin=0.,
-                    vmax=vmax,extent=[min(rt_grid),max(rt_grid),min(rp_grid),
-                    max(rp_grid)])
+        to_show = grid * (r**r_power)
 
-        plt.colorbar()
+        #Mask the areas we don't want to plot
+        if vmax:
+            mask = to_show>vmax
+        else:
+            mask = np.zeros(to_show.shape)
+        to_show = np.ma.masked_array(to_show,mask=mask)
+
+        cmap = plt.cm.get_cmap('viridis', 20)
+
+        im = ax.imshow(to_show,aspect='auto',cmap=cmap,origin='lower',
+                    vmax=vmax,extent=[min(self.rt),max(self.rt),min(self.rp),
+                    max(self.rp)])
+
+        ax.set_title('Measured',fontsize=label_fontsize)
+        ax.set_xlabel(xlabel,fontsize=label_fontsize)
+        ax.set_ylabel(ylabel,fontsize=label_fontsize)
+        if show_grid:
+            ax.grid()
+
+        #Add subplot showing the model.
+        ax = im_grid[1]
+        
+        fit_grid = self.fit_xi_grid.reshape((self.np,self.nt))
+        fit_to_show = fit_grid * (r**r_power)
+
+        #Mask the areas we don't want to plot.
+        if vmax:
+            mask = fit_to_show>vmax
+        else:
+            mask = np.zeros(fit_to_show.shape)
+        fit_to_show = np.ma.masked_array(fit_to_show,mask=mask)
+        im = ax.imshow(fit_to_show,aspect='auto',cmap=cmap,origin='lower',
+                    vmax=vmax,extent=[min(self.rt),max(self.rt),min(self.rp),
+                    max(self.rp)])
+
+        ax.set_title('Fit',fontsize=label_fontsize)
+        ax.set_xlabel(xlabel,fontsize=label_fontsize)
+        ax.set_ylabel(ylabel,fontsize=label_fontsize)
+        if show_grid:
+            ax.grid()
+
+        ax.cax.colorbar(im)
+        ax.cax.toggle_label(True)
 
         return
 
@@ -301,22 +358,21 @@ def get_correlation_objects(locations,filenames=None,res_name='result.h5'):
 
     return objects
 
-def make_colour_plots(corr_objects,r_power=0.,v_max=10**-4,save_plots=True,show_plots=True,suffix=''):
+def make_colour_plots(corr_objects,r_power=0.,vmax=10**-4,save_plots=True,show_plots=True,suffix=''):
 
     for i,corr_object in enumerate(corr_objects):
-        corr_object.plot_grid('',r_power,vmax=vmax)
+        xlabel = r'$r_t\ /\ Mpc/h$'
+        ylabel = r'$r_p\ /\ Mpc/h$'
 
-        plt.title(title)
-        plt.legend(fontsize=12)
-        plt.grid()
-        plt.xlabel(r'$r_t\ /\ Mpc/h$',fontsize=12)
-        plt.ylabel(r'$r_p\ /\ Mpc/h$',fontsize=12)
+        corr_object.plot_grid('',r_power,vmax=vmax,xlabel=xlabel,ylabel=ylabel)
 
         if save_plots:
             plt.savefig(corr_object.location+'/cf_colour'+suffix+'.pdf')
 
         if show_plots:
             plt.show()
+
+    return
 
 def make_wedge_plots(corr_objects,mu_boundaries,plot_system,r_power,fit_type='picca',fit_data=None,nr=40,rmin=10.,rmax=160.,save_plots=True,show_plots=True,save_loc='.',suffix=''):
 
