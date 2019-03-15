@@ -79,9 +79,6 @@ def get_bias_eta(data,z_values,d=0.001,z_width=0.2,z_r0=2.5,include_thermal_effe
         z_values = np.array([z_values])
 
     """
-    if isinstance(z_values, float):
-        z_values = np.array([z_values])
-
     #Method 1:
     #Use mean of FlnF
     #data_noRSDs = copy.deepcopy(data)
