@@ -13,9 +13,11 @@ MIN_CAT_Z=1.8
 LYACOLORE_SEED=123
 DLA_BIAS=2.0
 DLA_BIAS_METHOD='b_const'
+DOWNSAMPLING=0.5
 
 # specify process flags
-FLAGS="--add-small-scale-fluctuations --add-DLAs --add-RSDs --add-QSO-RSDs"
+MM_FLAGS="--desi-footprint-pixel-plus"
+MT_FLAGS="--add-small-scale-fluctuations --add-DLAs --add-RSDs --add-QSO-RSDs"
 
 # specify details of colore output
 COLORE_NGRID=4096
@@ -34,11 +36,13 @@ INPUT_FILES=`ls -1 ${INPUT_PATH}/out_srcs_*.fits`
 NFILES=`echo $INPUT_FILES | wc -w`
 echo "${NFILES} input files have been found"
 
-# version
-V="v5"
+# code version
+V_CODE_MAJ="6"
+V_CODE_MIN="0"
+V_REALISATION="0"
 
 # full path to folder where output will be written
-OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/${V}/v5.0.0/"
+OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v${V_CODE_MAJ}/v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}/"
 
 echo "output will written to "$OUTPUT_PATH
 if [ ! -d $OUTPUT_PATH ] ; then
@@ -50,16 +54,16 @@ if [ ! -d $OUTPUT_PATH/logs ] ; then
 fi
 
 # full path to file with tuning sigma_G data
-TUNING_PATH="/global/homes/j/jfarr/Projects/LyaCoLoRe/input_files/tuning_data_apow4.5_sGconst.fits" #tune_small_scale_fluctuations.fits
+TUNING_PATH="/global/homes/j/jfarr/Projects/LyaCoLoRe/input_files/tuning_data_with_bias_a2.0_b1.65.fits"
 
 # we will create this script
-RUN_FILE="/global/homes/j/jfarr/Projects/LyaCoLoRe/run_files/process_colore_v5.0.0.sh"
+RUN_FILE="/global/homes/j/jfarr/Projects/LyaCoLoRe/run_files/process_colore_v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}.sh"
 echo "run file "$RUN_FILE
 
 # make master file and new file structure
 date
 echo "making master file"
-${PROCESS_PATH}/make_master.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} --nside ${NSIDE} --nproc ${NCORES} --min-cat-z ${MIN_CAT_Z}
+${PROCESS_PATH}/make_master.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} --nside ${NSIDE} --nproc ${NCORES} --min-cat-z ${MIN_CAT_Z} ${MM_FLAGS} --downsampling ${DOWNSAMPLING}
 wait
 date
 
