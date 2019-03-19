@@ -220,39 +220,39 @@ def get_bias_eta(data,z_values,d=0.001,z_width=0.2,z_r0=2.5,include_thermal_effe
 
     biases = np.array(biases)
 
-
     """
-    #Add small extra grad to velocity skewers.
-    grad_increase = copy.deepcopy(data)
-    grad_increase.R *= (1-d)
-    grad_increase.Z = np.interp(grad_increase.R,data.R,data.Z)
-    grad_increase.Z_QSO = np.interp(data.Z_QSO,data.Z,grad_increase.Z)
+    z_min = np.min(z_values) - 0.5*z_width
+    z_max = np.max(z_values) + 0.5*z_width
+    lambda_min = lya * (1 + z_min)
+    lambda_max = lya * (1 + z_max)
 
-    #Subtract small extra grad to velocity skewers.
-    grad_decrease = copy.deepcopy(data)
-    grad_decrease.R *= (1+d)
-    grad_decrease.Z = np.interp(grad_decrease.R,data.R,data.Z)
-    grad_decrease.Z_QSO = np.interp(data.Z_QSO,data.Z,grad_decrease.Z)
+    lambda_buffer = 100. #A
+    min_catalog_z = 1.8
 
-    #Calculate mean fluxes in under and overdensities, as well as normal
+    #Copy the data and then trim it to the area around the z value.
+    data_noRSDs = copy.deepcopy(data)
+    data_noRSDs.compute_tau_skewers(data_noRSDs.lya_absorber)
+
+    #Copy the noRSD data, add RSDs with the extra shift (increase), then trim the skewers.
+    grad_increase = copy.deepcopy(data_noRSDs)
+    grad_increase.add_all_RSDs(thermal=include_thermal_effects,d=d,z_r0=z_r0)
+    grad_increase.trim_skewers(lambda_min,min_catalog_z,lambda_max=lambda_max)
+
+    #Copy the noRSD data, add RSDs with the extra shift (decrease), then trim the skewers.
+    grad_decrease = copy.deepcopy(data_noRSDs)
+    grad_decrease.add_all_RSDs(thermal=include_thermal_effects,d=-d,z_r0=z_r0)
+    grad_decrease.trim_skewers(lambda_min,min_catalog_z,lambda_max=lambda_max)
     biases = []
-    for z_value in z_values:
 
+    for z_value in z_values:
         #We get means across the z-chunk and combine once bias has been computed.
         #This avoids overweighting the low end of the chunk.
         mean_F_increase = grad_increase.get_mean_quantity('flux',z_value=z_value,z_width=z_width,single_value=False,power=1)
         mean_F_decrease = grad_decrease.get_mean_quantity('flux',z_value=z_value,z_width=z_width,single_value=False,power=1)
         mean_F = data.get_mean_quantity('flux',z_value=z_value,z_width=z_width,single_value=False,power=1)
 
-        i_lower = np.searchsorted(data.Z,z_value - z_width/2.)
-        i_upper = np.searchsorted(data.Z,z_value + z_width/2.)
-        D_values = data.D[i_lower:i_upper]
-        #print(np.sum(data.IVAR_rows[:,i_lower:i_lower+5],axis=0),np.sum(data.IVAR_rows[:,i_upper-5:i_upper],axis=0))
-
-        #D_value = np.interp(z_value,data.Z,data.D)
-        bias = np.average((1/mean_F) * (1/(2.*d*D_values)) * (mean_F_increase - mean_F_decrease))
+        bias = np.average((1/mean_F) * (1./(2.*d)) * (mean_F_increase - mean_F_decrease))
         biases += [bias]
-
     biases = np.array(biases)
     """
 
