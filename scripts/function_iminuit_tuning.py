@@ -21,6 +21,7 @@ min_cat_z = 1.8
 IVAR_cutoff = 1150.0
 global_seed = 123
 add_ssf = True
+lambda_buffer = 100. #Angstroms
 
 #Choose parameter values.
 R_kms = 25.0
@@ -192,10 +193,13 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
 
     if prep:
         RSD_weights = data.get_RSD_weights(thermal=False)
+        b_eta_weights_dict = data.get_bias_eta_weights(z_values,d=d,z_width=z_width,lambda_buffer=lambda_buffer)
+
         #print('{:3.2f} checkpoint RSDs measured'.format(time.time()-start))
-        return (pixel,RSD_weights)
+        return (pixel,RSD_weights,b_eta_weights_dict)
     else:
         RSD_weights = RSD_weights_dict[pixel]
+        bias_eta_weights = bias_eta_weights_dict[pixel]
         data.add_all_RSDs(thermal=False,weights=RSD_weights)
         data.trim_skewers(lambda_min,min_cat_z,extra_cells=1)
 
@@ -219,10 +223,10 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
             #measurement.add_sigma_dF_measurement(data)
             #times_m[3] += time.time() - t_m
             #t_m = time.time()
-            measurement.add_bias_delta_measurement(data,d=d)
+            measurement.add_bias_delta_measurement(data,d=d,z_width=z_width)
             #times_m[4] += time.time() - t_m
             #t_m = time.time()
-            #measurement.add_bias_eta_measurement(data,d=d)
+            measurement.add_bias_eta_measurement(data,d=d,z_width=z_width,weights_dict=bias_eta_weights,lambda_buffer=lambda_buffer)
             #times_m[5] += time.time() - t_m
             measurements += [measurement]
 
@@ -249,8 +253,10 @@ if __name__ == '__main__':
     pool.join()
 
 RSD_weights_dict = {}
+bias_eta_weights_dict = {}
 for result in results:
     RSD_weights_dict[result[0]] = result[1]
+    bias_eta_weights_dict[result[0]] = result[2]
 print('done!')
 
 def f(C0,C1,C2,beta,D0,D1,D2,n,k1,return_measurements=False):
@@ -304,12 +310,12 @@ def f(C0,C1,C2,beta,D0,D1,D2,n,k1,return_measurements=False):
         m.add_mean_F_chi2(eps=eps_mean_F)
         m.add_Pk1D_chi2(max_k=max_k,denom="npower_cutoff",eps=eps_Pk1D)
         m.add_bias_delta_chi2(eps=eps_bias_delta)
-        #m.add_bias_eta_chi2(eps=eps_bias_eta)
+        m.add_bias_eta_chi2(eps=eps_bias_eta)
 
         Pk_kms_chi2 += m.Pk_kms_chi2
         mean_F_chi2 += m.mean_F_chi2
         bias_delta_chi2 += m.bias_delta_chi2
-        #bias_eta_chi2 += m.bias_eta_chi2
+        bias_eta_chi2 += m.bias_eta_chi2
         #print('z =',m.z_value,'number of k values =',m.k_kms.shape,'number of k values < max k =',np.sum(m.k_kms<max_k))
 
     chi2 = mean_F_chi2 + Pk_kms_chi2 + bias_delta_chi2 + bias_eta_chi2

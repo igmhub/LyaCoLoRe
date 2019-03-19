@@ -258,7 +258,7 @@ class SimulationData:
         return cls(N_qso,N_cells,SIGMA_G,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,R,Z,D,V,LOGLAM_MAP)
 
     #Function to trim skewers according to a minimum value of lambda. QSOs with no relevant cells are removed.
-    def trim_skewers(self,lambda_min,min_catalog_z,extra_cells=0,lambda_max=None,whole_lambda_range=False):
+    def trim_skewers(self,lambda_min,min_catalog_z=None,extra_cells=0,lambda_max=None,whole_lambda_range=False):
 
         lambdas = 10**(self.LOGLAM_MAP)
         first_relevant_cell = np.searchsorted(lambdas,lambda_min)
@@ -282,7 +282,11 @@ class SimulationData:
             if self.IVAR_rows[i,first_relevant_cell] > 0:
                 relevant_QSOs += [i]
         """
-        relevant_QSOs = (self.Z_QSO>min_catalog_z)
+        if min_catalog_z
+            relevant_QSOs = (self.Z_QSO>min_catalog_z)
+        else:
+            relevant_QSOs = np.ones(self.Z_QSO.shape)
+
         #If we want the entirety of the lambda range to be relevant (i.e. with IVAR=1), we must remove skewers that do not have this
         if whole_lambda_range:
             relevant_QSOs *= (self.IVAR_rows[:,first_relevant_cell] == 1) * (self.IVAR_rows[:,last_relevant_cell] == 1)
@@ -346,7 +350,7 @@ class SimulationData:
         NGPs = utils.get_NGPs(old_R,new_R)
         #expanded_GAUSSIAN_DELTA_rows = np.zeros((self.N_qso,new_N_cells))
         expanded_GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows[:,NGPs]
-        
+
         #expanded_GAUSSIAN_DELTA_rows = interp1d(old_R,self.GAUSSIAN_DELTA_rows,axis=1,kind='linear')(new_R)
 
         #Redefine the necessary variables (N_cells, Z, D etc)
@@ -468,12 +472,19 @@ class SimulationData:
         return
 
     #Get the weights for going into redshift space.
-    def get_RSD_weights(self,thermal=False):
+    def get_RSD_weights(self,thermal=False,d=0.0,z_r0=2.5):
 
         density = 1 + self.DENSITY_DELTA_rows
-        RSD_weights = RSD.get_weights(density,self.VEL_rows,self.Z,self.R,self.Z_QSO,thermal=thermal)
+        RSD_weights = RSD.get_weights(density,self.VEL_rows,self.Z,self.R,self.Z_QSO,thermal=thermal,d=0.0,z_r0=2.5)
 
         return RSD_weights
+
+    #Get the weights dictionary required to make measurements of b_eta.
+    def get_bias_eta_weights(self,d=0.001,z_width=0.2,thermal=False,lambda_buffer=None):
+
+        bias_eta_weights = bias.get_bias_eta_weights(self,z_values,d=d,z_width=z_width,include_thermal_effects=thermal,lambda_buffer=lambda_buffer)
+
+        return bias_eta_weights
 
     #Function to add RSDs from the velocity skewers, with an option to include thermal effects too.
     def add_RSDs(self,absorber,thermal=False,weights=None,d=0.0,z_r0=2.5):
@@ -978,7 +989,7 @@ class SimulationData:
     ####
     """
     Obsolete functions
-    
+
     #Function to save data as a Gaussian colore file.
     def save_as_gaussian_colore(self,filename,header,overwrite=False):
 
