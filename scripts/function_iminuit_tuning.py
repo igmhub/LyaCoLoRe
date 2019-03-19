@@ -25,40 +25,42 @@ add_ssf = True
 #Choose parameter values.
 R_kms = 25.0
 eps_Pk1D = 0.1
-eps_mean_F = 0.025
+eps_mean_F = 0.0125
 eps_bias_delta = 0.025
 eps_bias_eta = 10.**6
 d = 10.**-3
+vel_mult = 1.0
 
 #Choose tuning parameter initial values.
-initial_C0 = 3.0
-initial_C1 = 4.5
-initial_C2 = 0.0
+initial_C0 = 1.1891853249518913
+initial_C1 = 4.589416194960326
+initial_C2 = 0.6863367279102948
 initial_beta = 1.65
-initial_D0 = 6.466417575886396
-initial_D1 = 0.3423936168262655
-initial_D2 = 0.0
-initial_n = 0.5069879302206717
-initial_k1 = 0.03172293780336079
+initial_D0 = 5.854471049908749
+initial_D1 = 0.3206980076648007
+initial_D2 = 0.0603737734396292
+initial_n = 1.0485428387041913
+initial_k1 = 0.02092561603933631
 
 #Choose parameters to fix.
 fix_all = False
-fix_C0 = True
-fix_C1 = True
-fix_C2 = True
+fix_C0 = False
+fix_C1 = False
+fix_C2 = False
 fix_beta = True
 fix_D0 = False
 fix_D1 = False
-fix_D2 = True
+fix_D2 = False
 fix_n = False
 fix_k1 = False
 
 #Admin options
-k_plot_max = 0.02
+k_plot_max = 0.1
 show_plots = True
-save_plots = True
-suffix = '_with_bias_a{}_b{}'.format(initial_C0,initial_beta)
-overwrite_tuning = True
+save_plots = False
+suffix = '_with_bias_a{}_b{}_mfeps{}'.format('free',initial_beta,eps_mean_F)
+save_tuning = False
+overwrite_tuning = False
 tuning_filename = 'input_files/tuning_data' + suffix + '.fits'
 
 #Get the starting values of alpha, beta and sigma_G from file
@@ -131,6 +133,9 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
     data = simulation_data.SimulationData.get_gaussian_skewers_object(location+gaussian_filename,None,input_format,IVAR_cutoff=IVAR_cutoff)
     #print('{:3.2f} checkpoint sim_dat'.format(time.time()-t))
     t = time.time()
+
+    #Scale the RSD skewers.
+    data.VEL_rows *= vel_mult
 
     transformation = tuning.transformation()
     def f_tau0_z(z):
@@ -217,7 +222,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
             measurement.add_bias_delta_measurement(data,d=d)
             #times_m[4] += time.time() - t_m
             #t_m = time.time()
-            measurement.add_bias_eta_measurement(data,d=d)
+            #measurement.add_bias_eta_measurement(data,d=d)
             #times_m[5] += time.time() - t_m
             measurements += [measurement]
 
@@ -299,12 +304,12 @@ def f(C0,C1,C2,beta,D0,D1,D2,n,k1,return_measurements=False):
         m.add_mean_F_chi2(eps=eps_mean_F)
         m.add_Pk1D_chi2(max_k=max_k,denom="npower_cutoff",eps=eps_Pk1D)
         m.add_bias_delta_chi2(eps=eps_bias_delta)
-        m.add_bias_eta_chi2(eps=eps_bias_eta)
+        #m.add_bias_eta_chi2(eps=eps_bias_eta)
 
         Pk_kms_chi2 += m.Pk_kms_chi2
         mean_F_chi2 += m.mean_F_chi2
         bias_delta_chi2 += m.bias_delta_chi2
-        bias_eta_chi2 += m.bias_eta_chi2
+        #bias_eta_chi2 += m.bias_eta_chi2
         #print('z =',m.z_value,'number of k values =',m.k_kms.shape,'number of k values < max k =',np.sum(m.k_kms<max_k))
 
     chi2 = mean_F_chi2 + Pk_kms_chi2 + bias_delta_chi2 + bias_eta_chi2
@@ -401,7 +406,8 @@ def save_tuning_file(filename,overwrite=False):
 
     return
 
-save_tuning_file(tuning_filename,overwrite=overwrite_tuning)
+if save_tuning:
+    save_tuning_file(tuning_filename,overwrite=overwrite_tuning)
 
 #Do a final run to get the measurements.
 final_chi2,final_measurements = f(C0,C1,C2,beta,D0,D1,D2,n,k1,return_measurements=True)
@@ -461,14 +467,14 @@ def plot_P1D_values(m_set,show_plot=True,save_plot=False):
         model_Pk_kms = tuning.P1D_z_kms_PD2013(m.z_value,m.k_kms)
         plt.plot(m.k_kms,model_Pk_kms,c=colour,linestyle=':')#,label='z={} DR9'.format(m.z_value))
         m.add_Pk1D_chi2(max_k=max_k,denom="npower_cutoff")
-        #eps = m.Pk_kms_chi2_eps
+        eps = m.Pk_kms_chi2_eps
         #plt.plot(m.k_kms,model_Pk_kms*0.9,color=[0.5,0.5,0.5],alpha=0.5)
         #plt.plot(m.k_kms,model_Pk_kms*1.1,color=[0.5,0.5,0.5],alpha=0.5)
         plt.fill_between(m.k_kms,model_Pk_kms*1.1,model_Pk_kms*0.9,color=[0.5,0.5,0.5],alpha=0.3)#,label='DR9 +/- 10%')
-        #lower = np.maximum(np.ones_like(model_Pk_kms)*10**(-6),model_Pk_kms * (1. - eps))
-        #upper = model_Pk_kms * (1. + eps)
-        #plt.plot(m.k_kms,upper,c='k',linestyle='dashed')
-        #plt.plot(m.k_kms,lower,c='k',linestyle='dashed')
+        lower = np.maximum(np.ones_like(model_Pk_kms)*10**(-6),model_Pk_kms * (1. - eps))
+        upper = model_Pk_kms * (1. + eps)
+        plt.plot(m.k_kms,upper,c='k',linestyle='dashed')
+        plt.plot(m.k_kms,lower,c='k',linestyle='dashed')
         #plt.fill_between(m.k_kms,upper,lower,color=[0.8,0.8,0.8],alpha=0.3)
         max_power_plot = np.max((max_power_plot,np.max(model_Pk_kms[m.k_kms<k_plot_max])))
         min_power_plot = np.min((min_power_plot,np.min(model_Pk_kms[m.k_kms<k_plot_max])))
