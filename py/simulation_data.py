@@ -344,9 +344,10 @@ class SimulationData:
         new_N_cells = new_R.shape[0]
 
         NGPs = utils.get_NGPs(old_R,new_R)
-        expanded_GAUSSIAN_DELTA_rows = np.zeros((self.N_qso,new_N_cells))
-
+        #expanded_GAUSSIAN_DELTA_rows = np.zeros((self.N_qso,new_N_cells))
         expanded_GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows[:,NGPs]
+        
+        #expanded_GAUSSIAN_DELTA_rows = interp1d(old_R,self.GAUSSIAN_DELTA_rows,axis=1,kind='linear')(new_R)
 
         #Redefine the necessary variables (N_cells, Z, D etc)
         self.N_cells = new_N_cells
