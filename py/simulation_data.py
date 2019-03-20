@@ -282,10 +282,10 @@ class SimulationData:
             if self.IVAR_rows[i,first_relevant_cell] > 0:
                 relevant_QSOs += [i]
         """
-        if min_catalog_z
+        if min_catalog_z:
             relevant_QSOs = (self.Z_QSO>min_catalog_z)
         else:
-            relevant_QSOs = np.ones(self.Z_QSO.shape)
+            relevant_QSOs = np.ones(self.Z_QSO.shape,dtype='bool')
 
         #If we want the entirety of the lambda range to be relevant (i.e. with IVAR=1), we must remove skewers that do not have this
         if whole_lambda_range:
@@ -475,7 +475,7 @@ class SimulationData:
     def get_RSD_weights(self,thermal=False,d=0.0,z_r0=2.5):
 
         density = 1 + self.DENSITY_DELTA_rows
-        RSD_weights = RSD.get_weights(density,self.VEL_rows,self.Z,self.R,self.Z_QSO,thermal=thermal,d=0.0,z_r0=2.5)
+        RSD_weights = RSD.get_weights(density,self.VEL_rows,self.Z,self.R,self.Z_QSO,thermal=thermal,d=d,z_r0=z_r0)
 
         return RSD_weights
 
