@@ -1,5 +1,6 @@
 import numpy as np
 import copy
+import time
 
 from pyacolore import utils
 
@@ -46,11 +47,14 @@ def get_bias_delta(data,z_values,d=0.001,z_width=0.2):
     return biases
 
 #Function to get the different RSD weights for calculating bias_nu.
+
 def get_bias_eta_weights(data,z_values,d=0.001,z_width=0.2,include_thermal_effects=False,lambda_buffer=100.):
 
     weights_dict = {}
 
     for z_value in z_values:
+
+        t = time.time()
 
         z_val_weights_dict = {}
 
@@ -62,20 +66,31 @@ def get_bias_eta_weights(data,z_values,d=0.001,z_width=0.2,include_thermal_effec
         lambda_max = lya * (1 + z_max)
 
         data_copy_z_val.trim_skewers(lambda_min-lambda_buffer,lambda_max=lambda_max+lambda_buffer,extra_cells=1)
+        #print('z value {}: data obj copy and trim in {:3.1f}s.'.format(z_value,time.time()-t))
+        t = time.time()
 
+        #print('getting weights: z={} has N_qso={}, N_cells={}'.format(z_value,data_copy_z_val.N_qso,data_copy_z_val.N_cells))
         RSD_weights_grad_increase = data_copy_z_val.get_RSD_weights(thermal=include_thermal_effects,d=d,z_r0=z_value)
+        #print('z value {}: grad_increase map done in {:3.1f}s.'.format(z_value,time.time()-t))
+        t = time.time()
         RSD_weights_grad_decrease = data_copy_z_val.get_RSD_weights(thermal=include_thermal_effects,d=-d,z_r0=z_value)
+        #print('z value {}: grad_decrease map done in {:3.1f}s.'.format(z_value,time.time()-t))
+        t = time.time()
 
         z_val_weights_dict['grad_increase'] = RSD_weights_grad_increase
         z_val_weights_dict['grad_decrease'] = RSD_weights_grad_decrease
 
         weights_dict[z_value] = z_val_weights_dict
 
+        #print('z value {}: maps put into dicts in    {:3.1f}s.'.format(z_value,time.time()-t))
+
     return weights_dict
 
 #Function to get the bias of eta at various z values from a sim data object.
 #Assumes that the object already has tau calculated but with no RSDs applied.
 def get_bias_eta(data,z_values,weights_dict=None,d=0.001,z_width=0.2,include_thermal_effects=False,lambda_buffer=100.):
+
+    t = time.time()
 
     alphas = data.transformation.get_tau0(data.Z)
     betas = data.transformation.get_texp(data.Z)
@@ -170,11 +185,22 @@ def get_bias_eta(data,z_values,weights_dict=None,d=0.001,z_width=0.2,include_the
     #Whilst moving cells in RSD, add in a shift
 
     if not weights_dict:
+        print('no weights dict provided to get_bias_eta. Calculating weights...')
         weights_dict = get_bias_eta_weights(data,z_values,d=d,z_width=z_width,include_thermal_effects=include_thermal_effects,lambda_buffer=lambda_buffer)
+
+    #print('    -> {:3.2f} checkpoint extract weights'.format(time.time()-t))
+    t = time.time()
 
     #Copy the data and overwrite the tau skewers to remove RSDs.
     data_noRSDs = copy.deepcopy(data)
-    data_noRSDs.compute_tau_skewers(data_noRSDs.lya_absorber)
+
+    #print('    -> {:3.2f} checkpoint copy data'.format(time.time()-t))
+    t = time.time()
+
+    data_noRSDs.lya_absorber.tau = data_noRSDs.lya_absorber.tau_noRSD
+
+    #print('    -> {:3.2f} checkpoint recompute tau'.format(time.time()-t))
+    t = time.time()
 
     #Calculate mean fluxes in under and overdensities, as well as normal
     biases = []
@@ -190,22 +216,44 @@ def get_bias_eta(data,z_values,weights_dict=None,d=0.001,z_width=0.2,include_the
 
         #Copy the data and then trim it to the area around the z value.
         data_noRSDs_z_val = copy.deepcopy(data_noRSDs)
+
+        #print('    -> {:3.2f} checkpoint z_val noRSD data copied'.format(time.time()-t))
+        t = time.time()
+
         data_noRSDs_z_val.trim_skewers(lambda_min-lambda_buffer,lambda_max=lambda_max+lambda_buffer,extra_cells=1)
+
+        #print('    -> {:3.2f} checkpoint data trimmed'.format(time.time()-t))
+        t = time.time()
+
+        #print('implementing b_eta RSDs: z={} has N_qso={}, N_cells={}'.format(z_value,data_noRSDs_z_val.N_qso,data_noRSDs_z_val.N_cells))
 
         #Copy the noRSD data, add RSDs with the extra shift (increase), then trim the skewers.
         grad_increase = copy.deepcopy(data_noRSDs_z_val)
         grad_increase.add_all_RSDs(weights=weights_grad_increase,thermal=include_thermal_effects,d=d,z_r0=z_value)
         grad_increase.trim_skewers(lambda_min,lambda_max=lambda_max)
 
+        #print('    -> {:3.2f} checkpoint grad increase'.format(time.time()-t))
+        t = time.time()
+
         #Copy the noRSD data, add RSDs with the extra shift (decrease), then trim the skewers.
         grad_decrease = copy.deepcopy(data_noRSDs_z_val)
         grad_decrease.add_all_RSDs(weights=weights_grad_decrease,thermal=include_thermal_effects,d=-d,z_r0=z_value)
         grad_decrease.trim_skewers(lambda_min,lambda_max=lambda_max)
 
+        #print('    -> {:3.2f} checkpoint grad decrease'.format(time.time()-t))
+        t = time.time()
+
         #Make small pixel object with RSDs and trim it. Also trim the noRSD object.
         data_z_val = copy.deepcopy(data)
+
+        #print('    -> {:3.2f} checkpoint z_val data copied'.format(time.time()-t))
+        t = time.time()
+
         data_z_val.trim_skewers(lambda_min,lambda_max=lambda_max)
-        data_noRSDs_z_val.trim_skewers(lambda_min,lambda_max=lambda_max)
+        #data_noRSDs_z_val.trim_skewers(lambda_min,lambda_max=lambda_max)
+
+        #print('    -> {:3.2f} checkpoint tidy up'.format(time.time()-t))
+        t = time.time()
 
         #We get means across the z-chunk and combine once bias has been computed.
         #This avoids overweighting the low end of the chunk.
@@ -213,8 +261,15 @@ def get_bias_eta(data,z_values,weights_dict=None,d=0.001,z_width=0.2,include_the
         mean_F_decrease = grad_decrease.get_mean_quantity('flux',z_value=z_value,z_width=z_width,single_value=False,power=1)
         mean_F = data_z_val.get_mean_quantity('flux',z_value=z_value,z_width=z_width,single_value=False,power=1)
 
+        #print('    -> {:3.2f} checkpoint get means'.format(time.time()-t))
+        t = time.time()
+
         bias = np.average((1/mean_F) * (1/(2.*d)) * (mean_F_increase - mean_F_decrease))
         biases += [bias]
+
+        #print('    -> {:3.2f} checkpoint get biases'.format(time.time()-t))
+        t = time.time()
+
 
     biases = np.array(biases)
 
