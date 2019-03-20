@@ -46,7 +46,7 @@ def get_bias_delta(data,z_values,d=0.001,z_width=0.2):
     return biases
 
 #Function to get the different RSD weights for calculating bias_nu.
-def get_bias_eta_weights(data,z_values,d=0.001,z_width=0.2,include_thermal_effects=False,lambda_buffer=None):
+def get_bias_eta_weights(data,z_values,d=0.001,z_width=0.2,include_thermal_effects=False,lambda_buffer=100.):
 
     weights_dict = {}
 
@@ -63,8 +63,8 @@ def get_bias_eta_weights(data,z_values,d=0.001,z_width=0.2,include_thermal_effec
 
         data_copy_z_val.trim_skewers(lambda_min-lambda_buffer,lambda_max=lambda_max+lambda_buffer,extra_cells=1)
 
-        RSD_weights_grad_increase = data_copy.get_RSD_weights(thermal=include_thermal_effects,d=d,z_r0=z_value)
-        RSD_weights_grad_decrease = data_copy.get_RSD_weights(thermal=include_thermal_effects,d=-d,z_r0=z_value)
+        RSD_weights_grad_increase = data_copy_z_val.get_RSD_weights(thermal=include_thermal_effects,d=d,z_r0=z_value)
+        RSD_weights_grad_decrease = data_copy_z_val.get_RSD_weights(thermal=include_thermal_effects,d=-d,z_r0=z_value)
 
         z_val_weights_dict['grad_increase'] = RSD_weights_grad_increase
         z_val_weights_dict['grad_decrease'] = RSD_weights_grad_decrease
@@ -75,7 +75,7 @@ def get_bias_eta_weights(data,z_values,d=0.001,z_width=0.2,include_thermal_effec
 
 #Function to get the bias of eta at various z values from a sim data object.
 #Assumes that the object already has tau calculated but with no RSDs applied.
-def get_bias_eta(data,z_values,weights_dict=None,d=0.001,z_width=0.2,include_thermal_effects=False,lambda_buffer=None):
+def get_bias_eta(data,z_values,weights_dict=None,d=0.001,z_width=0.2,include_thermal_effects=False,lambda_buffer=100.):
 
     alphas = data.transformation.get_tau0(data.Z)
     betas = data.transformation.get_texp(data.Z)

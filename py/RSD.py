@@ -142,6 +142,8 @@ def add_skewer_RSDs(initial_tau,initial_density,velocity_skewer_dz,z,r_hMpc,z_qs
 #
 def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,d=0.0,z_r0=2.5):
 
+    r0 = np.interp(z_r0,z,r_hMpc)
+
     N_qso = velocity_skewer_dz.shape[0]
     N_cells = velocity_skewer_dz.shape[1]
 
@@ -182,11 +184,11 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
                 cell_size = (x_kms[j] - x_kms[j-1])
 
             #Find new r of cell by interpolating.
-            new_r_hMpc = np.interp(new_z_cell,z,r_hMpc)
+            new_r_hMpc_cell = np.interp(new_z_cell,z,r_hMpc)
 
             #Shift r by an additional small amount if desired.
             new_r_hMpc_cell -= (new_r_hMpc_cell - r0) * d
-            new_x_kms_cell = new_r_hMpc * utils.get_dkms_dhMpc(new_z_cell)
+            new_x_kms_cell = new_r_hMpc_cell * utils.get_dkms_dhMpc(new_z_cell)
 
             j_upper = np.searchsorted(x_kms,new_x_kms_cell)
             j_lower = j_upper - 1
