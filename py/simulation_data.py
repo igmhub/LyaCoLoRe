@@ -282,6 +282,7 @@ class SimulationData:
             if self.IVAR_rows[i,first_relevant_cell] > 0:
                 relevant_QSOs += [i]
         """
+
         """
         if remove_irrelevant_QSOs:
             min_catalog_z = 
