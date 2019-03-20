@@ -139,9 +139,9 @@ class function_measurement:
         self.bias_delta = bias.get_bias_delta(pixel_object,self.z_value,z_width=self.z_width,d=d)
         return
 
-    def add_bias_eta_measurement(self,pixel_object,d=0.001):
+    def add_bias_eta_measurement(self,pixel_object,weights_dict=None,d=0.001,thermal=False,lambda_buffer=100.):
         #Get bias_eta and add it to the measurement object.
-        self.bias_eta = bias.get_bias_eta(pixel_object,self.z_value,z_width=self.z_width,d=d,z_r0=self.z_value)
+        self.bias_eta = bias.get_bias_eta(pixel_object,self.z_value,weights_dict=weights_dict,d=d,z_width=self.z_width,include_thermal_effects=thermal,lambda_buffer=lambda_buffer)
         return
 
     def add_sigma_dF_measurement(self,pixel_object):
@@ -164,7 +164,7 @@ class function_measurement:
             max_k = self.k_kms[-1]
 
         #Determine the denominator (i.e. weighting scheme).
-        A = 10**6
+        A = 10**10
         if denom == "uniform":
             denom = (eps * model_Pk_kms)**2
         elif denom == "krange":
