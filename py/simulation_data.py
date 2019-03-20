@@ -3,7 +3,7 @@ from astropy.io import fits
 from scipy.interpolate import interp1d
 import time
 
-from . import utils, read_files, convert, RSD, DLA, independent, absorber, metals, stats
+from . import utils, read_files, convert, bias, RSD, DLA, independent, absorber, metals, stats
 
 lya = utils.lya_rest
 
@@ -258,7 +258,7 @@ class SimulationData:
         return cls(N_qso,N_cells,SIGMA_G,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,R,Z,D,V,LOGLAM_MAP)
 
     #Function to trim skewers according to a minimum value of lambda. QSOs with no relevant cells are removed.
-    def trim_skewers(self,lambda_min,min_catalog_z=None,extra_cells=0,lambda_max=None,whole_lambda_range=False):
+    def trim_skewers(self,lambda_min,min_catalog_z=None,extra_cells=0,lambda_max=None,whole_lambda_range=False,remove_irrelevant_QSOs=True):
 
         lambdas = 10**(self.LOGLAM_MAP)
         first_relevant_cell = np.searchsorted(lambdas,lambda_min)
@@ -282,6 +282,12 @@ class SimulationData:
             if self.IVAR_rows[i,first_relevant_cell] > 0:
                 relevant_QSOs += [i]
         """
+
+        """
+        if remove_irrelevant_QSOs:
+            min_catalog_z = 
+        """
+
         if min_catalog_z:
             relevant_QSOs = (self.Z_QSO>min_catalog_z)
         else:
@@ -338,7 +344,6 @@ class SimulationData:
 
         times = []
         start = time.time(); times += [start]
-        # TODO: Is NGP really the way to go?
 
         #Add small scale fluctuations
         old_R = self.R
@@ -347,10 +352,11 @@ class SimulationData:
         new_R = np.arange(Rmin,Rmax,cell_size)
         new_N_cells = new_R.shape[0]
 
+
+        # TODO: could just use scipy.interp1d here
         NGPs = utils.get_NGPs(old_R,new_R)
         #expanded_GAUSSIAN_DELTA_rows = np.zeros((self.N_qso,new_N_cells))
         expanded_GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows[:,NGPs]
-
         #expanded_GAUSSIAN_DELTA_rows = interp1d(old_R,self.GAUSSIAN_DELTA_rows,axis=1,kind='linear')(new_R)
 
         #Redefine the necessary variables (N_cells, Z, D etc)
@@ -480,7 +486,7 @@ class SimulationData:
         return RSD_weights
 
     #Get the weights dictionary required to make measurements of b_eta.
-    def get_bias_eta_weights(self,d=0.001,z_width=0.2,thermal=False,lambda_buffer=None):
+    def get_bias_eta_RSD_weights(self,z_values,d=0.001,z_width=0.2,thermal=False,lambda_buffer=None):
 
         bias_eta_weights = bias.get_bias_eta_weights(self,z_values,d=d,z_width=z_width,include_thermal_effects=thermal,lambda_buffer=lambda_buffer)
 
@@ -491,9 +497,11 @@ class SimulationData:
 
         density = 1 + self.DENSITY_DELTA_rows
         new_tau = RSD.add_skewer_RSDs(absorber.tau,density,self.VEL_rows,self.Z,self.R,self.Z_QSO,thermal=thermal,weights=weights,d=d,z_r0=z_r0)
+        tau_noRSD = absorber.tau
 
         #Overwrite the tau skewers and set a flag to True.
         absorber.tau = new_tau
+        absorber.tau_noRSD = tau_noRSD
 
         return
 

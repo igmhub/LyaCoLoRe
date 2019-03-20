@@ -114,8 +114,6 @@ def add_skewer_RSDs(initial_tau,initial_density,velocity_skewer_dz,z,r_hMpc,z_qs
     max_z_index = np.argmax(z_qso)
     #print('printing data for QSO number {} with redshift {:1.3f}...'.format(max_z_index,z_qso[max_z_index]))
 
-    r0 = np.interp(z_r0,z,r_hMpc)
-
     N_qso = initial_tau.shape[0]
     N_cells = initial_tau.shape[1]
 
@@ -160,7 +158,7 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
 
     #count = np.zeros(100)
     #total = 0
-
+    #count = 0
     for i in range(N_qso):
         indices = []
         data = []
@@ -168,6 +166,8 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
 
         #Go through each cell up to the QSO
         j_limit = np.searchsorted(z,z_qso[i])
+        #count += j_limit
+
         for j in range(j_limit):
             #Add the dz from the velocity skewers to get a 'new_z' for each cell
             z_cell = z[j]
