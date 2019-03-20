@@ -9,12 +9,12 @@ from pyacolore import simulation_data, bias, utils, tuning
 
 #base_dir = '../example_data/lya_skewers/'
 base_dir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v5/v5.0.0/'
-tuning_files = glob.glob('./input_files/tuning_data_a?.?_b1.65.fits') 
+#tuning_files = glob.glob('./input_files/tuning_data_a?.?_b1.65.fits') 
 #+ glob.glob('./input_files/tuning_data_a?.?_b2.0.fits')
-#tuning_files = glob.glob('./input_files/tuning_data_apow4.5_sGconst.fits')
+tuning_files = glob.glob('./input_files/tuning_data_with_bias_a2.0_b1.65.fits')
 z_values = np.array([2.0,2.2,2.4,2.6,2.8,3.0,3.2])
 d_value = 10**-2
-z_width_value = 0.1
+z_width_value = 0.2
 N_pixels = 32
 f = 0.9625
 z_r0 = 2.5
@@ -62,7 +62,6 @@ def bias_tuning(pixel_object,tuning_filename,z_values,d=0.001,z_width=0.2,z_r0=2
     #Add small scale power to the gaussian skewers:
     generator = np.random.RandomState(seed)
     pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,generator,white_noise=False,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff,n=n,k1=k1,R_kms=R_kms)
-
     #Recompute physical skewers.
     pixel_object.compute_physical_skewers()
 
@@ -78,7 +77,7 @@ def bias_tuning(pixel_object,tuning_filename,z_values,d=0.001,z_width=0.2,z_r0=2
 
     #Calculate biases.
     b = bias.get_bias_delta(pixel_object,z_values,d=d,z_width=z_width)
-    b_eta = bias.get_bias_eta(pixel_object,z_values,d=d,z_width=z_width,z_r0=z_r0)
+    b_eta = bias.get_bias_eta(pixel_object,z_values,d=d,z_width=z_width)
 
     return b,b_eta
 
