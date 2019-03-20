@@ -47,8 +47,9 @@ def get_bias_delta(data,z_values,d=0.001,z_width=0.2):
     return biases
 
 #Function to get the different RSD weights for calculating bias_nu.
-def get_bias_eta_weights(data,z_values,d=0.001,z_width=0.2,include_thermal_effects=False,lambda_buffer=None):
-    
+
+def get_bias_eta_weights(data,z_values,d=0.001,z_width=0.2,include_thermal_effects=False,lambda_buffer=100.):
+
     weights_dict = {}
 
     for z_value in z_values:
