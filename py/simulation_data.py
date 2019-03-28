@@ -275,14 +275,8 @@ class SimulationData:
             first_relevant_cell = 0
 
         #Determine which QSOs have any relevant cells to keep.
-        """
-        relevant_QSOs = []
-        for i in range(self.N_qso):
-            lambda_QSO = lya*(1 + self.Z_QSO[i])
-            if self.IVAR_rows[i,first_relevant_cell] > 0:
-                relevant_QSOs += [i]
-        """
         relevant_QSOs = (self.Z_QSO>min_catalog_z)
+
         #If we want the entirety of the lambda range to be relevant (i.e. with IVAR=1), we must remove skewers that do not have this
         if whole_lambda_range:
             relevant_QSOs *= (self.IVAR_rows[:,first_relevant_cell] == 1) * (self.IVAR_rows[:,last_relevant_cell] == 1)
@@ -338,7 +332,6 @@ class SimulationData:
 
         times = []
         start = time.time(); times += [start]
-        # TODO: Is NGP really the way to go?
 
         #Add small scale fluctuations
         old_R = self.R
@@ -347,10 +340,11 @@ class SimulationData:
         new_R = np.arange(Rmin,Rmax,cell_size)
         new_N_cells = new_R.shape[0]
 
+
+        # TODO: could just use scipy.interp1d here
         NGPs = utils.get_NGPs(old_R,new_R)
         #expanded_GAUSSIAN_DELTA_rows = np.zeros((self.N_qso,new_N_cells))
         expanded_GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows[:,NGPs]
-        
         #expanded_GAUSSIAN_DELTA_rows = interp1d(old_R,self.GAUSSIAN_DELTA_rows,axis=1,kind='linear')(new_R)
 
         #Redefine the necessary variables (N_cells, Z, D etc)
@@ -478,12 +472,12 @@ class SimulationData:
 
         return RSD_weights
 
-   #Get the weights dictionary required to make measurements of b_eta.
+    #Get the weights dictionary required to make measurements of b_eta.
     def get_bias_eta_RSD_weights(self,z_values,d=0.,z_width=0.2,thermal=False,lambda_buffer=None):
 
-         bias_eta_weights = bias.get_bias_eta_weights(self,z_values,d=d,z_width=z_width,include_thermal_effects=thermal,lambda_buffer=lambda_buffer)
+        bias_eta_weights = bias.get_bias_eta_weights(self,z_values,d=d,z_width=z_width,include_thermal_effects=thermal,lambda_buffer=lambda_buffer)
 
-         return bias_eta_weights
+        return bias_eta_weights
 
     #Function to add RSDs from the velocity skewers, with an option to include thermal effects too.
     def add_RSDs(self,absorber,thermal=False,weights=None,d=0.0,z_r0=2.5):
@@ -991,7 +985,7 @@ class SimulationData:
     ####
     """
     Obsolete functions
-    
+
     #Function to save data as a Gaussian colore file.
     def save_as_gaussian_colore(self,filename,header,overwrite=False):
 

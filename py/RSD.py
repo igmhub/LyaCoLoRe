@@ -111,14 +111,8 @@ def J(x,a,sigma):
 #
 def add_skewer_RSDs(initial_tau,initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,weights=None,d=0.0,z_r0=2.5):
 
-    max_z_index = np.argmax(z_qso)
-    #print('printing data for QSO number {} with redshift {:1.3f}...'.format(max_z_index,z_qso[max_z_index]))
-
-    r0 = np.interp(z_r0,z,r_hMpc)
-
     N_qso = initial_tau.shape[0]
     N_cells = initial_tau.shape[1]
-    final_tau = np.zeros(initial_tau.shape)
 
     #Convert radial distance to a velocity.
     dkms_dhMpc = utils.get_dkms_dhMpc(z)
@@ -133,6 +127,7 @@ def add_skewer_RSDs(initial_tau,initial_density,velocity_skewer_dz,z,r_hMpc,z_qs
         weights = get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=thermal,d=d,z_r0=z_r0)
 
     #Compute the final values of tau.
+    final_tau = np.zeros(initial_tau.shape)
     for k in range(N_qso):
         skewer_weights = weights[k]
         final_tau[k,:] = skewer_weights.dot(initial_tau[k,:].T)
@@ -148,7 +143,6 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
     N_cells = velocity_skewer_dz.shape[1]
 
     weights = {}
-    #weights = np.zeros((N_qso,N_cells,N_cells)) #depth,row,col = qso,real_cell,z_cell
 
     #Convert radial distance to a velocity.
     dkms_dhMpc = utils.get_dkms_dhMpc(z)
@@ -160,7 +154,7 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
 
     #count = np.zeros(100)
     #total = 0
-
+    #count = 0
     for i in range(N_qso):
         indices = []
         data = []
@@ -168,6 +162,8 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
 
         #Go through each cell up to the QSO
         j_limit = np.searchsorted(z,z_qso[i])
+        #count += j_limit
+
         for j in range(j_limit):
             #Add the dz from the velocity skewers to get a 'new_z' for each cell
             z_cell = z[j]
@@ -185,7 +181,6 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
 
             #Find new r of cell by interpolating.
             new_r_hMpc_cell = np.interp(new_z_cell,z,r_hMpc)
-            #new_x_kms_cell = new_r_hMpc_cell * utils.get_dkms_dhMpc(new_z_cell)
 
             #Shift the cell again to simulate an extra velocity gradient.
             new_r_hMpc_cell -= (new_r_hMpc_cell - r0) * d
