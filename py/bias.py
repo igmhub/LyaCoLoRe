@@ -15,32 +15,12 @@ def get_bias_delta(data,z_values,d=0.001,z_width=0.2):
     if isinstance(z_values, float):
         z_values = np.array([z_values])
 
-    """
     #Add small extra delta to Gaussian skewers to simulate overdensity
     overdensity = copy.deepcopy(data)
-    overdensity.GAUSSIAN_DELTA_rows += d
-    overdensity.compute_physical_skewers()
-    overdensity.compute_all_tau_skewers(alphas,betas)
-    overdensity.add_all_RSDs(thermal=False,weights=RSD_weights)
-
-    #Subtract small extra delta to Gaussian skewers to simulate underdensity
-    underdensity = copy.deepcopy(data)
-    underdensity.GAUSSIAN_DELTA_rows -= d
-    underdensity.compute_physical_skewers()
-    underdensity.compute_all_tau_skewers(alphas,betas)
-    underdensity.add_all_RSDs(thermal=False,weights=RSD_weights)
-    """
-
-    #Add small extra delta to Gaussian skewers to simulate overdensity
-    overdensity = copy.deepcopy(data)
-    #overdensity.GAUSSIAN_DELTA_rows += d
-    #overdensity.DENSITY_DELTA_rows = (overdensity.DENSITY_DELTA_rows + 1)*np.exp(overdensity.D*d) - 1
     overdensity.lya_absorber.tau *= np.exp(betas*overdensity.D*d)
 
     #Subtract small extra delta to Gaussian skewers to simulate underdensity
     underdensity = copy.deepcopy(data)
-    #underdensity.GAUSSIAN_DELTA_rows -= d
-    #underdensity.DENSITY_DELTA_rows = (underdensity.DENSITY_DELTA_rows + 1)*np.exp(underdensity.D*d) - 1
     underdensity.lya_absorber.tau /= np.exp(betas*underdensity.D*d)
 
     #Calculate mean fluxes in under and overdensities, as well as normal
@@ -53,12 +33,12 @@ def get_bias_delta(data,z_values,d=0.001,z_width=0.2):
         mean_F_under = underdensity.get_mean_quantity('flux',z_value=z_value,z_width=z_width,single_value=False,power=1)
         mean_F = data.get_mean_quantity('flux',z_value=z_value,z_width=z_width,single_value=False,power=1)
 
+        #Get relevant values of D to scale by
+        #(we have added d to the Gaussian field, not the density field)
         i_lower = np.searchsorted(data.Z,z_value - z_width/2.)
         i_upper = np.searchsorted(data.Z,z_value + z_width/2.)
         D_values = data.D[i_lower:i_upper]
-        #print(np.sum(data.IVAR_rows[:,i_lower:i_lower+5],axis=0),np.sum(data.IVAR_rows[:,i_upper-5:i_upper],axis=0))
 
-        #D_value = np.interp(z_value,data.Z,data.D)
         bias = np.average((1/mean_F) * (1/(2.*d*D_values)) * (mean_F_over - mean_F_under))
         biases += [bias]
 
@@ -67,7 +47,7 @@ def get_bias_delta(data,z_values,d=0.001,z_width=0.2):
     return biases
 
 #Function to get the different RSD weights for calculating bias_eta.
-def get_bias_eta_weights(data,z_values,d=0.001,z_width=0.2,include_thermal_effects=False,lambda_buffer=100.):
+def get_bias_eta_weights(data,z_values,d=0.0,z_width=0.2,include_thermal_effects=False,lambda_buffer=100.):
 
     weights_dict = {}
 
@@ -107,7 +87,7 @@ def get_bias_eta_weights(data,z_values,d=0.001,z_width=0.2,include_thermal_effec
 
 #Function to get the bias of eta at various z values from a sim data object.
 #Assumes that the object already has tau calculated but with no RSDs applied.
-def get_bias_eta(data,z_values,weights_dict=None,d=0.001,z_width=0.2,include_thermal_effects=False,lambda_buffer=100.):
+def get_bias_eta(data,z_values,weights_dict=None,d=0.0,z_width=0.2,include_thermal_effects=False,lambda_buffer=100.):
 
     alphas = data.transformation.get_tau0(data.Z)
     betas = data.transformation.get_texp(data.Z)
@@ -198,28 +178,17 @@ def get_bias_eta(data,z_values,weights_dict=None,d=0.001,z_width=0.2,include_the
     biases = np.array(biases)
     """
 
-    #Method 4/5:
+    #Method 4:
+    #Whilst moving cells in RSD, add in a shift in r
 
     if not weights_dict:
         print('no weights dict provided to get_bias_eta. Calculating weights...')
         weights_dict = get_bias_eta_weights(data,z_values,d=d,z_width=z_width,include_thermal_effects=include_thermal_effects,lambda_buffer=lambda_buffer)
 
-    #Whilst moving cells in RSD, add in a shift
-    #Method 4 uses a linear shift in r
-    #Method 5 uses a constant shift in eta
-
     #Copy the data and overwrite the tau skewers to remove RSDs.
     data_noRSDs = copy.deepcopy(data)
     #data_noRSDs.compute_tau_skewers(data_noRSDs.lya_absorber)
     data_noRSDs.lya_absorber.tau = data_noRSDs.lya_absorber.tau_noRSD
-
-    #Add small extra grad to velocity skewers.
-    #grad_increase = copy.deepcopy(data_noRSDs)
-    #grad_increase.add_all_RSDs(thermal=include_thermal_effects,d=d,z_r0=z_r0)
-
-    #Subtract small extra grad to velocity skewers.
-    #grad_decrease = copy.deepcopy(data_noRSDs)
-    #grad_decrease.add_all_RSDs(thermal=include_thermal_effects,d=-d,z_r0=z_r0)
 
     #Calculate mean fluxes in under and overdensities, as well as normal
     biases = []
@@ -238,22 +207,22 @@ def get_bias_eta(data,z_values,weights_dict=None,d=0.001,z_width=0.2,include_the
 
         #Copy the data and then trim it to the area around the z value.
         data_noRSDs_z_val = copy.deepcopy(data_noRSDs)
-        data_noRSDs_z_val.trim_skewers(lambda_min-lambda_buffer,min_catalog_z,lambda_max=lambda_max+lambda_buffer,extra_cells=1)
+        data_noRSDs_z_val.trim_skewers(lambda_min-lambda_buffer,lambda_max=lambda_max+lambda_buffer,extra_cells=1)
 
         #Copy the noRSD data, add RSDs with the extra shift (increase), then trim the skewers.
         grad_increase = copy.deepcopy(data_noRSDs_z_val)
-        grad_increase.add_all_RSDs(weights=weights_grad_increase,thermal=include_thermal_effects,d=d,z_r0=z_value)
-        grad_increase.trim_skewers(lambda_min,min_catalog_z,lambda_max=lambda_max)
+        grad_increase.add_all_RSDs(weights=weights_grad_increase,thermal=include_thermal_effects)
+        grad_increase.trim_skewers(lambda_min,lambda_max=lambda_max)
 
         #Copy the noRSD data, add RSDs with the extra shift (decrease), then trim the skewers.
         grad_decrease = copy.deepcopy(data_noRSDs_z_val) 
-        grad_decrease.add_all_RSDs(weights=weights_grad_decrease,thermal=include_thermal_effects,d=-d,z_r0=z_value)
-        grad_decrease.trim_skewers(lambda_min,min_catalog_z,lambda_max=lambda_max)
+        grad_decrease.add_all_RSDs(weights=weights_grad_decrease,thermal=include_thermal_effects)
+        grad_decrease.trim_skewers(lambda_min,lambda_max=lambda_max)
 
         #Make small pixel object with RSDs and trim it. Also trim the noRSD object.
         data_z_val = copy.deepcopy(data)
-        data_z_val.trim_skewers(lambda_min,min_catalog_z,lambda_max=lambda_max)
-        data_noRSDs_z_val.trim_skewers(lambda_min,min_catalog_z,lambda_max=lambda_max)
+        data_z_val.trim_skewers(lambda_min,lambda_max=lambda_max)
+        data_noRSDs_z_val.trim_skewers(lambda_min,lambda_max=lambda_max)
 
         #We get means across the z-chunk and combine once bias has been computed.
         #This avoids overweighting the low end of the chunk.

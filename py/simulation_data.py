@@ -471,7 +471,7 @@ class SimulationData:
         return
 
     #Get the weights for going into redshift space.
-    def get_RSD_weights(self,thermal=False,d=0.,z_r0=2.5):
+    def get_RSD_weights(self,thermal=False,d=0.0,z_r0=2.5):
 
         density = 1 + self.DENSITY_DELTA_rows
         RSD_weights = RSD.get_weights(density,self.VEL_rows,self.Z,self.R,self.Z_QSO,thermal=thermal,d=d,z_r0=z_r0)
