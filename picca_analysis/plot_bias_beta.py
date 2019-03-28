@@ -9,9 +9,9 @@ from pyacolore import plot_functions
 default_location = '/global/homes/j/jfarr/Programs/picca/picca_analysis_000/'
 
 if len(sys.argv) > 1:
-    locations = sys.argv[1:]
+    location = sys.argv[1]
 else:
-    locations = [default_location]
+    location = default_location
 
 linetypes = ['-','--',':','-:']
 location_names = [r'$\beta=1.65$',r'$\beta=2.0$']
@@ -21,7 +21,7 @@ afixs = ['free','fixed'] #'free' or 'fixed'
 rmins = [20,40,60]
 bb_colours = {'beta':'C0', 'bias':'C1', 'bias_eta':'C2', 'beta_BOSS':'C0', 'bias_BOSS':'C1', 'bias_eta_BOSS':'C2'}
 a_colours = {'ap':'C0', 'at':'C1', 'ap_BOSS':'C0', 'at_BOSS':'C1', 'ap_combined':'C0', 'at_combined':'C1'}
-show_plots = False
+show_plots = True
 plot_combined = False
 
 picca_runs = glob.glob(location+'/picca_*/')
@@ -45,7 +45,6 @@ for afix in afixs:
     for rmin in rmins:
         all_bb_data = {}
         all_a_data = {}
-        for i,location in enumerate(locations):
 
         suffix = '_{}r_a{}'.format(rmin,afix)
         res_name = '/result'+suffix+'.h5'
