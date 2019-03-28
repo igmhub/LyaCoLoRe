@@ -24,14 +24,12 @@ add_ssf = True
 lambda_buffer = 100. #Angstroms
 
 #Choose parameter values.
-R_kms = 25.0
 eps_Pk1D = 0.1
 eps_mean_F = 0.025
 eps_bias_delta = 0.025
 eps_bias_eta = 0.025
 d_delta = 10.**-3
 d_eta = 10**-2
-vel_mult = 1.0
 
 #Choose tuning parameter initial values.
 initial_C0 = 1.1891853249518913
@@ -43,6 +41,8 @@ initial_D1 = 0.3206980076648007
 initial_D2 = 0.0
 initial_n = 1.0485428387041913
 initial_k1 = 0.02092561603933631
+initial_R_kms = 25.0
+initial_vb = 1.0
 
 #Choose parameters to fix.
 fix_all = False
@@ -55,12 +55,14 @@ fix_D1 = False
 fix_D2 = True
 fix_n = False
 fix_k1 = False
+fix_R_kms = True
+fix_vb = False
 
 #Admin options
 k_plot_max = 0.1
 show_plots = True
 save_plots = True
-suffix = '_with_biases_a{}_b{}'.format('freeamp',initial_beta)
+suffix = '_with_biases_velfree_a{}_b{}'.format('aampfree',initial_beta)
 save_tuning = True
 overwrite_tuning = False
 tuning_filename = 'input_files/tuning_data' + suffix + '.fits'
@@ -68,7 +70,7 @@ tuning_filename = 'input_files/tuning_data' + suffix + '.fits'
 #Get the starting values of alpha, beta and sigma_G from file
 #Decide which z values we are going to sample at
 z_values = [2.0,2.2,2.4,2.6,2.8,3.0,3.2]
-z_width = 0.2
+z_width = 0.1
 colours = ['C0','C1','C2','C3','C4','C5','C6']
 cell_size = 0.25 #Mpc/h
 max_k = 0.01 #skm-1
@@ -121,7 +123,7 @@ def log_error(retval):
 ################################################################################
 
 # TODO: want to move this to tuning.py eventually
-def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,prep=False):
+def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,R_kms,vel_boost,RSD_weights,prep=False):
     t = time.time()
     seed = int(pixel * 10**5 + global_seed)
 
@@ -137,7 +139,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
     t = time.time()
 
     #Scale the RSD skewers.
-    data.VEL_rows *= vel_mult
+    data.VEL_rows *= vel_boost
 
     transformation = tuning.transformation()
     def f_tau0_z(z):
@@ -245,7 +247,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,RSD_weights,pr
 #Pre-prep for future processings by getting RSD maps and independent skewers
 print('producing preparatory data (RSD maps)')
 #tasks = [(pixel,104.5,-4.62,1.654,54.6,-0.068,-43.81,1.52,0.0166,None,True) for pixel in pixels]
-tasks = [(pixel,3.,0.,0.,initial_beta,7.,0.,0.,1.0,0.001,None,True) for pixel in pixels]
+tasks = [(pixel,initial_C0,initial_C1,initial_C2,initial_beta,initial_D0,initial_D1,initial_D2,initial_n,initial_k1,initial_R,initial_vb,None,True) for pixel in pixels]
 
 if __name__ == '__main__':
     pool = Pool(processes = N_processes)
@@ -266,7 +268,7 @@ for result in results:
     bias_eta_weights_dict[result[0]] = result[2]
 print('done!')
 
-def f(C0,C1,C2,beta,D0,D1,D2,n,k1,return_measurements=False):
+def f(C0,C1,C2,beta,D0,D1,D2,n,k1,R,vb,return_measurements=False):
 
     ################################################################################
     """
@@ -287,7 +289,7 @@ def f(C0,C1,C2,beta,D0,D1,D2,n,k1,return_measurements=False):
     print('starting at',time.ctime())
     print('looking at params: C=({:2.4f},{:2.4f},{:2.4f}), beta={:1.2f},  D=({:2.4f},{:2.4f},{:2.4f}), n={:2.4f}, k1={:2.6f}'.format(C0,C1,C2,beta,D0,D1,D2,n,k1))
 
-    tasks = [(pixel,C0,C1,C2,beta,D0,D1,D2,n,k1,None) for pixel in pixels]
+    tasks = [(pixel,C0,C1,C2,beta,D0,D1,D2,n,k1,R,vb,None) for pixel in pixels]
 
     #Run the multiprocessing pool
     if __name__ == '__main__':
@@ -349,26 +351,28 @@ def f(C0,C1,C2,beta,D0,D1,D2,n,k1,return_measurements=False):
 #   sigma_G_required = D0 * (Z**D1) + D2
 
 
-a_kwargs = {'C0' : initial_C0,     'error_C0' : 1.0,  'fix_C0' : fix_all|fix_C0, 'limit_C0' : (0., 100.),
-            'C1' : initial_C1,     'error_C1' : 1.0,  'fix_C1' : fix_all|fix_C1, #'limit_C1' : (0., 20.),
-            'C2' : initial_C2,     'error_C2' : 1.0,  'fix_C2' : fix_all|fix_C2, #'limit_C2' : (0., 20.),
+a_kwargs = {'C0' : initial_C0,      'error_C0' : 1.0,   'fix_C0' : fix_all|fix_C0,     'limit_C0' : (0., 100.),
+            'C1' : initial_C1,      'error_C1' : 1.0,   'fix_C1' : fix_all|fix_C1,     #'limit_C1' : (0., 20.),
+            'C2' : initial_C2,      'error_C2' : 1.0,   'fix_C2' : fix_all|fix_C2,     #'limit_C2' : (0., 20.),
             }
 
-b_kwargs = {'beta' : initial_beta, 'error_beta' : 1.0, 'fix_beta' : fix_all|fix_beta, 'limit_beta' : (0.,5.)
+b_kwargs = {'beta' : initial_beta,  'error_beta' : 1.0, 'fix_beta' : fix_all|fix_beta, 'limit_beta' : (0.,5.)
             }
 
-sG_kwargs = {'D0' : initial_D0,     'error_D0' : 1.0,  'fix_D0' : fix_all|fix_D0, 'limit_D0' : (0., 100.),
-             'D1' : initial_D1,     'error_D1' : 0.2,  'fix_D1' : fix_all|fix_D1, #'limit_D1' : (0., 20.),
-             'D2' : initial_D2,     'error_D2' : 1.0,  'fix_D2' : fix_all|fix_D2, #'limit_D2' : (0., 20.),
+sG_kwargs = {'D0' : initial_D0,     'error_D0' : 1.0,   'fix_D0' : fix_all|fix_D0,     'limit_D0' : (0., 100.),
+             'D1' : initial_D1,     'error_D1' : 0.2,   'fix_D1' : fix_all|fix_D1,     #'limit_D1' : (0., 20.),
+             'D2' : initial_D2,     'error_D2' : 1.0,   'fix_D2' : fix_all|fix_D2,     #'limit_D2' : (0., 20.),
              }
 
-s_kwargs = {'n'  : initial_n,     'error_n' : 1.0,   'limit_n' : (-2., 10.),   'fix_n' : fix_all|False|fix_n,
-            'k1' : initial_k1,   'error_k1' : 0.001,'limit_k1' : (0., 0.1),  'fix_k1' : fix_all|False|fix_k1,
+s_kwargs = {'n'  : initial_n,       'error_n' : 1.0,    'fix_n' : fix_all|fix_n,       'limit_n' : (-2., 10.),
+            'k1' : initial_k1,      'error_k1' : 0.001, 'fix_k1' : fix_all|fix_k1,     'limit_k1' : (0., 0.1),
             }
 
-other_kwargs = {'return_measurements'  : False,    'fix_return_measurements' : True,
+other_kwargs = {'R'  : initial_R,    'error_R' : 1.0,   'fix_R' : fix_all|fix_R,       'limit_R' : (0., 1000.),
+                'vb' : initial_vb,   'error_vb' : 0.1,  'fix_vb' : fix_all|fix_vb,     'limit_vb' : (0., 2.0), 
+                'return_measurements'  : False,    'fix_return_measurements' : True,
                 'errordef'             : 1,
-            }
+                }
 
 minuit = Minuit(f,**a_kwargs,**b_kwargs,**sG_kwargs,**s_kwargs,**other_kwargs)
 
