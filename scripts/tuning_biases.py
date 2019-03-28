@@ -12,7 +12,8 @@ base_dir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v5/v5.0.0/'
 tuning_files = glob.glob('./input_files/tuning_data_with_bias_a2.0_b1.65.fits') 
 #+ glob.glob('./input_files/tuning_data_a?.?_b2.0.fits')
 tuning_files = glob.glob('./input_files/tuning_data_with_bias_a2.0_b1.65.fits')
-z_values = np.array([2.0,2.2,2.4,2.6,2.8,3.0,3.2])
+#z_values = np.array([2.0,2.2,2.4,2.6,2.8,3.0,3.2])
+z_values = np.array([2.0,2.4,2.8,3.2])
 d_value = 10**-2
 z_width_value = 0.2
 N_pixels = 32
