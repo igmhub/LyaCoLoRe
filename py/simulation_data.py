@@ -3,7 +3,7 @@ from astropy.io import fits
 from scipy.interpolate import interp1d
 import time
 
-from . import utils, read_files, convert, RSD, DLA, independent, absorber, metals, stats
+from . import utils, read_files, bias, convert, RSD, DLA, independent, absorber, metals, stats
 
 lya = utils.lya_rest
 
@@ -474,6 +474,13 @@ class SimulationData:
         RSD_weights = RSD.get_weights(density,self.VEL_rows,self.Z,self.R,self.Z_QSO,thermal=thermal,d=d,z_r0=z_r0)
 
         return RSD_weights
+
+   #Get the weights dictionary required to make measurements of b_eta.
+    def get_bias_eta_RSD_weights(self,z_values,d=0.,z_width=0.2,thermal=False,lambda_buffer=None):
+
+         bias_eta_weights = bias.get_bias_eta_weights(self,z_values,d=d,z_width=z_width,include_thermal_effects=thermal,lambda_buffer=lambda_buffer)
+
+         return bias_eta_weights
 
     #Function to add RSDs from the velocity skewers, with an option to include thermal effects too.
     def add_RSDs(self,absorber,thermal=False,weights=None,d=0.0,z_r0=2.5):
