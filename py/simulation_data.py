@@ -3,7 +3,7 @@ from astropy.io import fits
 from scipy.interpolate import interp1d
 import time
 
-from . import utils, read_files, convert, RSD, DLA, independent, absorber, metals, stats
+from . import utils, read_files, bias, convert, RSD, DLA, independent, absorber, metals, stats
 
 lya = utils.lya_rest
 
@@ -258,7 +258,7 @@ class SimulationData:
         return cls(N_qso,N_cells,SIGMA_G,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,R,Z,D,V,LOGLAM_MAP)
 
     #Function to trim skewers according to a minimum value of lambda. QSOs with no relevant cells are removed.
-    def trim_skewers(self,lambda_min,min_catalog_z,extra_cells=0,lambda_max=None,whole_lambda_range=False):
+    def trim_skewers(self,lambda_min,min_catalog_z=0.,extra_cells=0,lambda_max=None,whole_lambda_range=False):
 
         lambdas = 10**(self.LOGLAM_MAP)
         first_relevant_cell = np.searchsorted(lambdas,lambda_min)
@@ -307,6 +307,8 @@ class SimulationData:
         self.IVAR_rows = self.IVAR_rows[relevant_QSOs,:]
         if self.lya_absorber.tau_computed():
             self.lya_absorber.tau = self.lya_absorber.tau[relevant_QSOs,:]
+        if self.lya_absorber.RSDs_applied:
+            self.lya_absorber.tau_noRSD = self.lya_absorber.tau_noRSD[relevant_QSOs,:]
 
         #Now trim the skewers of the remaining QSOs.
         self.N_cells = last_relevant_cell - first_relevant_cell + 1
@@ -318,6 +320,8 @@ class SimulationData:
         self.IVAR_rows = self.IVAR_rows[:,first_relevant_cell:last_relevant_cell + 1]
         if self.lya_absorber.tau_computed():
             self.lya_absorber.tau = self.lya_absorber.tau[:,first_relevant_cell:last_relevant_cell + 1]
+        if self.lya_absorber.RSDs_applied:
+            self.lya_absorber.tau_noRSD = self.lya_absorber.tau_noRSD[:,first_relevant_cell:last_relevant_cell + 1]
 
         self.R = self.R[first_relevant_cell:last_relevant_cell + 1]
         self.Z = self.Z[first_relevant_cell:last_relevant_cell + 1]
@@ -440,7 +444,6 @@ class SimulationData:
         absorber_tau0 = tau0*absorber.flux_transform_m
         #print('absorber',absorber.name,'has m =',absorber.flux_transform_m)
         #print('absorber',absorber.name,'has first alphas =',absorber_alpha[0:5])
-
         absorber.tau = convert.density_to_tau(self.DENSITY_DELTA_rows+1,absorber_tau0,texp)
 
         #Set tau to 0 beyond the quasars.
@@ -468,21 +471,31 @@ class SimulationData:
         return
 
     #Get the weights for going into redshift space.
-    def get_RSD_weights(self,thermal=False):
+    def get_RSD_weights(self,thermal=False,d=0.,z_r0=2.5):
 
         density = 1 + self.DENSITY_DELTA_rows
-        RSD_weights = RSD.get_weights(density,self.VEL_rows,self.Z,self.R,self.Z_QSO,thermal=thermal)
+        RSD_weights = RSD.get_weights(density,self.VEL_rows,self.Z,self.R,self.Z_QSO,thermal=thermal,d=d,z_r0=z_r0)
 
         return RSD_weights
+
+   #Get the weights dictionary required to make measurements of b_eta.
+    def get_bias_eta_RSD_weights(self,z_values,d=0.,z_width=0.2,thermal=False,lambda_buffer=None):
+
+         bias_eta_weights = bias.get_bias_eta_weights(self,z_values,d=d,z_width=z_width,include_thermal_effects=thermal,lambda_buffer=lambda_buffer)
+
+         return bias_eta_weights
 
     #Function to add RSDs from the velocity skewers, with an option to include thermal effects too.
     def add_RSDs(self,absorber,thermal=False,weights=None,d=0.0,z_r0=2.5):
 
         density = 1 + self.DENSITY_DELTA_rows
         new_tau = RSD.add_skewer_RSDs(absorber.tau,density,self.VEL_rows,self.Z,self.R,self.Z_QSO,thermal=thermal,weights=weights,d=d,z_r0=z_r0)
+        tau_noRSD = absorber.tau
 
         #Overwrite the tau skewers and set a flag to True.
         absorber.tau = new_tau
+        absorber.RSDs_applied = True
+        absorber.tau_noRSD = tau_noRSD
 
         return
 
