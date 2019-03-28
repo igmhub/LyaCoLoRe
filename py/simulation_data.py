@@ -444,9 +444,6 @@ class SimulationData:
         absorber_tau0 = tau0*absorber.flux_transform_m
         #print('absorber',absorber.name,'has m =',absorber.flux_transform_m)
         #print('absorber',absorber.name,'has first alphas =',absorber_alpha[0:5])
-        print('density del',self.DENSITY_DELTA_rows[0,:4])
-        print(absorber_tau0[:4])
-        print(texp[:4])
         absorber.tau = convert.density_to_tau(self.DENSITY_DELTA_rows+1,absorber_tau0,texp)
 
         #Set tau to 0 beyond the quasars.
