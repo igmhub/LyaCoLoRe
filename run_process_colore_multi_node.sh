@@ -13,11 +13,13 @@ MIN_CAT_Z=1.8
 LYACOLORE_SEED=123
 DLA_BIAS=2.0
 DLA_BIAS_METHOD='b_const'
-DOWNSAMPLING=0.5
+DOWNSAMPLING=1.0
 
 # specify process flags
-MM_FLAGS="--desi-footprint-pixel-plus"
-MT_FLAGS="--add-small-scale-fluctuations --add-DLAs --add-RSDs --add-QSO-RSDs"
+MM_FLAGS=""
+#MM_FLAGS="--desi-footprint-pixel-plus"
+#MT_FLAGS="--add-small-scale-fluctuations --add-DLAs --add-RSDs --add-QSO-RSDs --transmission-only"
+MT_FLAGS="--add-DLAs --add-RSDs --add-QSO-RSDs"
 
 # specify details of colore output
 COLORE_NGRID=4096
@@ -42,7 +44,9 @@ V_CODE_MIN="0"
 V_REALISATION="0"
 
 # full path to folder where output will be written
-OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v${V_CODE_MAJ}/v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}/"
+OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test_velocity_interpolation_full_no_ssf/"
+#OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v${V_CODE_MAJ}/v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}/"
+#OUTPUT_PATH="/project/projectdirs/desi/mocks/lya_forest/london/v${V_CODE_MAJ}.${V_CODE_MIN}/v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}/"
 
 echo "output will written to "$OUTPUT_PATH
 if [ ! -d $OUTPUT_PATH ] ; then
@@ -130,4 +134,8 @@ date
 
 EOF
 
+# copy run file to the output location for record
+cp $RUN_FILE $OUTPUT_PATH 
+
+# send the job to the queue
 sbatch $RUN_FILE
