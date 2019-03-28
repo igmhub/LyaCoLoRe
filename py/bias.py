@@ -187,7 +187,6 @@ def get_bias_eta(data,z_values,weights_dict=None,d=0.0,z_width=0.2,include_therm
 
     #Copy the data and overwrite the tau skewers to remove RSDs.
     data_noRSDs = copy.deepcopy(data)
-    #data_noRSDs.compute_tau_skewers(data_noRSDs.lya_absorber)
     data_noRSDs.lya_absorber.tau = data_noRSDs.lya_absorber.tau_noRSD
 
     #Calculate mean fluxes in under and overdensities, as well as normal
@@ -201,9 +200,6 @@ def get_bias_eta(data,z_values,weights_dict=None,d=0.0,z_width=0.2,include_therm
         z_max = z_value + 0.5*z_width
         lambda_min = lya * (1 + z_min)
         lambda_max = lya * (1 + z_max)
-
-        lambda_buffer = 100. #A
-        min_catalog_z = 1.8
 
         #Copy the data and then trim it to the area around the z value.
         data_noRSDs_z_val = copy.deepcopy(data_noRSDs)
