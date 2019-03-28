@@ -89,6 +89,8 @@ def get_bias_eta_weights(data,z_values,d=0.0,z_width=0.2,include_thermal_effects
 #Assumes that the object already has tau calculated but with no RSDs applied.
 def get_bias_eta(data,z_values,weights_dict=None,d=0.0,z_width=0.2,include_thermal_effects=False,lambda_buffer=100.):
 
+    t = time.time()
+
     alphas = data.transformation.get_tau0(data.Z)
     betas = data.transformation.get_texp(data.Z)
 
@@ -189,6 +191,20 @@ def get_bias_eta(data,z_values,weights_dict=None,d=0.0,z_width=0.2,include_therm
     data_noRSDs = copy.deepcopy(data)
     data_noRSDs.lya_absorber.tau = data_noRSDs.lya_absorber.tau_noRSD
 
+    #print('    -> {:3.2f} checkpoint extract weights'.format(time.time()-t))
+    t = time.time()
+
+    #Copy the data and overwrite the tau skewers to remove RSDs.
+    data_noRSDs = copy.deepcopy(data)
+
+    #print('    -> {:3.2f} checkpoint copy data'.format(time.time()-t))
+    t = time.time()
+
+    data_noRSDs.lya_absorber.tau = data_noRSDs.lya_absorber.tau_noRSD
+
+    #print('    -> {:3.2f} checkpoint recompute tau'.format(time.time()-t))
+    t = time.time()
+
     #Calculate mean fluxes in under and overdensities, as well as normal
     biases = []
     for z_value in z_values:
@@ -226,8 +242,15 @@ def get_bias_eta(data,z_values,weights_dict=None,d=0.0,z_width=0.2,include_therm
         mean_F_decrease = grad_decrease.get_mean_quantity('flux',z_value=z_value,z_width=z_width,single_value=False,power=1)
         mean_F = data_z_val.get_mean_quantity('flux',z_value=z_value,z_width=z_width,single_value=False,power=1)
 
+        #print('    -> {:3.2f} checkpoint get means'.format(time.time()-t))
+        t = time.time()
+
         bias = np.average((1/mean_F) * (1/(2.*d)) * (mean_F_increase - mean_F_decrease))
         biases += [bias]
+
+        #print('    -> {:3.2f} checkpoint get biases'.format(time.time()-t))
+        t = time.time()
+
 
     biases = np.array(biases)
 

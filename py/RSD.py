@@ -154,7 +154,7 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
 
     #count = np.zeros(100)
     #total = 0
-
+    #count = 0
     for i in range(N_qso):
         indices = []
         data = []
@@ -162,6 +162,8 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
 
         #Go through each cell up to the QSO
         j_limit = np.searchsorted(z,z_qso[i])
+        #count += j_limit
+
         for j in range(j_limit):
             #Add the dz from the velocity skewers to get a 'new_z' for each cell
             z_cell = z[j]

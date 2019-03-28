@@ -15,7 +15,7 @@ tuning_files = glob.glob('./input_files/tuning_data_with_bias_a2.0_b1.65.fits')
 #z_values = np.array([2.0,2.2,2.4,2.6,2.8,3.0,3.2])
 z_values = np.array([2.0,2.4,2.8,3.2])
 d_value = 10**-2
-z_width_value = 0.1
+z_width_value = 0.2
 N_pixels = 32
 f = 0.9625
 z_r0 = 2.5
@@ -63,7 +63,6 @@ def bias_tuning(pixel_object,tuning_filename,z_values,d=0.001,z_width=0.2,z_r0=2
     #Add small scale power to the gaussian skewers:
     generator = np.random.RandomState(seed)
     pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,generator,white_noise=False,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff,n=n,k1=k1,R_kms=R_kms)
-
     #Recompute physical skewers.
     pixel_object.compute_physical_skewers()
 
