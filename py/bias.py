@@ -210,7 +210,8 @@ def get_bias_eta(data,z_values,weights_dict=None,d=0.001,z_width=0.2,include_the
 
     #Copy the data and overwrite the tau skewers to remove RSDs.
     data_noRSDs = copy.deepcopy(data)
-    data_noRSDs.compute_tau_skewers(data_noRSDs.lya_absorber)
+    #data_noRSDs.compute_tau_skewers(data_noRSDs.lya_absorber)
+    data_noRSDs.lya_absorber.tau = data_noRSDs.lya_absorber.tau_noRSD
 
     #Add small extra grad to velocity skewers.
     #grad_increase = copy.deepcopy(data_noRSDs)

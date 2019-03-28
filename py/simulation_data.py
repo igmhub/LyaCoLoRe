@@ -307,6 +307,8 @@ class SimulationData:
         self.IVAR_rows = self.IVAR_rows[relevant_QSOs,:]
         if self.lya_absorber.tau_computed():
             self.lya_absorber.tau = self.lya_absorber.tau[relevant_QSOs,:]
+        if self.lya_absorber.RSDs_applied:
+            self.lya_absorber.tau_noRSD = self.lya_absorber.tau_noRSD[relevant_QSOs,:]
 
         #Now trim the skewers of the remaining QSOs.
         self.N_cells = last_relevant_cell - first_relevant_cell + 1
@@ -318,6 +320,8 @@ class SimulationData:
         self.IVAR_rows = self.IVAR_rows[:,first_relevant_cell:last_relevant_cell + 1]
         if self.lya_absorber.tau_computed():
             self.lya_absorber.tau = self.lya_absorber.tau[:,first_relevant_cell:last_relevant_cell + 1]
+        if self.lya_absorber.RSDs_applied:
+            self.lya_absorber.tau_noRSD = self.lya_absorber.tau_noRSD[:,first_relevant_cell:last_relevant_cell + 1]
 
         self.R = self.R[first_relevant_cell:last_relevant_cell + 1]
         self.Z = self.Z[first_relevant_cell:last_relevant_cell + 1]
@@ -440,7 +444,9 @@ class SimulationData:
         absorber_tau0 = tau0*absorber.flux_transform_m
         #print('absorber',absorber.name,'has m =',absorber.flux_transform_m)
         #print('absorber',absorber.name,'has first alphas =',absorber_alpha[0:5])
-
+        print('density del',self.DENSITY_DELTA_rows[0,:4])
+        print(absorber_tau0[:4])
+        print(texp[:4])
         absorber.tau = convert.density_to_tau(self.DENSITY_DELTA_rows+1,absorber_tau0,texp)
 
         #Set tau to 0 beyond the quasars.
@@ -487,9 +493,12 @@ class SimulationData:
 
         density = 1 + self.DENSITY_DELTA_rows
         new_tau = RSD.add_skewer_RSDs(absorber.tau,density,self.VEL_rows,self.Z,self.R,self.Z_QSO,thermal=thermal,weights=weights,d=d,z_r0=z_r0)
+        tau_noRSD = absorber.tau
 
         #Overwrite the tau skewers and set a flag to True.
         absorber.tau = new_tau
+        absorber.RSDs_applied = True
+        absorber.tau_noRSD = tau_noRSD
 
         return
 

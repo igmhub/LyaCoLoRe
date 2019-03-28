@@ -91,7 +91,7 @@ def pixel_tuning_bias(pixel,tuning_filename,z_values,d=0.001,z_width=0.2):
     file_number = None
     pixel_object = simulation_data.SimulationData.get_gaussian_skewers_object(gaussian_filename,file_number,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
 
-    b,b_eta = bias_tuning(pixel_object,tuning_filename,z_values,d=d,z_width=z_width,z_r0=z_r0)
+    b,b_eta = bias_tuning(pixel_object,tuning_filename,z_values,d=d,z_width=z_width)
 
     return (b,b_eta)
 

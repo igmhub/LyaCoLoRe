@@ -11,8 +11,9 @@ class AbsorberData:
         self.rest_wave = rest_wave
         self.flux_transform_m = flux_transform_m
 
-        # we will store here the optical depth 
+        # we will store here the optical depth and record when RSDs have been applied
         self.tau = None
+        self.RSDs_applied = False
 
         return
 
