@@ -128,8 +128,10 @@ def add_skewer_RSDs(initial_tau,initial_density,velocity_skewer_dz,z,r_hMpc,z_qs
     if thermal == True:
         T_K = get_T_K(z,initial_density)
 
-
+    #Get the RSD weights if we don't already have them.
     if not weights:
+        weights = get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=thermal,d=d,z_r0=z_r0)
+        """
         for i in range(N_qso):
             j_upper = np.searchsorted(z,z_qso[i])
             #for j in range(N_cells):
@@ -150,18 +152,6 @@ def add_skewer_RSDs(initial_tau,initial_density,velocity_skewer_dz,z,r_hMpc,z_qs
 
                 #Find new r of cell by interpolating.
                 new_r_hMpc_cell = np.interp(new_z_cell,z,r_hMpc)
-                """
-                if (abs(d)>0)*(i==max_z_index)*(j//500==j/500):
-                    print(j,z[j])
-                    print('r original   : {:1.6f}'.format(r_hMpc[j]))
-                    print('r w/RSD      : {:1.6f}'.format(np.interp(new_z_cell,z,r_hMpc)))
-                    print('-------------')
-                    print('r shift      : {:1.6f}'.format(r_hMpc_shift[j]))
-                    print('--> diff     : {:1.6f}'.format(r_hMpc_shift[j]-r_hMpc[j]))
-                    print('r shift w/RSD: {:1.6f}'.format(new_r_hMpc_cell))
-                    print('--> diff     : {:1.6f}'.format(new_r_hMpc_cell-np.interp(new_z_cell,z,r_hMpc)))
-                    print(' ')
-                """
 
                 #Add an extra gradient to the velocity (for estimating bias_nu).
                 #new_r_hMpc_cell += (r_hMpc_cell - r0)*d
@@ -175,18 +165,6 @@ def add_skewer_RSDs(initial_tau,initial_density,velocity_skewer_dz,z,r_hMpc,z_qs
                 new_r_hMpc_cell -= (new_r_hMpc_cell - r0) * d
                 new_x_kms_cell = np.interp(new_r_hMpc_cell,r_hMpc,x_kms)
 
-                """
-                if (abs(d)>0)*(i==max_z_index)*(j//500==j/500):
-                    print(j,z[j])
-                    print('v original   : {:1.6f}'.format(x_kms[j]))
-                    print('v w/RSD      : {:1.6f}'.format(np.interp(new_z_cell,z,x_kms)))
-                    print('-------------')
-                    print('v shift      : {:1.6f}'.format(x_kms_shift[j]))
-                    print('--> diff     : {:1.6f}'.format(x_kms_shift[j]-x_kms[j]))
-                    print('v shift w/RSD: {:1.6f}'.format(new_x_kms_cell))
-                    print('--> diff     : {:1.6f}'.format(new_x_kms_cell-np.interp(new_z_cell,z,x_kms)))
-                    print(' ')
-                """
 
                 j_upper = np.searchsorted(x_kms,new_x_kms_cell)
                 j_lower = j_upper - 1
@@ -272,11 +250,12 @@ def add_skewer_RSDs(initial_tau,initial_density,velocity_skewer_dz,z,r_hMpc,z_qs
                         final_tau[i,j_lower] += w_lower*tau
 
                 #final_tau[i,j_values] += cell_weights*initial_tau[i,j]
+        """
 
-    else:
-        for k in range(N_qso):
-            skewer_weights = weights[k]
-            final_tau[k,:] = skewer_weights.dot(initial_tau[k,:].T)
+    #Compute the final values of tau.
+    for k in range(N_qso):
+        skewer_weights = weights[k]
+        final_tau[k,:] = skewer_weights.dot(initial_tau[k,:].T)
 
     return final_tau
 
@@ -324,11 +303,14 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
             elif j == N_cells:
                 cell_size = (x_kms[j] - x_kms[j-1])
 
-            #new_r_hMpc_cell = np.interp(new_z_cell,z,r_hMpc)
+            #Find new r of cell by interpolating.
+            new_r_hMpc_cell = np.interp(new_z_cell,z,r_hMpc)
             #new_x_kms_cell = new_r_hMpc_cell * utils.get_dkms_dhMpc(new_z_cell)
 
+            #Shift the cell again to simulate an extra velocity gradient.
             new_r_hMpc_cell -= (new_r_hMpc_cell - r0) * d
             new_x_kms_cell = np.interp(new_r_hMpc_cell,r_hMpc,x_kms)
+            #new_x_kms_cell = new_r_hMpc_cell * utils.get_dkms_dhMpc(new_z_cell)
 
             j_upper = np.searchsorted(x_kms,new_x_kms_cell)
             j_lower = j_upper - 1
