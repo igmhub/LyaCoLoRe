@@ -258,7 +258,7 @@ class SimulationData:
         return cls(N_qso,N_cells,SIGMA_G,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,R,Z,D,V,LOGLAM_MAP)
 
     #Function to trim skewers according to a minimum value of lambda. QSOs with no relevant cells are removed.
-    def trim_skewers(self,lambda_min,min_catalog_z,extra_cells=0,lambda_max=None,whole_lambda_range=False):
+    def trim_skewers(self,lambda_min,min_catalog_z=0.,extra_cells=0,lambda_max=None,whole_lambda_range=False):
 
         lambdas = 10**(self.LOGLAM_MAP)
         first_relevant_cell = np.searchsorted(lambdas,lambda_min)
@@ -468,10 +468,10 @@ class SimulationData:
         return
 
     #Get the weights for going into redshift space.
-    def get_RSD_weights(self,thermal=False):
+    def get_RSD_weights(self,thermal=False,d=0.,z_r0=2.5):
 
         density = 1 + self.DENSITY_DELTA_rows
-        RSD_weights = RSD.get_weights(density,self.VEL_rows,self.Z,self.R,self.Z_QSO,thermal=thermal)
+        RSD_weights = RSD.get_weights(density,self.VEL_rows,self.Z,self.R,self.Z_QSO,thermal=thermal,d=d,z_r0=z_r0)
 
         return RSD_weights
 

@@ -1,5 +1,6 @@
 import numpy as np
 import copy
+import time
 
 from pyacolore import utils
 
@@ -65,12 +66,48 @@ def get_bias_delta(data,z_values,d=0.001,z_width=0.2):
 
     return biases
 
-#Function to get the different RSD weights for calculating bias_nu.
+#Function to get the different RSD weights for calculating bias_eta.
+def get_bias_eta_weights(data,z_values,d=0.001,z_width=0.2,include_thermal_effects=False,lambda_buffer=100.):
 
+    weights_dict = {}
+
+    for z_value in z_values:
+
+        t = time.time()
+
+        z_val_weights_dict = {}
+
+        data_copy_z_val = copy.deepcopy(data)
+
+        z_min = z_value - 0.5*z_width
+        z_max = z_value + 0.5*z_width
+        lambda_min = lya * (1 + z_min)
+        lambda_max = lya * (1 + z_max)
+
+        data_copy_z_val.trim_skewers(lambda_min-lambda_buffer,lambda_max=lambda_max+lambda_buffer,extra_cells=1)
+        #print('z value {}: data obj copy and trim in {:3.1f}s.'.format(z_value,time.time()-t))
+        t = time.time()
+
+        #print('getting weights: z={} has N_qso={}, N_cells={}'.format(z_value,data_copy_z_val.N_qso,data_copy_z_val.N_cells))
+        RSD_weights_grad_increase = data_copy_z_val.get_RSD_weights(thermal=include_thermal_effects,d=d,z_r0=z_value)
+        #print('z value {}: grad_increase map done in {:3.1f}s.'.format(z_value,time.time()-t))
+        t = time.time()
+        RSD_weights_grad_decrease = data_copy_z_val.get_RSD_weights(thermal=include_thermal_effects,d=-d,z_r0=z_value)
+        #print('z value {}: grad_decrease map done in {:3.1f}s.'.format(z_value,time.time()-t))
+        t = time.time()
+
+        z_val_weights_dict['grad_increase'] = RSD_weights_grad_increase
+        z_val_weights_dict['grad_decrease'] = RSD_weights_grad_decrease
+
+        weights_dict[z_value] = z_val_weights_dict
+
+        #print('z value {}: maps put into dicts in    {:3.1f}s.'.format(z_value,time.time()-t))
+
+    return weights_dict
 
 #Function to get the bias of eta at various z values from a sim data object.
 #Assumes that the object already has tau calculated but with no RSDs applied.
-def get_bias_eta(data,z_values,d=0.001,z_width=0.2,z_r0=2.5,include_thermal_effects=False):
+def get_bias_eta(data,z_values,weights_dict=None,d=0.001,z_width=0.2,include_thermal_effects=False,lambda_buffer=100.):
 
     alphas = data.transformation.get_tau0(data.Z)
     betas = data.transformation.get_texp(data.Z)
@@ -162,6 +199,11 @@ def get_bias_eta(data,z_values,d=0.001,z_width=0.2,z_r0=2.5,include_thermal_effe
     """
 
     #Method 4/5:
+
+    if not weights_dict:
+        print('no weights dict provided to get_bias_eta. Calculating weights...')
+        weights_dict = get_bias_eta_weights(data,z_values,d=d,z_width=z_width,include_thermal_effects=include_thermal_effects,lambda_buffer=lambda_buffer)
+
     #Whilst moving cells in RSD, add in a shift
     #Method 4 uses a linear shift in r
     #Method 5 uses a constant shift in eta
@@ -182,6 +224,9 @@ def get_bias_eta(data,z_values,d=0.001,z_width=0.2,z_r0=2.5,include_thermal_effe
     biases = []
     for z_value in z_values:
 
+        weights_grad_increase = weights_dict[z_value]['grad_increase']
+        weights_grad_decrease = weights_dict[z_value]['grad_decrease']
+
         z_min = z_value - 0.5*z_width
         z_max = z_value + 0.5*z_width
         lambda_min = lya * (1 + z_min)
@@ -196,12 +241,12 @@ def get_bias_eta(data,z_values,d=0.001,z_width=0.2,z_r0=2.5,include_thermal_effe
 
         #Copy the noRSD data, add RSDs with the extra shift (increase), then trim the skewers.
         grad_increase = copy.deepcopy(data_noRSDs_z_val)
-        grad_increase.add_all_RSDs(thermal=include_thermal_effects,d=d,z_r0=z_value)
+        grad_increase.add_all_RSDs(weights=weights_grad_increase,thermal=include_thermal_effects,d=d,z_r0=z_value)
         grad_increase.trim_skewers(lambda_min,min_catalog_z,lambda_max=lambda_max)
 
         #Copy the noRSD data, add RSDs with the extra shift (decrease), then trim the skewers.
         grad_decrease = copy.deepcopy(data_noRSDs_z_val) 
-        grad_decrease.add_all_RSDs(thermal=include_thermal_effects,d=-d,z_r0=z_value)
+        grad_decrease.add_all_RSDs(weights=weights_grad_decrease,thermal=include_thermal_effects,d=-d,z_r0=z_value)
         grad_decrease.trim_skewers(lambda_min,min_catalog_z,lambda_max=lambda_max)
 
         #Make small pixel object with RSDs and trim it. Also trim the noRSD object.
