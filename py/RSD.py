@@ -128,26 +128,6 @@ def add_skewer_RSDs(initial_tau,initial_density,velocity_skewer_dz,z,r_hMpc,z_qs
     if thermal == True:
         T_K = get_T_K(z,initial_density)
 
-    #ATTEMPTS AT B_ETA ESTIMATION:
-    r_hMpc_shift = r_hMpc
-    x_kms_shift = x_kms
-
-    #Method 4:
-    r_hMpc_shift = r_hMpc + (r_hMpc - r0) * d
-    dkms_dhMpc_shift = utils.get_dkms_dhMpc(z)
-    x_kms_shift = r_hMpc_shift * dkms_dhMpc
-
-    """
-    #Method 5:
-    #We want to alter the velocity along the skewer.
-    #v_diff is prop to integral of aH by comoving distance
-    v_diff = []
-    for i in range(r_hMpc.shape[0]):
-        v_diff += [np.trapz(dkms_dhMpc[:i],r_hMpc[:i])]
-    v_diff = np.array(v_diff)
-    v_diff *= (d / 1.)
-    x_kms_shift = x_kms + v_diff
-    """
 
     if not weights:
         for i in range(N_qso):
@@ -301,7 +281,9 @@ def add_skewer_RSDs(initial_tau,initial_density,velocity_skewer_dz,z,r_hMpc,z_qs
     return final_tau
 
 #
-def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False):
+def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,d=0.0,z_r0=2.5):
+
+    r0 = np.interp(z_r0,z,r_hMpc)
 
     N_qso = velocity_skewer_dz.shape[0]
     N_cells = velocity_skewer_dz.shape[1]
@@ -330,6 +312,7 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False)
         for j in range(j_limit):
             #Add the dz from the velocity skewers to get a 'new_z' for each cell
             z_cell = z[j]
+            r_hMpc_cell = r_hMpc[j]
             dz_cell = velocity_skewer_dz[i,j]
             new_z_cell = z_cell + dz_cell
 
@@ -341,8 +324,11 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False)
             elif j == N_cells:
                 cell_size = (x_kms[j] - x_kms[j-1])
 
-            new_r_hMpc = np.interp(new_z_cell,z,r_hMpc)
-            new_x_kms_cell = new_r_hMpc * utils.get_dkms_dhMpc(new_z_cell)
+            #new_r_hMpc_cell = np.interp(new_z_cell,z,r_hMpc)
+            #new_x_kms_cell = new_r_hMpc_cell * utils.get_dkms_dhMpc(new_z_cell)
+
+            new_r_hMpc_cell -= (new_r_hMpc_cell - r0) * d
+            new_x_kms_cell = np.interp(new_r_hMpc_cell,r_hMpc,x_kms)
 
             j_upper = np.searchsorted(x_kms,new_x_kms_cell)
             j_lower = j_upper - 1
