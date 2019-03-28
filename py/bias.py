@@ -53,8 +53,6 @@ def get_bias_eta_weights(data,z_values,d=0.0,z_width=0.2,include_thermal_effects
 
     for z_value in z_values:
 
-        t = time.time()
-
         z_val_weights_dict = {}
 
         data_copy_z_val = copy.deepcopy(data)
@@ -65,23 +63,14 @@ def get_bias_eta_weights(data,z_values,d=0.0,z_width=0.2,include_thermal_effects
         lambda_max = lya * (1 + z_max)
 
         data_copy_z_val.trim_skewers(lambda_min-lambda_buffer,lambda_max=lambda_max+lambda_buffer,extra_cells=1)
-        #print('z value {}: data obj copy and trim in {:3.1f}s.'.format(z_value,time.time()-t))
-        t = time.time()
 
-        #print('getting weights: z={} has N_qso={}, N_cells={}'.format(z_value,data_copy_z_val.N_qso,data_copy_z_val.N_cells))
         RSD_weights_grad_increase = data_copy_z_val.get_RSD_weights(thermal=include_thermal_effects,d=d,z_r0=z_value)
-        #print('z value {}: grad_increase map done in {:3.1f}s.'.format(z_value,time.time()-t))
-        t = time.time()
         RSD_weights_grad_decrease = data_copy_z_val.get_RSD_weights(thermal=include_thermal_effects,d=-d,z_r0=z_value)
-        #print('z value {}: grad_decrease map done in {:3.1f}s.'.format(z_value,time.time()-t))
-        t = time.time()
 
         z_val_weights_dict['grad_increase'] = RSD_weights_grad_increase
         z_val_weights_dict['grad_decrease'] = RSD_weights_grad_decrease
 
         weights_dict[z_value] = z_val_weights_dict
-
-        #print('z value {}: maps put into dicts in    {:3.1f}s.'.format(z_value,time.time()-t))
 
     return weights_dict
 
@@ -187,7 +176,6 @@ def get_bias_eta(data,z_values,weights_dict=None,d=0.0,z_width=0.2,include_therm
 
     #Copy the data and overwrite the tau skewers to remove RSDs.
     data_noRSDs = copy.deepcopy(data)
-    #data_noRSDs.compute_tau_skewers(data_noRSDs.lya_absorber)
     data_noRSDs.lya_absorber.tau = data_noRSDs.lya_absorber.tau_noRSD
 
     #Calculate mean fluxes in under and overdensities, as well as normal
@@ -201,9 +189,6 @@ def get_bias_eta(data,z_values,weights_dict=None,d=0.0,z_width=0.2,include_therm
         z_max = z_value + 0.5*z_width
         lambda_min = lya * (1 + z_min)
         lambda_max = lya * (1 + z_max)
-
-        lambda_buffer = 100. #A
-        min_catalog_z = 1.8
 
         #Copy the data and then trim it to the area around the z value.
         data_noRSDs_z_val = copy.deepcopy(data_noRSDs)
