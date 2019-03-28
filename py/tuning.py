@@ -139,7 +139,7 @@ class function_measurement:
         self.bias_delta = bias.get_bias_delta(pixel_object,self.z_value,z_width=self.z_width,d=d)
         return
 
-    def add_bias_eta_measurement(self,pixel_object,weights_dict=None,d=0.001,thermal=False,lambda_buffer=100.):
+    def add_bias_eta_measurement(self,pixel_object,weights_dict=None,d=0.0,thermal=False,lambda_buffer=100.):
         #Get bias_eta and add it to the measurement object.
         self.bias_eta = bias.get_bias_eta(pixel_object,self.z_value,weights_dict=weights_dict,d=d,z_width=self.z_width,include_thermal_effects=thermal,lambda_buffer=lambda_buffer)
         return

@@ -46,9 +46,8 @@ def get_bias_delta(data,z_values,d=0.001,z_width=0.2):
 
     return biases
 
-#Function to get the different RSD weights for calculating bias_nu.
-
-def get_bias_eta_weights(data,z_values,d=0.001,z_width=0.2,include_thermal_effects=False,lambda_buffer=100.):
+#Function to get the different RSD weights for calculating bias_eta.
+def get_bias_eta_weights(data,z_values,d=0.0,z_width=0.2,include_thermal_effects=False,lambda_buffer=100.):
 
     weights_dict = {}
 
@@ -88,7 +87,7 @@ def get_bias_eta_weights(data,z_values,d=0.001,z_width=0.2,include_thermal_effec
 
 #Function to get the bias of eta at various z values from a sim data object.
 #Assumes that the object already has tau calculated but with no RSDs applied.
-def get_bias_eta(data,z_values,weights_dict=None,d=0.001,z_width=0.2,include_thermal_effects=False,lambda_buffer=100.):
+def get_bias_eta(data,z_values,weights_dict=None,d=0.0,z_width=0.2,include_thermal_effects=False,lambda_buffer=100.):
 
     t = time.time()
 
@@ -182,11 +181,15 @@ def get_bias_eta(data,z_values,weights_dict=None,d=0.001,z_width=0.2,include_the
     """
 
     #Method 4:
-    #Whilst moving cells in RSD, add in a shift
+    #Whilst moving cells in RSD, add in a shift in r
 
     if not weights_dict:
         print('no weights dict provided to get_bias_eta. Calculating weights...')
         weights_dict = get_bias_eta_weights(data,z_values,d=d,z_width=z_width,include_thermal_effects=include_thermal_effects,lambda_buffer=lambda_buffer)
+
+    #Copy the data and overwrite the tau skewers to remove RSDs.
+    data_noRSDs = copy.deepcopy(data)
+    data_noRSDs.lya_absorber.tau = data_noRSDs.lya_absorber.tau_noRSD
 
     #print('    -> {:3.2f} checkpoint extract weights'.format(time.time()-t))
     t = time.time()
@@ -216,44 +219,22 @@ def get_bias_eta(data,z_values,weights_dict=None,d=0.001,z_width=0.2,include_the
 
         #Copy the data and then trim it to the area around the z value.
         data_noRSDs_z_val = copy.deepcopy(data_noRSDs)
-
-        #print('    -> {:3.2f} checkpoint z_val noRSD data copied'.format(time.time()-t))
-        t = time.time()
-
         data_noRSDs_z_val.trim_skewers(lambda_min-lambda_buffer,lambda_max=lambda_max+lambda_buffer,extra_cells=1)
-
-        #print('    -> {:3.2f} checkpoint data trimmed'.format(time.time()-t))
-        t = time.time()
-
-        #print('implementing b_eta RSDs: z={} has N_qso={}, N_cells={}'.format(z_value,data_noRSDs_z_val.N_qso,data_noRSDs_z_val.N_cells))
 
         #Copy the noRSD data, add RSDs with the extra shift (increase), then trim the skewers.
         grad_increase = copy.deepcopy(data_noRSDs_z_val)
-        grad_increase.add_all_RSDs(weights=weights_grad_increase,thermal=include_thermal_effects,d=d,z_r0=z_value)
+        grad_increase.add_all_RSDs(weights=weights_grad_increase,thermal=include_thermal_effects)
         grad_increase.trim_skewers(lambda_min,lambda_max=lambda_max)
 
-        #print('    -> {:3.2f} checkpoint grad increase'.format(time.time()-t))
-        t = time.time()
-
         #Copy the noRSD data, add RSDs with the extra shift (decrease), then trim the skewers.
-        grad_decrease = copy.deepcopy(data_noRSDs_z_val)
-        grad_decrease.add_all_RSDs(weights=weights_grad_decrease,thermal=include_thermal_effects,d=-d,z_r0=z_value)
+        grad_decrease = copy.deepcopy(data_noRSDs_z_val) 
+        grad_decrease.add_all_RSDs(weights=weights_grad_decrease,thermal=include_thermal_effects)
         grad_decrease.trim_skewers(lambda_min,lambda_max=lambda_max)
-
-        #print('    -> {:3.2f} checkpoint grad decrease'.format(time.time()-t))
-        t = time.time()
 
         #Make small pixel object with RSDs and trim it. Also trim the noRSD object.
         data_z_val = copy.deepcopy(data)
-
-        #print('    -> {:3.2f} checkpoint z_val data copied'.format(time.time()-t))
-        t = time.time()
-
         data_z_val.trim_skewers(lambda_min,lambda_max=lambda_max)
-        #data_noRSDs_z_val.trim_skewers(lambda_min,lambda_max=lambda_max)
-
-        #print('    -> {:3.2f} checkpoint tidy up'.format(time.time()-t))
-        t = time.time()
+        data_noRSDs_z_val.trim_skewers(lambda_min,lambda_max=lambda_max)
 
         #We get means across the z-chunk and combine once bias has been computed.
         #This avoids overweighting the low end of the chunk.
