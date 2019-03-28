@@ -113,7 +113,6 @@ def add_skewer_RSDs(initial_tau,initial_density,velocity_skewer_dz,z,r_hMpc,z_qs
 
     N_qso = initial_tau.shape[0]
     N_cells = initial_tau.shape[1]
-    final_tau = np.zeros(initial_tau.shape)
 
     #Convert radial distance to a velocity.
     dkms_dhMpc = utils.get_dkms_dhMpc(z)
@@ -128,6 +127,7 @@ def add_skewer_RSDs(initial_tau,initial_density,velocity_skewer_dz,z,r_hMpc,z_qs
         weights = get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=thermal,d=d,z_r0=z_r0)
 
     #Compute the final values of tau.
+    final_tau = np.zeros(initial_tau.shape)
     for k in range(N_qso):
         skewer_weights = weights[k]
         final_tau[k,:] = skewer_weights.dot(initial_tau[k,:].T)
@@ -184,10 +184,6 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
             new_r_hMpc_cell -= (new_r_hMpc_cell - r0) * d
             new_x_kms_cell = np.interp(new_r_hMpc_cell,r_hMpc,x_kms)
             #new_x_kms_cell = new_r_hMpc_cell * utils.get_dkms_dhMpc(new_z_cell)
-            if (i==0) and (j//500 == j/500):
-                print(i,j)
-                print('correct:  ',new_x_kms_cell)
-                print('incorrect:',new_r_hMpc_cell * utils.get_dkms_dhMpc(new_z_cell))
 
             j_upper = np.searchsorted(x_kms,new_x_kms_cell)
             j_lower = j_upper - 1
