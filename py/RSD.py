@@ -1,8 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.interpolate as sciint
-from scipy.sparse import dok_matrix,csc_matrix
+from scipy.sparse import dok_matrix,csc_matrix,csr_matrix
 import math
+import time
 
 from . import utils
 
@@ -127,10 +128,15 @@ def add_skewer_RSDs(initial_tau,initial_density,velocity_skewer_dz,z,r_hMpc,z_qs
         weights = get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=thermal,d=d,z_r0=z_r0)
 
     #Compute the final values of tau.
+    start = time.time()
+
+
     final_tau = np.zeros(initial_tau.shape)
     for k in range(N_qso):
         skewer_weights = weights[k]
         final_tau[k,:] = skewer_weights.dot(initial_tau[k,:].T)
+
+    print('\n\napplying RSDs takes {:1.3f}s'.format(time.time()-start))
 
     return final_tau
 
@@ -155,10 +161,122 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
     #count = np.zeros(100)
     #total = 0
     #count = 0
+
+    r_edge_start = r_hMpc[0] - (r_hMpc[1] - r_hMpc[0])/2.
+    r_edge_end = r_hMpc[-1] + (r_hMpc[-1] - r_hMpc[-2])/2.
+    r_edges = np.concatenate(([r_edge_start],(r_hMpc[1:]+r_hMpc[:-1])/2.,[r_edge_end]))
+    z_edges = sciint.interp1d(r_hMpc,z,fill_value='extrapolate')(r_edges)
+
+    #Not sure which of these is best, or if it will make much of a difference
+    x_edges = sciint.interp1d(r_hMpc,z,fill_value='extrapolate')(r_edges)
+    #x_edges = r_edges * utils.get_dkms_dhMpc(z_edges)
+
+    x_uedges = x_edges[1:]
+    x_ledges = x_edges[:-1]
+    cell_sizes = x_uedges - x_ledges
+
+    start = time.time()
+
+
+    """
+
     for i in range(N_qso):
         indices = []
         data = []
         indptr = [0]
+
+        dz = velocity_skewer_dz[i,:]
+        dz_edges = np.concatenate([[dz[0]],(dz[1:]+dz[:-1])/2.,[dz[-1]]])
+        z_edges_shifted = z_edges + dz_edges
+        
+        x_edges_shifted = sciint.interp1d(z_edges,x_edges,fill_value='extrapolate')(z_edges_shifted)
+        #x_edges = r_edges_shifted * utils.get_dkms_dhMpc(z_edges_shifted)
+
+        x_uedges_shifted = x_edges_shifted[1:]
+        x_ledges_shifted = x_edges_shifted[:-1]
+
+        cell_sizes_shifted = x_uedges_shifted - x_ledges_shifted
+        print('shifted',i,end='\r')
+        #Want to search for z_qso with RSDs in the shifted z edges really?
+        j_limit = np.searchsorted(z_edges,z_qso[i])
+
+        QSO_weight = np.zeros((N_cells,N_cells))
+
+        #times = np.zeros(7)
+        for j in range(j_limit):
+       
+            k=1 
+            t0 = time.time()
+
+            #cells = (x_edges[1:] > x_edges_shifted[j]) * (x_edges_shifted[j+1] > x_edges[:-1])
+            #cells = range(np.searchsorted(x_edges[:-1],x_edges_shifted[j]),np.searchsorted(x_edges[1:],x_edges_shifted[j+1])+1)
+            #uedges = x_edges[1:][cells]
+            #ledges = x_edges[:-1][cells]
+
+            j_lower = np.searchsorted(x_ledges,x_ledges_shifted[j])
+            j_upper = np.searchsorted(x_uedges,x_uedges_shifted[j])
+
+            #times[k] += time.time()-t0
+            #k+=1; t0 = time.time()
+            
+            #d_upper = (x_uedges[cells] - x_edges_shifted[j])/cell_sizes[cells]
+            d_upper = (x_uedges[j_lower:j_upper] - x_ledges_shifted[j])/cell_sizes[j_lower:j_upper]
+
+            #times[k] += time.time()-t0
+            #k+=1; t0 = time.time()
+
+            #d_lower = (x_edges_shifted[j+1] - x_ledges[cells])/cell_sizes[cells]
+            d_lower = (x_uedges_shifted[j] - x_ledges[j_lower:j_upper])/cell_sizes[j_lower:j_upper]
+            
+            #times[k] += time.time()-t0
+            #k+=1; t0 = time.time()
+
+            weight = np.minimum(np.minimum(d_upper,d_lower),1.)
+            
+            #times[k] += time.time()-t0
+            #k+=1; t0 = time.time()
+
+            weight /= np.sum(weight)
+            
+            #times[k] += time.time()-t0
+            #k+=1; t0 = time.time()
+
+            #QSO_weight[j,cells] = weight
+            QSO_weight[j,j_lower:j_upper] = weight
+            
+            #times[k] += time.time()-t0
+            #k+=1; t0 = time.time()
+
+
+        #print('\n',np.round(np.sum(times),3),np.round(times/np.sum(times),3))
+
+        sparse_QSO_weight = csr_matrix(QSO_weight)            
+        weights[i] = sparse_QSO_weight
+        #print(sparse_QSO_weight)
+
+
+
+    """
+
+    start=time.time()
+
+    for i in range(N_qso):
+        indices = []
+        data = []
+        indptr = [0]
+       
+        dz = velocity_skewer_dz[i,:] 
+        dz_edges = np.concatenate([[dz[0]],(dz[1:]+dz[:-1])/2.,[dz[-1]]])
+        z_edges_shifted = z_edges + dz_edges
+        x_edges_shifted = sciint.interp1d(z_edges,x_edges,fill_value='extrapolate')(z_edges_shifted)
+        #x_edges = r_edges_shifted * utils.get_dkms_dhMpc(z_edges_shifted)
+
+        x_uedges_shifted = x_edges_shifted[1:]
+        x_ledges_shifted = x_edges_shifted[:-1]
+
+        cell_sizes = x_uedges_shifted - x_ledges_shifted
+
+        print('shifted',i,end='\r')
 
         #Go through each cell up to the QSO
         j_limit = np.searchsorted(z,z_qso[i])
@@ -168,7 +286,7 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
             #Add the dz from the velocity skewers to get a 'new_z' for each cell
             z_cell = z[j]
             r_hMpc_cell = r_hMpc[j]
-            dz_cell = velocity_skewer_dz[i,j]
+            dz_cell = dz[j]
             new_z_cell = z_cell + dz_cell
 
             x_kms_cell = x_kms[j]
@@ -187,8 +305,15 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
             new_x_kms_cell = np.interp(new_r_hMpc_cell,r_hMpc,x_kms)
             #new_x_kms_cell = new_r_hMpc_cell * utils.get_dkms_dhMpc(new_z_cell)
 
-            j_upper = np.searchsorted(x_kms,new_x_kms_cell)
-            j_lower = j_upper - 1
+            #OLD VERSION
+            #j_upper = np.searchsorted(x_kms,new_x_kms_cell)
+            #j_lower = j_upper - 1
+
+            j_lower = np.searchsorted(x_ledges,x_ledges_shifted[j]) - 1
+            j_upper = np.searchsorted(x_uedges,x_uedges_shifted[j])
+
+            if j_upper - j_lower != 1:
+                print(j,j_upper,j_lower)
 
             #If we want to include thermal effects, we include contributions to all cells within a chosen x_kms range.
             if thermal == True:
@@ -237,7 +362,7 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
                 #Only include an upper weight if it is within 1 cell's width.
                 if j_lower < 0:
                     w_lower = 0.
-                    if abs(x_kms[0] - new_x_kms_cell) < abs(x_kms[1] - x_kms[0]):
+                    if abs(x_kms[0] - new_x_kms_cell) < abs(x_kms[0] - x_kms[1]):
                         w_upper = 1. - abs(x_kms[0] - new_x_kms_cell)/abs(x_kms[1] - x_kms[0])
                         indices += [j_upper]
                         data += [w_upper]
@@ -274,5 +399,7 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
         indptr += [indptr[-1]]*(N_cells + 1 - len(indptr))
         csc_weights = csc_matrix((data, indices, indptr), shape=(N_cells,N_cells))
         weights[i] = csc_weights
+
+    print('time to calc RSDs weights is {:2.3f}'.format(time.time()-start))
 
     return weights
