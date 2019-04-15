@@ -188,7 +188,7 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
         dz = velocity_skewer_dz[i,:]
         dz_edges = np.concatenate([[dz[0]],(dz[1:]+dz[:-1])/2.,[dz[-1]]])
         z_edges_shifted = z_edges + dz_edges
-        
+
         x_edges_shifted = sciint.interp1d(z_edges,x_edges,fill_value='extrapolate')(z_edges_shifted)
         #x_edges = r_edges_shifted * utils.get_dkms_dhMpc(z_edges_shifted)
 
@@ -204,8 +204,8 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
 
         #times = np.zeros(7)
         for j in range(j_limit):
-       
-            k=1 
+
+            k=1
             t0 = time.time()
 
             #cells = (x_edges[1:] > x_edges_shifted[j]) * (x_edges_shifted[j+1] > x_edges[:-1])
@@ -218,7 +218,7 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
 
             #times[k] += time.time()-t0
             #k+=1; t0 = time.time()
-            
+
             #d_upper = (x_uedges[cells] - x_edges_shifted[j])/cell_sizes[cells]
             d_upper = (x_uedges[j_lower:j_upper] - x_ledges_shifted[j])/cell_sizes[j_lower:j_upper]
 
@@ -227,30 +227,30 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
 
             #d_lower = (x_edges_shifted[j+1] - x_ledges[cells])/cell_sizes[cells]
             d_lower = (x_uedges_shifted[j] - x_ledges[j_lower:j_upper])/cell_sizes[j_lower:j_upper]
-            
+
             #times[k] += time.time()-t0
             #k+=1; t0 = time.time()
 
             weight = np.minimum(np.minimum(d_upper,d_lower),1.)
-            
+
             #times[k] += time.time()-t0
             #k+=1; t0 = time.time()
 
             weight /= np.sum(weight)
-            
+
             #times[k] += time.time()-t0
             #k+=1; t0 = time.time()
 
             #QSO_weight[j,cells] = weight
             QSO_weight[j,j_lower:j_upper] = weight
-            
+
             #times[k] += time.time()-t0
             #k+=1; t0 = time.time()
 
 
         #print('\n',np.round(np.sum(times),3),np.round(times/np.sum(times),3))
 
-        sparse_QSO_weight = csr_matrix(QSO_weight)            
+        sparse_QSO_weight = csr_matrix(QSO_weight)
         weights[i] = sparse_QSO_weight
         #print(sparse_QSO_weight)
 
@@ -264,8 +264,8 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
         indices = []
         data = []
         indptr = [0]
-       
-        dz = velocity_skewer_dz[i,:] 
+
+        dz = velocity_skewer_dz[i,:]
         dz_edges = np.concatenate([[dz[0]],(dz[1:]+dz[:-1])/2.,[dz[-1]]])
         z_edges_shifted = z_edges + dz_edges
         x_edges_shifted = sciint.interp1d(z_edges,x_edges,fill_value='extrapolate')(z_edges_shifted)
@@ -309,11 +309,8 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
             #j_upper = np.searchsorted(x_kms,new_x_kms_cell)
             #j_lower = j_upper - 1
 
-            j_lower = np.searchsorted(x_ledges,x_ledges_shifted[j]) - 1
-            j_upper = np.searchsorted(x_uedges,x_uedges_shifted[j])
-
-            if j_upper - j_lower != 1:
-                print(j,j_upper,j_lower)
+            j_lower = np.searchsorted(x_uedges,x_ledges_shifted[j])
+            j_upper = np.searchsorted(x_ledges,x_uedges_shifted[j])
 
             #If we want to include thermal effects, we include contributions to all cells within a chosen x_kms range.
             if thermal == True:
@@ -358,6 +355,28 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
 
             #If we do not want to include thermal effects, we only allocate to the cell above and the cell below.
             else:
+
+                #If the cell ends up having some overlap with the skewer, find which cells it contributes to.
+                if (x_uedges_shifted[j] > x_ledges[0]) * (x_ledges_shifted[j] < x_uedges[-1]):
+                    j_lower = np.searchsorted(x_uedges,x_ledges_shifted[j])
+                    j_upper = np.searchsorted(x_ledges,x_uedges_shifted[j]) - 1
+                    j_values = list(range(j_lower,j_upper+1))
+                else:
+                    j_values = []
+
+                #For the cells it contributes to, find how its weight is spread
+                w = []
+                for j_value in j_values:
+                    overlap = max(0., min(x_uedges[j_value], x_uedges_shifted[j]) - max(x_ledges[j_value], x_ledges_shifted[j]))
+                    weight = overlap/cell_sizes[j_value]
+                    w += [weight]
+
+                #Add the data to the inputs for the sparse matrix
+                indices += j_values
+                indptr += [(indptr[-1] + len(j_values))]
+                data += w
+
+                """
                 #If it has moved off the low-z end of the skewer, lower weight is 0
                 #Only include an upper weight if it is within 1 cell's width.
                 if j_lower < 0:
@@ -395,6 +414,7 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
                     indices += [j_lower,j_upper]
                     data += [w_lower,w_upper]
                     indptr += [(indptr[-1] + 2)]
+                """
 
         indptr += [indptr[-1]]*(N_cells + 1 - len(indptr))
         csc_weights = csc_matrix((data, indices, indptr), shape=(N_cells,N_cells))
