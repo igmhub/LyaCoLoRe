@@ -36,12 +36,13 @@ class picca_correlation:
         self.bm = bm
         """
 
-        #correlation data
-        self.rp = cd['rp']
-        self.rt = cd['rt']
-        self.z = cd['z']
-        self.xi_grid = cd['xi_grid']
-        self.cov_grid = cd['cov_grid']
+        #correlation data in grids
+        self.rp = cd['rp'].reshape((self.np,self.nt))
+        self.rt = cd['rt'].reshape((self.np,self.nt))
+        self.z = cd['z'].reshape((self.np,self.nt))
+        self.xi_grid = cd['xi_grid'].reshape((self.np,self.nt))
+        self.cov_grid = cd['cov_grid'].reshape((self.np,self.nt))
+        self.nb = cd['nb'].reshape((self.np,self.nt))
 
         """
         #cosmology data
@@ -177,7 +178,6 @@ class picca_correlation:
                  cbar_pad=0.15,
                  )
 
-
         #Add subplot containing the data.
         ax = im_grid[0]
 
@@ -210,7 +210,7 @@ class picca_correlation:
 
         #Add subplot showing the model.
         ax = im_grid[1]
-        
+
         fit_grid = self.fit_xi_grid.reshape((self.np,self.nt))
         fit_to_show = fit_grid * (r**r_power)
 
@@ -278,6 +278,22 @@ class picca_correlation:
 
         return
 
+    def plot_vs_rt(self,np_bins,b1,b2,beta1,beta2,bin_list=None):
+
+        rp_vals_per_bin = self.np // np_bins
+
+        for i in np_bins:
+            rp = np.average(self.rp[i*rp_vals_per_bin:(i+1)*rp_vals_per_bin-1,:], weights=self.nb[i*rp_vals_per_bin:(i+1)*rp_vals_per_bin-1,:],axis=0)
+
+            xi = np.average(self.xi_grid[i*rp_vals_per_bin:(i+1)*rp_vals_per_bin-1,:], weights=self.nb[i*rp_vals_per_bin:(i+1)*rp_vals_per_bin-1,:],axis=0)
+
+            err_grid = np.diag(self.cov_grid).reshape((self.np,self.nt))
+            xi_err = 1/.np.sqrt(np.sum(1/(err_grid**2)[i*rp_vals_per_bin:(i+1)*rp_vals_per_bin-1,:],axis=0))
+
+            plt.errorbar(rp,xi,y_err=xi_err,label=str(i))
+
+        return
+
 
 def get_fit_from_result(filepath):
 
@@ -320,6 +336,7 @@ def get_correlation_data(filepath):
     correlation_data['z'] = h[1].data['Z']
     correlation_data['xi_grid'] = h[1].data['DA']
     correlation_data['cov_grid'] = h[1].data['CO']
+    correlation_data['nb'] = h[1].data['NB']
     h.close()
 
     return correlation_data
@@ -451,6 +468,18 @@ def bins_from_boundaries(boundaries):
 
     return bins
 
+def make_plot_vs_rt(corr_objects,np_bins,fit_data,bin_list=None):
+
+    for corr_object in corr_objects:
+        plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
+        b1 = fit_data['b1']
+        b2 = fit_data['b2']
+        beta1 = fit_data['beta1']
+        beta2 = fit_data['beta2']
+        corr_object.plot_vs_rt(np_bins,b1,b2,beta1,beta2,bin_list=bin_list)
+        plt.show()
+
+    return
 
 
 ###############################################################################
