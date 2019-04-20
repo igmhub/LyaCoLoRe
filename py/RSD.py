@@ -136,8 +136,6 @@ def add_skewer_RSDs(initial_tau,initial_density,velocity_skewer_dz,z,r_hMpc,z_qs
         skewer_weights = weights[k]
         final_tau[k,:] = skewer_weights.dot(initial_tau[k,:].T)
 
-    print('\n\napplying RSDs takes {:1.3f}s'.format(time.time()-start))
-
     return final_tau
 
 #
@@ -199,7 +197,7 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
 
         cell_sizes = x_uedges_shifted - x_ledges_shifted
 
-        print('shifted',i,end='\r')
+        #print('shifted',i,end='\r')
 
         #Go through each cell up to the QSO
         j_limit = np.searchsorted(z,z_qso[i])
@@ -338,12 +336,14 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
                     indices += [j_lower,j_upper]
                     data += [w_lower,w_upper]
                     indptr += [(indptr[-1] + 2)]
+
                 """
+
 
         indptr += [indptr[-1]]*(N_cells + 1 - len(indptr))
         csc_weights = csc_matrix((data, indices, indptr), shape=(N_cells,N_cells))
         weights[i] = csc_weights
 
-    print('time to calc RSDs weights is {:2.3f}'.format(time.time()-start))
+    #print('time to calc RSDs weights is {:2.3f}'.format(time.time()-start))
 
     return weights
