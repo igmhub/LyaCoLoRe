@@ -14,7 +14,7 @@ tuning_files = glob.glob('./input_files/tuning_data_with_bias_a2.0_b1.65.fits')
 #tuning_files = glob.glob('./input_files/tuning_data_apow4.5_sGconst.fits')
 #z_values = np.array([2.0,2.2,2.4,2.6,2.8,3.0,3.2])
 z_values = np.array([2.0,2.4,2.8,3.2])
-d_value = 10**-2
+d_value = 10**-9
 z_width_value = 0.1
 N_pixels = 32
 f = 0.9625
@@ -33,6 +33,7 @@ lambda_min = 3550.
 min_catalog_z = 1.8
 final_cell_size = 0.25
 R_kms = 25.
+vel_boost = 1.0
 include_thermal_effects = False
 N_side = 16
 
@@ -83,12 +84,13 @@ def bias_tuning(pixel_object,tuning_filename,z_values,d=0.001,z_width=0.2,z_r0=2
     return b,b_eta
 
 
-def pixel_tuning_bias(pixel,tuning_filename,z_values,d=0.001,z_width=0.2):
+def pixel_tuning_bias(pixel,tuning_filename,z_values,d=0.001,z_width=0.2,vel_boost=1.0):
 
     dirname = utils.get_dir_name(base_dir,pixel)
     gaussian_filename = utils.get_file_name(dirname,'gaussian-colore',N_side,pixel)
     file_number = None
     pixel_object = simulation_data.SimulationData.get_gaussian_skewers_object(gaussian_filename,file_number,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
+    pixel_object.VEL_rows *= vel_boost
 
     b,b_eta = bias_tuning(pixel_object,tuning_filename,z_values,d=d,z_width=z_width)
 
@@ -116,7 +118,7 @@ def log_error(retval):
 ################################################################################
 
 for tuning_filename in tuning_files:
-    tasks = [(pixel,tuning_filename,z_values,d_value,z_width_value) for pixel in pixels]
+    tasks = [(pixel,tuning_filename,z_values,d_value,z_width_value,vel_boost) for pixel in pixels]
 
     #Run the multiprocessing pool
     if __name__ == '__main__':
