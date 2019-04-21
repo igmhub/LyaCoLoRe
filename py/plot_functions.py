@@ -41,7 +41,7 @@ class picca_correlation:
         self.rt = cd['rt'].reshape((self.np,self.nt))
         self.z = cd['z'].reshape((self.np,self.nt))
         self.xi_grid = cd['xi_grid'].reshape((self.np,self.nt))
-        self.cov_grid = cd['cov_grid'].reshape((self.np,self.nt))
+        self.cov_grid = cd['cov_grid'].reshape((self.np*self.nt,self.np*self.nt))
         self.nb = cd['nb'].reshape((self.np,self.nt))
 
         """
@@ -278,19 +278,37 @@ class picca_correlation:
 
         return
 
-    def plot_vs_rt(self,np_bins,b1,b2,beta1,beta2,bin_list=None):
+    def plot_vs_rt(self,np_bins,b1,b2,beta1,beta2,bin_list=None,r_power=0.,add_model=True):
 
         rp_vals_per_bin = self.np // np_bins
 
-        for i in np_bins:
+        if add_model:
+
+            model_xi_grid = correlation_model.get_model_xi_grid(model,self.quantity_1,self.quantity_2,b1,b2,beta1,beta2,self.zeff,rp,rt)
+
+        for i in bin_list:
+            col = 'C'+str(i)
+
+            rt = np.average(self.rt[i*rp_vals_per_bin:(i+1)*rp_vals_per_bin-1,:], weights=self.nb[i*rp_vals_per_bin:(i+1)*rp_vals_per_bin-1,:],axis=0)
             rp = np.average(self.rp[i*rp_vals_per_bin:(i+1)*rp_vals_per_bin-1,:], weights=self.nb[i*rp_vals_per_bin:(i+1)*rp_vals_per_bin-1,:],axis=0)
 
             xi = np.average(self.xi_grid[i*rp_vals_per_bin:(i+1)*rp_vals_per_bin-1,:], weights=self.nb[i*rp_vals_per_bin:(i+1)*rp_vals_per_bin-1,:],axis=0)
 
             err_grid = np.diag(self.cov_grid).reshape((self.np,self.nt))
-            xi_err = 1/.np.sqrt(np.sum(1/(err_grid**2)[i*rp_vals_per_bin:(i+1)*rp_vals_per_bin-1,:],axis=0))
+            xi_err = 1/np.sqrt(np.sum(1/(err_grid**2)[i*rp_vals_per_bin:(i+1)*rp_vals_per_bin-1,:],axis=0))
 
-            plt.errorbar(rp,xi,y_err=xi_err,label=str(i))
+            r = np.sqrt(rp**2 + rt**2)
+            xi_err_plot = xi_err*(r**r_power)
+            xi_plot = xi*(r**r_power)
+
+            drp = (self.rpmax - self.rpmin) / self.np
+
+            plt.errorbar(rt,xi_plot,yerr=xi_err_plot,label=r'${:3.1f}<r_p<{:3.1f}$'.format(i*rp_vals_per_bin*drp,(i+1)*rp_vals_per_bin*drp),fmt='o',color=col)
+
+            if add_model:
+
+               xi_model = np.average(xi_model_grid[i*rp_vals_per_bin:(i+1)*rp_vals_per_bin-1,:],axis=0) 
+               plt.plot(rt,xi_model,c=col)
 
         return
 
@@ -354,7 +372,7 @@ def get_parameters_from_param_file(filepath):
 
     return params
 
-def get_correlation_objects(locations,filenames=None,res_name='result.h5'):
+def get_correlation_objects(locations,filenames=None,res_name=None):
 
     if not filenames:
         checked_locations = []
@@ -468,7 +486,7 @@ def bins_from_boundaries(boundaries):
 
     return bins
 
-def make_plot_vs_rt(corr_objects,np_bins,fit_data,bin_list=None):
+def make_plot_vs_rt(corr_objects,np_bins,fit_data,bin_list=None,r_power=0.):
 
     for corr_object in corr_objects:
         plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
@@ -476,7 +494,9 @@ def make_plot_vs_rt(corr_objects,np_bins,fit_data,bin_list=None):
         b2 = fit_data['b2']
         beta1 = fit_data['beta1']
         beta2 = fit_data['beta2']
-        corr_object.plot_vs_rt(np_bins,b1,b2,beta1,beta2,bin_list=bin_list)
+        corr_object.plot_vs_rt(np_bins,b1,b2,beta1,beta2,bin_list=bin_list,r_power=r_power)
+        plt.grid()
+        plt.legend()
         plt.show()
 
     return

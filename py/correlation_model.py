@@ -55,6 +55,8 @@ def get_model_xi(model,q1,q2,bias1,bias2,beta1,beta2,z,mubin,sr=0.0):
 
     return r, xi
 
+
+
 def get_C0(B1,B2):
     return 1 + (1/3)*(B1+B2) + (1/5)*B1*B2
 

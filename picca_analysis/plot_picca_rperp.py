@@ -17,9 +17,10 @@ else:
 plot_system = 'plot_per_file' #per bin or per file
 fit_data = {'b1': 1., 'b2': 1., 'beta1': 0., 'beta2': 0.}
 np_bins = 8
-bin_list = None
+bin_list = [0,1,2,3,4,5]
 show_plots = True
 save_plots = True
+r_power = 2.
 
 corr_objects = plot_functions.get_correlation_objects(locations)
-make_plot_vs_rt(corr_objects,np_bins,fit_data,bin_list=bin_list)
+plot_functions.make_plot_vs_rt(corr_objects,np_bins,fit_data,bin_list=bin_list,r_power=r_power)
