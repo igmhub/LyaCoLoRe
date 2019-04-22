@@ -111,7 +111,7 @@ class picca_correlation:
         return bias1,bias2,beta1,beta2
 
     @classmethod
-    def make_correlation_object(cls,location,file_name,res_name='result.h5'):
+    def make_correlation_object(cls,location,file_name,res_name=None):
 
         #get parameters
         #replace with get_parameters_from_param_file when written
@@ -284,7 +284,8 @@ class picca_correlation:
 
         if add_model:
 
-            model_xi_grid = correlation_model.get_model_xi_grid(model,self.quantity_1,self.quantity_2,b1,b2,beta1,beta2,self.zeff,rp,rt)
+            z_value = (self.zmin + self.zmax) / 2.
+            model_xi_grid = correlation_model.get_model_xi_grid('Slosar11',self.quantity_1,self.quantity_2,b1,b2,beta1,beta2,z_value,self.rp,self.rt)
 
         for i in bin_list:
             col = 'C'+str(i)
@@ -307,7 +308,7 @@ class picca_correlation:
 
             if add_model:
 
-               xi_model = np.average(xi_model_grid[i*rp_vals_per_bin:(i+1)*rp_vals_per_bin-1,:],axis=0) 
+               xi_model = np.average(xi_model_grid[i*rp_vals_per_bin:(i+1)*rp_vals_per_bin-1,:],axis=0)
                plt.plot(rt,xi_model,c=col)
 
         return
