@@ -108,7 +108,6 @@ def get_model_xi_grid(model,q1,q2,bias1,bias2,beta1,beta2,z,rp_grid,rt_grid,sr=0
 
         xi_grid = scaling*(C0*xi0_grid*P_mu_0 + C2*xi2_grid*P_mu_2 + C4*xi4_grid*P_mu_4)
 
-
     return r_grid, xi_grid
 
 
