@@ -22,8 +22,11 @@ plot_system = 'plot_per_file' #per bin or per file
 #Tau noRSD
 #fit_data = {'b1': 1.65*1.13, 'b2': 1.65*1.13, 'beta1': 0., 'beta2': 0.}
 #Tau
-fit_data = {'b1': 1.65*1.13, 'b2': 1.65*1.13, 'beta1': 0.9625/(1.65*1.13), 'beta2': 0.9625/(1.65*1.13)}
+#fit_data = {'b1': 1.65*1.13, 'b2': 1.65*1.13, 'beta1': 0.9625/(1.65*1.13), 'beta2': 0.9625/(1.65*1.13)}
 #fit_data = {'b1': 2.22, 'b2': 2.22, 'beta1': 0.56, 'beta2': 0.56}
+#Flux
+fit_data = {'b1': -0.731, 'b2': -0.731, 'beta1': 0.514, 'beta2': 0.514}
+
 np_bins = 40
 bin_list = [0,5,10,15,20]
 show_plots = True
