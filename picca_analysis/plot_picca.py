@@ -18,7 +18,14 @@ plot_system = 'plot_per_file' #per bin or per file
 mu_boundaries = [0.0,0.5,0.8,0.95,1.0]
 model = 'Slosar11'
 fit_type = 'picca'
-fit_data = {'b1': 1., 'b2': 1., 'beta1': 0., 'beta2': 0.}
+#Gaussian
+#fit_data = {'b1': 2.704815529146578, 'b2': 2.704815529146578, 'beta1': 0., 'beta2': 0.}
+#Lognormal
+#fit_data = {'b1': 1.0, 'b2': 1.0, 'beta1': 0., 'beta2': 0.}
+#Tau noRSD
+fit_data = {'b1': 1.65*1., 'b2': 1.65, 'beta1': 0., 'beta2': 0.}
+#Tau
+#fit_data = {'b1': 1.65, 'b2': 1.65, 'beta1': 1., 'beta2': 1.}
 r_power = 2
 nr = 40
 rmax = 160. #Mpc/h
