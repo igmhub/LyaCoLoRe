@@ -307,7 +307,7 @@ class picca_correlation:
 
             xi = np.average(self.xi_grid[i*rp_vals_per_bin:(i+1)*rp_vals_per_bin,:], weights=self.nb_grid[i*rp_vals_per_bin:(i+1)*rp_vals_per_bin,:],axis=0)
 
-            err_grid = np.diag(self.cov_grid).reshape((self.np,self.nt))
+            err_grid = np.sqrt(np.diag(self.cov_grid).reshape((self.np,self.nt)))
 
             xi_err = 1/np.sqrt(np.sum(1/(err_grid**2)[i*rp_vals_per_bin:(i+1)*rp_vals_per_bin,:],axis=0))
 
