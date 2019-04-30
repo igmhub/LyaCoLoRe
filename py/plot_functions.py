@@ -36,12 +36,20 @@ class picca_correlation:
         self.bm = bm
         """
 
-        #correlation data
+        #correlation data in grids
         self.rp = cd['rp']
         self.rt = cd['rt']
         self.z = cd['z']
-        self.xi_grid = cd['xi_grid']
-        self.cov_grid = cd['cov_grid']
+        self.xi = cd['xi']
+        self.cov = cd['cov']
+        self.nb = cd['nb']
+
+        self.rp_grid = self.rp.reshape((self.np,self.nt))
+        self.rt_grid = self.rt.reshape((self.np,self.nt))
+        self.z_grid = self.z.reshape((self.np,self.nt))
+        self.xi_grid = self.xi.reshape((self.np,self.nt))
+        self.cov_grid = self.cov.reshape((self.np*self.nt,self.np*self.nt))
+        self.nb_grid = self.nb.reshape((self.np,self.nt))
 
         """
         #cosmology data
@@ -110,7 +118,7 @@ class picca_correlation:
         return bias1,bias2,beta1,beta2
 
     @classmethod
-    def make_correlation_object(cls,location,file_name,res_name='result.h5'):
+    def make_correlation_object(cls,location,file_name,res_name=None):
 
         #get parameters
         #replace with get_parameters_from_param_file when written
@@ -146,7 +154,7 @@ class picca_correlation:
                     self.cov_grid[i,j]=0
         """
 
-        r, xi_wed, cov_wed = b.wedge(self.xi_grid,self.cov_grid)
+        r, xi_wed, cov_wed = b.wedge(self.xi,self.cov)
 
         Nr = len(r)
         err_wed = np.zeros(Nr)
@@ -177,17 +185,12 @@ class picca_correlation:
                  cbar_pad=0.15,
                  )
 
-
         #Add subplot containing the data.
         ax = im_grid[0]
 
-        grid = self.xi_grid.reshape((self.np,self.nt))
-        rp_grid = self.rp.reshape((self.np,self.nt))
-        rt_grid = self.rt.reshape((self.np,self.nt))
+        r_grid = np.sqrt(self.rp_grid**2 + self.rt_grid**2)
 
-        r = np.sqrt(rp_grid**2 + rt_grid**2)
-
-        to_show = grid * (r**r_power)
+        to_show = self.xi_grid * (r_grid**r_power)
 
         #Mask the areas we don't want to plot
         if vmax:
@@ -210,9 +213,9 @@ class picca_correlation:
 
         #Add subplot showing the model.
         ax = im_grid[1]
-        
+
         fit_grid = self.fit_xi_grid.reshape((self.np,self.nt))
-        fit_to_show = fit_grid * (r**r_power)
+        fit_to_show = fit_grid * (r_grid**r_power)
 
         #Mask the areas we don't want to plot.
         if vmax:
@@ -252,7 +255,7 @@ class picca_correlation:
                     self.cov_grid[i,j]=0
         """
 
-        r, fit_xi_wed, _ = b.wedge(self.fit_xi_grid,self.cov_grid)
+        r, fit_xi_wed, _ = b.wedge(self.fit_xi_grid,self.cov)
 
         plt.plot(r,(r**r_power) * fit_xi_wed,c=colour,label=plot_label)
 
@@ -275,6 +278,55 @@ class picca_correlation:
         xi = xi[indices]
 
         plt.plot(r,(r**r_power) * xi,c=colour,label=plot_label)
+
+        return
+
+    def plot_vs_rt(self,np_bins,b1,b2,beta1,beta2,bin_list=None,r_power=0.,add_model=True):
+
+        rp_vals_per_bin = self.np // np_bins
+
+        if add_model:
+
+            N_mult_res = 10
+            np_model = self.np * N_mult_res
+            nt_model = self.nt * N_mult_res
+            rp_model = np.linspace(self.rpmin,self.rpmax,np_model)
+            rt_model = np.linspace(self.rtmin,self.rtmax,nt_model)
+
+            rp_model_grid = np.outer(rp_model,np.ones(nt_model))
+            rt_model_grid = np.outer(np.ones(np_model),rt_model)
+
+            z_value = (self.zmin + self.zmax) / 2.
+            r_model_grid,xi_model_grid = correlation_model.get_model_xi_grid('Slosar11',self.quantity_1,self.quantity_2,b1,b2,beta1,beta2,z_value,rp_model_grid,rt_model_grid)
+
+        for ind,i in enumerate(bin_list):
+            col = 'C'+str(ind)
+
+            rt = np.average(self.rt_grid[i*rp_vals_per_bin:(i+1)*rp_vals_per_bin,:], weights=self.nb_grid[i*rp_vals_per_bin:(i+1)*rp_vals_per_bin,:],axis=0)
+            rp = np.average(self.rp_grid[i*rp_vals_per_bin:(i+1)*rp_vals_per_bin,:], weights=self.nb_grid[i*rp_vals_per_bin:(i+1)*rp_vals_per_bin,:],axis=0)
+
+            xi = np.average(self.xi_grid[i*rp_vals_per_bin:(i+1)*rp_vals_per_bin,:], weights=self.nb_grid[i*rp_vals_per_bin:(i+1)*rp_vals_per_bin,:],axis=0)
+
+            err_grid = np.sqrt(np.diag(self.cov_grid).reshape((self.np,self.nt)))
+
+            xi_err = 1/np.sqrt(np.sum(1/(err_grid**2)[i*rp_vals_per_bin:(i+1)*rp_vals_per_bin,:],axis=0))
+
+            r = np.sqrt(rp**2 + rt**2)
+            xi_err_plot = xi_err*(r**r_power)
+            xi_plot = xi*(r**r_power)
+
+            drp = (self.rpmax - self.rpmin) / self.np
+
+            plt.errorbar(rt,xi_plot,yerr=xi_err_plot,label=r'${:3.1f}<r_p<{:3.1f}$'.format(i*rp_vals_per_bin*drp,(i+1)*rp_vals_per_bin*drp),fmt='o',color=col)
+
+            if add_model:
+
+               rp_vals_per_bin_model = np_model // np_bins
+
+               r_model = np.average(r_model_grid[i*rp_vals_per_bin_model:(i+1)*rp_vals_per_bin_model,:],axis=0)
+               xi_model = np.average(xi_model_grid[i*rp_vals_per_bin_model:(i+1)*rp_vals_per_bin_model,:],axis=0)
+               plt.plot(rt_model,xi_model*(r_model**r_power),c=col)
+               #plt.plot(rt,xi_model*(r**r_power),c=col)
 
         return
 
@@ -318,8 +370,9 @@ def get_correlation_data(filepath):
     correlation_data['rp'] = h[1].data['RP']
     correlation_data['rt'] = h[1].data['RT']
     correlation_data['z'] = h[1].data['Z']
-    correlation_data['xi_grid'] = h[1].data['DA']
-    correlation_data['cov_grid'] = h[1].data['CO']
+    correlation_data['xi'] = h[1].data['DA']
+    correlation_data['cov'] = h[1].data['CO']
+    correlation_data['nb'] = h[1].data['NB']
     h.close()
 
     return correlation_data
@@ -337,7 +390,7 @@ def get_parameters_from_param_file(filepath):
 
     return params
 
-def get_correlation_objects(locations,filenames=None,res_name='result.h5'):
+def get_correlation_objects(locations,filenames=None,res_name=None):
 
     if not filenames:
         checked_locations = []
@@ -451,6 +504,31 @@ def bins_from_boundaries(boundaries):
 
     return bins
 
+def make_plot_vs_rt(corr_objects,np_bins,fit_data,bin_list=None,r_power=0.,show_plots=True,save_plots=True):
+
+    for corr_object in corr_objects:
+        plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
+        b1 = fit_data['b1']
+        b2 = fit_data['b2']
+        beta1 = fit_data['beta1']
+        beta2 = fit_data['beta2']
+        corr_object.plot_vs_rt(np_bins,b1,b2,beta1,beta2,bin_list=bin_list,r_power=r_power)
+        plt.grid()
+        plt.legend()
+        plt.xlabel(r'$r_t$')
+        plt.ylabel(r'$\xi r^{}$'.format(int(r_power)))
+        
+        title_line_1 = r'{} {}{}; {} pix @ Nside {}; ${} < z < {}$; $r_{{min}} = $??'.format(corr_object.correl_type,corr_object.quantity_1,corr_object.quantity_2,corr_object.N_pixels,16,corr_object.zmin,corr_object.zmax)
+        title_line_2 = r'Model is Legendre decomposition using: $b_\delta$s$ = {:1.3f},{:1.3f}$; $\beta$s$ = {:1.3f},{:1.3f}$'.format(b1,b2,beta1,beta2)
+        title = title_line_1 + '\n' + title_line_2
+        plt.title(title)
+
+        if save_plots:
+            plt.savefig(corr_object.location+'/cf_xi_vs_rt.pdf')
+        if show_plots:
+            plt.show()
+
+    return
 
 
 ###############################################################################
