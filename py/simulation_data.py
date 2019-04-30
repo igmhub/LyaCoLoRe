@@ -561,6 +561,7 @@ class SimulationData:
         else:
             j_value_upper = np.searchsorted(self.Z,z_value + z_width/2.) - 1
             j_value_lower = np.max([0,np.searchsorted(self.Z,z_value - z_width/2.)])
+
             if single_value:
                 mean = np.average(skewer_rows[:,j_value_lower:j_value_upper+1],weights=self.IVAR_rows[:,j_value_lower:j_value_upper+1])
             else:
