@@ -9,14 +9,14 @@ from pyacolore import simulation_data, bias, utils, tuning
 
 #base_dir = '../example_data/lya_skewers/'
 base_dir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v5/v5.0.0/'
-tuning_files = glob.glob('./input_files/tuning_data_with_bias_a2.0_b1.65.fits') 
+tuning_files = glob.glob('./input_files/tuning_data_with_bias_newRSD_vel1.0_afree_b1.65.fits') 
 #+ glob.glob('./input_files/tuning_data_a?.?_b2.0.fits')
 #tuning_files = glob.glob('./input_files/tuning_data_apow4.5_sGconst.fits')
 #z_values = np.array([2.0,2.2,2.4,2.6,2.8,3.0,3.2])
 z_values = np.array([2.0,2.4,2.8,3.2])
-d_value = 10**-9
+d_value = 10**-5
 z_width_value = 0.1
-N_pixels = 32
+N_pixels = 1
 f = 0.9625
 z_r0 = 2.5
 
@@ -70,15 +70,18 @@ def bias_tuning(pixel_object,tuning_filename,z_values,d=0.001,z_width=0.2,z_r0=2
     #Add tau skewers to the object, starting with Lyman-alpha
     pixel_object.compute_all_tau_skewers()
 
+    #Get RSD weights.
+    RSD_weights = pixel_object.get_RSD_weights()
+
     #Add RSDs from the velocity skewers provided by CoLoRe.
-    pixel_object.add_all_RSDs(thermal=include_thermal_effects)
+    pixel_object.add_all_RSDs(thermal=include_thermal_effects,weights=RSD_weights)
 
     #Trim the skewers (remove low lambda cells). Exit if no QSOs are left.
     #We now cut hard at lambda min as RSDs have been implemented.
-    pixel_object.trim_skewers(lambda_min,min_catalog_z,extra_cells=1)
+    #pixel_object.trim_skewers(lambda_min,min_catalog_z,extra_cells=1)
 
     #Calculate biases.
-    b = bias.get_bias_delta(pixel_object,z_values,d=d,z_width=z_width)
+    b = bias.get_bias_delta(pixel_object,z_values,weights=RSD_weights,d=d,z_width=z_width)
     b_eta = bias.get_bias_eta(pixel_object,z_values,d=d,z_width=z_width)
 
     return b,b_eta
