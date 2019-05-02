@@ -3,20 +3,20 @@ Code development to use CoLoRe simulations for generating simulated Lyman alpha 
 It is imortant to notice that the output files of CoLoRe are the input ones for LyaCoLoRe, and LyaCoLoRe's outputs will be the transmission files.
 
 ## Install
-To install, include LyaCoLoRe/py in your PYTHONPATH, with something like: 
+To install, include LyaCoLoRe/py in your PYTHONPATH, with something like:
 export PYTHONPATH=$PYTHONPATH:$HOME/Programs/igmhub/LyaCoLoRe/py
 
 If you would like to add DLAs using the best avaiable code, you'll need to pip install pyigm. But the code should be able to run without it.
 
 ## Examples
-You can find some examples under example_scripts/. For instance, you can: 
+You can find some examples under example_scripts/. For instance, you can:
  - plot_colore_skewer.py : plot a density skewer from CoLoRe
- 
+
  - healpix_quasars.py : plot the angular positions of the quasars in a CoLoRe output, coloured by HEALPix pixel.
- 
+
  - plot_transmission.py : plot the transmitted flux fraction (0 < F < 1) for a processed file.
- 
- 
+
+
 ## Main production of DESI mocks
 
 There are two main stages to processing the output files from a CoLoRe simulation, each with a separate script in LyaCoLoRe. These are:

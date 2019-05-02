@@ -40,7 +40,7 @@ def renormalise(basedir,pixel,IVAR_cutoff,min_number_cells,rebin_size_hMpc,outdi
     N_cells = initial_delta.shape[1]
 
     Z = (10**LOGLAM_MAP)/lya - 1
-    
+
     #Load tha initial mean data.
     mean_data = fits.open(mean_data_filename)
     measured_mean_zs = mean_data[1].data['z']
@@ -55,7 +55,7 @@ def renormalise(basedir,pixel,IVAR_cutoff,min_number_cells,rebin_size_hMpc,outdi
     new_delta = np.zeros(initial_delta.shape)
     for j in range(N_cells):
         new_delta[:,j] = (1 + initial_delta[:,j])/(1 + measured_mean[j]) - 1
-    
+
     #new_delta = initial_delta
     new_delta *= IVAR
 
@@ -117,7 +117,7 @@ def renormalise(basedir,pixel,IVAR_cutoff,min_number_cells,rebin_size_hMpc,outdi
     hdu_iv = fits.ImageHDU(data=picca_1,header=header,name='IV')
     hdu_LOGLAM_MAP = fits.ImageHDU(data=picca_2,header=header,name='LOGLAM_MAP')
     hdu_CATALOG = fits.BinTableHDU(data=picca_3,header=header,name='CATALOG')
-    
+
     #Combine the HDUs into and HDUlist and save as a new file. Close the HDUlist.
     hdulist = fits.HDUList([hdu_delta, hdu_iv, hdu_LOGLAM_MAP, hdu_CATALOG])
     hdulist.writeto(new_pf_filename,overwrite=True)

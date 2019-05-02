@@ -135,7 +135,7 @@ date
 EOF
 
 # copy run file to the output location for record
-cp $RUN_FILE $OUTPUT_PATH 
+cp $RUN_FILE $OUTPUT_PATH
 
 # send the job to the queue
 sbatch $RUN_FILE
