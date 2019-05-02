@@ -40,6 +40,6 @@ for i,location in enumerate(locations):
     plt.ylim(-90.,90.)
     plt.title(location[50:])
     plt.savefig('QSO_map_{}.png'.format(i))
-    
+
 plt.show()
 

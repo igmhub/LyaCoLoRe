@@ -200,7 +200,7 @@ def get_bias_eta(data,z_values,weights_dict=None,d=0.0,z_width=0.2,include_therm
         grad_increase.trim_skewers(lambda_min,lambda_max=lambda_max)
 
         #Copy the noRSD data, add RSDs with the extra shift (decrease), then trim the skewers.
-        grad_decrease = copy.deepcopy(data_noRSDs_z_val) 
+        grad_decrease = copy.deepcopy(data_noRSDs_z_val)
         grad_decrease.add_all_RSDs(weights=weights_grad_decrease,thermal=include_thermal_effects)
         grad_decrease.trim_skewers(lambda_min,lambda_max=lambda_max)
 

@@ -72,14 +72,14 @@ for afix in afixs:
             at = corr_object.at
             at_err = corr_object.at_err
             a_data += [(z_value,ap,ap_err,at,at_err)]
-           
+
             chi2 = corr_object.fval
             ndat = corr_object.ndata
             npar = corr_object.npar
-     
+
             print('|| {} || {:2.3f} +/- {:1.4f} || {:2.3f} +/- {:1.4f} || {:2.3f} +/- {:1.4f} || {:4.1f} / ({:4.0f} - {:1.0f})'.format(z_value,beta_LYA_value,beta_LYA_error,bias_LYA_value,bias_LYA_error,bias_LYA_eta_value,bias_LYA_eta_error,chi2,ndat,npar))
             #print('|| {} || {:2.3f} +/- {:1.4f} || {:2.3f} +/- {:1.4f} || {:4.1f} / ({:4.0f} - {:1.0f})'.format(z_value,ap,ap_err,at,at_err,chi2,ndat,npar))
- 
+
         bb_dtype = [('z', 'd'), ('beta', 'd'), ('beta_err', 'd'), ('bias', 'd'), ('bias_err', 'd'), ('bias_eta', 'd'), ('bias_eta_err', 'd')]
         bb_data = np.array(bb_data,dtype=bb_dtype)
         bb_data = np.sort(bb_data,order=['z'])
@@ -90,7 +90,7 @@ for afix in afixs:
         a_data = np.sort(a_data,order=['z'])
 
         if plot_combined:
-            combined_z_value = combined_corr_object.zeff    
+            combined_z_value = combined_corr_object.zeff
             combined_ap = combined_corr_object.ap
             combined_ap_err = combined_corr_object.ap_err
             combined_at = combined_corr_object.at
@@ -103,7 +103,7 @@ for afix in afixs:
         plt.errorbar(bb_data['z'],bb_data['bias_eta'],yerr=bb_data['bias_eta_err'],marker='o',label='bias_eta(z)',color=bb_colours['bias_eta'])
         plt.errorbar(z_BOSS,beta_BOSS,yerr=beta_BOSS_err,marker='x',label='beta BOSS',color=bb_colours['beta_BOSS'])
         plt.errorbar(z_BOSS,bias_BOSS,yerr=bias_BOSS_err,marker='x',label='bias BOSS',color=bb_colours['bias_BOSS'])
-        plt.errorbar(z_BOSS,bias_eta_BOSS,yerr=bias_eta_BOSS_err,marker='x',label='bias_eta BOSS',color=bb_colours['bias_eta_BOSS'])        
+        plt.errorbar(z_BOSS,bias_eta_BOSS,yerr=bias_eta_BOSS_err,marker='x',label='bias_eta BOSS',color=bb_colours['bias_eta_BOSS'])
         plt.legend()
         plt.grid()
         plt.xlabel('z')
@@ -125,7 +125,7 @@ for afix in afixs:
         plt.savefig(location+'/biases'+suffix+'.pdf')
         if show_plots:
             plt.show()
-        
+
         #Plot alphas
         if afix == 'free':
             plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
