@@ -9,11 +9,11 @@ To install, include `LyaCoLoRe/py` in your `PYTHONPATH`, with something like:
 export PYTHONPATH=$PYTHONPATH:$HOME/Programs/igmhub/LyaCoLoRe/py
 ```
 
-If you would like to add DLAs using the best avaiable code, you'll need to pip install pyigm.
+If you would like to add DLAs using the best avaiable code, you'll need to `pip install pyigm`.
 But the code should be able to run without it.
 
 ## Examples
-You can find some examples under example_scripts/. For instance, you can: 
+You can find some examples under `example_scripts/`. For instance, you can: 
  - `plot_colore_skewer.py`: plot a density skewer from CoLoRe
  
  - `healpix_quasars.py`: plot the angular positions of the quasars in a CoLoRe output,
@@ -36,7 +36,7 @@ scripts/make_master.py --in-dir example_data/raw_colore_1000/ --out-dir /path/to
 ```
 
 The input directory should contain all of the output files from CoLoRe, including
-the out_params.cfg file. The output directory should be empty. The option `--nside`
+the `out_params.cfg` file. The output directory should be empty. The option `--nside`
 specifies how fine a HEALPix pixelisation you would like to use (this should be a power of 2).
 The option `--nproc` specifies the number of processes for the computer to use
 (a single NERSC compute node can use 64) in order to ensure the script runs quickly.
@@ -68,7 +68,7 @@ would produce output files for pixels 0, 1, 2 and 3 and ignore all other pixels
  - If you would only like to produce transmission files (and not Gaussian or Density files),
 then the option `--transmission-only` will do this
  - You probably want to add RSD to the flux skewers. If so, you'll need to add the
-flag --add-RSDs.
+flag `--add-RSDs`.
  - The flags `--add-Lyb` and `--add-metals` will add these to the files.
 
 These two stages can be carried out in parallel using the script
