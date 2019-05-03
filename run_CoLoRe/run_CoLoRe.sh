@@ -91,7 +91,7 @@ umask 0002
 export OMP_NUM_THREADS=64
 
 date
-srun -n $NODES -c 64 $COLORE_PATH/CoLoRe $PARAM_FILE  
+srun -n $NODES -c 64 $COLORE_PATH/CoLoRe $PARAM_FILE
 date
 
 EOF
