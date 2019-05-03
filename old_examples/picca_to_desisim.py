@@ -13,7 +13,7 @@ h = fitsio.FITS(filename)
 catalog = h[3].read()
 # get arraw with redshift in each cell of grid
 loglam = h[2].read()
-# Get deltas (fluctuation around mean density) 
+# Get deltas (fluctuation around mean density)
 delta = h[0].read()
 z_qso = catalog['Z']
 print('# initial quasars =',len(z_qso))
@@ -75,7 +75,7 @@ for pix in range(Npix):
         # Convert density to flux
         tau = mock.get_tau(z,1+delta_in_pix[:,i])
         flux = np.exp(-tau)
-        # only add absorption in the forest 
+        # only add absorption in the forest
         no_forest = (z > z_in_pix[i])
         flux[no_forest]=1.0
         data = {}

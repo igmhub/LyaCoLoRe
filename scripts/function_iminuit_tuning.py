@@ -205,7 +205,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,R_kms,vel_boos
 
         #print(pixel,'{:3.2f} checkpoint b_eta weights measured'.format(time.time()-t))
         t = time.time()
-        
+
         return (pixel,RSD_weights,b_eta_weights_dict)
     else:
         RSD_weights = RSD_weights_dict[pixel]
@@ -369,7 +369,7 @@ s_kwargs = {'n'  : initial_n,       'error_n' : 1.0,    'fix_n' : fix_all|fix_n,
             }
 
 other_kwargs = {'R'  : initial_R,    'error_R' : 1.0,   'fix_R' : fix_all|fix_R,       'limit_R' : (0., 1000.),
-                'vb' : initial_vb,   'error_vb' : 0.1,  'fix_vb' : fix_all|fix_vb,     'limit_vb' : (0., 2.0), 
+                'vb' : initial_vb,   'error_vb' : 0.1,  'fix_vb' : fix_all|fix_vb,     'limit_vb' : (0., 2.0),
                 'return_measurements'  : False,    'fix_return_measurements' : True,
                 'errordef'             : 1,
                 }
