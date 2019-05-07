@@ -88,7 +88,7 @@ def pdf_tuning(pixel_object,tuning_filename,z_values,z_width=0.2,bins=100):
         z_hist['edges'] = edges
         histograms[z_value] = z_hist
         centres = edges[:-1]/2. + edges[1:]/2.
-    
+
     return histograms
 
 
