@@ -360,8 +360,8 @@ class SimulationData:
         self.LOGLAM_MAP = np.log10(lya*(1+self.Z))
 
         # TODO: What to do with this?
-        self.VEL_rows = interp1d(old_R,self.VEL_rows,axis=1,kind='linear')(self.R)
-        #self.VEL_rows = self.VEL_rows[:,NGPs]
+        #self.VEL_rows = interp1d(old_R,self.VEL_rows,axis=1,kind='linear')(self.R)
+        self.VEL_rows = self.VEL_rows[:,NGPs]
 
         #Can either make new IVAR rows, or just use NGPs on the old ones.
         self.IVAR_rows = self.IVAR_rows[:,NGPs]

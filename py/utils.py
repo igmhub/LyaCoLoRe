@@ -120,7 +120,7 @@ def add_pixel_neighbours(pixels,N_side=16):
     return np.array(list(final_pixel_set))
 
 #Function to return a filter for restricting the QSO footprint.
-def choose_filter(desi_footprint,desi_footprint_pixel,desi_footprint_pixel_plus,desimodel_installed,N_side=16):
+def choose_filter(desi_footprint,desi_footprint_pixel,desi_footprint_pixel_plus,desimodel_installed,N_side=16,pixel_list=None):
 
     if np.sum((desi_footprint,desi_footprint_pixel,desi_footprint_pixel_plus)) > 1:
             raise ValueError('Please choose only 1 type of DESI footprint.')
