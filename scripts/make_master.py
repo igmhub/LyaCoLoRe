@@ -61,6 +61,9 @@ parser.add_argument('--nskewers', type = int, default = None, required=False,
 parser.add_argument('--add-picca-drqs', action="store_true", default = False, required=False,
                     help = 'save picca format drq files')
 
+parser.add_argument('--pixels', type = int, default = None, required=False,
+                    help = 'which pixel numbers to work on', nargs='*')
+
 parser.add_argument('--desi-footprint', action="store_true", default = False, required=False,
                     help = 'use the desi footprint (requires desimodel)')
 
@@ -90,6 +93,7 @@ N_processes = args.nproc
 parameter_filename = args.param_file
 N_skewers = args.nskewers
 add_picca_drqs = args.add_picca_drqs
+pixel_list = args.pixels
 desi_footprint = args.desi_footprint
 desi_footprint_pixel = args.desi_footprint_pixel
 desi_footprint_pixel_plus = args.desi_footprint_pixel_plus
@@ -165,7 +169,7 @@ QSO_filter = utils.choose_filter(desi_footprint,desi_footprint_pixel,desi_footpr
 #Define the process to make the master data.
 def make_master_data(original_file_location,original_filename_structure,file_number,input_format,N_side,minimum_z=min_catalog_z):
 
-    file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element = catalog.get_ID_data(original_file_location,original_filename_structure,file_number,input_format,N_side,minimum_z=min_catalog_z,downsampling=downsampling,QSO_filter=QSO_filter)
+    file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element = catalog.get_ID_data(original_file_location,original_filename_structure,file_number,input_format,N_side,minimum_z=min_catalog_z,downsampling=downsampling,QSO_filter=QSO_filter,pixel_list=pixel_list)
 
     return [file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element]
 
