@@ -7,16 +7,21 @@ from astropy.io import fits
 
 from pyacolore import simulation_data, bias, utils, tuning
 
+lya = utils.lya_rest
+
 #base_dir = '../example_data/lya_skewers/'
 base_dir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v5/v5.0.0/'
-tuning_files = glob.glob('./input_files/tuning_data_with_bias_newRSD_vel1.0_afree_b1.65.fits') 
+tuning_files = glob.glob('./input_files/tuning_data_with_bias_oldRSD_velNGP_afree_b1.65.fits') 
+tuning_files = glob.glob('./input_files/tuning_data_with_bias_newRSD_vel1.0_afree_b1.65.fits')
 #+ glob.glob('./input_files/tuning_data_a?.?_b2.0.fits')
 #tuning_files = glob.glob('./input_files/tuning_data_apow4.5_sGconst.fits')
 #z_values = np.array([2.0,2.2,2.4,2.6,2.8,3.0,3.2])
 z_values = np.array([2.0,2.4,2.8,3.2])
-d_value = 10**-5
+z_values = np.array([2.4])
+d_delta = 10**-3
+d_eta = 10**-9
 z_width_value = 0.1
-N_pixels = 1
+N_pixels = 32
 f = 0.9625
 z_r0 = 2.5
 
@@ -37,7 +42,7 @@ vel_boost = 1.0
 include_thermal_effects = False
 N_side = 16
 
-def bias_tuning(pixel_object,tuning_filename,z_values,d=0.001,z_width=0.2,z_r0=2.5):
+def bias_tuning(pixel_object,tuning_filename,z_values,d_delta=10**-9,d_eta=10**-2,z_width=0.2,z_r0=2.5):
 
     #Get tuning data
     h = fits.open(tuning_filename)
@@ -56,14 +61,22 @@ def bias_tuning(pixel_object,tuning_filename,z_values,d=0.001,z_width=0.2,z_r0=2
     #Trim the skewers (remove low lambda cells). Exit if no QSOs are left.
     #We don't cut too tightly on the low lambda to allow for RSDs.
     lambda_buffer = 100. #A
-    pixel_object.trim_skewers(lambda_min-lambda_buffer,min_catalog_z,extra_cells=1)
+    #pixel_object.trim_skewers(lambda_min-lambda_buffer,min_catalog_z,extra_cells=1)
     if pixel_object.N_qso == 0:
         print('\nwarning: no objects left in pixel {} after trimming.'.format(pixel))
         return pixel
 
+    #trim skewers to the minimal length
+    #extra = 4.0
+    #z_lower_cut = np.min(z_values) - z_width*(1+extra)/2.
+    #z_upper_cut = np.max(z_values) + z_width*(1+extra)/2.
+    #lambda_min_val = np.min([lambda_min,lya*(1 + z_lower_cut)])
+    #lambda_max_val = lya*(1 + z_upper_cut)
+    #pixel_object.trim_skewers(lambda_min_val,min_catalog_z,lambda_max=lambda_max_val,whole_lambda_range=False)
+
     #Add small scale power to the gaussian skewers:
     generator = np.random.RandomState(seed)
-    pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,generator,white_noise=False,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff,n=n,k1=k1,R_kms=R_kms)
+    #pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,generator,white_noise=False,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff,n=n,k1=k1,R_kms=R_kms)
     #Recompute physical skewers.
     pixel_object.compute_physical_skewers()
 
@@ -81,13 +94,13 @@ def bias_tuning(pixel_object,tuning_filename,z_values,d=0.001,z_width=0.2,z_r0=2
     #pixel_object.trim_skewers(lambda_min,min_catalog_z,extra_cells=1)
 
     #Calculate biases.
-    b = bias.get_bias_delta(pixel_object,z_values,weights=RSD_weights,d=d,z_width=z_width)
-    b_eta = bias.get_bias_eta(pixel_object,z_values,d=d,z_width=z_width)
+    b = bias.get_bias_delta(pixel_object,z_values,weights=RSD_weights,d=d_delta,z_width=z_width)
+    b_eta = bias.get_bias_eta(pixel_object,z_values,d=d_eta,z_width=z_width)
 
     return b,b_eta
 
 
-def pixel_tuning_bias(pixel,tuning_filename,z_values,d=0.001,z_width=0.2,vel_boost=1.0):
+def pixel_tuning_bias(pixel,tuning_filename,z_values,d_delta=10**-9,d_eta=10**-2,z_width=0.2,vel_boost=1.0):
 
     dirname = utils.get_dir_name(base_dir,pixel)
     gaussian_filename = utils.get_file_name(dirname,'gaussian-colore',N_side,pixel)
@@ -95,7 +108,7 @@ def pixel_tuning_bias(pixel,tuning_filename,z_values,d=0.001,z_width=0.2,vel_boo
     pixel_object = simulation_data.SimulationData.get_gaussian_skewers_object(gaussian_filename,file_number,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
     pixel_object.VEL_rows *= vel_boost
 
-    b,b_eta = bias_tuning(pixel_object,tuning_filename,z_values,d=d,z_width=z_width)
+    b,b_eta = bias_tuning(pixel_object,tuning_filename,z_values,d_delta=d_delta,d_eta=d_eta,z_width=z_width)
 
     return (b,b_eta)
 
@@ -121,7 +134,7 @@ def log_error(retval):
 ################################################################################
 
 for tuning_filename in tuning_files:
-    tasks = [(pixel,tuning_filename,z_values,d_value,z_width_value,vel_boost) for pixel in pixels]
+    tasks = [(pixel,tuning_filename,z_values,d_delta,d_eta,z_width_value,vel_boost) for pixel in pixels]
 
     #Run the multiprocessing pool
     if __name__ == '__main__':
