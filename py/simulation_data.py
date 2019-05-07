@@ -258,7 +258,7 @@ class SimulationData:
         return cls(N_qso,N_cells,SIGMA_G,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,R,Z,D,V,LOGLAM_MAP)
 
     #Function to trim skewers according to a minimum value of lambda. QSOs with no relevant cells are removed.
-    def trim_skewers(self,lambda_min,min_catalog_z=0.,extra_cells=0,lambda_max=None,whole_lambda_range=False):
+    def trim_skewers(self,lambda_min=0.,min_catalog_z=0.,extra_cells=0,lambda_max=None,whole_lambda_range=False,remove_irrelevant_QSOs=False):
 
         lambdas = 10**(self.LOGLAM_MAP)
         first_relevant_cell = np.searchsorted(lambdas,lambda_min)
@@ -276,6 +276,8 @@ class SimulationData:
 
         #Determine which QSOs have any relevant cells to keep.
         relevant_QSOs = (self.Z_QSO>min_catalog_z)
+        if remove_irrelevant_QSOs:
+            relevant_QSOs *= (np.sum(self.IVAR_rows,axis=1)>0)
 
         #If we want the entirety of the lambda range to be relevant (i.e. with IVAR=1), we must remove skewers that do not have this
         if whole_lambda_range:
@@ -358,8 +360,8 @@ class SimulationData:
         self.LOGLAM_MAP = np.log10(lya*(1+self.Z))
 
         # TODO: What to do with this?
-        self.VEL_rows = interp1d(old_R,self.VEL_rows,axis=1,kind='linear')(self.R)
-        #self.VEL_rows = self.VEL_rows[:,NGPs]
+        #self.VEL_rows = interp1d(old_R,self.VEL_rows,axis=1,kind='linear')(self.R)
+        self.VEL_rows = self.VEL_rows[:,NGPs]
 
         #Can either make new IVAR rows, or just use NGPs on the old ones.
         self.IVAR_rows = self.IVAR_rows[:,NGPs]
@@ -559,6 +561,7 @@ class SimulationData:
         else:
             j_value_upper = np.searchsorted(self.Z,z_value + z_width/2.) - 1
             j_value_lower = np.max([0,np.searchsorted(self.Z,z_value - z_width/2.)])
+
             if single_value:
                 mean = np.average(skewer_rows[:,j_value_lower:j_value_upper+1],weights=self.IVAR_rows[:,j_value_lower:j_value_upper+1])
             else:
