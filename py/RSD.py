@@ -275,6 +275,7 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
             else:
 
 
+                """
 
                 #If the cell ends up having some overlap with the skewer, find which cells it contributes to.
                 if (x_ue_s > x_ledges[0]) * (x_le_s < x_uedges[-1]):
@@ -340,7 +341,6 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
                     data += [w_lower,w_upper]
                     indptr += [(indptr[-1] + 2)]
 
-                """
 
 
 
