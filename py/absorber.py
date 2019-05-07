@@ -18,7 +18,7 @@ class AbsorberData:
         return
 
     def tau_computed(self):
-        if self.tau is None: 
+        if self.tau is None:
             return False
         return True
 

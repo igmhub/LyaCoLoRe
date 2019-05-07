@@ -518,7 +518,7 @@ def make_plot_vs_rt(corr_objects,np_bins,fit_data,bin_list=None,r_power=0.,show_
         plt.legend()
         plt.xlabel(r'$r_t$')
         plt.ylabel(r'$\xi r^{}$'.format(int(r_power)))
-        
+
         title_line_1 = r'{} {}{}; {} pix @ Nside {}; ${} < z < {}$; $r_{{min}} = $??'.format(corr_object.correl_type,corr_object.quantity_1,corr_object.quantity_2,corr_object.N_pixels,16,corr_object.zmin,corr_object.zmax)
         title_line_2 = r'Model is Legendre decomposition using: $b_\delta$s$ = {:1.3f},{:1.3f}$; $\beta$s$ = {:1.3f},{:1.3f}$'.format(b1,b2,beta1,beta2)
         title = title_line_1 + '\n' + title_line_2

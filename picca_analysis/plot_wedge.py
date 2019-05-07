@@ -15,7 +15,7 @@ filename='cf_exp.fits.gz'
 
 if len(sys.argv)>1:
     filename=sys.argv[1]
-     
+
 wedgize_args = sys.argv[2]
 if len(wedgize_args) != 7:
     print("Not enough arguments for wedgizing. 7 are required:")
