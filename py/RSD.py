@@ -274,6 +274,8 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
             #If we do not want to include thermal effects, we only allocate to the cell above and the cell below.
             else:
 
+
+
                 #If the cell ends up having some overlap with the skewer, find which cells it contributes to.
                 if (x_ue_s > x_ledges[0]) * (x_le_s < x_uedges[-1]):
                     j_lower = np.searchsorted(x_uedges,x_le_s)
@@ -334,10 +336,12 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
                     w_lower = abs(new_x_kms_cell - x_kms_upper)/(x_kms_upper - x_kms_lower)
 
                     indices += [j_lower,j_upper]
+                    w = [w_lower,w_upper]
                     data += [w_lower,w_upper]
                     indptr += [(indptr[-1] + 2)]
 
                 """
+
 
 
         indptr += [indptr[-1]]*(N_cells + 1 - len(indptr))
