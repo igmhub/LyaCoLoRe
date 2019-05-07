@@ -272,7 +272,8 @@ class picca_correlation:
 
         #Using our model
         model = 'Slosar11'
-        r,xi = correlation_model.get_model_xi(model,self.quantity_1,self.quantity_2,b1,b2,beta1,beta2,self.zeff,mubin)
+        z_value = (self.zmin + self.zmax) / 2.
+        r,xi = correlation_model.get_model_xi(model,self.quantity_1,self.quantity_2,b1,b2,beta1,beta2,z_value,mubin)
         indices = r<rmax
         r = r[indices]
         xi = xi[indices]

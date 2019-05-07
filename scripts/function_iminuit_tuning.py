@@ -27,21 +27,21 @@ lambda_buffer = 100. #Angstroms
 eps_Pk1D = 0.1
 eps_mean_F = 0.025
 eps_bias_delta = 0.025
-eps_bias_eta = 0.025
+eps_bias_eta = 10**6#0.025
 d_delta = 10.**-3
-d_eta = 10**-2
+d_eta = 10**-9
 
 #Choose tuning parameter initial values.
-initial_C0 = 1.1891853249518913
+initial_C0 = 1.4665375029450034
 initial_C1 = 4.5
 initial_C2 = 0.0
 initial_beta = 1.65
-initial_D0 = 5.854471049908749
-initial_D1 = 0.3206980076648007
+initial_D0 = 6.103687317112405
+initial_D1 = 0.32156149272713025
 initial_D2 = 0.0
-initial_n = 1.0485428387041913
-initial_k1 = 0.02092561603933631
-initial_R_kms = 25.0
+initial_n = 0.8322104177553062
+initial_k1 = 0.017492626170643323
+initial_R = 25.0 #kms-1
 initial_vb = 1.0
 
 #Choose parameters to fix.
@@ -55,16 +55,16 @@ fix_D1 = False
 fix_D2 = True
 fix_n = False
 fix_k1 = False
-fix_R_kms = True
-fix_vb = False
+fix_R = True
+fix_vb = True
 
 #Admin options
 k_plot_max = 0.1
-show_plots = True
+show_plots = False
 save_plots = True
-suffix = '_with_biases_velfree_a{}_b{}'.format('aampfree',initial_beta)
+suffix = '_with_bias_{}RSD_vel{}_a{}_b{}'.format('new','NGP','free',initial_beta)
 save_tuning = True
-overwrite_tuning = False
+overwrite_tuning = True
 tuning_filename = 'input_files/tuning_data' + suffix + '.fits'
 
 #Get the starting values of alpha, beta and sigma_G from file
@@ -232,7 +232,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,R_kms,vel_boos
             #measurement.add_sigma_dF_measurement(data)
             times_m[3] += time.time() - t_m
             t_m = time.time()
-            measurement.add_bias_delta_measurement(data,d=d_delta)
+            measurement.add_bias_delta_measurement(data,d=d_delta,weights=RSD_weights)
             times_m[4] += time.time() - t_m
             t_m = time.time()
             measurement.add_bias_eta_measurement(data,d=d_eta,weights_dict=bias_eta_weights,lambda_buffer=lambda_buffer)
@@ -390,6 +390,8 @@ D1 = minuit.values['D1']
 D2 = minuit.values['D2']
 n = minuit.values['n']
 k1 = minuit.values['k1']
+R = minuit.values['R']
+vb = minuit.values['vb']
 
 print(minuit.values)
 
@@ -426,7 +428,7 @@ if save_tuning:
     save_tuning_file(tuning_filename,overwrite=overwrite_tuning)
 
 #Do a final run to get the measurements.
-final_chi2,final_measurements = f(C0,C1,C2,beta,D0,D1,D2,n,k1,return_measurements=True)
+final_chi2,final_measurements = f(C0,C1,C2,beta,D0,D1,D2,n,k1,R,vb,return_measurements=True)
 
 #Plot a graph of mean_F, bias_delta or bias_eta with redshift
 def plot_scalar_measurement_values(m_set,data_type='mean_F',show_plot=True,save_plot=False):

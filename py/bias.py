@@ -8,20 +8,37 @@ lya = utils.lya_rest
 
 #Function to get the bias of delta at various z values from a sim data object.
 #Assumes that the object already has tau calculated and RSDs applied.
-def get_bias_delta(data,z_values,d=0.001,z_width=0.2):
+def get_bias_delta(data,z_values,weights=None,d=0.001,z_width=0.2):
 
     betas = data.transformation.get_texp(data.Z)
 
     if isinstance(z_values, float):
         z_values = np.array([z_values])
 
+    if not weights:
+        print('no weights dict provided to get_bias_delta. Calculating weights...')
+        weights = data.get_RSD_weights()
+
     #Add small extra delta to Gaussian skewers to simulate overdensity
     overdensity = copy.deepcopy(data)
+    #overdensity.GAUSSIAN_DELTA_rows += d
+    #overdensity.compute_physical_skewers()
+    #overdensity.compute_all_tau_skewers()
     overdensity.lya_absorber.tau *= np.exp(betas*overdensity.D*d)
+    overdensity.add_RSDs(overdensity.lya_absorber,weights=weights)
 
     #Subtract small extra delta to Gaussian skewers to simulate underdensity
     underdensity = copy.deepcopy(data)
+    #underdensity.GAUSSIAN_DELTA_rows -= d   
+    #underdensity.compute_physical_skewers()
+    #underdensity.compute_all_tau_skewers()
     underdensity.lya_absorber.tau /= np.exp(betas*underdensity.D*d)
+    underdensity.add_RSDs(underdensity.lya_absorber,weights=weights)
+
+    #Don't think this is quite valid as D(r_j) != D(s_j)
+    #i.e. RSDs muddle the cells in each skewer and so this scaling would need to be done before adding RSDs
+    #Same applies to the overdensity, of course
+    #underdensity.lya_absorber.tau /= np.exp(betas*underdensity.D*d)
 
     #Calculate mean fluxes in under and overdensities, as well as normal
     biases = []

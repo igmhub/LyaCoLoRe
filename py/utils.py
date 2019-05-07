@@ -120,7 +120,7 @@ def add_pixel_neighbours(pixels,N_side=16):
     return np.array(list(final_pixel_set))
 
 #Function to return a filter for restricting the QSO footprint.
-def choose_filter(desi_footprint,desi_footprint_pixel,desi_footprint_pixel_plus,desimodel_installed,N_side=16):
+def choose_filter(desi_footprint,desi_footprint_pixel,desi_footprint_pixel_plus,desimodel_installed,N_side=16,pixel_list=None):
 
     if np.sum((desi_footprint,desi_footprint_pixel,desi_footprint_pixel_plus)) > 1:
             raise ValueError('Please choose only 1 type of DESI footprint.')
@@ -361,17 +361,17 @@ def renorm_rebin_picca_file(filepath,old_mean=None,new_mean=None,N_merge=None,IV
     if N_merge is not None:
         if N_merge > 1:
             #Merge the deltas and make a new LOGLAM_MAP.
-            new_delta_rows = merge_cells(renorm_delta_rows,N_merge)
+            new_delta_rows = merge_cells(renorm_delta_rows,N_merge).astype('float32')
             old_lambdas = 10**hdu_LOGLAM_MAP.data
-            new_LOGLAM_MAP = np.log10(merge_cells(old_lambdas,N_merge))
+            new_LOGLAM_MAP = np.log10(merge_cells(old_lambdas,N_merge)).astype('float32')
 
             #Determine which new cells are made of entirely
             Z_QSO = hdu_CATALOG.data['Z']
             new_iv_rows = (merge_cells(hdu_iv.data.T,N_merge)==1).astype('float32')
             #new_iv_rows = make_IVAR_rows(IVAR_cutoff,Z_QSO,new_LOGLAM_MAP)
             relevant_QSOs = (np.sum(new_iv_rows,axis=1)>min_number_cells)
-            new_delta_rows = new_delta_rows[relevant_QSOs,:]
-            new_iv_rows = new_iv_rows[relevant_QSOs,:]
+            new_delta_rows = new_delta_rows[relevant_QSOs,:].astype('float32')
+            new_iv_rows = new_iv_rows[relevant_QSOs,:].astype('float32')
             catalog_data = hdu_CATALOG.data[relevant_QSOs]
 
             #Reconstruct the non-delta HDUs.
@@ -381,13 +381,13 @@ def renorm_rebin_picca_file(filepath,old_mean=None,new_mean=None,N_merge=None,IV
             hdu_CATALOG_new = fits.BinTableHDU(catalog_data,header=hdu_CATALOG.header,name='CATALOG')
 
         else:
-            new_delta_rows = renorm_delta_rows
+            new_delta_rows = renorm_delta_rows.astype('float32')
             hdu_deltas_new = fits.PrimaryHDU(data=new_delta_rows.T,header=header)
             hdu_iv_new = hdu_iv
             hdu_LOGLAM_MAP_new = hdu_LOGLAM_MAP
             hdu_CATALOG_new = hdu_CATALOG
     else:
-        new_delta_rows = renorm_delta_rows
+        new_delta_rows = renorm_delta_rows.astype('float32')
         hdu_deltas_new = fits.PrimaryHDU(data=new_delta_rows.T,header=header)
         hdu_iv_new = hdu_iv
         hdu_LOGLAM_MAP_new = hdu_LOGLAM_MAP
