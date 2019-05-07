@@ -15,7 +15,7 @@ h = fits.open(filename)
 catalog = h[3].data
 # get arraw with redshift in each cell of grid
 loglam = h[2].data
-# get deltas (fluctuation around mean density) 
+# get deltas (fluctuation around mean density)
 delta = h[0].data
 print('original delta shape',delta.shape)
 
@@ -88,7 +88,7 @@ for pix in range(Npix):
     dec=qso_in_pix['DEC']
     zq=qso_in_pix['Z']
     mockid=qso_in_pix['THING_ID']
-    
+
     #Construct a table for the meta-data hdu
     col_ra = fits.Column(name='RA', array=ra, format='E')
     col_dec = fits.Column(name='DEC', array=dec, format='E')
@@ -96,17 +96,17 @@ for pix in range(Npix):
     col_id = fits.Column(name='MOCKID', array=mockid, format='A10')
     meta_hdu = fits.BinTableHDU.from_columns([col_ra, col_dec, col_zq, col_id],name='METADATA')
     #meta_hdu.writeto('test_'+str(pix)+'.fits')
-        
+
     flux = np.empty_like(delta_in_pix)
     for i in range(N_in_pix):
         # Convert density to flux
         tau = mock.get_tau(z,1+delta_in_pix[:,i])
         toflux = np.exp(-tau)
-        # only add absorption in the forest 
+        # only add absorption in the forest
         no_forest = (z > z_qso[i])
         toflux[no_forest]=1.0
         flux[:,i]=toflux
-    
+
     wave_hdu = fits.ImageHDU(data=wave,name='WAVELENGTH')
     flux_hdu = fits.ImageHDU(data=flux,name='TRANSMISSION')
     hdulist = fits.HDUList([prim_hdu,meta_hdu,wave_hdu,flux_hdu])
