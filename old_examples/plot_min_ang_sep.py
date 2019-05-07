@@ -29,13 +29,13 @@ def calculate_separations(RA,DEC):
         if (i+1)//100 == (i+1)/100:
             print('output file {} of {}'.format(i+1,N_qso),end='\r')
 
-        
+
         times = []
         previous_time = time.time()
         """
         times += [time.time()-previous_time]
         previous_time = time.time()
-        """        
+        """
 
         #Centre the RA values on the current QSO, and go to angular separation
         RA_centred = RA - RA[i]
@@ -45,7 +45,7 @@ def calculate_separations(RA,DEC):
 
         #iRA = np.searchsorted(RA_sorted,RA[i])
         #iDEC = np.searchsorted(DEC_sorted,DEC[i])
-        
+
         times += [time.time()-previous_time]
         previous_time = time.time()
 
@@ -64,7 +64,7 @@ def calculate_separations(RA,DEC):
         else:
             RA_diff[i] = np.min(RA_sorted[iRA]-RA_sorted[iRA-1],RA_sorted[iRA+1]-RA_sorted[iRA])
 
-        if iRA==0: 
+        if iRA==0:
             RA_diff[i] = np.min(RA_sorted[iRA]-RA_sorted[-1],RA_sorted[iRA+1]-RA_sorted[iRA])
         elif iRA==N_qso:
             RA_diff[i] = np.min(RA_sorted[iRA]-RA_sorted[iRA-1],RA_sorted[0]-RA_sorted[iRA])
@@ -78,10 +78,10 @@ def calculate_separations(RA,DEC):
         #Work out which QSOs are within bounds. This avoids having to calculate the angular separation of all QSOs, only those that are relatively close.
         bound = ANG_bound
         within_bound = (RA_separation<bound)*(DEC_separation<bound)
-      
+
         times += [time.time()-previous_time]
         previous_time = time.time()
- 
+
         while np.sum(within_bound) <= 1:
             bound *= 2
             print('\n  -> i={}: increasing bound from {} to {}'.format(i,bound/2.,bound))

@@ -9,7 +9,7 @@ from pyacolore import simulation_data, bias, tuning, utils
 
 #base_dir = '../example_data/lya_skewers/'
 base_dir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v5/v5.0.0/'
-tuning_files = glob.glob('./input_files/tuning_data_a?.?_b1.65.fits') 
+tuning_files = glob.glob('./input_files/tuning_data_a?.?_b1.65.fits')
 #+ glob.glob('./input_files/tuning_data_a?.?_b2.0.fits')
 #tuning_files = glob.glob('./input_files/tuning_data_apow4.5_sGconst.fits')
 z_values = np.array([2.0,2.2,2.4,2.6,2.8,3.0,3.2])
@@ -77,7 +77,7 @@ import copy
 from pyacolore import utils
 
 lya = utils.lya_rest
-d = 10**-3 
+d = 10**-3
 
 data = copy.deepcopy(pixel_object)
 data_noRSDs = copy.deepcopy(data)

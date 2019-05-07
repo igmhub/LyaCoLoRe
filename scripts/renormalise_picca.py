@@ -148,7 +148,7 @@ def renormalise(basedir,pixel,IVAR_cutoff,min_number_cells,rebin_size_hMpc,outdi
     hdu_iv = fits.ImageHDU(data=picca_1,header=header,name='IV')
     hdu_LOGLAM_MAP = fits.ImageHDU(data=picca_2,header=header,name='LOGLAM_MAP')
     hdu_CATALOG = fits.BinTableHDU(data=picca_3,header=header,name='CATALOG')
-    
+
     #Combine the HDUs into and HDUlist and save as a new file. Close the HDUlist.
     hdulist = fits.HDUList([hdu_delta, hdu_iv, hdu_LOGLAM_MAP, hdu_CATALOG])
     hdulist.writeto(new_pf_filename,overwrite=True)

@@ -12,7 +12,7 @@ def generate_rnd(factor=3, out_path= None, method='use_catalog', catalog_path= N
     """
     Routine to generate a random catalog in 3D following
     certain N(z) distribution
-    
+
     Args:
     ----
     rad: z-values of the data catalog
@@ -33,7 +33,7 @@ def generate_rnd(factor=3, out_path= None, method='use_catalog', catalog_path= N
         if catalog_path is None:
             raise ValueError('Needed a path to read the catalog')
         tab = fitsio.read(catalog_path)
-        z_rnd = np.random.choice(tab['Z_QSO_RSD'], size=ntot)+1e-6*np.random.normal(size=ntot)  
+        z_rnd = np.random.choice(tab['Z_QSO_RSD'], size=ntot)+1e-6*np.random.normal(size=ntot)
     if method=='rnd_choice':
         z_rnd = np.random.choice(zvec[zvec>1.8],p=dndz[zvec>1.8]/np.sum(dndz[zvec>1.8]),size=ntot)+2*(z[1]-z[0])*np.random.normal(size=ntot)
     if method=='cdf':
@@ -45,8 +45,8 @@ def generate_rnd(factor=3, out_path= None, method='use_catalog', catalog_path= N
     cth_rnd = -1+2.*np.random.random(size=len(z_rnd))
     dec_rnd = np.arcsin(cth_rnd)*180/np.pi
     #pixnums = hp.ang2pix(256,np.pi/2-tab['DEC']*np.pi/180, np.pi/180*tab['RA'])
-    #pixnums2 = hp.ang2pix(256,np.pi/2-dec_rnd*np.pi/180, np.pi/180*ra_rnd) 
-    footprint_filename=os.path.join(os.environ['DESIMODEL'],'data','footprint','desi-healpix-weights.fits')   
+    #pixnums2 = hp.ang2pix(256,np.pi/2-dec_rnd*np.pi/180, np.pi/180*ra_rnd)
+    footprint_filename=os.path.join(os.environ['DESIMODEL'],'data','footprint','desi-healpix-weights.fits')
     pixmap=fitsio.read(footprint_filename)
     footprint_healpix_weight = load_pixweight(footprint_healpix_nside, pixmap=pixmap)
     footprint_healpix = footprint.radec2pix(footprint_healpix_nside, ra_rnd, dec_rnd)

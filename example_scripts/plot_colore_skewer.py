@@ -17,7 +17,7 @@ print(np.min(z_qso),'< z_qso <',np.max(z_qso))
 z = h[4].read()['Z']
 Nz=len(z)
 
-# get deltas (fluctuation around mean density) and line of sight velocity 
+# get deltas (fluctuation around mean density) and line of sight velocity
 delta = h[2].read()
 velocity = h[3].read()
 
