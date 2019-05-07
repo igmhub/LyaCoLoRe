@@ -9,14 +9,14 @@ from pyacolore import tuning,utils
 
 lya = utils.lya_rest
 
-quantity = 'flux'
+quantity = 'picca-flux'
 IVAR_cutoff = 1150.
-basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_newNz_mpz0_seed1003_123_nside16/'
+basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v4.2/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_newNz_mpz0_seed1003_123_nside16_DLAfix2_tuning131118_beta2/'
 outdir = basedir
-mean_data_filename = 'mean_data_{}_cut{}_v4.0.fits'.format(quantity,IVAR_cutoff)
+mean_data_filename = 'mean_data_{}_cut{}_v4.2_beta2.fits'.format(quantity,IVAR_cutoff)
 min_number_cells = 2
 rebin_size_hMpc = 2.3637
-N_processes = 64
+N_processes = 32
 
 pixel_list = list(range(3072))
 
@@ -25,7 +25,7 @@ def renormalise(basedir,pixel,IVAR_cutoff,min_number_cells,rebin_size_hMpc,outdi
     #Catalog dtype = [('RA', 'f8'), ('DEC', 'f8'), ('Z', 'f8'), ('Z_noRSD', 'f8'), ('MOCKID', int)]
 
     #Open the original picca flux file and extract the data.
-    p_filename = basedir + '/{}/{}/picca-{}-16-{}.fits'.format(pixel//100,pixel,quantity,pixel)
+    p_filename = basedir + '/{}/{}/{}-16-{}.fits'.format(pixel//100,pixel,quantity,pixel)
     h = fits.open(p_filename)
 
     initial_delta = h[0].data.T
@@ -40,22 +40,53 @@ def renormalise(basedir,pixel,IVAR_cutoff,min_number_cells,rebin_size_hMpc,outdi
     N_cells = initial_delta.shape[1]
 
     Z = (10**LOGLAM_MAP)/lya - 1
-    
+
+    """
+    #Method to convert density to tau
+    tuning = fits.open('input_files/tuning_data_131118.fits')
+    tz = tuning[1].data['z']
+    ta = tuning[1].data['alpha']
+    tb = np.ones_like(ta)*2.0 #tuning[1].data['beta']
+    a = np.exp(np.interp(np.log(Z),np.log(tz),np.log(ta)))
+    b = np.exp(np.interp(np.log(Z),np.log(tz),np.log(tb)))
+    new_delta = a*(initial_delta+1)**b
+    """
+    """
     #Load tha initial mean data.
     mean_data = fits.open(mean_data_filename)
     measured_mean_zs = mean_data[1].data['z']
     measured_mean = mean_data[1].data['mean']
     mean_data.close()
+    
+    """
+
 
     #HACK
-    measured_mean += 10 ** -10
+    #For flux, we currently use model mean F to get delta_F. We load that now.
+    mean_F_model = tuning.get_mean_F_model(Z)
 
+    mean_data_filename = 'mean_data_{}_cut{}_v4.2_131118_beta2.fits'.format('transmission',IVAR_cutoff)
+    mean_data = fits.open(mean_data_filename)
+    measured_mean_zs = mean_data[1].data['z']
+    measured_mean_F = mean_data[1].data['mean']
+    mean_data.close()
+
+    measured_mean_F = np.interp(Z,measured_mean_zs,measured_mean_F)
+    #HACK
+    measured_mean_F += 10 ** -10
+
+    new_delta = ((initial_delta + 1)*mean_F_model)/measured_mean_F - 1
+    
+    
+    """
+    #HACK
+    measured_mean += 10 ** -10
+    
     #Make new, proper delta rows.
     measured_mean = np.interp(Z,measured_mean_zs,measured_mean)
     new_delta = np.zeros(initial_delta.shape)
-    for j in range(N_cells):
-        new_delta[:,j] = (1 + initial_delta[:,j])/(1 + measured_mean[j]) - 1
-    
+    new_delta = initial_delta/measured_mean - 1
+    """
     #new_delta = initial_delta
     new_delta *= IVAR
 
