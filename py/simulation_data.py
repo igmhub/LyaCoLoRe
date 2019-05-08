@@ -506,11 +506,14 @@ class SimulationData:
         return bias_eta_weights
 
     #Function to add RSDs from the velocity skewers, with an option to include thermal effects too.
-    def add_RSDs(self,absorber,thermal=False,d=0.0,z_r0=2.5):
+    def add_RSDs(self,absorber,weights=None,thermal=False,d=0.0,z_r0=2.5):
 
         density = 1 + self.DENSITY_DELTA_rows
-        if not self.RSD_weights:
+        if weights:
+            self.RSD_weights = weights
+        elif not self.RSD_weights:
             self.compute_RSD_weights(thermal=thermal,d=d,z_r0=z_r0)
+
         new_tau = RSD.add_skewer_RSDs(absorber.tau,density,self.VEL_rows,self.Z,self.R,self.Z_QSO,thermal=thermal,weights=self.RSD_weights,d=d,z_r0=z_r0)
         tau_noRSD = absorber.tau
 
@@ -522,19 +525,19 @@ class SimulationData:
         return
 
     #Function to add RSDs for all absorbers.
-    def add_all_RSDs(self,thermal=False,d=0.0,z_r0=2.5):
+    def add_all_RSDs(self,weights=None,thermal=False,d=0.0,z_r0=2.5):
 
         # for each absorber, add RSDs
-        self.add_RSDs(self.lya_absorber,thermal=thermal,d=d,z_r0=z_r0)
+        self.add_RSDs(self.lya_absorber,weights=weights,thermal=thermal,d=d,z_r0=z_r0)
 
         # RSD for Ly-b
         if self.lyb_absorber is not None:
-            self.add_RSDs(self.lyb_absorber,thermal=thermal,d=d,z_r0=z_r0)
+            self.add_RSDs(self.lyb_absorber,weights=weights,thermal=thermal,d=d,z_r0=z_r0)
 
         # loop over metals in dictionary
         if self.metals is not None:
             for metal in iter(self.metals.values()):
-                self.add_RSDs(metal,thermal=thermal,d=d,z_r0=z_r0)
+                self.add_RSDs(metal,thermal=thermal,weights=weights,d=d,z_r0=z_r0)
 
         return
 

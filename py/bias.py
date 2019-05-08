@@ -17,7 +17,7 @@ def get_bias_delta(data,z_values,weights=None,d=0.001,z_width=0.2):
 
     if not weights:
         print('no weights dict provided to get_bias_delta. Calculating weights...')
-        weights = data.get_RSD_weights()
+        data.compute_RSD_weights()
 
     #Add small extra delta to Gaussian skewers to simulate overdensity
     overdensity = copy.deepcopy(data)
@@ -25,11 +25,11 @@ def get_bias_delta(data,z_values,weights=None,d=0.001,z_width=0.2):
     #overdensity.compute_physical_skewers()
     #overdensity.compute_all_tau_skewers()
     overdensity.lya_absorber.tau *= np.exp(betas*overdensity.D*d)
-    overdensity.add_RSDs(overdensity.lya_absorber,weights=weights)
+    overdensity.add_all_RSDs(overdensity.lya_absorber)
 
     #Subtract small extra delta to Gaussian skewers to simulate underdensity
     underdensity = copy.deepcopy(data)
-    #underdensity.GAUSSIAN_DELTA_rows -= d   
+    #underdensity.GAUSSIAN_DELTA_rows -= d
     #underdensity.compute_physical_skewers()
     #underdensity.compute_all_tau_skewers()
     underdensity.lya_absorber.tau /= np.exp(betas*underdensity.D*d)
@@ -72,20 +72,22 @@ def get_bias_eta_weights(data,z_values,d=0.0,z_width=0.2,include_thermal_effects
 
         z_val_weights_dict = {}
 
-        data_copy_z_val = copy.deepcopy(data)
+        data_copy_z_val_upper = copy.deepcopy(data)
+        data_copy_z_val_lower = copy.deepcopy(data)
 
         z_min = z_value - 0.5*z_width
         z_max = z_value + 0.5*z_width
         lambda_min = lya * (1 + z_min)
         lambda_max = lya * (1 + z_max)
 
-        data_copy_z_val.trim_skewers(lambda_min-lambda_buffer,lambda_max=lambda_max+lambda_buffer,extra_cells=1)
+        data_copy_z_val_upper.trim_skewers(lambda_min-lambda_buffer,lambda_max=lambda_max+lambda_buffer,extra_cells=1)
+        data_copy_z_val_lower.trim_skewers(lambda_min-lambda_buffer,lambda_max=lambda_max+lambda_buffer,extra_cells=1)
 
-        RSD_weights_grad_increase = data_copy_z_val.get_RSD_weights(thermal=include_thermal_effects,d=d,z_r0=z_value)
-        RSD_weights_grad_decrease = data_copy_z_val.get_RSD_weights(thermal=include_thermal_effects,d=-d,z_r0=z_value)
+        data_copy_z_val_upper.compute_RSD_weights(thermal=include_thermal_effects,d=d,z_r0=z_value)
+        data_copy_z_val_lower.compute_RSD_weights(thermal=include_thermal_effects,d=-d,z_r0=z_value)
 
-        z_val_weights_dict['grad_increase'] = RSD_weights_grad_increase
-        z_val_weights_dict['grad_decrease'] = RSD_weights_grad_decrease
+        z_val_weights_dict['grad_increase'] = data_copy_z_val_upper.RSD_weights
+        z_val_weights_dict['grad_decrease'] = data_copy_z_val_lower.RSD_weights
 
         weights_dict[z_value] = z_val_weights_dict
 
