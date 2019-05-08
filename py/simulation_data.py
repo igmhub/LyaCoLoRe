@@ -330,6 +330,25 @@ class SimulationData:
         if not isinstance(self.SIGMA_G,float):
             self.SIGMA_G = self.SIGMA_G[first_relevant_cell:last_relevant_cell + 1]
 
+        #Modify the RSD weights to remove QSOs and cut off cells simultaneously
+        if self.RSD_weights:
+            trimmed_RSD_weights = {}
+            k = 0
+            for i in self.RSD_weights.keys():
+                if relevant_QSOs[i]:
+                    #Extract the matrix from the old dictionary.
+                    weights = self.RSD_weights[i]
+
+                    #Trim in both dimensions.
+                    weights = weights[first_relevant_cell:last_relevant_cell,:]
+                    weights = weights[:,first_relevant_cell:last_relevant_cell]
+
+                    #Add the new weights to a new dictionary.
+                    trimmed_RSD_weights[k] = weights
+
+            #Add the new dictionary to the object.
+            self.RSD_weights = trimmed_RSD_weights
+
         return
 
     #Function to add small scale gaussian fluctuations.

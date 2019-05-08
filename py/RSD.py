@@ -98,10 +98,12 @@ def get_T_K(z,density):
 
     return T_K
 
+#
 def S(x):
     S = x*math.erf(x) + 1./(np.sqrt(np.pi))*np.exp(-(x**2))
     return S
 
+#
 def J(x,a,sigma):
     #Technically should have  -(1/(4*a))*(K(a,sigma)-K(-a,sigma)) too.
     #These cancel out, but if we want to include uneven cell size then they won't do.
@@ -129,7 +131,6 @@ def add_skewer_RSDs(initial_tau,initial_density,velocity_skewer_dz,z,r_hMpc,z_qs
 
     #Compute the final values of tau.
     start = time.time()
-
 
     final_tau = np.zeros(initial_tau.shape)
     for k in range(N_qso):
