@@ -25,7 +25,7 @@ def get_bias_delta(data,z_values,weights=None,d=0.001,z_width=0.2):
     #overdensity.compute_physical_skewers()
     #overdensity.compute_all_tau_skewers()
     overdensity.lya_absorber.tau *= np.exp(betas*overdensity.D*d)
-    overdensity.add_all_RSDs(overdensity.lya_absorber)
+    overdensity.add_all_RSDs()
 
     #Subtract small extra delta to Gaussian skewers to simulate underdensity
     underdensity = copy.deepcopy(data)
@@ -33,7 +33,7 @@ def get_bias_delta(data,z_values,weights=None,d=0.001,z_width=0.2):
     #underdensity.compute_physical_skewers()
     #underdensity.compute_all_tau_skewers()
     underdensity.lya_absorber.tau /= np.exp(betas*underdensity.D*d)
-    underdensity.add_RSDs(underdensity.lya_absorber,weights=weights)
+    underdensity.add_all_RSDs()
 
     #Don't think this is quite valid as D(r_j) != D(s_j)
     #i.e. RSDs muddle the cells in each skewer and so this scaling would need to be done before adding RSDs
