@@ -75,12 +75,15 @@ class SimulationData:
         self.V = V
 
         # these will store the absorbing fields (Lya, Lyb, metals...)
-        self.lya_absorber=absorber.AbsorberData(name='Lya',rest_wave=lya,flux_transform_m=1.0)
-        self.lyb_absorber=None
-        self.metals=None
+        self.lya_absorber = absorber.AbsorberData(name='Lya',rest_wave=lya,flux_transform_m=1.0)
+        self.lyb_absorber = None
+        self.metals = None
 
         # these will store the DLA (if asked for)
-        self.DLA_table=None
+        self.DLA_table = None
+
+        # these will store the RSD weights (if asked for)
+        self.RSD_weights = None
 
         return
 
@@ -467,12 +470,13 @@ class SimulationData:
         return
 
     #Get the weights for going into redshift space.
-    def get_RSD_weights(self,thermal=False,d=0.0,z_r0=2.5):
+    def compute_RSD_weights(self,thermal=False,d=0.0,z_r0=2.5):
 
-        density = 1 + self.DENSITY_DELTA_rows
+        density = 1. + self.DENSITY_DELTA_rows
         RSD_weights = RSD.get_weights(density,self.VEL_rows,self.Z,self.R,self.Z_QSO,thermal=thermal,d=d,z_r0=z_r0)
+        self.RSD_weights = RSD_weights
 
-        return RSD_weights
+        return
 
     #Get the weights dictionary required to make measurements of b_eta.
     def get_bias_eta_RSD_weights(self,z_values,d=0.,z_width=0.2,thermal=False,lambda_buffer=None):
@@ -482,10 +486,12 @@ class SimulationData:
         return bias_eta_weights
 
     #Function to add RSDs from the velocity skewers, with an option to include thermal effects too.
-    def add_RSDs(self,absorber,thermal=False,weights=None,d=0.0,z_r0=2.5):
+    def add_RSDs(self,absorber,thermal=False,d=0.0,z_r0=2.5):
 
         density = 1 + self.DENSITY_DELTA_rows
-        new_tau = RSD.add_skewer_RSDs(absorber.tau,density,self.VEL_rows,self.Z,self.R,self.Z_QSO,thermal=thermal,weights=weights,d=d,z_r0=z_r0)
+        if not self.RSD_weights:
+            self.compute_RSD_weights(thermal=thermal,d=d,z_r0=z_r0)
+        new_tau = RSD.add_skewer_RSDs(absorber.tau,density,self.VEL_rows,self.Z,self.R,self.Z_QSO,thermal=thermal,weights=self.RSD_weights,d=d,z_r0=z_r0)
         tau_noRSD = absorber.tau
 
         #Overwrite the tau skewers and set a flag to True.
@@ -496,19 +502,19 @@ class SimulationData:
         return
 
     #Function to add RSDs for all absorbers.
-    def add_all_RSDs(self,thermal=False,weights=None,d=0.0,z_r0=2.5):
+    def add_all_RSDs(self,thermal=False,d=0.0,z_r0=2.5):
 
         # for each absorber, add RSDs
-        self.add_RSDs(self.lya_absorber,thermal=thermal,weights=weights,d=d,z_r0=z_r0)
+        self.add_RSDs(self.lya_absorber,thermal=thermal,d=d,z_r0=z_r0)
 
         # RSD for Ly-b
         if self.lyb_absorber is not None:
-            self.add_RSDs(self.lyb_absorber,thermal=thermal,weights=weights,d=d,z_r0=z_r0)
+            self.add_RSDs(self.lyb_absorber,thermal=thermal,d=d,z_r0=z_r0)
 
         # loop over metals in dictionary
         if self.metals is not None:
             for metal in iter(self.metals.values()):
-                self.add_RSDs(metal,thermal=thermal,weights=weights,d=d,z_r0=z_r0)
+                self.add_RSDs(metal,thermal=thermal,d=d,z_r0=z_r0)
 
         return
 
