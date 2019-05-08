@@ -197,7 +197,8 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,R_kms,vel_boos
     t = time.time()
 
     if prep:
-        RSD_weights = data.get_RSD_weights(thermal=False)
+        data.compute_RSD_weights(thermal=False)
+
         #print(pixel,'{:3.2f} checkpoint RSD weights measured'.format(time.time()-t))
         t = time.time()
 
@@ -206,7 +207,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,R_kms,vel_boos
         #print(pixel,'{:3.2f} checkpoint b_eta weights measured'.format(time.time()-t))
         t = time.time()
 
-        return (pixel,RSD_weights,b_eta_weights_dict)
+        return (pixel,data.RSD_weights,b_eta_weights_dict)
     else:
         RSD_weights = RSD_weights_dict[pixel]
         bias_eta_weights = bias_eta_weights_dict[pixel]

@@ -11,7 +11,7 @@ lya = utils.lya_rest
 
 #base_dir = '../example_data/lya_skewers/'
 base_dir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v5/v5.0.0/'
-tuning_files = glob.glob('./input_files/tuning_data_with_bias_oldRSD_velNGP_afree_b1.65.fits') 
+tuning_files = glob.glob('./input_files/tuning_data_with_bias_oldRSD_velNGP_afree_b1.65.fits')
 tuning_files = glob.glob('./input_files/tuning_data_with_bias_newRSD_vel1.0_afree_b1.65.fits')
 #+ glob.glob('./input_files/tuning_data_a?.?_b2.0.fits')
 #tuning_files = glob.glob('./input_files/tuning_data_apow4.5_sGconst.fits')
@@ -61,7 +61,7 @@ def bias_tuning(pixel_object,tuning_filename,z_values,d_delta=10**-9,d_eta=10**-
     #Trim the skewers (remove low lambda cells). Exit if no QSOs are left.
     #We don't cut too tightly on the low lambda to allow for RSDs.
     lambda_buffer = 100. #A
-    #pixel_object.trim_skewers(lambda_min-lambda_buffer,min_catalog_z,extra_cells=1)
+    pixel_object.trim_skewers(lambda_min-lambda_buffer,min_catalog_z,extra_cells=1)
     if pixel_object.N_qso == 0:
         print('\nwarning: no objects left in pixel {} after trimming.'.format(pixel))
         return pixel
@@ -84,10 +84,10 @@ def bias_tuning(pixel_object,tuning_filename,z_values,d_delta=10**-9,d_eta=10**-
     pixel_object.compute_all_tau_skewers()
 
     #Get RSD weights.
-    RSD_weights = pixel_object.get_RSD_weights()
+    pixel_object.compute_RSD_weights()
 
     #Add RSDs from the velocity skewers provided by CoLoRe.
-    pixel_object.add_all_RSDs(thermal=include_thermal_effects,weights=RSD_weights)
+    pixel_object.add_all_RSDs(thermal=include_thermal_effects)
 
     #Trim the skewers (remove low lambda cells). Exit if no QSOs are left.
     #We now cut hard at lambda min as RSDs have been implemented.
