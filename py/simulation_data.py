@@ -340,8 +340,8 @@ class SimulationData:
                     weights = self.RSD_weights[i]
 
                     #Trim in both dimensions.
-                    weights = weights[first_relevant_cell:last_relevant_cell,:]
-                    weights = weights[:,first_relevant_cell:last_relevant_cell]
+                    weights = weights[first_relevant_cell:last_relevant_cell + 1,:]
+                    weights = weights[:,first_relevant_cell:last_relevant_cell + 1]
 
                     #Add the new weights to a new dictionary.
                     trimmed_RSD_weights[k] = weights
