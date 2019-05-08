@@ -345,6 +345,7 @@ class SimulationData:
 
                     #Add the new weights to a new dictionary.
                     trimmed_RSD_weights[k] = weights
+                    k += 1
 
             #Add the new dictionary to the object.
             self.RSD_weights = trimmed_RSD_weights
