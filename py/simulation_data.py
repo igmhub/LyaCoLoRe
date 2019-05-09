@@ -308,6 +308,17 @@ class SimulationData:
             self.lya_absorber.tau = self.lya_absorber.tau[relevant_QSOs,:]
         if self.lya_absorber.RSDs_applied:
             self.lya_absorber.tau_noRSD = self.lya_absorber.tau_noRSD[relevant_QSOs,:]
+        if self.lyb_absorber:
+            if self.lyb_absorber.tau_computed():
+                self.lyb_absorber.tau = self.lyb_absorber.tau[relevant_QSOs,:]
+            if self.lyb_absorber.RSDs_applied:
+                self.lyb_absorber.tau_noRSD = self.lyb_absorber.tau_noRSD[relevant_QSOs,:]
+        if self.metals:
+            for metal in iter(self.metals.values()):
+                if metal.tau_computed():
+                    metal.tau = metal.tau[relevant_QSOs,:]
+                if metal.RSDs_applied:
+                    metal.tau_noRSD = metal.tau_noRSD[relevant_QSOs,:]
 
         #Now trim the skewers of the remaining QSOs.
         self.N_cells = last_relevant_cell - first_relevant_cell + 1
@@ -321,6 +332,17 @@ class SimulationData:
             self.lya_absorber.tau = self.lya_absorber.tau[:,first_relevant_cell:last_relevant_cell + 1]
         if self.lya_absorber.RSDs_applied:
             self.lya_absorber.tau_noRSD = self.lya_absorber.tau_noRSD[:,first_relevant_cell:last_relevant_cell + 1]
+        if self.lyb_absorber:
+            if self.lyb_absorber.tau_computed():
+                self.lyb_absorber.tau = self.lyb_absorber.tau[:,first_relevant_cell:last_relevant_cell + 1]
+            if self.lyb_absorber.RSDs_applied:
+                self.lyb_absorber.tau_noRSD = self.lyb_absorber.tau_noRSD[:,first_relevant_cell:last_relevant_cell + 1]
+        if self.metals:
+            for metal in iter(self.metals.values()):
+                if metal.tau_computed():
+                    metal.tau = metal.tau[:,first_relevant_cell:last_relevant_cell + 1]
+                if metal.RSDs_applied:
+                    metal.tau_noRSD = metal.tau_noRSD[:,first_relevant_cell:last_relevant_cell + 1]
 
         self.R = self.R[first_relevant_cell:last_relevant_cell + 1]
         self.Z = self.Z[first_relevant_cell:last_relevant_cell + 1]
@@ -364,7 +386,6 @@ class SimulationData:
         Rmin = np.min(old_R)
         new_R = np.arange(Rmin,Rmax,cell_size)
         new_N_cells = new_R.shape[0]
-
 
         # TODO: could just use scipy.interp1d here
         NGPs = utils.get_NGPs(old_R,new_R)
@@ -412,7 +433,6 @@ class SimulationData:
         #extra_sigma_G = np.exp(np.interp(np.log(self.Z),np.log(sigma_G_z_values),np.log(extra_sigma_G_values)))
         #extra_sigma_G = seps_z(self.Z)
         extra_sigma_G = self.transformation.get_seps(self.Z)
-
 
         # TODO: dv is not constant at the moment - how to deal with this
         #Generate extra variance, either white noise or correlated.

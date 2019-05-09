@@ -21,7 +21,6 @@ def get_ID_data(original_file_location,original_filename_structure,file_number,i
     DZ_RSD = read_files.get_DZ_RSD(h,input_format)
     MOCKID = read_files.get_MOCKID(h,input_format,file_number)
     h_R, h_Z, h_D, h_V = read_files.get_COSMO(h,input_format)
-
     h.close()
 
     #Construct the remaining component parts of the master file's data.
@@ -53,32 +52,37 @@ def get_ID_data(original_file_location,original_filename_structure,file_number,i
         #ID = np.array([QSO for QSO in ID_sort if QSO_filter(QSO['RA'],QSO['DEC'])],dtype=dtype)
         #ID_sort = np.sort(ID, order=['PIXNUM','MOCKID'])
 
-    #Reduce the number of pixels to an input list.
+    #Filter out QSOs that are not in pixels included in an initial list..
     if pixel_list:
         for pix in set(pixel_ID):
             if pix not in pixel_list:
                 ID_sort = ID_sort[ID_sort['PIXNUM'] != pix]
 
-    #Downsample if we want.
-    if downsampling < 1.0:
-        N_qso = ID_sort.shape[0]
-        final_N_qso = round(N_qso*downsampling)
-        random_QSOs = np.sort(np.random.choice(N_qso,size=final_N_qso,replace=False))
-        ID_sort = ID_sort[random_QSOs]
-
-    #Make file-pixel map element and MOCKID lookup.
-    pixel_ID_set = list(sorted(set([pixel for pixel in ID_sort['PIXNUM'] if pixel>=0])))
-    file_pixel_map_element = np.zeros(N_pixels)
-    MOCKID_lookup_element = {}
-    for pixel in pixel_ID_set:
-        file_pixel_map_element[pixel] = 1
-        MOCKID_pixel_list = [ID_sort['MOCKID'][i] for i in range(len(ID_sort['PIXNUM'])) if ID_sort['PIXNUM'][i]==pixel]
-        MOCKID_lookup_element = {**MOCKID_lookup_element,**{(file_number,pixel):MOCKID_pixel_list}}
-
     #Construct the cosmology array.
     cosmology_data = list(zip(h_R,h_Z,h_D,h_V))
     dtype = [('R', 'd'), ('Z', 'd'), ('D', 'd'), ('V', 'd')]
     cosmology = np.array(cosmology_data,dtype=dtype)
+
+    #If we have any QSOs left, continue. Otherwise, return empties.
+    N_qso = ID_sort.shape[0]
+    if N_qso > 0:
+        #Downsample if we want.
+        if downsampling < 1.0:
+            final_N_qso = round(N_qso*downsampling)
+            random_QSOs = np.sort(np.random.choice(N_qso,size=final_N_qso,replace=False))
+            ID_sort = ID_sort[random_QSOs]
+
+        #Make file-pixel map element and MOCKID lookup.
+        pixel_ID_set = list(sorted(set([pixel for pixel in ID_sort['PIXNUM'] if pixel>=0])))
+        file_pixel_map_element = np.zeros(N_pixels)
+        MOCKID_lookup_element = {}
+        for pixel in pixel_ID_set:
+            file_pixel_map_element[pixel] = 1
+            MOCKID_pixel_list = [ID_sort['MOCKID'][i] for i in range(len(ID_sort['PIXNUM'])) if ID_sort['PIXNUM'][i]==pixel]
+            MOCKID_lookup_element = {**MOCKID_lookup_element,**{(file_number,pixel):MOCKID_pixel_list}}
+    else:
+        file_pixel_map_element = np.zeros(N_pixels)
+        MOCKID_lookup_element = {}
 
     return file_number, ID_sort, cosmology, file_pixel_map_element, MOCKID_lookup_element
 

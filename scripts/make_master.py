@@ -145,12 +145,14 @@ def log_result(retval):
     results.append(retval)
     N_complete = len(results)
     N_tasks = len(tasks)
-
     utils.progress_bar(N_complete,N_tasks,start_time)
+
+    return
 
 #Define an error-tracking function.
 def log_error(retval):
     print('Error:',retval)
+    return
 
 ################################################################################
 

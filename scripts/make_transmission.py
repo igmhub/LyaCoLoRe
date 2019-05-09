@@ -464,7 +464,6 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
 
     #print('{:3.2f} checkpoint SSF'.format(time.time()-t)); t = time.time()
 
-
     #Recompute physical skewers.
     pixel_object.compute_physical_skewers()
 
