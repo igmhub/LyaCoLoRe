@@ -2,24 +2,29 @@
 QUEUE='debug'
 NNODES=32
 NCORES=64
-TIME="00:20:00" #hh:mm:ss
+TIME="00:30:00" #hh:mm:ss
 
 # specify process parameters
 NSIDE=16
 IVAR_CUT=1150.0
 CELL_SIZE=0.25
-LAMBDA_MIN=3550.0
+LAMBDA_MIN=3470.0
 MIN_CAT_Z=1.8
 LYACOLORE_SEED=123
 DLA_BIAS=2.0
 DLA_BIAS_METHOD='b_const'
-DOWNSAMPLING=1.0
-VEL_BOOST=1.0
+DOWNSAMPLING=0.5
+VEL_BOOST=1.2
+
+# specify transmission file wavelength grid
+TRANS_LMIN=3470.0
+TRANS_LMAX=6500.0
+TRANS_DL=0.2
 
 # specify process flags
-MM_FLAGS=""
-#MM_FLAGS="--desi-footprint-pixel-plus"
-MT_FLAGS="--add-DLAs --add-RSDs --add-QSO-RSDs --add-small-scale-fluctuations"
+#MM_FLAGS=""
+MM_FLAGS="--desi-footprint-pixel-plus"
+MT_FLAGS="--add-DLAs --add-RSDs --add-QSO-RSDs --add-small-scale-fluctuations --add-Lyb"
 
 # specify details of colore output
 COLORE_NGRID=4096
@@ -39,13 +44,13 @@ NFILES=`echo $INPUT_FILES | wc -w`
 echo "${NFILES} input files have been found"
 
 # code version
-V_CODE_MAJ="6"
+V_CODE_MAJ="7"
 V_CODE_MIN="0"
 V_REALISATION="0"
 
 # full path to folder where output will be written
-OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test_runs_vel_methods/test_newRSD_velNGP/"
-#OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v${V_CODE_MAJ}/v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}/"
+#OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test_runs_for_v7/test_vb1.2_with_Lyb/"
+OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v${V_CODE_MAJ}/v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}/"
 #OUTPUT_PATH="/project/projectdirs/desi/mocks/lya_forest/london/v${V_CODE_MAJ}.${V_CODE_MIN}/v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}/"
 
 echo "output will written to "$OUTPUT_PATH
@@ -58,7 +63,7 @@ if [ ! -d $OUTPUT_PATH/logs ] ; then
 fi
 
 # full path to file with tuning sigma_G data
-TUNING_PATH="/global/homes/j/jfarr/Projects/LyaCoLoRe/input_files/tuning_data_with_bias_newRSD_velNGP_afree_b1.65.fits"
+TUNING_PATH="/global/homes/j/jfarr/Projects/LyaCoLoRe/input_files/tuning_data_with_bias_vel1.2_b1.65.fits"
 
 # we will create this script
 RUN_FILE="/global/homes/j/jfarr/Projects/LyaCoLoRe/run_files/process_colore_v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}.sh"
@@ -67,7 +72,7 @@ echo "run file "$RUN_FILE
 # make master file and new file structure
 date
 echo "making master file"
-${PROCESS_PATH}/make_master.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} --nside ${NSIDE} --nproc ${NCORES} --min-cat-z ${MIN_CAT_Z} ${MM_FLAGS} --downsampling ${DOWNSAMPLING} --pixels {0..999}
+${PROCESS_PATH}/make_master.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} --nside ${NSIDE} --nproc ${NCORES} --min-cat-z ${MIN_CAT_Z} ${MM_FLAGS} --downsampling ${DOWNSAMPLING}
 wait
 date
 
@@ -108,7 +113,7 @@ for NODE in \`seq $NNODES\` ; do
 
     echo "looking at pixels: \${NODE_PIXELS}"
 
-    command="srun -N 1 -n 1 -c ${NCORES} ${PROCESS_PATH}/make_transmission.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} ${MT_FLAGS} --pixels \${NODE_PIXELS} --tuning-file ${TUNING_PATH} --nside ${NSIDE} --nproc ${NCORES} --IVAR-cut ${IVAR_CUT} --cell-size ${CELL_SIZE} --lambda-min ${LAMBDA_MIN} --seed ${LYACOLORE_SEED} --DLA-bias ${DLA_BIAS} --DLA-bias-method ${DLA_BIAS_METHOD} --velocity-multiplier ${VEL_BOOST}"
+    command="srun -N 1 -n 1 -c ${NCORES} ${PROCESS_PATH}/make_transmission.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} ${MT_FLAGS} --pixels \${NODE_PIXELS} --tuning-file ${TUNING_PATH} --nside ${NSIDE} --nproc ${NCORES} --IVAR-cut ${IVAR_CUT} --cell-size ${CELL_SIZE} --lambda-min ${LAMBDA_MIN} --seed ${LYACOLORE_SEED} --DLA-bias ${DLA_BIAS} --DLA-bias-method ${DLA_BIAS_METHOD} --velocity-multiplier ${VEL_BOOST} --transmission-lambda-min ${TRANS_LMIN} --transmission-lambda-max ${TRANS_LMAX} --transmission-delta-lambda ${TRANS_DL}"
 
     echo \$command
     \$command >& ${OUTPUT_PATH}/logs/node-\${NODE}.log &
