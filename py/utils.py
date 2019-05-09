@@ -95,13 +95,11 @@ def make_pixel_ID(N_side,RA,DEC):
     phi = (np.pi/180.0)*RA
 
     #Make a list of  the HEALPix pixel coordinate of each quasar.
-    pixel_ID = ['']*N_qso
-    for i in range(N_qso):
-        #Check that the angular coordinates are valid. Put all objects with invalid coordinates into a non-realistic ID number (-1).
-        if 0 <= theta[i] <= np.pi and 0 <= phi[i] <= 2*np.pi:
-            pixel_ID[i] = int(hp.pixelfunc.ang2pix(N_side,theta[i],phi[i],nest=True))
-        else:
-            pixel_ID[i] = -1
+    #We check that the angular coordinates are valid. 
+    #Give all objects with invalid coordinates an "error" ID number (-1).
+    valid_QSOs = (0 <= theta) * (theta <= np.pi) * (0 <= phi) * (phi <= 2*np.pi)
+    pixel_ID = np.ones_like(RA) * (-1)
+    pixel_ID[valid_QSOs] = hp.pixelfunc.ang2pix(N_side,theta[valid_QSOs],phi[valid_QSOs],nest=True)
 
     return pixel_ID
 
