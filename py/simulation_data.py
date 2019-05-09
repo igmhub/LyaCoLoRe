@@ -913,17 +913,14 @@ class SimulationData:
         N_w = wave_grid.shape[0]
         F_grid = np.empty([N_los,N_w])
         for i in range(N_los):
-            F_grid[i,] = np.interp(wave_grid,wave_skewer,F_skewer[i])
+            F_grid[i,] = np.interp(wave_grid,wave_skewer,F_skewer[i],left=1.0,right=1.0)
 
         return F_grid
 
     #Function to save data as a transmission file.
-    def save_as_transmission(self,filename,header,overwrite=False):
+    def save_as_transmission(self,filename,header,overwrite=False,wave_min=3550.,wave_max=6500.,wave_step=0.2):
 
         # define common wavelength grid to be written in files (in Angstroms)
-        wave_min = 3550.
-        wave_max = 6500.
-        wave_step = 0.2
         wave_grid = np.arange(wave_min,wave_max,wave_step).astype('f4')
 
         # now we should loop over the different absorbers, combine them and

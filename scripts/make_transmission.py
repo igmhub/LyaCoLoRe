@@ -114,6 +114,15 @@ parser.add_argument('--smoothing-R-kms', type = float, default = 25.0, required=
 parser.add_argument('--velocity-multiplier', type = float, default = 1.0, required=False,
                     help = 'multiply CoLoRe velocities by this factor')
 
+parser.add_argument('--transmission-lambda-min', type = float, default = 3550., required=False,
+                    help = 'minimum wavelength stored in the transmission files')
+
+parser.add_argument('--transmission-lambda-max', type = float, default = 6500., required=False,
+                    help = 'maximum wavelength stored in the transmission files')
+
+parser.add_argument('--transmission-delta-lambda', type = float, default = 0.2, required=False,
+                    help = 'pixel size of transmission files wavelength grid')
+
 # TODO: this is now defunct.
 parser.add_argument('--fit-function-to-tuning-data', action="store_true", default = False, required=False,
                     help = 'fit a function of the form A0 * (z^A1) + A2 to the tuning data')
@@ -162,6 +171,9 @@ overwrite = args.overwrite
 add_QSO_RSDs = args.add_QSO_RSDs
 R_kms = args.smoothing_R_kms
 vel_mult = args.velocity_multiplier
+trans_lmin = args.transmission_lambda_min
+trans_lmax = args.transmission_lambda_max
+trans_dl = args.transmission_delta_lambda
 
 # TODO: print to confirm the arguments. e.g. "DLAs will be added"
 
@@ -512,7 +524,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
 
     #transmission
     filename = utils.get_file_name(location,'transmission',N_side,pixel)
-    pixel_object.save_as_transmission(filename,header,overwrite=overwrite)
+    pixel_object.save_as_transmission(filename,header,overwrite=overwrite,wave_min=trans_lmin,wave_max=trans_lmax,wave_step=trans_dl)
 
     if transmission_only == False:
         #Picca tau
