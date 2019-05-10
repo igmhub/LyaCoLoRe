@@ -1,5 +1,5 @@
 # path to LyaCoLoRe
-LYACOLORE_PATH="/Users/James/Projects/LyaCoLoRe/"
+LYACOLORE_PATH="/global/homes/j/jfarr/Projects/LyaCoLoRe/"
 
 # specify number of cores to use
 NCORES=2
@@ -65,7 +65,7 @@ TUNING_PATH="${LYACOLORE_PATH}/input_files/tuning_data_v7.0.0.fits"
 # make master file and new file structure
 echo "making master file"
 command="${PROCESS_PATH}/make_master.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} --nside ${NSIDE} --nproc ${NCORES} --min-cat-z ${MIN_CAT_Z} ${MM_FLAGS}"
-$command #|& tee ${OUTPUT_PATH}/logs/node-1.log
+$command
 
 PIXDIRS=`ls -tr1d ${OUTPUT_PATH}/[0-9]*/*`
 NPIXELS=`echo $PIXDIRS | wc -w`
@@ -81,8 +81,8 @@ PIXELS=${PIXELS[@]:0:$NPIXELS}
 
 echo "looking at pixels: ${NODE_PIXELS}"
 command="${PROCESS_PATH}/make_transmission.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} ${MT_FLAGS} --pixels ${PIXELS} --tuning-file ${TUNING_PATH} --nside ${NSIDE} --nproc ${NCORES} --IVAR-cut ${IVAR_CUT} --cell-size ${CELL_SIZE} --lambda-min ${LAMBDA_MIN} --seed ${LYACOLORE_SEED} --DLA-bias ${DLA_BIAS} --DLA-bias-method ${DLA_BIAS_METHOD} --velocity-multiplier ${VEL_BOOST} --transmission-lambda-min ${TRANS_LMIN} --transmission-lambda-max ${TRANS_LMAX} --transmission-delta-lambda ${TRANS_DL}"
-$command #|& tee -a ${OUTPUT_PATH}/logs/node-1.log
+$command
 
 echo "producing analysis pixels"
 command="${PROCESS_PATH}/make_summaries.py --base-dir ${OUTPUT_PATH} --nproc ${NCORES} --pixels ${PIXELS} --overwrite --picca-N-merge-values 1 10"
-$command #|& tee -a ${OUTPUT_PATH}/logs/node-1.log
+$command

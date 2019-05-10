@@ -1,12 +1,12 @@
 #number of pixels
-NPIXELS=1490
-NPIXPERNODE=40
+NPIXELS=1000
+NPIXPERNODE=80
 NCORES=64
 
 # specify number of nodes and cores to use
-QUEUE='regular'
+QUEUE='debug'
 NNODES=$((($NPIXELS+$NPIXPERNODE-1) / $NPIXPERNODE))
-TIME="01:30:00" #hh:mm:ss
+TIME="00:30:00" #hh:mm:ss
 
 #Set bin properties
 RPMIN=0.0
@@ -45,7 +45,7 @@ SR=2.0
 PICCA_PATH="/global/homes/j/jfarr/Programs/picca/"
 
 #decide analysis number
-ANALYSIS_ID=36
+ANALYSIS_ID=35
 ANALYSIS_ID=`printf "%03d" ${ANALYSIS_ID}`
 
 #find ID number
@@ -96,7 +96,8 @@ umask 0002
 export OMP_NUM_THREADS=64
 
 if [ $(( $NPIXPERNODE * $NNODES )) -gt $NPIXELS ]; then
-    echo "$(( $NPIXPERNODE * $NNODES )) pixels will be used to ensure each node gets the same number of pixels."
+    echo "$(( $NPIXPERNODE * $NNODES )) pixels will be used (rather than ${NPIXELS})."
+    echo "This ensures that each of the $NNODES nodes gets the same number of pixels: $NPIXPERNODE."
 fi
 
 START_INDEX=0
