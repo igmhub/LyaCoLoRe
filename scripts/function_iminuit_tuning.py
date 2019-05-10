@@ -25,24 +25,24 @@ lambda_buffer = 100. #Angstroms
 
 #Choose parameter values.
 eps_Pk1D = 0.1
-eps_mean_F = 0.025
+eps_mean_F = 0.0125
 eps_bias_delta = 0.025
 eps_bias_eta = 10**6#0.025
 d_delta = 10.**-3
 d_eta = 10**-9
 
 #Choose tuning parameter initial values.
-initial_C0 = 1.4665375029450034
+initial_C0 = 1.4816737745980524
 initial_C1 = 4.5
 initial_C2 = 0.0
 initial_beta = 1.65
-initial_D0 = 6.103687317112405
-initial_D1 = 0.32156149272713025
+initial_D0 = 6.053845236262855
+initial_D1 = 0.29177647716292676
 initial_D2 = 0.0
-initial_n = 0.8322104177553062
-initial_k1 = 0.017492626170643323
+initial_n = 0.7565580418668016
+initial_k1 = 0.028329336668223733
 initial_R = 25.0 #kms-1
-initial_vb = 1.0
+initial_vb = 1.2
 
 #Choose parameters to fix.
 fix_all = False
@@ -60,9 +60,9 @@ fix_vb = True
 
 #Admin options
 k_plot_max = 0.1
-show_plots = False
+show_plots = True
 save_plots = True
-suffix = '_with_bias_{}RSD_vel{}_a{}_b{}'.format('new','NGP','free',initial_beta)
+suffix = '_with_bias_mFe{}'.format(eps_mean_F)
 save_tuning = True
 overwrite_tuning = True
 tuning_filename = 'input_files/tuning_data' + suffix + '.fits'
@@ -247,7 +247,6 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,R_kms,vel_boos
 
 #Pre-prep for future processings by getting RSD maps and independent skewers
 print('producing preparatory data (RSD maps)')
-#tasks = [(pixel,104.5,-4.62,1.654,54.6,-0.068,-43.81,1.52,0.0166,None,True) for pixel in pixels]
 tasks = [(pixel,initial_C0,initial_C1,initial_C2,initial_beta,initial_D0,initial_D1,initial_D2,initial_n,initial_k1,initial_R,initial_vb,None,True) for pixel in pixels]
 
 if __name__ == '__main__':
