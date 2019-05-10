@@ -7,14 +7,26 @@ IVAR_CUT=1150.0
 CELL_SIZE=0.25
 LAMBDA_MIN=3550.0
 MIN_CAT_Z=1.8
+LYACOLORE_SEED=123
+DLA_BIAS=2.0
+DLA_BIAS_METHOD='b_const'
+DOWNSAMPLING=0.5
+VEL_BOOST=1.2
+
+# specify transmission file wavelength grid
+TRANS_LMIN=3470.0
+TRANS_LMAX=6500.0
+TRANS_DL=0.2
 
 # specify process flags
-FLAGS="--add-small-scale-fluctuations --add-RSDs --add-DLAs --add-QSO-RSDs"
+MM_FLAGS="--desi-footprint-pixel-plus"
+MT_FLAGS="--add-DLAs --add-RSDs --add-QSO-RSDs --add-small-scale-fluctuations --add-Lyb"
 
 # specify details of colore output
 COLORE_NGRID=4096
 COLORE_NODES=32
 R_SMOOTH=2.0
+COLORE_SEED=1003
 
 # full path to proces_colore executable (parallel version)
 PROCESS_PATH="/global/homes/j/jfarr/Projects/LyaCoLoRe/example_scripts/"
@@ -26,9 +38,13 @@ INPUT_FILES=`ls -1 ${INPUT_PATH}/out_srcs_*.fits`
 NFILES=`echo $files | wc -w`
 echo "${NFILES} input files have been found"
 
+# code version
+V_CODE_MAJ="7"
+V_CODE_MIN="0"
+V_REALISATION="0"
+
 # full path to folder where output will be written
-OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_${COLORE_NGRID}_${COLORE_NODES}_sr${R_SMOOTH}_bm1_biasG18_picos_nside${NSIDE}/"
-OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test_4/"
+OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test/"
 echo "output will written to "$OUTPUT_PATH
 if [ ! -d $OUTPUT_PATH ] ; then
     mkdir -p $OUTPUT_PATH
@@ -44,7 +60,7 @@ TUNING_PATH="/global/homes/j/jfarr/Projects/LyaCoLoRe/input_files/tune_small_sca
 # make master file and new file structure
 date
 echo "making master file"
-${PROCESS_PATH}/make_master.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} --nside ${NSIDE} --nproc ${NCORES} --min-cat-z ${MIN_CAT_Z}
+${PROCESS_PATH}/make_master.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} --nside ${NSIDE} --nproc ${NCORES} --min-cat-z ${MIN_CAT_Z} ${MM_FLAGS}
 wait
 date
 
@@ -60,7 +76,7 @@ done
 
 echo "looking at pixels: ${NODE_PIXELS}"
 
-command="srun -N 1 -n 1 -c ${NCORES} ${PROCESS_PATH}/make_transmission.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} --pixels ${PIXELS} --tuning-file ${TUNING_PATH} --nside ${NSIDE} --nproc ${NCORES} --IVAR-cut ${IVAR_CUT} --cell-size ${CELL_SIZE} --lambda-min ${LAMBDA_MIN} ${FLAGS}"
+command="srun -N 1 -n 1 -c ${NCORES} ${PROCESS_PATH}/make_transmission.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} --pixels ${PIXELS} --tuning-file ${TUNING_PATH} --nside ${NSIDE} --nproc ${NCORES} --IVAR-cut ${IVAR_CUT} --cell-size ${CELL_SIZE} --lambda-min ${LAMBDA_MIN} ${MT_FLAGS}"
 
 echo $command
 $command >& ${OUTPUT_PATH}/logs/node-${NODE}.log &
