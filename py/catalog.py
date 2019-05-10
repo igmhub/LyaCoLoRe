@@ -1,7 +1,7 @@
 import numpy as np
 from astropy.io import fits
 
-from . import utils, read_files
+from lyacolore import utils, read_files
 
 #Function to extract data suitable for making ID files from a set of colore or picca format files.
 def get_ID_data(filename,file_number,input_format,N_side,minimum_z=0.0,downsampling=1.0,QSO_filter=None,pixel_list=None):

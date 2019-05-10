@@ -85,7 +85,6 @@ parser.add_argument('--overwrite', action="store_true", default = False, require
 args = parser.parse_args()
 
 #Define global variables.
-
 original_file_location = args.in_dir
 new_base_file_location = args.out_dir
 N_side = args.nside
@@ -103,8 +102,6 @@ if desi_footprint or desi_footprint_pixel or desi_footprint_pixel_plus:
         from desimodel.footprint import tiles2pix, is_point_in_desi
         desimodel_installed = True
     except ModuleNotFoundError:
-        import warnings
-        warnings.warn('desimodel is not installed; using saved footprint pixel data.')
         desimodel_installed = False
 downsampling = args.downsampling
 overwrite = args.overwrite
