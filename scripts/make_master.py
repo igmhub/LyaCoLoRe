@@ -166,7 +166,8 @@ print('\nWorking on master data...')
 start = time.time()
 
 #Choose the QSO filtering we want.
-QSO_filter = utils.choose_filter(desi_footprint,desi_footprint_pixel,desi_footprint_pixel_plus,desimodel_installed,N_side=N_side)
+#QSO_filter = utils.choose_filter(desi_footprint,desi_footprint_pixel,desi_footprint_pixel_plus,desimodel_installed,N_side=N_side)
+QSO_filter = utils.make_QSO_filter(desi_footprint,desi_footprint_pixel,desi_footprint_pixel_plus,desimodel_installed,N_side=N_side)
 
 #Define the process to make the master data.
 def make_master_data(original_file_location,original_filename_structure,file_number,input_format,N_side,minimum_z=min_catalog_z):

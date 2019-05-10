@@ -10,18 +10,17 @@ from pyacolore import utils,tuning
 
 lya = 1215.67
 IVAR_cutoff = 1150.
-N_processes = 64
+N_processes = 4
 # main folder where the processed files are
-basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/process_output_G_hZsmooth_4096_32_sr2.0_bm1_biasG18_picos_newNz_mpz0_seed1003_123_nside16/'
-#basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v3/v3.0/'
-#basedir = '/Users/James/Projects/test_data/process_output_G_hZ_4096_32_sr2.0_bm1_nside16/'
+basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v5/v5.0.0/'
+file_suffix = 'v5.0.0'
 
 if len(sys.argv)>1:
     quantity = sys.argv[1]
 else:
     quantity = 'transmission'#'flux-renorm-rebin'
 nside = 16
-N_pixels = 3072
+N_pixels = 96
 #pixels = np.sort(np.random.choice(list(range(12*nside**2)),size=N_pixels))
 #pixels = np.array([1064,1096,1127,1128,1159,1160,1191,1192,1193,1223,1224,1225,1254,1255,1256,1257,1286,1287,1288,1289])
 pixels = np.array(list(range(N_pixels)))
@@ -75,6 +74,7 @@ def read_file(basedir,quantity,nside,pix):
         z_qso = transmission[1].data['Z_noRSD']
         loglam = np.log10(transmission['WAVELENGTH'].data)
         transmission.close()
+        ivar_rows = utils.make_IVAR_rows(IVAR_cutoff,z_qso,loglam)
         #filename = dirname+'/picca-{}-'.format(quantity)+suffix
         #picca = fits.open(filename)
     else:
@@ -86,11 +86,9 @@ def read_file(basedir,quantity,nside,pix):
         data_rows = picca[0].data.T
         z_qso = picca[3].data['Z']
 
-        #ivar_rows = picca[1].data.T
+        ivar_rows = picca[1].data.T
         loglam = picca[2].data
         picca.close()
-
-    ivar_rows = utils.make_IVAR_rows(IVAR_cutoff,z_qso,loglam)
 
     zs = (10**loglam)/lya - 1.0
 
@@ -168,6 +166,11 @@ overall_mean2 = sum_mean2/sum_weights
 overall_var = overall_mean2 - overall_mean**2
 overall_sigma = np.sqrt(overall_var)
 
+all_skw_mean = np.average(overall_mean,weights=sum_weights)
+all_skw_mean2 = np.average(overall_mean2,weights=sum_weights)
+all_skw_var = all_skw_mean2 - all_skw_mean**2
+print('sigma over all skewers is:',np.sqrt(all_skw_var))
+
 data_list = []
 for i in range(zs.shape[0]):
     data_list += [(zs[i],overall_mean[i],overall_sigma[i])]
@@ -181,8 +184,8 @@ hdulist = fits.HDUList(list_hdu)
 if quantity == 'transmission':
     descriptor = quantity
 else:
-    descriptor = 'picca_' + quantity
-hdulist.writeto('mean_data_{}_{}_v4.0.fits'.format(descriptor,IVAR_cutoff))
+    descriptor = 'picca-' + quantity
+#hdulist.writeto('mean_data_{}_cut{}_{}.fits'.format(descriptor,IVAR_cutoff,file_suffix))
 hdulist.close()
 
 err = np.sqrt(overall_var/sum_weights)
@@ -253,5 +256,5 @@ elif quantity == 'flux':
 #plt.ylim(-0.05,0.05)
 plt.legend()
 plt.grid()
-plt.savefig('mean_var_{}_cut{}.pdf'.format(quantity,IVAR_cutoff))
+plt.savefig('mean_var_{}_cut{}_{}.pdf'.format(quantity,IVAR_cutoff,file_suffix))
 plt.show()
