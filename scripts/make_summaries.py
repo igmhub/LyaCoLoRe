@@ -10,7 +10,7 @@ import time
 import os
 import argparse
 
-from pyacolore import utils, independent, stats, convert, simulation_data, DLA, RSD, tuning
+from lyacolore import utils, independent, stats, convert, simulation_data, DLA, RSD, tuning
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
