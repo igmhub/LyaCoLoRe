@@ -5,7 +5,7 @@ from multiprocessing import Pool
 import multiprocessing
 from astropy.io import fits
 
-from pyacolore import simulation_data, bias, utils, tuning
+from lyacolore import simulation_data, bias, utils, tuning
 
 lya = utils.lya_rest
 

@@ -5,7 +5,7 @@ import multiprocessing
 import sys
 import time
 
-from pyacolore import tuning,utils
+from lyacolore import tuning,utils
 
 lya = utils.lya_rest
 

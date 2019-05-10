@@ -6,7 +6,7 @@ import multiprocessing
 import sys
 import time
 
-from pyacolore import utils,tuning
+from lyacolore import utils,tuning
 
 lya = 1215.67
 IVAR_cutoff = 1150.

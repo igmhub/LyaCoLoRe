@@ -10,7 +10,7 @@ import time
 import os
 import argparse
 
-from pyacolore import Pk1D, tuning, utils
+from lyacolore import Pk1D, tuning, utils
 
 ################################################################################
 

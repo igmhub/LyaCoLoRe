@@ -5,7 +5,7 @@ from multiprocessing import Pool
 import multiprocessing
 from astropy.io import fits
 
-from pyacolore import utils
+from lyacolore import utils
 
 basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v5/test_runs_with_bias/test_a2.0_b1.65_wb/'
 N_merge = 5

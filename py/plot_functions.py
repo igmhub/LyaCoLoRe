@@ -6,7 +6,7 @@ from picca import wedgize
 import sys
 from numpy import linalg
 import mcfit
-from pyacolore import correlation_model
+from lyacolore import correlation_model
 import glob
 import h5py
 
