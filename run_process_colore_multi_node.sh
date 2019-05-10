@@ -8,12 +8,12 @@ TIME="00:30:00" #hh:mm:ss
 NSIDE=16
 IVAR_CUT=1150.0
 CELL_SIZE=0.25
-LAMBDA_MIN=3470.0
+LAMBDA_MIN=3550.0
 MIN_CAT_Z=1.8
 LYACOLORE_SEED=123
 DLA_BIAS=2.0
 DLA_BIAS_METHOD='b_const'
-DOWNSAMPLING=0.5
+DOWNSAMPLING=1.0
 VEL_BOOST=1.2
 
 # specify transmission file wavelength grid
@@ -22,9 +22,9 @@ TRANS_LMAX=6500.0
 TRANS_DL=0.2
 
 # specify process flags
-#MM_FLAGS=""
-MM_FLAGS="--desi-footprint-pixel-plus"
-MT_FLAGS="--add-DLAs --add-RSDs --add-QSO-RSDs --add-small-scale-fluctuations --add-Lyb"
+MM_FLAGS=""
+#MM_FLAGS="--desi-footprint-pixel-plus"
+MT_FLAGS="--add-DLAs --add-RSDs --add-QSO-RSDs --add-small-scale-fluctuations"
 
 # specify details of colore output
 COLORE_NGRID=4096
@@ -37,6 +37,7 @@ PROCESS_PATH="/global/homes/j/jfarr/Projects/LyaCoLoRe/scripts/"
 
 # full path to folder where input will be taken from
 INPUT_PATH="/project/projectdirs/desi/mocks/lya_forest/london/colore_raw/v5_seed${COLORE_SEED}/"
+COLORE_PARAM_PATH="${INPUT_PATH}/param_v5_seed${COLORE_SEED}.cfg"
 echo "input will be taken from "$INPUT_PATH
 INPUT_FILES=`ls -1 ${INPUT_PATH}/out_srcs_*.fits`
 
@@ -46,7 +47,7 @@ echo "${NFILES} input files have been found"
 # code version
 V_CODE_MAJ="7"
 V_CODE_MIN="0"
-V_REALISATION="0"
+V_REALISATION="5"
 
 # full path to folder where output will be written
 #OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test_runs_for_v7/test_vb1.2_with_Lyb/"
@@ -69,10 +70,13 @@ TUNING_PATH="/global/homes/j/jfarr/Projects/LyaCoLoRe/input_files/tuning_data_wi
 RUN_FILE="/global/homes/j/jfarr/Projects/LyaCoLoRe/run_files/process_colore_v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}.sh"
 echo "run file "$RUN_FILE
 
+# we create a log of the inputs/parameters used in the run
+PARAM_FILE="${OUTPUT_PATH}/input.param"
+
 # make master file and new file structure
 date
 echo "making master file"
-${PROCESS_PATH}/make_master.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} --nside ${NSIDE} --nproc ${NCORES} --min-cat-z ${MIN_CAT_Z} ${MM_FLAGS} --downsampling ${DOWNSAMPLING}
+${PROCESS_PATH}/make_master.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} --nside ${NSIDE} --nproc ${NCORES} --min-cat-z ${MIN_CAT_Z} ${MM_FLAGS} --downsampling ${DOWNSAMPLING} --pixels {0..999}
 wait
 date
 
@@ -132,12 +136,42 @@ for NODE in \`seq $NNODES\` ; do
     fi
 
 done
-
 wait
-
 date
 
 EOF
+
+# write the input file
+cat > $PARAM_FILE <<EOF
+#LyaCoLoRe paths
+PROCESS_PATH=${PROCESS_PATH}
+INPUT_PATH=${INPUT_PATH}
+TUNING_PATH=${TUNING_PATH}
+OUTPUT_PATH=${OUTPUT_PATH}
+
+#LyaCoLoRe params
+NSIDE=${NSIDE}
+IVAR_CUT=${IVAR_CUT}
+CELL_SIZE=${CELL_SIZE}
+LAMBDA_MIN=${LAMBDA_MIN}
+MIN_CAT_Z=${MIN_CAT_Z}
+LYACOLORE_SEED=${LYACOLORE_SEED}
+DLA_BIAS=${DLA_BIAS}
+DLA_BIAS_METHOD=${DLA_BIAS_METHOD}
+DOWNSAMPLING=${DOWNSAMPLING}
+VEL_BOOST=${VEL_BOOST}
+TRANS_LMIN=${TRANS_LMIN}
+TRANS_LMAX=${TRANS_LMAX}
+TRANS_DL=${TRANS_DL}
+
+#LyaCoLoRe flags
+MM_FLAGS=${MM_FLAGS}
+MT_FLAGS=${MT_FLAGS}
+
+#CoLoRe params
+COLORE_PARAM_PATH=${COLORE_PARAM_PATH}
+EOF
+cat ${COLORE_PARAM_PATH} >> ${PARAM_FILE}
 
 # copy run file to the output location for record
 cp $RUN_FILE $OUTPUT_PATH
