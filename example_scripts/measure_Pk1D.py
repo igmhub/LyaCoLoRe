@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from astropy.io import fits
 
-from pyacolore import Pk1D, tuning, utils
+from lyacolore import Pk1D, tuning, utils
 
 lya = utils.lya_rest
 

@@ -2,7 +2,7 @@ import numpy as np
 import copy
 import time
 
-from pyacolore import utils
+from lyacolore import utils
 
 lya = utils.lya_rest
 

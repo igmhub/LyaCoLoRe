@@ -6,7 +6,7 @@ import multiprocessing
 from astropy.io import fits
 import matplotlib.pyplot as plt
 
-from pyacolore import simulation_data, bias, utils, tuning
+from lyacolore import simulation_data, bias, utils, tuning
 
 #base_dir = '../example_data/lya_skewers/'
 base_dir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v5/v5.0.0/'

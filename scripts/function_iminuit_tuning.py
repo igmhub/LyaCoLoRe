@@ -10,7 +10,7 @@ import time
 import glob
 from iminuit import Minuit
 
-from pyacolore import convert, Pk1D, utils, independent, tuning, simulation_data
+from lyacolore import convert, Pk1D, utils, independent, tuning, simulation_data
 
 lya = utils.lya_rest
 

@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from astropy.io import fits
 
-from pyacolore import utils
+from lyacolore import utils
 
 basedir = "/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v6/v6.0.0/" 
 N_side = 16

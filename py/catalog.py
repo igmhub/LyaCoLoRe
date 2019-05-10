@@ -4,14 +4,13 @@ from astropy.io import fits
 from . import utils, read_files
 
 #Function to extract data suitable for making ID files from a set of colore or picca format files.
-def get_ID_data(original_file_location,original_filename_structure,file_number,input_format,N_side,minimum_z=0.0,downsampling=1.0,QSO_filter=None,pixel_list=None):
+def get_ID_data(filename,file_number,input_format,N_side,minimum_z=0.0,downsampling=1.0,QSO_filter=None,pixel_list=None):
 
     ID_data = []
     cosmology = []
     N_pixels = 12*N_side**2
 
     #Open the file and extract the angular coordinate data.
-    filename = original_file_location + '/' + original_filename_structure.format(file_number)
     h = fits.open(filename)
 
     #Extract the component parts of the master file's data from h.
