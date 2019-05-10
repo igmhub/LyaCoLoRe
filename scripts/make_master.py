@@ -9,7 +9,7 @@ import time
 import argparse
 import glob
 
-from pyacolore import utils, catalog
+from lyacolore import utils, catalog
 
 try:
     from desimodel.footprint import tiles2pix, is_point_in_desi
