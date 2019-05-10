@@ -7,8 +7,9 @@ from multiprocessing import Pool
 import multiprocessing
 import time
 import argparse
+import glob
 
-from pyacolore import utils, catalog
+from lyacolore import utils, catalog
 
 try:
     from desimodel.footprint import tiles2pix, is_point_in_desi
@@ -117,8 +118,9 @@ else:
     N_pix = 12*N_side**2
 
 #Define the original file structure
-original_filename_structure = 'out_srcs_s1_{}.fits' #file_number
-file_numbers = list(range(0,32))
+input_filename_structure = 'out_srcs_s1_{}.fits' #file_number
+input_files = glob.glob(original_file_location+input_filename_structure.format('*'))
+file_numbers = utils.get_file_numbers(original_file_location,input_filename_structure,input_files)
 input_format = 'gaussian_colore'
 
 #Set file structure
@@ -170,14 +172,14 @@ start = time.time()
 QSO_filter = utils.make_QSO_filter(desi_footprint,desi_footprint_pixel,desi_footprint_pixel_plus,desimodel_installed,N_side=N_side)
 
 #Define the process to make the master data.
-def make_master_data(original_file_location,original_filename_structure,file_number,input_format,N_side,minimum_z=min_catalog_z):
+def make_master_data(file_name,file_number,input_format,N_side,minimum_z=min_catalog_z):
 
-    file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element = catalog.get_ID_data(original_file_location,original_filename_structure,file_number,input_format,N_side,minimum_z=min_catalog_z,downsampling=downsampling,QSO_filter=QSO_filter,pixel_list=pixel_list)
+    file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element = catalog.get_ID_data(file_name,file_number,input_format,N_side,minimum_z=min_catalog_z,downsampling=downsampling,QSO_filter=QSO_filter,pixel_list=pixel_list)
 
     return [file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element]
 
 #Set up the multiprocessing pool parameters and make a list of tasks.
-tasks = [(original_file_location,original_filename_structure,file_number,input_format,N_side) for file_number in file_numbers]
+tasks = [(input_files[i],file_number,input_format,N_side) for i,file_number in enumerate(file_numbers)]
 
 #Run the multiprocessing pool
 if __name__ == '__main__':

@@ -95,7 +95,7 @@ def make_pixel_ID(N_side,RA,DEC):
     phi = (np.pi/180.0)*RA
 
     #Make a list of  the HEALPix pixel coordinate of each quasar.
-    #We check that the angular coordinates are valid. 
+    #We check that the angular coordinates are valid.
     #Give all objects with invalid coordinates an "error" ID number (-1).
     valid_QSOs = (0 <= theta) * (theta <= np.pi) * (0 <= phi) * (phi <= 2*np.pi)
     pixel_ID = np.ones_like(RA) * (-1)
@@ -137,7 +137,7 @@ def make_QSO_filter(desi,desi_pixel,desi_pixel_plus,desimodel_installed,N_side=1
     elif desi or desi_pixel or desi_pixel_plus:
 
         #If desimodel is installed, then we use "tiles2pix" to determine which
-        #pixels to include. 
+        #pixels to include.
         if desimodel_installed:
             from desimodel.footprint import tiles2pix
             if desi_pixel:
@@ -146,8 +146,8 @@ def make_QSO_filter(desi,desi_pixel,desi_pixel_plus,desimodel_installed,N_side=1
                 valid_pixels = tiles2pix(N_side)
                 valid_pixels = add_pixel_neighbours(valid_pixels)
 
-        #Otherwise, we load pixel lists from file. Note: using desimodel is 
-        #preferable to loading from file as the footprint could change, and 
+        #Otherwise, we load pixel lists from file. Note: using desimodel is
+        #preferable to loading from file as the footprint could change, and
         #desimodel will be more up to date than the lists in this case.
         else:
             print('desimodel not installed; loading pixel footprints from file...')
@@ -465,3 +465,33 @@ def renorm_rebin_picca_file(filepath,old_mean=None,new_mean=None,N_merge=None,IV
 #Function to produce values of a quadratic log functional form.
 def quadratic_log(x,A0,A1,A2):
     return np.log(A0) + A1*np.log(x) + A2*(np.log(x))**2
+
+#Function to extract file numbers from filenames given the location and format.
+def get_file_numbers(original_file_location,input_filename_structure,input_files):
+
+    file_numbers = []
+
+    #We assume that there is some filename structure before and after the file
+    #number. We find both before and after parts.
+    struc_before_number = input_filename_structure[:input_filename_structure.find('{')]
+    struc_after_number = input_filename_structure[input_filename_structure.find('}')+1:]
+
+    for infi in input_files:
+        #Strip the location.
+        infi = infi[len(original_file_location):]
+
+        #Get rid of any slashes if necessary.
+        if '/' in infi:
+            infi = infi[len(infi)-infi[::-1].find('/'):]
+
+        #Strip the structure before the file number.
+        infi = infi[len(struc_before_number):]
+
+        #Strip the structure after the file number.
+        infi = infi[:len(infi)-len(struc_after_number)]
+
+        #Convert to a number and add to the list.
+        file_number = int(infi)
+        file_numbers += [file_number]
+
+    return file_numbers

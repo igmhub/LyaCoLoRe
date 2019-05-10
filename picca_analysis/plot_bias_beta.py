@@ -4,7 +4,7 @@ import h5py
 import sys
 import glob
 
-from pyacolore import plot_functions
+from lyacolore import plot_functions
 
 default_location = '/global/homes/j/jfarr/Programs/picca/picca_analysis_000/'
 

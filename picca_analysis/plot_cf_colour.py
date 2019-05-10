@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from astropy.io import fits
 import sys
 
-from pyacolore import plot_functions
+from lyacolore import plot_functions
 
 default_location = ['/global/homes/j/jfarr/Programs/picca/picca_analysis_000/picca_00000/']
 
