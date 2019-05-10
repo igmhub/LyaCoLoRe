@@ -480,8 +480,9 @@ def get_file_numbers(original_file_location,input_filename_structure,input_files
         #Strip the location.
         infi = infi[len(original_file_location):]
 
-        #Get rid of any slashes.
-        infi = infi[len(infi)-infi[::-1].find('/'):]
+        #Get rid of any slashes if necessary.
+        if '/' in infi:
+            infi = infi[len(infi)-infi[::-1].find('/'):]
 
         #Strip the structure before the file number.
         infi = infi[len(struc_before_number):]
