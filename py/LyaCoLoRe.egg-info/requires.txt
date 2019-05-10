@@ -1,8 +1,0 @@
-numpy
-scipy
-iminuit
-healpy
-fitsio
-numba
-future
-setuptools
