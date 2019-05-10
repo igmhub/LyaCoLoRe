@@ -1,7 +1,0 @@
-README.md
-setup.py
-py/LyaCoLoRe.egg-info/PKG-INFO
-py/LyaCoLoRe.egg-info/SOURCES.txt
-py/LyaCoLoRe.egg-info/dependency_links.txt
-py/LyaCoLoRe.egg-info/requires.txt
-py/LyaCoLoRe.egg-info/top_level.txt
