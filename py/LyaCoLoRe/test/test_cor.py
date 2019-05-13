@@ -43,7 +43,7 @@ class TestCor(unittest.TestCase):
 
         req = {}
 
-        path = resource_filename('LyaCoLoRe', '../../../requirements.txt')
+        path = resource_filename('LyaCoLoRe', '/../../requirements.txt')
         with open(path,'r') as f:
             for l in f:
                 l = l.replace('\n','').replace('==',' ').replace('>=',' ').split()
