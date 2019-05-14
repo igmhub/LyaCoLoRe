@@ -413,6 +413,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
     #Make a pixel object from it.
     file_number = None
     pixel_object = simulation_data.SimulationData.get_gaussian_skewers_object(gaussian_filename,file_number,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
+    
     pixel_object.transformation = transformation
 
     pixel_object.VEL_rows *= vel_mult
