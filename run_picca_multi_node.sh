@@ -1,6 +1,6 @@
 #number of pixels
-NPIXELS=1000
-NPIXPERNODE=80
+NPIXELS=1490
+NPIXPERNODE=149
 NCORES=64
 
 # specify number of nodes and cores to use
@@ -21,16 +21,22 @@ RMINS='20.0 40.0 60.0'
 RMAXS=160.0
 AFIXS='fixed free'
 
-ZMIN=2.3
-ZEFF=2.4
-ZMAX=2.5
+ZMIN=3.5
+ZMAX=3.7
 
-#density or flux or gaussian
+#first quantity to correlate
 QUANTITY="flux-rebin-10"
+INDIR="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v7/v7.0.0_initial/"
+#INDIR="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test_velocity_interpolation_full_no_ssf/"
 
-#Quantity code
-QC="FF"
+#second quantity to correlate (if desired)
+#QUANTITY2="gaussian"
+#INDIR2="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v7/v7.0.0/"
+#INDIR2="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test_velocity_interpolation_full_no_ssf/"
+
+#Correlation type
 CORRTYPE="cf"
+QC="FF"
 
 #picca nside value
 NSIDEPICCA=16
@@ -45,7 +51,7 @@ SR=2.0
 PICCA_PATH="/global/homes/j/jfarr/Programs/picca/"
 
 #decide analysis number
-ANALYSIS_ID=35
+ANALYSIS_ID=37
 ANALYSIS_ID=`printf "%03d" ${ANALYSIS_ID}`
 
 #find ID number
@@ -53,9 +59,6 @@ PICCA_ID=`ls -1d $PICCA_PATH/picca_analysis_0*/picca* | sort -t / -k 2,2 | tail 
 PICCA_ID=${PICCA_ID##*_}
 PICCA_ID=${PICCA_ID#${PICCA_ID%%[123456789]*}}
 PICCA_ID=`printf "%05d" $((PICCA_ID+1))`
-
-#in directory
-INDIR="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v7/v7.0.0/"
 
 #Output location
 OUTPUT_PATH="${PICCA_PATH}/picca_analysis_${ANALYSIS_ID}/picca_${PICCA_ID}/"
@@ -71,8 +74,10 @@ if [ ! -d $OUTPUT_PATH/logs ] ; then
 fi
 
 #Final output file names
-OUTPUT_FILE="${OUTPUT_PATH}/cf.fits.gz"
-OUTPUT_EXP_FILE="${OUTPUT_PATH}/cf_exp.fits.gz"
+OUTPUT_FILENAME="cf.fits.gz"
+OUTPUT_EXP_FILENAME="cf_exp.fits.gz"
+OUTPUT_FILE="${OUTPUT_PATH}/${OUTPUT_FILENAME}"
+OUTPUT_EXP_FILE="${OUTPUT_PATH}/${OUTPUT_EXP_FILENAME}"
 
 # we will create this script
 RUN_FILE="${OUTPUT_PATH}/run_picca_cf_${ANALYSIS_ID}_${PICCA_ID}.sh"
@@ -100,6 +105,8 @@ if [ $(( $NPIXPERNODE * $NNODES )) -gt $NPIXELS ]; then
     echo "This ensures that each of the $NNODES nodes gets the same number of pixels: $NPIXPERNODE."
 fi
 
+INDIR="$INDIR"
+INDIR2="$INDIR2"
 START_INDEX=0
 STOP_INDEX=$(( $NPIXPERNODE - 1 ))
 FINAL_NODE=0
@@ -112,14 +119,32 @@ for NODE in \`seq $NNODES\` ; do
 
     N=0
     NODE_FILES=""
+    NODE_FILES2=""
     while [ \${N} -lt $NPIXPERNODE ]; do
 
         F="${INDIR}/\$(( \${i}/100 ))/\${i}/picca-${QUANTITY}-16-\${i}.fits";
-        if [ -f "\$F" ]; then 
-            NODE_FILES="\$NODE_FILES \$F";
-            N=\$(( \$N + 1 ));
-            N_TOTAL=\$(( \$N_TOTAL + 1 ));
-            N_REMAINING=\$(( \$N_REMAINING - 1 ));
+
+        if [ -z "\${INDIR2}" ]; then
+
+            if [ -f "\$F" ]; then 
+                NODE_FILES="\$NODE_FILES \$F";
+                N=\$(( \$N + 1 ));
+                N_TOTAL=\$(( \$N_TOTAL + 1 ));
+                N_REMAINING=\$(( \$N_REMAINING - 1 ));
+            fi;
+
+        else
+
+            F2="${INDIR2}/\$(( \${i}/100 ))/\${i}/picca-${QUANTITY2}-16-\${i}.fits";
+        
+            if [ -f "\$F" ] && [ -f "\$F2" ]; then 
+                NODE_FILES="\$NODE_FILES \$F";
+                NODE_FILES2="\$NODE_FILES2 \$F2";
+                N=\$(( \$N + 1 ));
+                N_TOTAL=\$(( \$N_TOTAL + 1 ));
+                N_REMAINING=\$(( \$N_REMAINING - 1 ));
+            fi;
+
         fi;
 
         i=\$(( \$i + 1 ));
@@ -133,7 +158,15 @@ for NODE in \`seq $NNODES\` ; do
 
     NODE_OUTPUT_FILE="${NODE_OUTPUT_PATH}/cf_\${START_INDEX}_\${STOP_INDEX}.fits.gz"
 
-    command="srun -N 1 -n 1 -c ${NCORES} ${PICCA_PATH}/bin/picca_cf.py --in-dir \"dummy\" --from-image \${NODE_FILES} --out \${NODE_OUTPUT_FILE} --rp-min ${RPMIN} --rp-max ${RPMAX} --rt-max ${RTMAX} --np ${NP} --nt ${NT} --no-project --nside ${NSIDEPICCA} --nproc 64 --z-cut-min ${ZMIN} --z-cut-max ${ZMAX}"
+    if [ -z "\${INDIR2}" ]; then
+
+        command="srun -N 1 -n 1 -c ${NCORES} ${PICCA_PATH}/bin/picca_cf.py --in-dir \"dummy\" --from-image \${NODE_FILES} --out \${NODE_OUTPUT_FILE} --rp-min ${RPMIN} --rp-max ${RPMAX} --rt-max ${RTMAX} --np ${NP} --nt ${NT} --no-project --nside ${NSIDEPICCA} --nproc 64 --z-cut-min ${ZMIN} --z-cut-max ${ZMAX}";
+
+    else
+
+        command="srun -N 1 -n 1 -c ${NCORES} ${PICCA_PATH}/bin/picca_cf.py --in-dir \"dummy\" --from-image \${NODE_FILES} --in-dir2 \"dummy\" --from-image2 \${NODE_FILES2} --out \${NODE_OUTPUT_FILE} --rp-min ${RPMIN} --rp-max ${RPMAX} --rt-max ${RTMAX} --np ${NP} --nt ${NT} --no-project --nside ${NSIDEPICCA} --nproc 64 --z-cut-min ${ZMIN} --z-cut-max ${ZMAX}";
+
+    fi
 
     echo \$command
     \$command >& ${OUTPUT_PATH}/logs/node-\${NODE}.log &
@@ -161,39 +194,42 @@ wait
 ${PICCA_PATH}/bin/picca_export.py --data ${OUTPUT_FILE} --out ${OUTPUT_EXP_FILE}
 date
 
+#Generate the aux files
+/global/homes/j/jfarr/Projects/LyaCoLoRe/picca_analysis/make_picca_aux_files.py --base-dir ${OUTPUT_PATH} --corr-type $CORRTYPE --quantity $QUANTITY --npixels ${NPIXELS} --quant-code ${QC} --zmin ${ZMIN} --zmax ${ZMAX} --cf-filename $OUTPUT_FILENAME --cf-exp-filename $OUTPUT_EXP_FILENAME --nside $NSIDEPICCA --rpmin ${RPMIN} --rpmax ${RPMAX} --rtmin ${RTMIN} --rtmax ${RTMAX} --np ${NP} --nt ${NT} --rmin-values ${RMINS} --rmax-values ${RMAXS} --afix-values ${AFIXS}
+
 EOF
 
 # we will create a paremter file to store the correlation parameters
-PARAMETER_FILE=${OUTPUT_PATH}/parameters.txt
-echo "parameterfile "${PARAMETER_FILE}
+#PARAMETER_FILE=${OUTPUT_PATH}/parameters.txt
+#echo "parameterfile "${PARAMETER_FILE}
 
 #make parameter file
-cat > $PARAMETER_FILE <<EOF
-correl_type = $CORRTYPE
-quantity = $QUANTITY
-N_side = $NSIDEPICCA
-N_pixels = ${NPIXELS}
-quantities = ${QC}
-rpmin = ${RPMIN}
-rpmax = ${RPMAX}
-rtmin = ${RTMIN}
-rtmax = ${RTMAX}
-np = ${NP}
-nt = ${NT}
-zmin = ${ZMIN}
-zmax = ${ZMAX}
-EOF
+#cat > $PARAMETER_FILE <<EOF
+#correl_type = $CORRTYPE
+#quantity = $QUANTITY
+#N_side = $NSIDEPICCA
+#N_pixels = ${NPIXELS}
+#quantities = ${QC}
+#rpmin = ${RPMIN}
+#rpmax = ${RPMAX}
+#rtmin = ${RTMIN}
+#rtmax = ${RTMAX}
+#np = ${NP}
+#nt = ${NT}
+#zmin = ${ZMIN}
+#zmax = ${ZMAX}
+#EOF
 
 #create config files for doing fits
-for RMIN in ${RMINS}; do for RMAX in ${RMAXS}; do for AFIX in ${AFIXS}; do
-SUFFIX="_${RMIN%%.*}r_a${AFIX}"
-CONFIG_FILE="${OUTPUT_PATH}/config_${CORRTYPE}${SUFFIX}.ini"
-source ${PICCA_PATH}/txt_templates/config_${CORRTYPE}.ini $OUTPUT_EXP_FILE $CONFIG_FILE $RPMIN $RPMAX $RTMIN $RTMAX $RMIN $RMAX $AFIX $AFIX
-CHI2_FILE="${OUTPUT_PATH}/chi2${SUFFIX}.ini"
-source ${PICCA_PATH}/txt_templates/chi2.ini $CHI2_FILE $ZEFF $CORRTYPE $SUFFIX
-done; done; done
+#for RMIN in ${RMINS}; do for RMAX in ${RMAXS}; do for AFIX in ${AFIXS}; do
+#SUFFIX="_${RMIN%%.*}r_a${AFIX}"
+#CONFIG_FILE="${OUTPUT_PATH}/config_${CORRTYPE}${SUFFIX}.ini"
+#source ${PICCA_PATH}/txt_templates/config_${CORRTYPE}.ini $OUTPUT_EXP_FILE $CONFIG_FILE $RPMIN $RPMAX $RTMIN $RTMAX $RMIN $RMAX $AFIX $AFIX
+#CHI2_FILE="${OUTPUT_PATH}/chi2${SUFFIX}.ini"
+#source ${PICCA_PATH}/txt_templates/chi2.ini $CHI2_FILE $ZEFF $CORRTYPE $SUFFIX
+#done; done; done
 
-echo "config and chi2 files written"
+#echo "config and chi2 files written"
 
 # send the job to the queue
 sbatch $RUN_FILE

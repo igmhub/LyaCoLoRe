@@ -7,7 +7,7 @@ Notice that the metals that are being considered are only those with wavelengths
 
 """
 def get_lyb_absorber():
-    return absorber.AbsorberData('Lyb', 1025.72, 0.1901),
+    return absorber.AbsorberData('Lyb', 1025.72, 0.1901)
 
 def get_metal_dict():
     metal_dict = {
