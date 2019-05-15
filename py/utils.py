@@ -7,7 +7,7 @@ import healpy as hp
 lya_rest = 1215.67
 
 def get_file_name(base_dir,base_name,nside,pixel):
-    return base_dir+'/{}-{}-{}.fits'.format(base_name,nside,pixel)
+    return base_dir+'/{}-{}-{}.fits.gz'.format(base_name,nside,pixel)
 
 def get_dir_name(base_dir,pixel):
     return base_dir+'/{}/{}/'.format(pixel//100,pixel)
