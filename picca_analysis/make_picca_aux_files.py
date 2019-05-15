@@ -37,8 +37,8 @@ parser.add_argument('--zmax', type = float, default = None, required=True,
 parser.add_argument('--cf-filename', type = str, default = 'cf.fits.gz', required=False,
                     help = 'name of cf file')
 
-parser.add_argument('--cf-exp-filename', type = str, default = 'cf.fits.gz', required=False,
-                    help = 'name of cf file')
+parser.add_argument('--cf-exp-filename', type = str, default = 'cf_exp.fits.gz', required=False,
+                    help = 'name of cf exp file')
 
 parser.add_argument('--nside', type = int, default = 16, required=False,
                     help = 'HEALPix nside for output files (must be 2^n)')
@@ -128,20 +128,30 @@ for rmin in args.rmin_values:
             config_text = ''
             config_text += '#!/bin/bash -l\n\n'
             config_text += '[data]\n'
-            config_text += 'name = LYA(LYA)xLYA(LYA)\n'
-            config_text += 'tracer1 = LYA\n'
-            config_text += 'tracer2 = LYA\n'
-            config_text += 'tracer1-type = continuous\n'
-            config_text += 'tracer2-type = continuous\n'
-            config_text += 'filename = {}\n'.format(args.base_dir+args.cf_exp_filename)
+            if args.corr_type == 'cf':
+                config_text += 'name = LYA(LYA)xLYA(LYA)\n'
+                config_text += 'tracer1 = LYA\n'
+                config_text += 'tracer2 = LYA\n'
+                config_text += 'tracer1-type = continuous\n'
+                config_text += 'tracer2-type = continuous\n'
+            elif args.corr_type =='xcf':
+                config_text += 'name = LYA(LYA)xQSO\n'
+                config_text += 'tracer1 = QSO\n'
+                config_text += 'tracer2 = LYA\n'
+                config_text += 'tracer1-type = discrete\n'
+                config_text += 'tracer2-type = continuous\n'
+            config_text += 'filename = {}\n'.format(args.base_dir+args.cf_filename)
             config_text += 'ell-max = 6\n\n'
             config_text += '[cuts]\n'
             config_text += 'rp-min = {}\n'.format(args.rpmin)
             config_text += 'rp-max = {}\n\n'.format(args.rpmax)
             config_text += 'rt-min = {}\n'.format(args.rtmin)
             config_text += 'rt-max = {}\n\n'.format(args.rtmax)
-            config_text += 'r-min = {}\n'.format(rmin)
-            config_text += 'r-max = {}\n\n'.format(rmax)
+            config_text += 'r-min = {}\n'.format(args.rmin)
+            config_text += 'r-max = {}\n\n'.format(args.rmax)
+            if args.corr_type == 'xcf':
+                config_text += 'mu-min = -1.\n'
+                config_text += 'mu-max = +1.\n\n'
             config_text += 'mu-min = 0.\n'
             config_text += 'mu-max = 1.\n\n'
             config_text += '[model]\n'
@@ -151,8 +161,12 @@ for rmin in args.rmin_values:
             config_text += 'growth function = growth_factor_de\n'
             config_text += 'pk-gauss-smoothing = pk_gauss_smoothing\n\n'
             config_text += '[parameters]\n\n'
-            config_text += 'bias_eta_QSO  = 1. 0. None None fixed\n'
-            config_text += 'beta_QSO      = 0.5 0.1 None None fixed\n\n'
+            if args.corr_type == 'cf':
+                config_text += 'bias_eta_QSO  = 1. 0. None None fixed\n'
+                config_text += 'beta_QSO      = 0.5 0.1 None None fixed\n\n'
+            elif args.corr_type == 'xcf':
+                config_text += 'bias_eta_QSO  = 1. 0. None None fixed\n'
+                config_text += 'beta_QSO      = 0.5 0.1 None None free\n\n'
             config_text += 'croom_par0             = 0.53  0. None None fixed\n'
             config_text += 'croom_par1             = 0.289 0. None None fixed\n'
             config_text += 'drp_QSO                = 0. 0.1   None None fixed\n'
@@ -166,8 +180,12 @@ for rmin in args.rmin_values:
             config_text += 'bias_eta_LYA  = -0.0003512  1. None None free\n'
             config_text += 'beta_LYA  = 0.5    0.1 None None free\n'
             config_text += 'alpha_LYA = 2.9     0. None None fixed\n\n'
-            config_text += 'par binsize LYA(LYA)xLYA(LYA) = 4 0. None None fixed\n'
-            config_text += 'per binsize LYA(LYA)xLYA(LYA) = 4 0. None None fixed\n\n'
+            if args.corr_type == 'cf':
+                config_text += 'par binsize LYA(LYA)xLYA(LYA) = 4 0. None None fixed\n'
+                config_text += 'per binsize LYA(LYA)xLYA(LYA) = 4 0. None None fixed\n\n'
+            elif args.corr_type == 'xcf':
+                config_text += 'par binsize LYA(LYA)xQSO = 4 0. None None fixed\n'
+                config_text += 'per binsize LYA(LYA)xQSO = 4 0. None None fixed\n\n'
             config_text += 'par_sigma_smooth = 2 0. None None free\n'
             config_text += 'per_sigma_smooth = 2 0. None None free\n'
             file = open(config_filename,'w')
