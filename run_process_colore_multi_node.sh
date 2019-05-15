@@ -8,7 +8,7 @@ TIME="00:30:00" #hh:mm:ss
 NSIDE=16
 IVAR_CUT=1150.0
 CELL_SIZE=0.25
-LAMBDA_MIN=3550.0
+LAMBDA_MIN=3470.0
 MIN_CAT_Z=1.8
 LYACOLORE_SEED=123
 DLA_BIAS=2.0
@@ -22,9 +22,9 @@ TRANS_LMAX=6500.0
 TRANS_DL=0.2
 
 # specify process flags
-MM_FLAGS=""
-#MM_FLAGS="--desi-footprint-pixel-plus"
-MT_FLAGS="--add-DLAs --add-RSDs --add-QSO-RSDs --add-small-scale-fluctuations"
+#MM_FLAGS=""
+MM_FLAGS="--desi-footprint-pixel-plus"
+MT_FLAGS="--add-DLAs --add-RSDs --add-QSO-RSDs --add-small-scale-fluctuations --transmission-only --add-Lyb"
 
 # specify details of colore output
 COLORE_NGRID=4096
@@ -46,11 +46,11 @@ echo "${NFILES} input files have been found"
 
 # code version
 V_CODE_MAJ="7"
-V_CODE_MIN="0"
-V_REALISATION="5"
+V_CODE_MIN="2"
+V_REALISATION="0"
 
 # full path to folder where output will be written
-#OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test_runs_for_v7/test_vb1.2_with_Lyb/"
+#OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test_absorbers/test_Lya_Lyb_m1/"
 OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v${V_CODE_MAJ}/v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}/"
 #OUTPUT_PATH="/project/projectdirs/desi/mocks/lya_forest/london/v${V_CODE_MAJ}.${V_CODE_MIN}/v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}/"
 
@@ -65,6 +65,7 @@ fi
 
 # full path to file with tuning sigma_G data
 TUNING_PATH="/global/homes/j/jfarr/Projects/LyaCoLoRe/input_files/tuning_data_with_bias_vel1.2_b1.65.fits"
+#TUNING_PATH="/global/homes/j/jfarr/Projects/LyaCoLoRe/input_files/tuning_data_with_bias_a2.0_b1.65.fits"
 
 # we will create this script
 RUN_FILE="/global/homes/j/jfarr/Projects/LyaCoLoRe/run_files/process_colore_v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}.sh"
@@ -76,7 +77,7 @@ PARAM_FILE="${OUTPUT_PATH}/input.param"
 # make master file and new file structure
 date
 echo "making master file"
-${PROCESS_PATH}/make_master.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} --nside ${NSIDE} --nproc ${NCORES} --min-cat-z ${MIN_CAT_Z} ${MM_FLAGS} --downsampling ${DOWNSAMPLING} --pixels {0..999}
+${PROCESS_PATH}/make_master.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} --nside ${NSIDE} --nproc ${NCORES} --min-cat-z ${MIN_CAT_Z} ${MM_FLAGS} --downsampling ${DOWNSAMPLING}
 wait
 date
 
@@ -87,8 +88,8 @@ cat > $RUN_FILE <<EOF
 #SBATCH --nodes ${NNODES}
 #SBATCH --time ${TIME}
 #SBATCH --job-name process_colore
-#SBATCH --error "/global/homes/j/jfarr/Projects/LyaCoLoRe/run_files/process-colore-%j.err"
-#SBATCH --output "/global/homes/j/jfarr/Projects/LyaCoLoRe/run_files/process-colore-%j.out"
+#SBATCH --error "${OUTPUT_PATH}/process-colore-%j.err"
+#SBATCH --output "${OUTPUT_PATH}/process-colore-%j.out"
 #SBATCH -C haswell
 #SBATCH -A desi
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import numpy as np
+from astropy.io import fits
 import argparse
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -34,6 +35,9 @@ parser.add_argument('--zmax', type = float, default = None, required=True,
                     help = 'maximum redshift cut value')
 
 parser.add_argument('--cf-filename', type = str, default = 'cf.fits.gz', required=False,
+                    help = 'name of cf file')
+
+parser.add_argument('--cf-exp-filename', type = str, default = 'cf.fits.gz', required=False,
                     help = 'name of cf file')
 
 parser.add_argument('--nside', type = int, default = 16, required=False,
@@ -87,7 +91,7 @@ parameter_file_text += 'np = {}\n'.format(args.np)
 parameter_file_text += 'nt = {}\n'.format(args.nt)
 parameter_file_text += 'zmin = {}\n'.format(args.zmin)
 parameter_file_text += 'zmax = {}\n'.format(args.zmax)
-file = open(args.parameter_filename,'w')
+file = open(args.base_dir+args.parameter_filename,'w')
 file.write(parameter_file_text)
 file.close()
 
@@ -104,17 +108,17 @@ for rmin in args.rmin_values:
 
             suffix = '{}r_a{}'.format(int(rmin),afix)
             config_filename = args.base_dir+'config_{}_{}.ini'.format(args.corr_type,suffix)
-            chi2_filename = args.base_dir+'chi2_{}.ini'.format(args.corr_type,suffix)
+            chi2_filename = args.base_dir+'chi2_{}.ini'.format(suffix)
 
             chi2_text = ''
             chi2_text += '#!/bin/bash -l\n\n'
             chi2_text += '[data sets]\n'
             chi2_text += 'zeff = {}\n'.format(zeff)
-            chi2_text += 'ini files = ./{}\n\n'.format(config_filename)
+            chi2_text += 'ini files = {}\n\n'.format(config_filename)
             chi2_text += '[cosmo-fit type]\n'
             chi2_text += 'cosmo fit func = ap_at\n\n'
             chi2_text += '[output]\n'
-            chi2_text += 'filename = ./result_{}.h5\n\n'.suffix
+            chi2_text += 'filename = ./result_{}.h5\n\n'.format(suffix)
             chi2_text += '[fiducial]\n'
             chi2_text += 'filename = /PlanckDR12/PlanckDR12.fits\n'
             file = open(chi2_filename,'w')
@@ -129,15 +133,15 @@ for rmin in args.rmin_values:
             config_text += 'tracer2 = LYA\n'
             config_text += 'tracer1-type = continuous\n'
             config_text += 'tracer2-type = continuous\n'
-            config_text += 'filename = {}\n'.format(args.base_dir+args.cf_filename)
+            config_text += 'filename = {}\n'.format(args.base_dir+args.cf_exp_filename)
             config_text += 'ell-max = 6\n\n'
             config_text += '[cuts]\n'
             config_text += 'rp-min = {}\n'.format(args.rpmin)
             config_text += 'rp-max = {}\n\n'.format(args.rpmax)
             config_text += 'rt-min = {}\n'.format(args.rtmin)
             config_text += 'rt-max = {}\n\n'.format(args.rtmax)
-            config_text += 'r-min = {}\n'.format(args.rmin)
-            config_text += 'r-max = {}\n\n'.format(args.rmax)
+            config_text += 'r-min = {}\n'.format(rmin)
+            config_text += 'r-max = {}\n\n'.format(rmax)
             config_text += 'mu-min = 0.\n'
             config_text += 'mu-max = 1.\n\n'
             config_text += '[model]\n'
@@ -153,8 +157,8 @@ for rmin in args.rmin_values:
             config_text += 'croom_par1             = 0.289 0. None None fixed\n'
             config_text += 'drp_QSO                = 0. 0.1   None None fixed\n'
             config_text += 'sigma_velo_lorentz_QSO = 0. 0.    None None fixed\n\n'
-            config_text += 'ap = 1. 0.1 0.5 1.5 {}\n'.format(args.afix)
-            config_text += 'at = 1. 0.1 0.5 1.5 {}\n'.format(args.afix)
+            config_text += 'ap = 1. 0.1 0.5 1.5 {}\n'.format(afix)
+            config_text += 'at = 1. 0.1 0.5 1.5 {}\n'.format(afix)
             config_text += 'bao_amp = 1. 0. None None fixed\n\n'
             config_text += 'sigmaNL_per = 3.24     0. None None fixed\n'
             config_text += 'sigmaNL_par = 6.36984 0.1 None None fixed\n'
