@@ -931,12 +931,6 @@ class SimulationData:
         # compute Lyman alpha transmission on grid of wavelengths
         F_grid_Lya = self.compute_grid_transmission(self.lya_absorber,wave_grid).astype('f4')
 
-        # compute Lyman beta transmission on grid of wavelengths
-        if self.lyb_absorber is None:
-            F_grid_Lyb = np.ones_like(F_grid_Lya).astype('f4')
-        else:
-            F_grid_Lyb = self.compute_grid_transmission(self.lyb_absorber,wave_grid).astype('f4')
-
         # construct quasar catalog HDU
         Z_RSD = self.Z_QSO + self.DZ_RSD
         catalog_data = list(zip(self.RA,self.DEC,Z_RSD,self.Z_QSO,self.MOCKID))
@@ -949,25 +943,29 @@ class SimulationData:
         cols_METADATA = fits.ColDefs(catalog_data)
         hdu_METADATA = fits.BinTableHDU.from_columns(cols_METADATA,header=header,name='METADATA')
         hdu_WAVELENGTH = fits.ImageHDU(data=wave_grid,header=header,name='WAVELENGTH')
-        #Gives transmission with Lya and Lyb
-        hdu_TRANSMISSION = fits.ImageHDU(data=F_grid_Lya*F_grid_Lyb,header=header,name='TRANSMISSION')
+        #Gives transmission of Lya only
+        hdu_TRANSMISSION = fits.ImageHDU(data=F_grid_Lya,header=header,name='F_LYA')
 
         #Combine the HDUs into an HDUlist (including DLAs and metals, if they have been computed)
         list_hdu = [prihdu, hdu_METADATA, hdu_WAVELENGTH, hdu_TRANSMISSION]
 
+        # compute Lyman beta transmission on grid of wavelengths
+        if self.lyb_absorber is not None:
+            F_grid_Lyb = self.compute_grid_transmission(self.lyb_absorber,wave_grid).astype('f4')
+            list_hdu += [fits.ImageHDU(data=F_grid_Lyb,header=header,name='F_LYB')]
+
+        #Add an HDU for each meatl computed.
+        if self.metals is not None:
+            # compute metals' transmission on grid of wavelengths
+            for metal in iter(self.metals.values()):
+                F_grid_metal = self.compute_grid_transmission(metal,wave_grid)
+                HDU_name = 'F_'+metal.HDU_name
+                list_hdu += [fits.ImageHDU(data=F_grid_metal,header=header,name=HDU_name)]
+
+        # add table of DLAs
         if self.DLA_table is not None:
             hdu_DLAs = fits.hdu.BinTableHDU(data=self.DLA_table,header=header,name='DLA')
             list_hdu.append(hdu_DLAs)
-
-        if self.metals is not None:
-            # compute metals' transmission on grid of wavelengths
-            F_grid_met = np.ones_like(F_grid_Lya)
-            for metal in iter(self.metals.values()):
-                F_i=self.compute_grid_transmission(metal,wave_grid)
-                F_grid_met *= F_i
-
-            hdu_METALS = fits.ImageHDU(data=F_grid_met,header=header,name='METALS')
-            list_hdu.append(hdu_METALS)
 
         #Save as a new file. Close the HDUlist.
         hdulist = fits.HDUList(list_hdu)

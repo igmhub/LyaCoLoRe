@@ -6,10 +6,14 @@ from . import utils
 class AbsorberData:
 
     #Initialisation function.
-    def __init__(self,name='LYA',rest_wave=utils.lya_rest,flux_transform_m=1.0):
+    def __init__(self,name='LYA',rest_wave=utils.lya_rest,flux_transform_m=1.0,HDU_name=None):
         self.name = name
         self.rest_wave = rest_wave
         self.flux_transform_m = flux_transform_m
+        if HDU_name:
+            self.HDU_name = HDU_name
+        else:
+            self.HDU_name = self.name
 
         # we will store here the optical depth and record when RSDs have been applied
         self.tau = None

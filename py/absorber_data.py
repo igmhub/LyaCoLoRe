@@ -11,16 +11,16 @@ def get_lyb_absorber():
 
 def get_metal_dict():
     metal_dict = {
-      'SiII(1260)'  : absorber.AbsorberData('SiII(1260)',  1260.42, 3.542e-4),
-      'SiIII(1207)' : absorber.AbsorberData('SiIII(1207)', 1206.50, 1.8919e-3),
-      'SiII(1193)'  : absorber.AbsorberData('SiII(1193)',  1193.29, 9.0776e-4),
-      'SiII(1190)'  : absorber.AbsorberData('SiII(1190)',  1190.42, 6.4239e-4),
+      'SiII(1260)'  : absorber.AbsorberData('SiII(1260)',  1260.42, 3.542e-4,  'SI1260'),
+      'SiIII(1207)' : absorber.AbsorberData('SiIII(1207)', 1206.50, 1.8919e-3, 'SI1207'),
+      'SiII(1193)'  : absorber.AbsorberData('SiII(1193)',  1193.29, 9.0776e-4, 'SI1193'),
+      'SiII(1190)'  : absorber.AbsorberData('SiII(1190)',  1190.42, 6.4239e-4, 'SI1190'),
       #Until the memory needs are known, the following metals will not be added.
-      #'NV(1243)'    : absorber.AbsorberData('NV(1243)',  1242.804, 5.e-4),
-      #'NV(1239)'    : absorber.AbsorberData('NV(1239)',  1238.821, 5.e-4),
-      #'NI(1200)'    : absorber.AbsorberData('NI(1200)',  1200.,    1.e-3),
-      #'OI(1039)'    : absorber.AbsorberData('OI(1039)',  1039.230, 1.e-3),
-      #'OVI(1038)'   : absorber.AbsorberData('OVI(1038)', 1037.613, 3.382-3),
-      #'OVI(1032)'   : absorber.AbsorberData('OVI(1032)', 1031.912, 5.358e-3),
+      #'NV(1243)'    : absorber.AbsorberData('NV(1243)',  1242.804, 5.e-4,    'N1243'),
+      #'NV(1239)'    : absorber.AbsorberData('NV(1239)',  1238.821, 5.e-4,    'N1239'),
+      #'NI(1200)'    : absorber.AbsorberData('NI(1200)',  1200.,    1.e-3,    'N1200'),
+      #'OI(1039)'    : absorber.AbsorberData('OI(1039)',  1039.230, 1.e-3,    'O1039'),
+      #'OVI(1038)'   : absorber.AbsorberData('OVI(1038)', 1037.613, 3.382-3,  'O1038'),
+      #'OVI(1032)'   : absorber.AbsorberData('OVI(1032)', 1031.912, 5.358e-3, 'O1032'),
     }
     return metal_dict
