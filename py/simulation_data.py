@@ -923,11 +923,6 @@ class SimulationData:
         # define common wavelength grid to be written in files (in Angstroms)
         wave_grid = np.arange(wave_min,wave_max,wave_step).astype('float32')
 
-        # now we should loop over the different absorbers, combine them and
-        # write them in HDUs. I suggest to have two HDU:
-        # - TRANSMISSION will contain both Lya and Lyb
-        # - METALS will contain all metal absorption
-
         # compute Lyman alpha transmission on grid of wavelengths
         F_grid_Lya = self.compute_grid_transmission(self.lya_absorber,wave_grid).astype('float32')
 
@@ -954,7 +949,7 @@ class SimulationData:
             F_grid_Lyb = self.compute_grid_transmission(self.lyb_absorber,wave_grid).astype('float32')
             list_hdu += [fits.ImageHDU(data=F_grid_Lyb,header=header,name='F_LYB')]
 
-        #Add an HDU for each meatl computed.
+        #Add an HDU for each metal computed.
         if self.metals is not None:
             # compute metals' transmission on grid of wavelengths
             for metal in iter(self.metals.values()):
