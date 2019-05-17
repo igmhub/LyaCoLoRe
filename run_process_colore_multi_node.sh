@@ -15,6 +15,7 @@ DLA_BIAS=2.0
 DLA_BIAS_METHOD='b_const'
 DOWNSAMPLING=1.0
 VEL_BOOST=1.2
+FOOTPRINT='desi_pixel_plus'
 
 # specify transmission file wavelength grid
 TRANS_LMIN=3470.0
@@ -23,7 +24,7 @@ TRANS_DL=0.2
 
 # specify process flags
 #MM_FLAGS=""
-MM_FLAGS="--desi-footprint-pixel-plus"
+MM_FLAGS=""
 MT_FLAGS="--add-DLAs --add-RSDs --add-QSO-RSDs --add-small-scale-fluctuations --transmission-only --add-Lyb"
 
 # specify details of colore output
@@ -77,7 +78,7 @@ PARAM_FILE="${OUTPUT_PATH}/input.param"
 # make master file and new file structure
 date
 echo "making master file"
-${PROCESS_PATH}/make_master.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} --nside ${NSIDE} --nproc ${NCORES} --min-cat-z ${MIN_CAT_Z} ${MM_FLAGS} --downsampling ${DOWNSAMPLING}
+${PROCESS_PATH}/make_master.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} --nside ${NSIDE} --nproc ${NCORES} --min-cat-z ${MIN_CAT_Z} ${MM_FLAGS} --downsampling ${DOWNSAMPLING} --footprint ${FOOTPRINT}
 wait
 date
 

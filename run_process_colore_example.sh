@@ -1,5 +1,5 @@
 # path to LyaCoLoRe
-LYACOLORE_PATH="/global/homes/j/jfarr/Projects/LyaCoLoRe/"
+LYACOLORE_PATH="/Users/James//Projects/LyaCoLoRe/"
 
 # specify number of cores to use
 NCORES=2
@@ -17,6 +17,7 @@ DLA_BIAS=2.0
 DLA_BIAS_METHOD='b_const'
 DOWNSAMPLING=0.5
 VEL_BOOST=1.2
+FOOTPRINT='full_sky'
 
 # specify transmission file wavelength grid
 TRANS_LMIN=3470.0
@@ -64,7 +65,7 @@ TUNING_PATH="${LYACOLORE_PATH}/input_files/tuning_data_v7.0.0.fits"
 
 # make master file and new file structure
 echo "making master file"
-command="${PROCESS_PATH}/make_master.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} --nside ${NSIDE} --nproc ${NCORES} --min-cat-z ${MIN_CAT_Z} ${MM_FLAGS}"
+command="${PROCESS_PATH}/make_master.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} --nside ${NSIDE} --nproc ${NCORES} --min-cat-z ${MIN_CAT_Z} ${MM_FLAGS} --footprint ${FOOTPRINT}"
 $command
 
 PIXDIRS=`ls -tr1d ${OUTPUT_PATH}/[0-9]*/*`
