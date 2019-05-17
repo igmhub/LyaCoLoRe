@@ -119,30 +119,31 @@ def add_pixel_neighbours(pixels,N_side=16):
 
 #TODO add pixel_list functionality.
 #Function to return a filter function for restricting the QSO footprint.
-def make_QSO_filter(desi,desi_pixel,desi_pixel_plus,desimodel_installed,N_side=16,pixel_list=None):
+def make_QSO_filter(footprint,desimodel_installed,N_side=16,pixel_list=None):
 
-    if np.sum((desi,desi_pixel,desi_pixel_plus)) > 1:
-            raise ValueError('Please choose only 1 type of DESI footprint.')
+    #See if we can use desimodel. This is preferable as it will be the most
+    #up-do-date footprint.
+    if desimodel_installed:
+        from desimodel.footprint import tiles2pix, is_point_in_desi
+        from desimodel.io import load_tiles
 
     #If we have desimodel and want to replicate the footprint precisely, use
     #function "is_point_in_desi".
-    if desimodel_installed and desi:
-        from desimodel.footprint import is_point_in_desi
-        from desimodel.io import load_tiles
+    if desimodel_installed and footprint=='desi':
         tiles = load_tiles()
         def QSO_filter(RA,DEC):
             return is_point_in_desi(tiles,RA,DEC)
 
     #If not, but we still want to filter...
-    elif desi or desi_pixel or desi_pixel_plus:
+    elif footprint in ['desi','desi_pixel','desi_pixel_plus']:
 
         #If desimodel is installed, then we use "tiles2pix" to determine which
         #pixels to include.
         if desimodel_installed:
             from desimodel.footprint import tiles2pix
-            if desi_pixel:
+            if footprint=='desi_pixel':
                 valid_pixels = tiles2pix(N_side)
-            elif desi_pixel_plus:
+            elif footprint=='desi_pixel_plus':
                 valid_pixels = tiles2pix(N_side)
                 valid_pixels = add_pixel_neighbours(valid_pixels)
 
@@ -151,27 +152,31 @@ def make_QSO_filter(desi,desi_pixel,desi_pixel_plus,desimodel_installed,N_side=1
         #desimodel will be more up to date than the lists in this case.
         else:
             print('desimodel not installed; loading pixel footprints from file...')
-            if desi:
+            if footprint=='desi':
                 print('desi footprint not possible without desimodel: using desi_pixel instead...')
                 valid_pixels = np.loadtxt('input_files/DESI_pixels.txt',dtype=int)
-            elif desi_pixel:
+            elif footprint=='desi_pixel':
                 valid_pixels = np.loadtxt('input_files/DESI_pixels.txt',dtype=int)
-            elif desi_pixel_plus:
+            elif footprint=='desi_pixel_plus':
                 valid_pixels = np.loadtxt('input_files/DESI_pixels_plus.txt',dtype=int)
 
         #With a list of valid pixels, we now can make a filter.
         def QSO_filter(RA,DEC):
-                theta = (np.pi/180.0)*(90.0-DEC)
-                phi = (np.pi/180.0)*RA
-                pix = hp.ang2pix(N_side,theta,phi,nest=True)
-                fil = np.zeros(pix.shape)
-                for p in valid_pixels:
-                    fil += (pix == p)
-                fil = fil.astype('bool')
-                return fil
+            theta = (np.pi/180.0)*(90.0-DEC)
+            phi = (np.pi/180.0)*RA
+            pix = hp.ang2pix(N_side,theta,phi,nest=True)
+            fil = np.zeros(pix.shape)
+            for p in valid_pixels:
+                fil += (pix == p)
+            fil = fil.astype('bool')
+            return fil
 
     #Else if we don't want to filter at all, set the filter to "None".
+    elif footprint=='full_sky':
+        QSO_filter = None
+
     else:
+        print('Footprint not recognised; no filter applied.')
         QSO_filter = None
 
     return QSO_filter

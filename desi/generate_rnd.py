@@ -8,7 +8,10 @@ import fitsio
 from desimodel import footprint
 from desimodel.io import load_pixweight
 import os
-def generate_rnd(factor=3, out_path= None, method='use_catalog', catalog_path= None):
+
+from lyacolore import utils
+
+def generate_rnd(factor=3, out_path= None, method='use_catalog', catalog_path=None, footprint=None):
     """
     Routine to generate a random catalog in 3D following
     certain N(z) distribution
@@ -20,6 +23,7 @@ def generate_rnd(factor=3, out_path= None, method='use_catalog', catalog_path= N
     out_path: Name of output file where randoms will be saved (default: None)
     method: Method to generate the random catalog (default: 'random_choice')
     """
+
     #Creating random that follows N(z)
     footprint_healpix_nside=256
     tiles = load_tiles()
@@ -53,6 +57,10 @@ def generate_rnd(factor=3, out_path= None, method='use_catalog', catalog_path= N
     good = np.where(footprint_healpix_weight[footprint_healpix]>0.99)[0]
     #good = np.in1d(pixnums2,pixnums)
     #good = is_point_in_desi(tiles,ra_rnd,dec_rnd)
+
+    QSO_filter = utils.make_QSO_filter(footprint)
+    good *= QSO_filter(ra_rnd,dec_rnd)
+
     ra_rnd = ra_rnd[good]
     dec_rnd = dec_rnd[good]
     z_rnd = z_rnd[good]
@@ -61,5 +69,12 @@ def generate_rnd(factor=3, out_path= None, method='use_catalog', catalog_path= N
         tab_out.write(out_path,overwrite=True)
     return None
 
+#Set up options
+factor = 10
+out_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/london/v7.0/v7.0.0/master_randoms.fits'
+method = 'use_catalog'
+gatalog_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/london/v7.0/v7.0.0/master.fits'
+footprint = 'desi_pixel_plus'
+
 # Execute
-generate_rnd(factor=10,out_path='/global/projecta/projectdirs/desi/mocks/lya_forest/london/v6.0/v6.0.0/master_randoms.fits',method='use_catalog', catalog_path='/global/projecta/projectdirs/desi/mocks/lya_forest/london/v6.0/v6.0.0/master.fits')
+generate_rnd(factor=factor,out_path=out_path,method=method,catalog_path=catalog_path,footprint=footprint)
