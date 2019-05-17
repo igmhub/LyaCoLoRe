@@ -65,14 +65,9 @@ parser.add_argument('--add-picca-drqs', action="store_true", default = False, re
 parser.add_argument('--pixels', type = int, default = None, required=False,
                     help = 'which pixel numbers to work on', nargs='*')
 
-parser.add_argument('--desi-footprint', action="store_true", default = False, required=False,
-                    help = 'use the desi footprint (requires desimodel)')
-
-parser.add_argument('--desi-footprint-pixel', action="store_true", default = False, required=False,
-                    help = 'use minimal pixels to cover the desi footprint (requires desimodel)')
-
-parser.add_argument('--desi-footprint-pixel-plus', action="store_true", default = False, required=False,
-                    help = 'use minimal pixels to cover the desi footprint plus neighbouring pixels (requires desimodel)')
+parser.add_argument('--footprint', type = str, default = None, required = False,
+                    choices=['full_sky','desi','desi_pixel','desi_pixel_plus'],
+                    help = 'name of footprint to use')
 
 parser.add_argument('--downsampling', type = float, default = 1.0, required=False,
                     help = 'fraction by which to subsample the CoLoRe output')
@@ -94,15 +89,7 @@ parameter_filename = args.param_file
 N_skewers = args.nskewers
 add_picca_drqs = args.add_picca_drqs
 pixel_list = args.pixels
-desi_footprint = args.desi_footprint
-desi_footprint_pixel = args.desi_footprint_pixel
-desi_footprint_pixel_plus = args.desi_footprint_pixel_plus
-if desi_footprint or desi_footprint_pixel or desi_footprint_pixel_plus:
-    try:
-        from desimodel.footprint import tiles2pix, is_point_in_desi
-        desimodel_installed = True
-    except ModuleNotFoundError:
-        desimodel_installed = False
+footprint = args.footprint
 downsampling = args.downsampling
 overwrite = args.overwrite
 
@@ -166,7 +153,7 @@ start = time.time()
 
 #Choose the QSO filtering we want.
 #QSO_filter = utils.choose_filter(desi_footprint,desi_footprint_pixel,desi_footprint_pixel_plus,desimodel_installed,N_side=N_side)
-QSO_filter = utils.make_QSO_filter(desi_footprint,desi_footprint_pixel,desi_footprint_pixel_plus,desimodel_installed,N_side=N_side)
+QSO_filter = utils.make_QSO_filter(footprint,desimodel_installed,N_side=N_side)
 
 #Define the process to make the master data.
 def make_master_data(file_name,file_number,input_format,N_side,minimum_z=min_catalog_z):
