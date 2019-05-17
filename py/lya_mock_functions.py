@@ -70,7 +70,7 @@ class MockMaker(object):
         """Get redshifts for each cell in the array (centered at z_c)."""
         N = self.N
         L_kms = N * self.dv_kms
-        c_kms = 2.998e5
+        c_kms = 299792458.0
         if (L_kms > 4 * c_kms):
             print('Array is too long, approximations break down.')
             raise SystemExit
@@ -111,4 +111,3 @@ class MockMaker(object):
         delta = np.fft.irfft(modes) * np.sqrt(N/self.dv_kms)
 
         return delta, var_delta
-
