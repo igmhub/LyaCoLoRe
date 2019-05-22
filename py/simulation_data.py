@@ -939,10 +939,10 @@ class SimulationData:
         hdu_METADATA = fits.BinTableHDU.from_columns(cols_METADATA,header=header,name='METADATA')
         hdu_WAVELENGTH = fits.ImageHDU(data=wave_grid,header=header,name='WAVELENGTH')
         #Gives transmission of Lya only
-        hdu_TRANSMISSION = fits.ImageHDU(data=F_grid_Lya,header=header,name='F_LYA')
+        hdu_LYA = fits.ImageHDU(data=F_grid_Lya,header=header,name='F_LYA')
 
         #Combine the HDUs into an HDUlist (including DLAs and metals, if they have been computed)
-        list_hdu = [prihdu, hdu_METADATA, hdu_WAVELENGTH, hdu_TRANSMISSION]
+        list_hdu = [prihdu, hdu_METADATA, hdu_WAVELENGTH, hdu_LYA]
 
         # compute Lyman beta transmission on grid of wavelengths
         if self.lyb_absorber is not None:
