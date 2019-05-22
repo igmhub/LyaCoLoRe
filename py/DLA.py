@@ -48,6 +48,7 @@ def get_sigma_g(fname, mode='SG'):
 def flag_DLA(zq,z_cells,deltas,nu_arr,sigma_g):
     """ Flag the pixels in a skewer where DLAs are possible"""
     # find cells with density above threshold
+    # TODO: why do we multiply nu by sigma_g here?
     flag = deltas > nu_arr*sigma_g
     # mask cells with z > z_qso, where DLAs would not be observed
     Nq=len(zq)
@@ -64,39 +65,87 @@ def dnHD_dz_cumlgN(z,logN):
     y = interp2d(tab['col1'],tab['col2'],tab['col3'],fill_value=None)
     return y(z,logN)
 
-def dNdz(z, Nmin=17.2, Nmax=22.5):
+def dndz(z, NHI_min=17.2, NHI_max=22.5):
     """ Get the column density distribution as a function of z,
-    for a given range in N"""
+        for a given range in N"""
+
     if use_pyigm:
+        """
+        #Alternative version, needs an input NHI_nsamp.
+        #Probably slower, but clearer.
+        log_NHI = np.linspace(NHI_min,NHI_max,NHI_nsamp)
+        NHI = 10**log_NHI
+        f = 10**(fN_default.evaluate(log_NHI, z))
+        dndX = np.trapz(f,NHI,axis=0)
+        dXdz = fN_cosmo.abs_distance_integrand(z)
+        dndz = dndX * dXdz
+        """
+
         # get incidence rate per path length dX (in comoving coordinates)
-        dNdX = fN_default.calculate_lox(z,Nmin,Nmax)
+        dndX = fN_default.calculate_lox(z,NHI_min,NHI_max)
         # convert dX to dz
         dXdz = fN_cosmo.abs_distance_integrand(z)
-        return dNdX * dXdz
+        dndz = dndX * dXdz
+
+        return dndz
+
     else:
         return dnHD_dz_cumlgN(z,Nmax)-dnHD_dz_cumlgN(z,Nmin)
 
-def get_N(z, Nmin=17.2, Nmax=22.5, nsamp=100):
+def get_NHI(z, NHI_min=17.2, NHI_max=22.5, NHI_nsamp=100):
     """ Get random column densities for a given z
     """
     # number of DLAs we want to generate
     Nz = len(z)
-    nn = np.linspace(Nmin,Nmax,nsamp)
-    probs = np.zeros([Nz,nsamp])
+
+    # Set up the grid in NHI, and define its edges/widths.
+    # First in log space.
+    log_NHI_edges = np.linspace(Nmin,Nmax,NHI_nsamp+1)
+    log_NHI = (log_NHI_edges[1:] + log_NHI_edges[:-1])/2.
+    log_NHI_widths = log_NHI_edges[1:] - log_NHI_edges[:-1]
+    # Then in linear space.
+    NHI_edges = 10**log_NHI_edges
+    NHI_widths = NHI_edges[1:] - NHI_edges[:-1]
+
+    probs = np.zeros([Nz,NHI_nsamp])
+
     if use_pyigm:
-        auxfN = fN_default.evaluate(nn,z)
-        # Above we got logprob in a grid NHI,z (note the order, we will transpose)
-        probs = (np.exp(auxfN)/np.sum(np.exp(auxfN), axis=0)).T # The probability is the function divided by the sum for a given z
+
+        #Evaluate f at the points of the NHI grid and each redshift.
+        f = 10**fN_default.evaluate(log_NHI,z)
+
+        #Calculate the probaility of each NHI bin.
+        aux = f*np.outer(NHI_widths,np.ones(z.shape))
+        probs = (aux/np.sum(aux,axis=0)).T
+
     else:
+
+        # TODO: test this
         probs_low = dnHD_dz_cumlgN(z,nn[:-1]).T
         probs_high = dnHD_dz_cumlgN(z,nn[1:]).T
         probs[:,1:] = probs_high-probs_low
-    NHI = np.zeros(Nz)
-    for i in range(Nz):
-        NHI[i] = np.random.choice(nn,size=1,p=probs[i]/np.sum(probs[i]))+(nn[1]-nn[0])*np.random.random(size=1)
-    return NHI
 
-def add_DLA_table_to_object(object,dla_bias=2.0,dla_bias_z=2.25,extrapolate_z_down=None,Nmin=17.2,Nmax=22.5,seed=123,method='b_const'):
+    #Calculate the cumulative distribution
+    cumulative = np.zeros(probs.shape)
+    for i in range(NHI_nsamp):
+        cumulative[:,i] = np.sum(probs[:,:i],axis=1)
+
+    #Add the top and bottom edges on to improve interpolation.
+    log_NHI_interp = np.concatenate([[log_NHI_edges[0]],log_NHI,[log_NHI_edges[1]]])
+    end_0 = np.zeros((z.shape[0],1))
+    end_1 = np.ones((z.shape[0],1))
+    cumulative_interp = np.concatenate([end_0,cumulative,end_1],axis=1)
+
+    #Assign NHI values by choosing a random number in [0,1] and interpolating
+    #the cumulative distribution to get a value of NHI.
+    log_NHI_values = np.zeros(Nz)
+    for i in range(Nz):
+        p = np.random.uniform()
+        log_NHI_values[i] = np.interp(p,cumulative_interp[i,:],log_NHI_interp)
+
+    return log_NHI_values
+
+def add_DLA_table_to_object(object,dla_bias=2.0,dla_bias_z=2.25,extrapolate_z_down=None,NHI_min=17.2,NHI_max=22.5,seed=123,method='b_const'):
 
     #Hopefully this sets the seed for all random generators used
     np.random.seed(seed)
@@ -131,11 +180,11 @@ def add_DLA_table_to_object(object,dla_bias=2.0,dla_bias_z=2.25,extrapolate_z_do
     if extrapolate_z_down and extrapolate_z_down<z_cell[0]:
         zedges = np.concatenate([[extrapolate_z_down],(z_cell[1:]+z_cell[:-1])*0.5,[z_cell[-1]+(-z_cell[-2]+z_cell[-1])*0.5]]).ravel()
     else:
-        zedges = np.concatenate([[z_cell[0]],(z_cell[1:]+z_cell[:-1])*0.5,[z_cell[-1]+(-z_cell[-2]+z_cell[-1])*0.5]]).ravel()
+        zedges = np.concatenate([[z_cell[0]]-(z_cell[1]-z_cell[0])/2.,(z_cell[1:]+z_cell[:-1])*0.5,[z_cell[-1]+(-z_cell[-2]+z_cell[-1])*0.5]]).ravel()
     z_width = zedges[1:]-zedges[:-1]
 
     #Get the average number of DLAs per cell, from the column density dist.
-    mean_N_per_cell = z_width*dNdz(z_cell,Nmin=Nmin,Nmax=Nmax)
+    mean_N_per_cell = z_width * dndz(z_cell,NHI_min=NHI_min,NHI_max=NHI_max)
 
     #For a given z, probability of having the density higher than the threshold
     p_nu_z = 1.0-norm.cdf(nu_arr)
