@@ -6,10 +6,11 @@ from scipy.interpolate import interp1d, interp2d
 import astropy.table
 import os
 import matplotlib.pyplot as plt
+from astropy.cosmology import Planck15
 
 try:
     from pyigm.fN.fnmodel import FNModel
-    fN_default = FNModel.default_model()
+    fN_default = FNModel.default_model(cosmo=Planck15)
     fN_default.zmnx = (0.5,4)
     fN_cosmo = fN_default.cosmo
     use_pyigm = True
@@ -100,7 +101,7 @@ def get_NHI(z, NHI_min=17.2, NHI_max=22.5, NHI_nsamp=100):
 
     # Set up the grid in NHI, and define its edges/widths.
     # First in log space.
-    log_NHI_edges = np.linspace(Nmin,Nmax,NHI_nsamp+1)
+    log_NHI_edges = np.linspace(NHI_min,NHI_max,NHI_nsamp+1)
     log_NHI = (log_NHI_edges[1:] + log_NHI_edges[:-1])/2.
     log_NHI_widths = log_NHI_edges[1:] - log_NHI_edges[:-1]
     # Then in linear space.
@@ -171,7 +172,6 @@ def add_DLA_table_to_object(object,dla_bias=2.0,dla_bias_z=2.25,extrapolate_z_do
         raise ValueError('DLA bias method not recognised.')
 
     #Figure out cells that could host a DLA, based on Gaussian fluctuation
-    # TODO: is this the right thing to feed to this function? Not sure...
     nu_arr = nu_of_bDs(b_D_sigma0)
     deltas = object.GAUSSIAN_DELTA_rows
     flagged_cells = flag_DLA(zq,z_cell,deltas,nu_arr,sigma_g)
@@ -218,7 +218,7 @@ def add_DLA_table_to_object(object,dla_bias=2.0,dla_bias_z=2.25,extrapolate_z_do
             dla_rsd_dz[dla_count:dla_count+dla[cell]] = object.VEL_rows[skw_id,cell]
             dla_count = dla_count+dla[cell]
 
-    dla_NHI = get_N(dla_z,Nmin=Nmin,Nmax=Nmax)
+    dla_NHI = get_NHI(dla_z,NHI_min=NHI_min,NHI_max=NHI_max)
 
     #Obtain the other variable to put in the DLA table
     MOCKIDs = object.MOCKID[dla_skw_id]
@@ -252,7 +252,7 @@ def get_DLA_data_from_transmission(pixel,filename):
 
     DLA_data = []
     t = fits.open(filename)
-    DLA_table = np.sort(t[4].data,order=['DLAID'])
+    DLA_table = np.sort(t['DLA'].data,order=['DLAID'])
 
     current_MOCKID = 0
     #current_DLAID = current_MOCKID * 10**3
