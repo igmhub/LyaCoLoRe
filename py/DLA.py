@@ -46,9 +46,12 @@ def get_sigma_g(object, mode='SG'):
         weights = np.zeros(skewers.shape)
         for i in range(weights.shape[0]):
             weights[i,:] = object.Z<object.Z_QSO[i]
+        weights += (10**-10)
         mean = np.average(skewers,weights=weights,axis=0)
         mean2 = np.average(skewers**2,weights=weights,axis=0)
         sG = np.sqrt(mean2 - mean**2)
+        #HACK TO REMOVE ZEROS
+        sG[sG==0] = np.average(sG[sG>0])
         return sG
 
 def flag_DLA(z_qso,z_cells,deltas,nu_arr,sigma_g):
