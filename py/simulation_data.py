@@ -1025,7 +1025,7 @@ class SimulationData:
         #If extrapolate_z_down is set to a value below the skewer, then we extrapolate down to that value.
         #Otherwise, we start placing DLAs at the start of the skewer.
         extrapolate_z_down = None
-        DLA_table = DLA.add_DLA_table_to_object(self,dla_bias=dla_bias,extrapolate_z_down=extrapolate_z_down,seed=seed,method=method)
+        DLA_table = DLA.get_DLA_table(self,dla_bias=dla_bias,extrapolate_z_down=extrapolate_z_down,seed=seed,method=method)
         self.DLA_table = DLA_table
 
         return

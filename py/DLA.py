@@ -39,22 +39,21 @@ def get_bias_z(fname,dla_bias):
 
 def get_sigma_g(fname, mode='SG'):
     if mode=='SG':
-        # Biased as well
         return fits.open(fname)[4].header['SIGMA_G']
     if mode=='SKW':
         # Approximation 2: Take the skewers (biased when QSOs are present)
         skewers = fits.open(fname)[2].data
         return np.std(skewers,axis=0)
 
-def flag_DLA(zq,z_cells,deltas,nu_arr,sigma_g):
+def flag_DLA(z_qso,z_cells,deltas,nu_arr,sigma_g):
     """ Flag the pixels in a skewer where DLAs are possible"""
     # find cells with density above threshold
     # TODO: why do we multiply nu by sigma_g here?
     flag = deltas > nu_arr*sigma_g
     # mask cells with z > z_qso, where DLAs would not be observed
-    Nq=len(zq)
+    Nq=len(z_qso)
     for i in range(Nq):
-        low_z = z_cells < zq[i]
+        low_z = z_cells < z_qso[i]
         flag[i,:] *= low_z
     return flag
 
@@ -146,24 +145,26 @@ def get_NHI(z, NHI_min=17.2, NHI_max=22.5, NHI_nsamp=100):
 
     return log_NHI_values
 
-def add_DLA_table_to_object(object,dla_bias=2.0,dla_bias_z=2.25,extrapolate_z_down=None,NHI_min=17.2,NHI_max=22.5,seed=123,method='b_const'):
+def get_DLA_table(object,dla_bias=2.0,dla_bias_z=2.25,extrapolate_z_down=None,NHI_min=17.2,NHI_max=22.5,seed=123,method='b_const'):
 
     #Hopefully this sets the seed for all random generators used
     np.random.seed(seed)
 
-    #Quasar redshift for each skewer
-    zq = object.Z_QSO
-    #Redshift of each cell in the skewer
+    #Extract data from the object.
+    z_qso = object.Z_QSO
     z_cell = object.Z
-    #Linear growth rate of each cell in the skewer
     D_cell = object.D
 
-    #Setup bias as a function of redshift
+    #Get the edges of the z cells, and their widths
+    if extrapolate_z_down and extrapolate_z_down<z_cell[0]:
+        zedges = np.concatenate([[extrapolate_z_down],(z_cell[1:]+z_cell[:-1])*0.5,[z_cell[-1]+(-z_cell[-2]+z_cell[-1])*0.5]]).ravel()
+    else:
+        zedges = np.concatenate([[z_cell[0]]-(z_cell[1]-z_cell[0])/2.,(z_cell[1:]+z_cell[:-1])*0.5,[z_cell[-1]+(-z_cell[-2]+z_cell[-1])*0.5]]).ravel()
+    z_width = zedges[1:]-zedges[:-1]
+
+    #Setup bias as a function of redshift: either b constant with z, or b*D constant with z.
     y = interp1d(z_cell,D_cell)
     sigma_g = object.SIGMA_G
-    #bias = y(dla_bias_z)*dla_bias/D_cell
-
-    #Can choose to have b constant with z, or b*D constant with z.
     if method == "b_const":
         b_D_sigma0 = dla_bias*D_cell*sigma_g
     elif method == "bD_const":
@@ -174,32 +175,21 @@ def add_DLA_table_to_object(object,dla_bias=2.0,dla_bias_z=2.25,extrapolate_z_do
     #Figure out cells that could host a DLA, based on Gaussian fluctuation
     nu_arr = nu_of_bDs(b_D_sigma0)
     deltas = object.GAUSSIAN_DELTA_rows
-    flagged_cells = flag_DLA(zq,z_cell,deltas,nu_arr,sigma_g)
+    flagged_cells = flag_DLA(z_qso,z_cell,deltas,nu_arr,sigma_g)
 
-    #Edges of the z bins
-    if extrapolate_z_down and extrapolate_z_down<z_cell[0]:
-        zedges = np.concatenate([[extrapolate_z_down],(z_cell[1:]+z_cell[:-1])*0.5,[z_cell[-1]+(-z_cell[-2]+z_cell[-1])*0.5]]).ravel()
-    else:
-        zedges = np.concatenate([[z_cell[0]]-(z_cell[1]-z_cell[0])/2.,(z_cell[1:]+z_cell[:-1])*0.5,[z_cell[-1]+(-z_cell[-2]+z_cell[-1])*0.5]]).ravel()
-    z_width = zedges[1:]-zedges[:-1]
-
-    #Get the average number of DLAs per cell, from the column density dist.
+    #Mean of the poisson is the mean number of DLAs with redshift scaled up by
+    #the proportion of expected flagged cells.
     mean_N_per_cell = z_width * dndz(z_cell,NHI_min=NHI_min,NHI_max=NHI_max)
-
-    #For a given z, probability of having the density higher than the threshold
     p_nu_z = 1.0-norm.cdf(nu_arr)
-
-    #Define mean of the Poisson distribution (per cell)
     mu = mean_N_per_cell/p_nu_z
 
-    #Select cells that will hold a DLA, drawing from the Poisson distribution
-    pois = np.random.poisson(mu,size=(len(zq),len(mu)))
-    #Number of DLAs in each cell (mostly 0, several 1, not many with >1)
+    #Draw number of DLAs per cell from a Poisson distribution, place them only
+    #in flagged cells.
+    pois = np.random.poisson(mu,size=(len(z_qso),len(mu)))
     dlas_in_cell = pois*flagged_cells
 
-    #Total number of DLAs to be added to all the cells of all the skewers
-    ndlas = np.sum(dlas_in_cell)
     #Store information for each of the DLAs that will be added
+    ndlas = np.sum(dlas_in_cell)
     dla_z = np.zeros(ndlas)
     dla_skw_id = np.zeros(ndlas, dtype='int32')
     dla_rsd_dz = np.zeros(ndlas)
@@ -239,12 +229,6 @@ def add_DLA_table_to_object(object,dla_bias=2.0,dla_bias_z=2.25,extrapolate_z_do
     names = ('Z_DLA_NO_RSD','Z_DLA_RSD','N_HI_DLA','MOCKID','DLAID')
     dtype = ('f4','f4','f4',int,int)
     dla_table = astropy.table.Table(data,names=names,dtype=dtype)
-
-    ##Only include DLAs where the DLA is at lower z than the QSO
-    #DLA_Z_QSOs = object.Z_QSO[kskw]
-    #DLA_table = DLA_table[DLA_table['Z_DLA']<DLA_Z_QSOs]
-
-    #print('DLA table',dla_table)
 
     return dla_table
 
