@@ -37,13 +37,19 @@ def get_bias_z(fname,dla_bias):
     bias = dla_bias/D*y(2.25)
     return z, bias, D
 
-def get_sigma_g(fname, mode='SG'):
+def get_sigma_g(object, mode='SG'):
     if mode=='SG':
-        return fits.open(fname)[4].header['SIGMA_G']
+        return object.SIGMA_G
     if mode=='SKW':
         # Approximation 2: Take the skewers (biased when QSOs are present)
-        skewers = fits.open(fname)[2].data
-        return np.std(skewers,axis=0)
+        skewers = object.GAUSSIAN_DELTA_rows
+        weights = np.zeros(skewers.shape)
+        for i in range(weights.shape[0]):
+            weights[i,:] = object.Z<object.Z_QSO[i]
+        mean = np.average(skewers,weights=weights,axis=0)
+        mean2 = np.average(skewers**2,weights=weights,axis=0)
+        sG = np.sqrt(mean2 - mean**2)
+        return sG
 
 def flag_DLA(z_qso,z_cells,deltas,nu_arr,sigma_g):
     """ Flag the pixels in a skewer where DLAs are possible"""
@@ -164,7 +170,7 @@ def get_DLA_table(object,dla_bias=2.0,dla_bias_z=2.25,extrapolate_z_down=None,NH
 
     #Setup bias as a function of redshift: either b constant with z, or b*D constant with z.
     y = interp1d(z_cell,D_cell)
-    sigma_g = object.SIGMA_G
+    sigma_g = get_sigma_g(object,mode='SG')
     if method == "b_const":
         b_D_sigma0 = dla_bias*D_cell*sigma_g
     elif method == "bD_const":
