@@ -918,7 +918,7 @@ class SimulationData:
         return F_grid
 
     #Function to save data as a transmission file.
-    def save_as_transmission(self,filename,header,overwrite=False,wave_min=3550.,wave_max=6500.,wave_step=0.2):
+    def save_as_transmission(self,filename,header,overwrite=False,wave_min=3550.,wave_max=6500.,wave_step=0.2,fmt='final'):
 
         # define common wavelength grid to be written in files (in Angstroms)
         wave_grid = np.arange(wave_min,wave_max,wave_step).astype('float32')
@@ -938,24 +938,51 @@ class SimulationData:
         cols_METADATA = fits.ColDefs(catalog_data)
         hdu_METADATA = fits.BinTableHDU.from_columns(cols_METADATA,header=header,name='METADATA')
         hdu_WAVELENGTH = fits.ImageHDU(data=wave_grid,header=header,name='WAVELENGTH')
-        #Gives transmission of Lya only
-        hdu_LYA = fits.ImageHDU(data=F_grid_Lya,header=header,name='F_LYA')
 
         #Combine the HDUs into an HDUlist (including DLAs and metals, if they have been computed)
-        list_hdu = [prihdu, hdu_METADATA, hdu_WAVELENGTH, hdu_LYA]
+        list_hdu = [prihdu, hdu_METADATA, hdu_WAVELENGTH]
 
-        # compute Lyman beta transmission on grid of wavelengths
-        if self.lyb_absorber is not None:
-            F_grid_Lyb = self.compute_grid_transmission(self.lyb_absorber,wave_grid).astype('float32')
-            list_hdu += [fits.ImageHDU(data=F_grid_Lyb,header=header,name='F_LYB')]
+        #Set up the absorber HDUs according to the input format 'fmt'.
+        if fmt=='final':
 
-        #Add an HDU for each metal computed.
-        if self.metals is not None:
-            # compute metals' transmission on grid of wavelengths
-            for metal in iter(self.metals.values()):
-                F_grid_metal = self.compute_grid_transmission(metal,wave_grid).astype('float32')
-                HDU_name = 'F_'+metal.HDU_name
-                list_hdu += [fits.ImageHDU(data=F_grid_metal,header=header,name=HDU_name)]
+            #Transmission of all absorbers.
+            abs_header = header.copy()
+            abs_header['LYA'] = self.lya_absorber.rest_wave
+            F_grid = F_grid_Lya
+            if self.lyb_absorber is not None:
+                abs_header[self.lyb_absorber.HDU_name] = self.lyb_absorber.rest_wave
+                F_grid *= self.compute_grid_transmission(self.lyb_absorber,wave_grid).astype('float32')
+            if self.metals is not None:
+                for metal in iter(self.metals.values()):
+                    abs_header[metal.HDU_name] = metal.rest_wave
+                    F_grid *= self.compute_grid_transmission(metal,wave_grid).astype('float32')
+            hdu_F = fits.ImageHDU(data=F_grid,header=abs_header,name='F')
+            list_hdu += [hdu_F]
+
+        elif fmt == 'develop':
+
+            #Gives transmission of Lya only
+            lya_header = header
+            lya_header['LYA'] = self.lya_absorber.rest_wave
+            list_hdu += [fits.ImageHDU(data=F_grid_Lya,header=lya_header,name='F_LYA')]
+
+            # compute Lyman beta transmission on grid of wavelengths
+            if self.lyb_absorber is not None:
+                F_grid_Lyb = self.compute_grid_transmission(self.lyb_absorber,wave_grid).astype('float32')
+                HDU_name = 'F_'+self.lyb_absorber.HDU_name
+                lyb_header = header.copy()
+                lyb_header[self.lyb_absorber.HDU_name] = self.lyb_absorber.rest_wave
+                list_hdu += [fits.ImageHDU(data=F_grid_Lyb,header=lyb_header,name=HDU_name)]
+
+            #Add an HDU for each metal computed.
+            if self.metals is not None:
+                # compute metals' transmission on grid of wavelengths
+                for metal in iter(self.metals.values()):
+                    F_grid_metal = self.compute_grid_transmission(metal,wave_grid).astype('float32')
+                    HDU_name = 'F_'+metal.HDU_name
+                    met_header = header.copy()
+                    met_header[metal.HDU_name] = metal.rest_wave
+                    list_hdu += [fits.ImageHDU(data=F_grid_metal,header=met_header,name=HDU_name)]
 
         # add table of DLAs
         if self.DLA_table is not None:
