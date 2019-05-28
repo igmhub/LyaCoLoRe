@@ -16,6 +16,7 @@ DLA_BIAS_METHOD='b_const'
 DOWNSAMPLING=1.0
 VEL_BOOST=1.2
 FOOTPRINT='desi_pixel_plus'
+TRANSMISSION_FORMAT='develop'
 
 # specify transmission file wavelength grid
 TRANS_LMIN=3470.0
@@ -25,7 +26,7 @@ TRANS_DL=0.2
 # specify process flags
 #MM_FLAGS=""
 MM_FLAGS=""
-MT_FLAGS="--add-DLAs --add-RSDs --add-QSO-RSDs --add-small-scale-fluctuations --transmission-only --add-Lyb"
+MT_FLAGS="--add-DLAs --add-RSDs --add-QSO-RSDs --add-small-scale-fluctuations --transmission-only --add-Lyb --add-metals"
 
 # specify details of colore output
 COLORE_NGRID=4096
@@ -119,7 +120,7 @@ for NODE in \`seq $NNODES\` ; do
 
     echo "looking at pixels: \${NODE_PIXELS}"
 
-    command="srun -N 1 -n 1 -c ${NCORES} ${PROCESS_PATH}/make_transmission.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} ${MT_FLAGS} --pixels \${NODE_PIXELS} --tuning-file ${TUNING_PATH} --nside ${NSIDE} --nproc ${NCORES} --IVAR-cut ${IVAR_CUT} --cell-size ${CELL_SIZE} --lambda-min ${LAMBDA_MIN} --seed ${LYACOLORE_SEED} --DLA-bias ${DLA_BIAS} --DLA-bias-method ${DLA_BIAS_METHOD} --velocity-multiplier ${VEL_BOOST} --transmission-lambda-min ${TRANS_LMIN} --transmission-lambda-max ${TRANS_LMAX} --transmission-delta-lambda ${TRANS_DL}"
+    command="srun -N 1 -n 1 -c ${NCORES} ${PROCESS_PATH}/make_transmission.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} ${MT_FLAGS} --pixels \${NODE_PIXELS} --tuning-file ${TUNING_PATH} --nside ${NSIDE} --nproc ${NCORES} --IVAR-cut ${IVAR_CUT} --cell-size ${CELL_SIZE} --lambda-min ${LAMBDA_MIN} --seed ${LYACOLORE_SEED} --DLA-bias ${DLA_BIAS} --DLA-bias-method ${DLA_BIAS_METHOD} --velocity-multiplier ${VEL_BOOST} --transmission-lambda-min ${TRANS_LMIN} --transmission-lambda-max ${TRANS_LMAX} --transmission-delta-lambda ${TRANS_DL} --transmission-format ${TRANSMISSION_FORMAT}"
 
     echo \$command
     \$command >& ${OUTPUT_PATH}/logs/node-\${NODE}.log &
