@@ -123,6 +123,10 @@ parser.add_argument('--transmission-lambda-max', type = float, default = 6500., 
 parser.add_argument('--transmission-delta-lambda', type = float, default = 0.2, required=False,
                     help = 'pixel size of transmission files wavelength grid')
 
+parser.add_argument('--transmission-format', type = str, default = "final", required=False,
+                    choices=['develop','final'],
+                    help = 'format of transmission files')
+
 # TODO: this is now defunct.
 parser.add_argument('--fit-function-to-tuning-data', action="store_true", default = False, required=False,
                     help = 'fit a function of the form A0 * (z^A1) + A2 to the tuning data')
@@ -174,6 +178,7 @@ vel_mult = args.velocity_multiplier
 trans_lmin = args.transmission_lambda_min
 trans_lmax = args.transmission_lambda_max
 trans_dl = args.transmission_delta_lambda
+transmission_format = args.transmission_format
 
 # TODO: print to confirm the arguments. e.g. "DLAs will be added"
 
@@ -316,7 +321,7 @@ gaussian_mean = np.average(means_data_array[:,1],weights=means_data_array[:,0])
 gaussian_variance = np.average(means_data_array[:,2],weights=means_data_array[:,0]) - gaussian_mean**2
 measured_SIGMA_G = np.sqrt(gaussian_variance)
 
-print('\nGaussian skewers have mean {:2.2f}, variance {:2.2f}.'.format(gaussian_mean,measured_SIGMA_G))
+print('\nGaussian skewers have mean {:2.4f}, variance {:2.4f}.'.format(gaussian_mean,measured_SIGMA_G))
 print('\nModifying header showing sigma_G in Gaussian CoLoRe files...')
 
 def modify_header(pixel):
@@ -525,7 +530,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
 
     #transmission
     filename = utils.get_file_name(location,'transmission',N_side,pixel)
-    pixel_object.save_as_transmission(filename,header,overwrite=overwrite,wave_min=trans_lmin,wave_max=trans_lmax,wave_step=trans_dl)
+    pixel_object.save_as_transmission(filename,header,overwrite=overwrite,wave_min=trans_lmin,wave_max=trans_lmax,wave_step=trans_dl,fmt=transmission_format)
 
     if transmission_only == False:
         #Picca tau
