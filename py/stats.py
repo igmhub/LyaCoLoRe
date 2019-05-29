@@ -80,7 +80,7 @@ def means_to_statistics(means):
     return statistics
 
 #Function to write the statistics data to file, along with an HDU extension contanint cosmology data.
-def write_statistics(location,filename,statistics,overwrite=False):
+def write_statistics(filename,statistics,overwrite=False):
 
     #Construct HDU from the statistics array.
     prihdr = fits.Header()
@@ -92,7 +92,7 @@ def write_statistics(location,filename,statistics,overwrite=False):
 
     #Put the HDU into an HDUlist and save as a new file. Close the HDUlist.
     hdulist = fits.HDUList([prihdu,hdu_stats])
-    hdulist.writeto(location+filename,overwrite=overwrite)
+    hdulist.writeto(filename,overwrite=overwrite)
     hdulist.close
 
     return

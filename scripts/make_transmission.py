@@ -507,8 +507,8 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
         pixel_object.save_as_picca_delta('flux',filename,header,notnorm=True,overwrite=overwrite,add_QSO_RSDs=False)
 
         #Save the no RSD statistics file for this pixel.
-        filename = 'statistics-noRSD-16-{}.fits'.format(pixel)
-        statistics = pixel_object.save_statistics(location,filename,overwrite=overwrite)
+        filename = utils.get_file_name(location,'statistics-noRSD',N_side,pixel)
+        statistics = pixel_object.save_statistics(filename,overwrite=overwrite)
 
     #print('{:3.2f} checkpoint noRSD files'.format(time.time()-t)); t = time.time()
 
@@ -542,8 +542,8 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
         pixel_object.save_as_picca_delta('flux',filename,header,notnorm=True,overwrite=overwrite,add_QSO_RSDs=add_QSO_RSDs)
 
         #Save the final statistics file for this pixel.
-        filename = 'statistics-16-{}.fits'.format(pixel)
-        statistics = pixel_object.save_statistics(location,filename,overwrite=overwrite)
+        filename = utils.get_file_name(location,'statistics',N_side,pixel) 
+        statistics = pixel_object.save_statistics(filename,overwrite=overwrite)
 
     else:
         #If transmission_only is not False, remove the gaussian-colore file.
