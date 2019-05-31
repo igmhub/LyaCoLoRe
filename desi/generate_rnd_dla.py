@@ -6,7 +6,7 @@ from lyacolore import DLA, utils
 lya = utils.lya_rest
 
 #Set up options
-factor = 0.01
+factor = 1
 out_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v7.3/v7.3.0/master_DLA_randoms.fits'
 method = 'cdf'
 DLA_catalog_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v7.3/v7.3.0/master_DLA.fits'
@@ -34,7 +34,7 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
     #Generate a z vector and the dn/dz function.
     zmin = lambda_min/lya - 1
     zmax = lambda_max/lya - 1
-    n_vec = 500
+    n_vec = 100
     zvec = np.linspace(zmin,zmax,n_vec)
     zedges = np.concatenate([[zvec[0]]-(zvec[1]-zvec[0])/2.,(zvec[1:]+zvec[:-1])*0.5,[zvec[-1]+(-zvec[-2]+zvec[-1])*0.5]]).ravel()
     dz = zvec[1] - zvec[0]
