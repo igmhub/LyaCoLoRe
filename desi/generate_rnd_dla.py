@@ -1,8 +1,28 @@
 import numpy as np
-import astropy.table
-import fitsio
-import os
-def generate_rnd(factor=3, out_path=None):
+import astropy.io.fits as fits
+
+from lyacolore import DLA, utils
+
+lya = utils.lya_rest
+
+#Set up options
+factor = 0.01
+out_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v7.3/v7.3.0/master_DLA_randoms.fits'
+method = 'cdf'
+#DLA_catalog_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v7.3/v7.3.0/master_DLA.fits'
+#QSO_catalog_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v7.3/v7.3.0/master.fits'
+DLA_catalog_path = '/Users/jfarr/Downloads/master_DLA.fits'
+QSO_catalog_path = '/Users/jfarr/Downloads/master.fits'
+footprint = 'desi_pixel_plus'
+lambda_min = 3470.
+lambda_max = 6550.
+NHI_min = 17.2
+NHI_max = 22.5
+overwrite = True
+N_side = 16
+add_NHI = True
+
+def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_path=None, footprint='desi_pixel_plus', lambda_min=3470., lambda_max=6550., NHI_min=17.2, NHI_max=22.5, overwrite=False, N_side=16, add_NHI=True):
     """
     Routine to generate a random catalog in 3D following
     certain N(z) distribution
@@ -12,25 +32,79 @@ def generate_rnd(factor=3, out_path=None):
     factor: Size of the generated catalog (before masking)
     out_path: Output path
     """
-    #Creating random that follows N(z)
-    data = fitsio.read('/global/projecta/projectdirs/desi/mocks/lya_forest/london/v5.0.0/master_DLA.fits')
-    zvec = data['Z_DLA_RSD']
-    ntot = int(len(data)*factor)
 
-    z_rnd = np.random.choice(zvec,size=ntot)+0.0025*np.random.normal(size=ntot)
-    qso_rnd = np.random.choice(np.arange(len(data)), size=ntot)
+    #Generate a z vector and the dn/dz function.
+    zmin = lambda_min/lya - 1
+    zmax = lambda_max/lya - 1
+    n_vec = 500
+    zvec = np.linspace(zmin,zmax,n_vec)
+    zedges = np.concatenate([[zvec[0]]-(zvec[1]-zvec[0])/2.,(zvec[1:]+zvec[:-1])*0.5,[zvec[-1]+(-zvec[-2]+zvec[-1])*0.5]]).ravel()
+    dz = zvec[1] - zvec[0]
+    dndz = DLA.dndz(zvec,NHI_min=NHI_min,NHI_max=NHI_max)
 
-    #Get the RA, DEC, MOCKID and Z_QSO of the quasars
-    ra_rnd = data['RA'][qso_rnd]
-    dec_rnd = data['DEC'][qso_rnd]
-    MOCKID_rnd = data['MOCKID'][qso_rnd]
-    Z_QSO_RSD_rnd = data['Z_QSO_RSD'][qso_rnd]
-    Z_QSO_NO_RSD_rnd = data['Z_QSO_NO_RSD'][qso_rnd]
+    #Use dndz to get the mean number of DLAs in each vector cell. Scale it by
+    mean_n = dz * dndz
+    mean_n *= factor
 
-    if out_path is not None:
-        tab_out = astropy.table.Table([ra_rnd,dec_rnd,z_rnd,Z_QSO_NO_RSD_rnd,Z_QSO_RSD_rnd,MOCKID_rnd],names=('RA','DEC','Z','Z_QSO_NO_RSD','Z_QSO_RSD','MOCKID'))
-        tab_out.write(out_path,overwrite=True)
+    #Get data about the QSO sample.
+    h = fits.open(QSO_catalog_path)
+    RA = h['CATALOG'].data['RA']
+    DEC = h['CATALOG'].data['DEC']
+    z_qso = h['CATALOG'].data['Z_QSO_NO_RSD']
+    z_qso_rsd = h['CATALOG'].data['Z_QSO_RSD']
+    pixnum = h['CATALOG'].data['PIXNUM']
+    MOCKID = h['CATALOG'].data['MOCKID']
+    n_qso = z_qso.shape[0]
+    h.close()
 
-    return None
+    #Poisson sample to get DLAs.
+    dlas_in_cell = np.random.poisson(mean_n,size=(n_qso,n_vec))
+
+    ndlas = np.sum(dlas_in_cell)
+    dla_z = np.zeros(ndlas)
+    dla_skw_id = np.zeros(ndlas, dtype='int32')
+    dla_count = 0
+
+    for skw_id,dla in enumerate(dlas_in_cell):
+
+        #Find cells that will be allocated at least one DLA
+        dla_cells = np.where(dla>0)[0]
+
+        #For each dla, assign it a redshift, a velocity and a column density.
+        for cell in dla_cells:
+            if zvec[cell]<z_qso[skw_id]:
+                dla_z[dla_count:dla_count+dla[cell]] = np.random.uniform(low=(zedges[cell]),high=(zedges[cell+1]),size=dla[cell])
+                dla_skw_id[dla_count:dla_count+dla[cell]] = skw_id
+                dla_count = dla_count+dla[cell]
+
+    dla_z = dla_z[:dla_count]
+    dla_skw_id = dla_skw_id[:dla_count]
+
+    #Get the redshift of each DLA's skewer's QSO, its angular positions, MOCKID and pixel number.
+    dla_ra = RA[dla_skw_id]
+    dla_dec = DEC[dla_skw_id]
+    dla_z_qso = z_qso[dla_skw_id]
+    dla_z_qso_rsd = z_qso_rsd[dla_skw_id]
+    dla_MOCKID = MOCKID[dla_skw_id]
+    dla_pixnum = pixnum[dla_skw_id]
+
+    #Make DLAIDs.
+    MOCKID_rnd = np.array(list(range(dla_count)))
+
+    #Assign each DLA an NHI value if desired.
+    if add_NHI:
+        dla_NHI = DLA.get_NHI(dla_z,NHI_min=NHI_min,NHI_max=NHI_max)
+        DLA_data = np.array(list(zip(dla_ra,dla_dec,dla_z_qso,dla_z_qso_rsd,dla_z,dla_NHI,dla_MOCKID,dlaid,dla_pixnum)))
+        dtype = [('RA', '>f8'), ('DEC', '>f8'), ('Z_QSO_NO_RSD', '>f8'), ('Z_QSO_RSD', '>f8'), ('Z_DLA_RSD', '>f8'), ('N_HI_DLA', '>f8'), ('MOCKID', '>i8'), ('DLAID', '>i8'), ('PIXNUM', '>i8')]
+    else:
+        DLA_data = np.array(list(zip(dla_ra,dla_dec,dla_z_qso,dla_z_qso_rsd,dla_z,dla_MOCKID,dlaid,dla_pixnum)))
+        dtype = [('RA', '>f8'), ('DEC', '>f8'), ('Z_QSO_NO_RSD', '>f8'), ('Z_QSO_RSD', '>f8'), ('Z_DLA_RSD', '>f8'), ('MOCKID', '>i8'), ('DLAID', '>i8'), ('PIXNUM', '>i8')]
+
+    #Make the table and write the file.
+    DLA_data = np.array(DLA_data,dtype=dtype)
+    DLA.write_DLA_master(DLA_data,out_path,N_side,overwrite=overwrite)
+
+    return
+
 # Execute
-generate_rnd(factor=10,out_path='/global/projecta/projectdirs/desi/mocks/lya_forest/london/v6.0/v6.0.0/master_DLA_randoms.fits')
+generate_rnd(factor=3,out_path=out_path,DLA_catalog_path=DLA_catalog_path,QSO_catalog_path=QSO_catalog_path,footprint=footprint,lambda_min=lambda_min,lambda_max=lambda_max,NHI_min=NHI_min,NHI_max=NHI_max,overwrite=overwrite,N_side=N_side,add_NHI=add_NHI)
