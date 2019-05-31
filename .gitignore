@@ -1,8 +1,8 @@
 #Plots and output files
 plots
 output
-./*.pdf
-./*.fits
+*.pdf
+*.fits
 
 #pycache
 py/__pycache__/
