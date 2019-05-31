@@ -32,20 +32,20 @@ d_delta = 10.**-3
 d_eta = 10**-9
 
 #Choose tuning parameter initial values.
-initial_C0 = 1.4816737745980524
+initial_C0 = 1.481673774598052
 initial_C1 = 4.5
 initial_C2 = 0.0
 initial_beta = 1.65
 initial_D0 = 6.053845236262855
-initial_D1 = 0.29177647716292676
+initial_D1 = 0.2917764771629268
 initial_D2 = 0.0
 initial_n = 0.7565580418668016
-initial_k1 = 0.028329336668223733
+initial_k1 = 0.02832933666822373
 initial_R = 25.0 #kms-1
 initial_vb = 1.2
 
 #Choose parameters to fix.
-fix_all = False
+fix_all = True
 fix_C0 = False
 fix_C1 = True
 fix_C2 = True
@@ -62,9 +62,9 @@ fix_vb = True
 k_plot_max = 0.1
 show_plots = True
 save_plots = True
-suffix = '_with_bias_mFe{}'.format(eps_mean_F)
-save_tuning = True
-overwrite_tuning = True
+suffix = '_with_bias_vel{}_b{}'.format(initial_vb,initial_beta)
+save_tuning = False
+overwrite_tuning = False
 tuning_filename = 'input_files/tuning_data' + suffix + '.fits'
 
 #Get the starting values of alpha, beta and sigma_G from file
@@ -486,14 +486,14 @@ def plot_P1D_values(m_set,show_plot=True,save_plot=False):
         plt.plot(m.k_kms,model_Pk_kms,c=colour,linestyle=':')#,label='z={} DR9'.format(m.z_value))
         m.add_Pk1D_chi2(max_k=max_k,denom="npower_cutoff")
         eps = m.Pk_kms_chi2_eps
-        #plt.plot(m.k_kms,model_Pk_kms*0.9,color=[0.5,0.5,0.5],alpha=0.5)
-        #plt.plot(m.k_kms,model_Pk_kms*1.1,color=[0.5,0.5,0.5],alpha=0.5)
-        plt.fill_between(m.k_kms,model_Pk_kms*1.1,model_Pk_kms*0.9,color=[0.5,0.5,0.5],alpha=0.3)#,label='DR9 +/- 10%')
+        plt.plot(m.k_kms,model_Pk_kms*0.9,color=[0.5,0.5,0.5],alpha=0.5)
+        plt.plot(m.k_kms,model_Pk_kms*1.1,color=[0.5,0.5,0.5],alpha=0.5)
+        #plt.fill_between(m.k_kms,model_Pk_kms*1.1,model_Pk_kms*0.9,color=[0.5,0.5,0.5],alpha=0.3)#,label='DR9 +/- 10%')
         lower = np.maximum(np.ones_like(model_Pk_kms)*10**(-6),model_Pk_kms * (1. - eps))
         upper = model_Pk_kms * (1. + eps)
-        plt.plot(m.k_kms,upper,c='k',linestyle='dashed')
-        plt.plot(m.k_kms,lower,c='k',linestyle='dashed')
-        #plt.fill_between(m.k_kms,upper,lower,color=[0.8,0.8,0.8],alpha=0.3)
+        #plt.plot(m.k_kms,upper,c='k',linestyle='dashed')
+        #plt.plot(m.k_kms,lower,c='k',linestyle='dashed')
+        plt.fill_between(m.k_kms,upper,lower,color=[0.8,0.8,0.8],alpha=0.3)
         max_power_plot = np.max((max_power_plot,np.max(model_Pk_kms[m.k_kms<k_plot_max])))
         min_power_plot = np.min((min_power_plot,np.min(model_Pk_kms[m.k_kms<k_plot_max])))
     plt.title('C=({:2.4f},{:2.4f},{:2.4f}), D=({:2.4f},{:2.4f},{:2.4f}), n={:2.4f}, k1={:2.6f}'.format(m.C0,m.C1,m.C2,m.D0,m.D1,m.D2,m.n,m.k1),fontsize=12)

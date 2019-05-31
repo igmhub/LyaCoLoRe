@@ -40,7 +40,7 @@ fig.subplots_adjust(hspace=0)
 
 for i in range(N_stages):
     dirname = utils.get_dir_name(basedir,pixel)
-    filename = utils.get_file_name(dirname,stages_1[i],N_side,pixel)
+    filename = utils.get_file_name(dirname,stages_1[i],N_side,pixel)[:-3]
     h = fits.open(filename)
     lambdas = 10**h[2].data
     skewer = h[0].data[:,i_skewer]
@@ -49,7 +49,7 @@ for i in range(N_stages):
     print(h[3].data['THING_ID'][i_skewer])
     axs[i].plot(lambdas,skewer,label=label_1[i],color=style_dict[stages_1[i]]['c'],linestyle=style_dict[stages_1[i]]['ls'])
     if stages_2[i]:
-        filename = utils.get_file_name(dirname,stages_2[i],N_side,pixel)
+        filename = utils.get_file_name(dirname,stages_2[i],N_side,pixel)[:-3]
         h_2 = fits.open(filename)
         lambdas_2 = 10**h_2[2].data
         skewer_2 = h_2[0].data[:,i_skewer]
@@ -78,4 +78,5 @@ for i in range(N_stages):
 plt.xlim(lambda_min,lambda_max)
 plt.xlabel(r'$\lambda\ /\ \mathrm{\AA}$')
 plt.savefig('skewers.pdf')
+plt.tight_layout()
 plt.show()

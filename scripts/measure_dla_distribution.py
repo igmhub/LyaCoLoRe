@@ -13,7 +13,7 @@ fN_cosmo = fN_default.cosmo
 use_pyigm = True
 
 include_RSDs = True
-basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test_improve_dlas/'
+basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v7/v7.3.0/'
 #basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v7/v7.0.0/'
 qso_z_buffer=0.05
 
@@ -166,7 +166,7 @@ plt.xlabel(r'$z$')
 plt.ylabel(r'$\mathrm{{d}}n / \mathrm{{d}}z$')
 plt.legend()
 plt.grid()
-plt.savefig('dndz_v7_improved__qsozbuffer{}.pdf'.format(qso_z_buffer))
+#plt.savefig('dndz_v7_improved__qsozbuffer{}.pdf'.format(qso_z_buffer))
 plt.show()
 
 #Measure f(NHI)
@@ -201,5 +201,5 @@ plt.ylabel(r'$\log(f(N_{{HI}}))$')
 plt.xlabel(r'$\log(N_{{HI}})$')
 plt.legend()
 plt.grid()
-plt.savefig('f_NHI_v7_improved_qsozbuffer{}.pdf'.format(qso_z_buffer))
+#plt.savefig('f_NHI_v7_improved_qsozbuffer{}.pdf'.format(qso_z_buffer))
 plt.show()

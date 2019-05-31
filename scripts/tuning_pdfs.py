@@ -9,18 +9,18 @@ import matplotlib.pyplot as plt
 from lyacolore import simulation_data, bias, utils, tuning
 
 #base_dir = '../example_data/lya_skewers/'
-base_dir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v5/v5.0.0/'
-tuning_files = glob.glob('./input_files/tuning_data_a?.?_b1.65.fits')
+base_dir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v7/v7.0.0_initial/'
+tuning_files = glob.glob('./input_files/tuning_data_with_bias_vel1.2_b1.65.fits')
 # + glob.glob('./input_files/tuning_data_a?.?_b2.0.fits')
 #tuning_files = glob.glob('./input_files/tuning_data_apow4.5_sGconst.fits')
 z_values = np.array([2.0,2.2,2.4,2.6,2.8,3.0,3.2])
-N_bins = 1000
+N_bins = 100
 bin_width = 1./N_bins
 z_width_value = 0.1
-N_pixels = 4
+N_pixels = 64
 f = 0.9625
 
-plot_option = 'plot_per_z_value' #'plot_per_tuning'
+plot_option = 'plot_per_tuning' #'plot_per_z_value'
 
 #pixels = np.random.choice(3072,size=N_pixels,replace=False)
 pixels = list(range(N_pixels))
@@ -95,7 +95,7 @@ def pdf_tuning(pixel_object,tuning_filename,z_values,z_width=0.2,bins=100):
 def pixel_tuning_bias(pixel,tuning_filename,z_values,d=0.001,z_width=0.2):
 
     dirname = utils.get_dir_name(base_dir,pixel)
-    gaussian_filename = utils.get_file_name(dirname,'gaussian-colore',N_side,pixel)
+    gaussian_filename = utils.get_file_name(dirname,'gaussian-colore',N_side,pixel)[:-3]
     file_number = None
     pixel_object = simulation_data.SimulationData.get_gaussian_skewers_object(gaussian_filename,file_number,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
     bins = np.linspace(0.,1.,N_bins+1)
