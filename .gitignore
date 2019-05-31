@@ -1,8 +1,22 @@
 #Plots and output files
 plots
 output
+run_files
 *.pdf
 *.fits
 
 #pycache
 py/__pycache__/
+
+#build files
+build
+core
+dist
+py/LyaCoLoRe.egg-info
+py/LyaCoLoRe/__pycache__
+
+#misc
+parameter_log*
+old
+.ipynb_checkpoints
+Codes
