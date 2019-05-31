@@ -32,7 +32,8 @@ def generate_rnd(factor=3, out_path= None, method='use_catalog', catalog_path=No
 
     #Get the input n(z) file and set up vectors.
     nz_file = astropy.table.Table.read(nz_filename,format='ascii')
-    zvec = np.linspace(np.min(nz_file['col1']),np.max(nz_file['col1']),5000)
+    N_vec = 5000
+    zvec = np.linspace(np.min(nz_file['col1']),np.max(nz_file['col1']),N_vec)
     spl_z = interp1d(nz_file['col1'],nz_file['col2'])
     dndz = spl_z(zvec)
 
