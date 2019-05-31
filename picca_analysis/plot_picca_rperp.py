@@ -16,9 +16,11 @@ else:
 #Plotting decisions
 plot_system = 'plot_per_file' #per bin or per file
 #Gaussian
-fit_data = {'b1': 1.0, 'b2': 1.0, 'beta1': 0., 'beta2': 0.}
-#Lognormal
 #fit_data = {'b1': 1.0, 'b2': 1.0, 'beta1': 0., 'beta2': 0.}
+#Lognormal-Gaussian
+#fit_data = {'b1': 1.16, 'b2': 1.0, 'beta1': 0., 'beta2': 0.}
+#Lognormal
+fit_data = {'b1': 1., 'b2': 1., 'beta1': 0., 'beta2': 0.}
 #Tau noRSD
 #fit_data = {'b1': 1.65*1.13, 'b2': 1.65*1.13, 'beta1': 0., 'beta2': 0.}
 #Tau

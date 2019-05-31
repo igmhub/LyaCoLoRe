@@ -18,7 +18,7 @@ location_names = [r'$\beta=1.65$',r'$\beta=2.0$']
 
 #Plotting decisions
 afixs = ['free','fixed'] #'free' or 'fixed'
-rmins = [20,40,60]
+rmins = [40]#[20,40,60]
 bb_colours = {'beta':'C0', 'bias':'C1', 'bias_eta':'C2', 'beta_BOSS':'C0', 'bias_BOSS':'C1', 'bias_eta_BOSS':'C2'}
 a_colours = {'ap':'C0', 'at':'C1', 'ap_BOSS':'C0', 'at_BOSS':'C1', 'ap_combined':'C0', 'at_combined':'C1'}
 show_plots = True

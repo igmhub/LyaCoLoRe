@@ -36,7 +36,7 @@ show_plots = True
 save_plots = True
 
 rmins = [40.]#[20.,40.,60.]
-afixs = ['fixed']#['free','fixed']
+afixs = ['free','fixed']
 
 for rmin in rmins:
     for afix in afixs:
