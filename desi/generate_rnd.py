@@ -65,22 +65,24 @@ def generate_rnd(factor=3, out_path= None, method='use_catalog', catalog_path=No
         icdf = interp1d(cdf,zvec,fill_value='extrapolate',bounds_error=False)
         z_rnd = icdf(np.random.random(size=ntot))
 
-    #Assign random positions on the sky to the QSOs.
+    #Assign random positions on the sky, and MOCKIDs to the QSOs.
     ra_rnd = 360.*np.random.random(size=len(z_rnd))
     cth_rnd = -1+2.*np.random.random(size=len(z_rnd))
     dec_rnd = np.arcsin(cth_rnd)*180/np.pi
+    MOCKID_rnd = np.array(list(range(ntot)))
 
     #Filter the QSOs according to the input footprint.
     QSO_filter = utils.make_QSO_filter(footprint)
     good = QSO_filter(ra_rnd,dec_rnd)
     ra_rnd = ra_rnd[good]
     dec_rnd = dec_rnd[good]
+    MOCKID_rnd = MOCKID_rnd[good]
     z_rnd = z_rnd[good]
     pix_rnd = utils.make_pixel_ID(N_side,ra_rnd,dec_rnd)
 
     #Write the catalog to file.
     dtype = [('RA', 'd'), ('DEC', 'd'), ('Z', 'd'), ('PIXNUM', int)]
-    ID_data = np.array(list(zip(ra_rnd,dec_rnd,z_rnd,pix_rnd)),dtype=dtype)
+    ID_data = np.array(list(zip(ra_rnd,dec_rnd,z_rnd,pix_rnd,MOCKID_rnd)),dtype=dtype)
     if out_path is not None:
         catalog.write_ID(out_path,N_side,ID_data,overwrite=overwrite)
 
