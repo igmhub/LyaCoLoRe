@@ -15,7 +15,7 @@ DLA_BIAS=2.0
 DLA_BIAS_METHOD='b_const'
 DOWNSAMPLING=1.0
 VEL_BOOST=1.2
-FOOTPRINT='desi_pixel_plus'
+FOOTPRINT='full_sky'
 TRANSMISSION_FORMAT='develop'
 
 # specify transmission file wavelength grid
@@ -26,7 +26,7 @@ TRANS_DL=0.2
 # specify process flags
 #MM_FLAGS=""
 MM_FLAGS=""
-MT_FLAGS="--add-DLAs --add-RSDs --add-QSO-RSDs --add-small-scale-fluctuations --transmission-only --add-Lyb --add-metals"
+MT_FLAGS="--add-DLAs --add-RSDs --add-QSO-RSDs"
 
 # specify details of colore output
 COLORE_NGRID=4096
@@ -38,7 +38,7 @@ COLORE_SEED=1003
 PROCESS_PATH="/global/homes/j/jfarr/Projects/LyaCoLoRe/scripts/"
 
 # full path to folder where input will be taken from
-INPUT_PATH="/project/projectdirs/desi/mocks/lya_forest/london/colore_raw/v5_seed${COLORE_SEED}/"
+INPUT_PATH="/project/projectdirs/desi/mocks/lya_forest/develop/london/colore_raw/v5_seed${COLORE_SEED}/"
 COLORE_PARAM_PATH="${INPUT_PATH}/param_v5_seed${COLORE_SEED}.cfg"
 echo "input will be taken from "$INPUT_PATH
 INPUT_FILES=`ls -1 ${INPUT_PATH}/out_srcs_*.fits`
@@ -48,12 +48,12 @@ echo "${NFILES} input files have been found"
 
 # code version
 V_CODE_MAJ="7"
-V_CODE_MIN="2"
+V_CODE_MIN="3"
 V_REALISATION="0"
 
 # full path to folder where output will be written
-#OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test_absorbers/test_Lya_Lyb_m1/"
-OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v${V_CODE_MAJ}/v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}/"
+OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v${V_CODE_MAJ}/v7_full_no_ssf/"
+#OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v${V_CODE_MAJ}/v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}/"
 #OUTPUT_PATH="/project/projectdirs/desi/mocks/lya_forest/london/v${V_CODE_MAJ}.${V_CODE_MIN}/v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}/"
 
 echo "output will written to "$OUTPUT_PATH

@@ -1,6 +1,6 @@
 #number of pixels
-NPIXELS=1490
-NPIXPERNODE=149
+NPIXELS=1000
+NPIXPERNODE=100
 NCORES=64
 
 # specify number of nodes and cores to use
@@ -21,12 +21,12 @@ RMINS='20.0 40.0 60.0'
 RMAXS=160.0
 AFIXS='fixed free'
 
-ZMIN=3.5
-ZMAX=3.7
+ZMIN=2.4
+ZMAX=2.6
 
 #first quantity to correlate
-QUANTITY="flux-rebin-10"
-INDIR="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v7/v7.0.0_initial/"
+QUANTITY="tau"
+INDIR="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v7/v7_full_no_ssf/"
 #INDIR="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test_velocity_interpolation_full_no_ssf/"
 
 #second quantity to correlate (if desired)
@@ -36,7 +36,7 @@ INDIR="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v7/v7.0.0_initial/"
 
 #Correlation type
 CORRTYPE="cf"
-QC="FF"
+QC="TT"
 
 #picca nside value
 NSIDEPICCA=16
@@ -51,7 +51,7 @@ SR=2.0
 PICCA_PATH="/global/homes/j/jfarr/Programs/picca/"
 
 #decide analysis number
-ANALYSIS_ID=37
+ANALYSIS_ID=38
 ANALYSIS_ID=`printf "%03d" ${ANALYSIS_ID}`
 
 #find ID number
@@ -122,7 +122,7 @@ for NODE in \`seq $NNODES\` ; do
     NODE_FILES2=""
     while [ \${N} -lt $NPIXPERNODE ]; do
 
-        F="${INDIR}/\$(( \${i}/100 ))/\${i}/picca-${QUANTITY}-16-\${i}.fits";
+        F="${INDIR}/\$(( \${i}/100 ))/\${i}/picca-${QUANTITY}-16-\${i}.fits.gz";
 
         if [ -z "\${INDIR2}" ]; then
 
