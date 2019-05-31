@@ -11,7 +11,7 @@ from astropy.cosmology import Planck15
 try:
     from pyigm.fN.fnmodel import FNModel
     fN_default = FNModel.default_model(cosmo=Planck15)
-    fN_default.zmnx = (0.5,4)
+    fN_default.zmnx = (0.5,5.)
     fN_cosmo = fN_default.cosmo
     use_pyigm = True
 except:
@@ -285,7 +285,7 @@ def get_DLA_data_from_transmission(pixel,filename):
 
     return DLA_data
 
-def write_DLA_master(DLA_data_list,basedir,N_side,overwrite=False):
+def write_DLA_master(DLA_data_list,filename,N_side,overwrite=False):
 
     DLA_master_data = np.concatenate(DLA_data_list)
 
@@ -302,7 +302,6 @@ def write_DLA_master(DLA_data_list,basedir,N_side,overwrite=False):
 
     #Make the .fits file.
     hdulist = fits.HDUList([prihdu,hdu_ID])
-    filename = basedir + '/master_DLA.fits'
     hdulist.writeto(filename,overwrite=overwrite)
     hdulist.close()
 

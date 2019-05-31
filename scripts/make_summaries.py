@@ -92,7 +92,8 @@ if __name__ == '__main__':
     pool.join()
 
 #Make the DLA master file
-DLA.write_DLA_master(results,base_dir,N_side,overwrite=overwrite)
+filename = base_dir + '/master_DLA.fits'
+DLA.write_DLA_master(results,filename,N_side,overwrite=overwrite)
 
 ################################################################################
 """
