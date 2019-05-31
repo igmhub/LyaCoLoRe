@@ -152,8 +152,7 @@ print('\nWorking on master data...')
 start = time.time()
 
 #Choose the QSO filtering we want.
-#QSO_filter = utils.choose_filter(desi_footprint,desi_footprint_pixel,desi_footprint_pixel_plus,desimodel_installed,N_side=N_side)
-QSO_filter = utils.make_QSO_filter(footprint,desimodel_installed,N_side=N_side)
+QSO_filter = utils.make_QSO_filter(footprint,N_side=N_side)
 
 #Define the process to make the master data.
 def make_master_data(file_name,file_number,input_format,N_side,minimum_z=min_catalog_z):
@@ -184,12 +183,12 @@ master_data, bad_coordinates_data, cosmology_data, file_pixel_map, MOCKID_lookup
 
 #Write master and bad coordinates files.
 master_filename = new_base_file_location + '/master.fits'
-catalog.write_ID(master_filename,master_data,cosmology_data,N_side,overwrite=overwrite)
+catalog.write_ID(master_filename,N_side,master_data,cosmology_data,overwrite=overwrite)
 print('\nMaster file contains {} objects.'.format(master_data.shape[0]))
 
 if bad_coordinates_data.shape[0] > 0:
     bad_coordinates_filename = new_base_file_location + '/bad_coordinates.fits'
-    catalog.write_ID(bad_coordinates_filename,bad_coordinates_data,cosmology_data,N_side,overwrite=overwrite)
+    catalog.write_ID(bad_coordinates_filename,N_side,bad_coordinates_data,cosmology_data,overwrite=overwrite)
     print('"bad coordinates" file contains {} objects.'.format(bad_coordinates_data.shape[0]))
 
 #If desired, write the DRQ files for picca xcf to deal with.

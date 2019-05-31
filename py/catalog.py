@@ -117,7 +117,7 @@ def join_ID_data(results,N_side):
     return master_data, bad_coordinates_data, cosmology_data, file_pixel_map, MOCKID_lookup
 
 #Function to write a single ID file, given the data.
-def write_ID(filename,ID_data,cosmology_data,N_side,overwrite=False):
+def write_ID(filename,N_side,ID_data,cosmology_data=None,overwrite=False):
 
     #Make an appropriate header.
     header = fits.Header()
@@ -125,14 +125,18 @@ def write_ID(filename,ID_data,cosmology_data,N_side,overwrite=False):
 
     #Make the data into tables.
     hdu_ID = fits.BinTableHDU.from_columns(ID_data,header=header,name='CATALOG')
-    hdu_cosmology = fits.BinTableHDU.from_columns(cosmology_data,header=header,name='COSMO')
+    if cosmology_data:
+        hdu_cosmology = fits.BinTableHDU.from_columns(cosmology_data,header=header,name='COSMO')
 
     #Make a primary HDU.
     prihdr = fits.Header()
     prihdu = fits.PrimaryHDU(header=prihdr)
 
     #Make the .fits file.
-    hdulist = fits.HDUList([prihdu,hdu_ID,hdu_cosmology])
+    if cosmology_data:
+        hdulist = fits.HDUList([prihdu,hdu_ID,hdu_cosmology])
+    else:
+        hdulist = fits.HDUList([prihdu,hdu_ID])
     hdulist.writeto(filename,overwrite=overwrite)
     hdulist.close()
 

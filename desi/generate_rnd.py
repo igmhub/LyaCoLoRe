@@ -1,17 +1,26 @@
 import numpy as np
-from desimodel.footprint import is_point_in_desi
-from desimodel.io import load_tiles
 import astropy.table
 from scipy.interpolate import interp1d
 import healpy as hp
-import fitsio
-from desimodel import footprint
-from desimodel.io import load_pixweight
-import os
+from astropy.io import fits
 
-from lyacolore import utils
+from lyacolore import catalog,utils
 
-def generate_rnd(factor=3, out_path= None, method='use_catalog', catalog_path=None, footprint=None):
+#Set up options
+factor = 1
+#out_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/london/v7.0/v7.0.0/master_randoms.fits'
+out_path = './test_master_randoms_cdf.fits'
+method = 'cdf'
+#catalog_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/london/v7.0/v7.0.0/master.fits'
+catalog_path = '/Users/jfarr/Downloads/master.fits'
+footprint = 'desi_pixel_plus'
+nz_filename = 'input_files/Nz_qso_130618_2_colore1_hZs.txt'
+min_cat_z = 1.8
+max_cat_z = 3.79
+overwrite = True
+N_side = 16
+
+def generate_rnd(factor=3, out_path= None, method='use_catalog', catalog_path=None, footprint=None, nz_filename='input_files/Nz_qso_130618_2_colore1_hZs.txt', min_cat_z=1.8, max_cat_z=3.79, overwrite=False, N_side=16):
     """
     Routine to generate a random catalog in 3D following
     certain N(z) distribution
@@ -24,57 +33,60 @@ def generate_rnd(factor=3, out_path= None, method='use_catalog', catalog_path=No
     method: Method to generate the random catalog (default: 'random_choice')
     """
 
-    #Creating random that follows N(z)
-    footprint_healpix_nside=256
-    tiles = load_tiles()
-    nz_file = astropy.table.Table.read('example_data/Nz_qso_2_highZ.txt',format='ascii')
+    #Get the input n(z) file and set up vectors.
+    nz_file = astropy.table.Table.read(nz_filename,format='ascii')
     zvec = np.linspace(np.min(nz_file['col1']),np.max(nz_file['col1']),5000)
     spl_z = interp1d(nz_file['col1'],nz_file['col2'])
     dndz = spl_z(zvec)
+
+    #Fiter by the minimum z.
+    ind = (zvec>=min_cat_z) * (zvec<=max_cat_z)
+    zvec = zvec[ind]
+    dndz = dndz[ind]
+    dz = zvec[1] - zvec[0]
+
+    #Get the total number of QSOs.
     ntot = 4*180**2/np.pi*np.sum(nz_file['col2'])*(nz_file['col1'][1]-nz_file['col1'][0])
     ntot = int(factor*ntot)
+
+    #Generate random redshifts by one of 3 different methods:
     if method=='use_catalog':
+        #Method 1: choose from the QSO catalog and add small deviations.
         if catalog_path is None:
             raise ValueError('Needed a path to read the catalog')
-        tab = fitsio.read(catalog_path)
-        z_rnd = np.random.choice(tab['Z_QSO_RSD'], size=ntot)+1e-6*np.random.normal(size=ntot)
-    if method=='rnd_choice':
-        z_rnd = np.random.choice(zvec[zvec>1.8],p=dndz[zvec>1.8]/np.sum(dndz[zvec>1.8]),size=ntot)+2*(z[1]-z[0])*np.random.normal(size=ntot)
-    if method=='cdf':
-        cdf = np.cumsum(dndz[zvec>=1.8])/np.sum(dndz[zvec>=1.8])
-        icdf = interp1d(cdf,zvec[zvec>=1.8],fill_value='extrapolate',bounds_error=False)
+        tab = fits.open(catalog_path)[1].data
+        z_rnd = np.random.choice(tab['Z_QSO_NO_RSD'], size=ntot)+1e-6*np.random.normal(size=ntot)
+
+    elif method=='rnd_choice':
+        #Method 2: choose from within the vectorisation of the dndz file.
+        z_rnd = np.random.choice(zvec,p=dndz/np.sum(dndz),size=ntot) + 2*np.random.normal(size=ntot,scale=dz)
+
+    elif method=='cdf':
+        #Method 3: Calculate the cumulative distribution and interpolate.
+        cdf = np.cumsum(dndz)/np.sum(dndz)
+        icdf = interp1d(cdf,zvec,fill_value='extrapolate',bounds_error=False)
         z_rnd = icdf(np.random.random(size=ntot))
-    #tab = fitsio.read('/global/projecta/projectdirs/desi/mocks/lya_forest/london/v4.0/quick-0.0/zcat_desi_drq.fits')
+
+    #Assign random positions on the sky to the QSOs.
     ra_rnd = 360.*np.random.random(size=len(z_rnd))
     cth_rnd = -1+2.*np.random.random(size=len(z_rnd))
     dec_rnd = np.arcsin(cth_rnd)*180/np.pi
-    #pixnums = hp.ang2pix(256,np.pi/2-tab['DEC']*np.pi/180, np.pi/180*tab['RA'])
-    #pixnums2 = hp.ang2pix(256,np.pi/2-dec_rnd*np.pi/180, np.pi/180*ra_rnd)
-    footprint_filename=os.path.join(os.environ['DESIMODEL'],'data','footprint','desi-healpix-weights.fits')
-    pixmap=fitsio.read(footprint_filename)
-    footprint_healpix_weight = load_pixweight(footprint_healpix_nside, pixmap=pixmap)
-    footprint_healpix = footprint.radec2pix(footprint_healpix_nside, ra_rnd, dec_rnd)
-    good = np.where(footprint_healpix_weight[footprint_healpix]>0.99)[0]
-    #good = np.in1d(pixnums2,pixnums)
-    #good = is_point_in_desi(tiles,ra_rnd,dec_rnd)
 
+    #Filter the QSOs according to the input footprint.
     QSO_filter = utils.make_QSO_filter(footprint)
-    good *= QSO_filter(ra_rnd,dec_rnd)
-
+    good = QSO_filter(ra_rnd,dec_rnd)
     ra_rnd = ra_rnd[good]
     dec_rnd = dec_rnd[good]
     z_rnd = z_rnd[good]
-    if out_path is not None:
-        tab_out = astropy.table.Table([ra_rnd,dec_rnd,z_rnd],names=('RA','DEC','Z'))
-        tab_out.write(out_path,overwrite=True)
-    return None
+    pix_rnd = utils.make_pixel_ID(N_side,ra_rnd,dec_rnd)
 
-#Set up options
-factor = 10
-out_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/london/v7.0/v7.0.0/master_randoms.fits'
-method = 'use_catalog'
-gatalog_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/london/v7.0/v7.0.0/master.fits'
-footprint = 'desi_pixel_plus'
+    #Write the catalog to file.
+    dtype = [('RA', 'd'), ('DEC', 'd'), ('Z', 'd'), ('PIXNUM', int)]
+    ID_data = np.array(list(zip(ra_rnd,dec_rnd,z_rnd,pix_rnd)),dtype=dtype)
+    if out_path is not None:
+        catalog.write_ID(out_path,N_side,ID_data,overwrite=overwrite)
+
+    return
 
 # Execute
-generate_rnd(factor=factor,out_path=out_path,method=method,catalog_path=catalog_path,footprint=footprint)
+generate_rnd(factor=factor,out_path=out_path,method=method,catalog_path=catalog_path,footprint=footprint,nz_filename=nz_filename,min_cat_z=min_cat_z,max_cat_z=max_cat_z,overwrite=overwrite,N_side=N_side)

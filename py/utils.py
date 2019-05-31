@@ -119,13 +119,16 @@ def add_pixel_neighbours(pixels,N_side=16):
 
 #TODO add pixel_list functionality.
 #Function to return a filter function for restricting the QSO footprint.
-def make_QSO_filter(footprint,desimodel_installed,N_side=16,pixel_list=None):
+def make_QSO_filter(footprint,N_side=16,pixel_list=None):
 
     #See if we can use desimodel. This is preferable as it will be the most
     #up-do-date footprint.
-    if desimodel_installed:
+    try:
         from desimodel.footprint import tiles2pix, is_point_in_desi
         from desimodel.io import load_tiles
+        desimodel_installed = True
+    except ModuleNotFoundError:
+        desimodel_installed = False
 
     #If we have desimodel and want to replicate the footprint precisely, use
     #function "is_point_in_desi".
