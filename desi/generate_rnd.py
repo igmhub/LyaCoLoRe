@@ -25,7 +25,6 @@ def generate_rnd(factor=3, out_path= None, method='use_catalog', catalog_path=No
 
     Args:
     ----
-    rad: z-values of the data catalog
     factor: Size of the generated catalog (before masking)
     out_path: Name of output file where randoms will be saved (default: None)
     method: Method to generate the random catalog (default: 'random_choice')
