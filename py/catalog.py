@@ -123,20 +123,19 @@ def write_ID(filename,N_side,ID_data,cosmology_data=None,overwrite=False):
     header = fits.Header()
     header['NSIDE'] = N_side
 
-    #Make the data into tables.
-    hdu_ID = fits.BinTableHDU.from_columns(ID_data,header=header,name='CATALOG')
-    if cosmology_data:
-        hdu_cosmology = fits.BinTableHDU.from_columns(cosmology_data,header=header,name='COSMO')
-
     #Make a primary HDU.
     prihdr = fits.Header()
     prihdu = fits.PrimaryHDU(header=prihdr)
 
-    #Make the .fits file.
-    if cosmology_data:
+    #Make the data into tables.
+    hdu_ID = fits.BinTableHDU.from_columns(ID_data,header=header,name='CATALOG')
+    if cosmology_data is not None:
+        hdu_cosmology = fits.BinTableHDU.from_columns(cosmology_data,header=header,name='COSMO')
         hdulist = fits.HDUList([prihdu,hdu_ID,hdu_cosmology])
     else:
         hdulist = fits.HDUList([prihdu,hdu_ID])
+
+    #Make the .fits file.
     hdulist.writeto(filename,overwrite=overwrite)
     hdulist.close()
 
