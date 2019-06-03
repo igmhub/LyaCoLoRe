@@ -234,10 +234,9 @@ def get_DLA_table(object,dla_bias=2.0,dla_bias_z=2.25,extrapolate_z_down=None,NH
         current_DLAID += 1
 
     #Make the data into a table HDU
-    data = [dla_z,dla_z+dla_rsd_dz,dla_NHI,MOCKIDs,DLAIDs]
-    names = ('Z_DLA_NO_RSD','Z_DLA_RSD','N_HI_DLA','MOCKID','DLAID')
-    dtype = ('f4','f4','f4',int,int)
-    dla_table = astropy.table.Table(data,names=names,dtype=dtype)
+    data = list(zip(dla_z,dla_z+dla_rsd_dz,dla_NHI,MOCKIDs,DLAIDs))
+    dtype = [('Z_DLA_NO_RSD', '>f8'), ('Z_DLA_RSD', '>f8'), ('N_HI_DLA', '>f8'), ('MOCKID', '>i8'), ('DLAID', '>i8')]
+    dla_table = np.array(data,dtype=dtype)
 
     return dla_table
 

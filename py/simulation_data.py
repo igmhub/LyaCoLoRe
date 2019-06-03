@@ -995,7 +995,7 @@ class SimulationData:
 
         # add table of DLAs
         if self.DLA_table is not None:
-            hdu_DLAs = fits.hdu.BinTableHDU(data=self.DLA_table,header=header,name='DLA')
+            hdu_DLAs = fits.hdu.BinTableHDU(self.DLA_table,header=header,name='DLA')
             list_hdu.append(hdu_DLAs)
 
         #Save as a new file. Close the HDUlist.
