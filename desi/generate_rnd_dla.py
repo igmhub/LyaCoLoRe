@@ -55,6 +55,30 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
     n_qso = z_qso.shape[0]
     h.close()
 
+    ntot = np.sum(mean_n) * n_qso
+
+    #Generate random redshifts for the DLAs.
+    if method=='cdf':
+        #Method 1: Calculate the cumulative distribution and interpolate.
+        cdf = np.cumsum(dndz)/np.sum(dndz)
+        icdf = interp1d(cdf,zvec,fill_value='extrapolate',bounds_error=False)
+        z_rnd = icdf(np.random.random(size=ntot))
+
+    dla_z = np.zeros(ntot)
+    dla_skw_id = np.zeros(ntot,dtype='int32')
+    dla_count = 0
+
+    #For each DLA, place it in a skewer at random. Only keep it if it has
+    #redshift lower than the quasar's.
+    for dla_z_value in z_rnd:
+        skw_id = np.random.choice(n_qso)
+        if dla_z_value < z_qso[skw_id]:
+            dla_z[dla_count] = dla_z_value
+            dla_skw_id[dla_count] = skw_id
+            dla_count += 1
+
+    """
+
     #Poisson sample to get DLAs.
     dlas_in_cell = np.random.poisson(mean_n,size=(n_qso,n_vec))
 
@@ -74,6 +98,8 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
                 dla_z[dla_count:dla_count+dla[cell]] = np.random.uniform(low=(zedges[cell]),high=(zedges[cell+1]),size=dla[cell])
                 dla_skw_id[dla_count:dla_count+dla[cell]] = skw_id
                 dla_count = dla_count+dla[cell]
+
+    """
 
     dla_z = dla_z[:dla_count]
     dla_skw_id = dla_skw_id[:dla_count]
