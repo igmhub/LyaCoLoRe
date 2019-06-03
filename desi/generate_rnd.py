@@ -17,8 +17,9 @@ min_cat_z = 1.8
 max_cat_z = 3.79
 overwrite = True
 N_side = 16
+start_MOCKID_rnd = 10**10
 
-def generate_rnd(factor=3, out_path= None, method='use_catalog', catalog_path=None, footprint=None, nz_filename='input_files/Nz_qso_130618_2_colore1_hZs.txt', min_cat_z=1.8, max_cat_z=4.0, overwrite=False, N_side=16):
+def generate_rnd(factor=3, out_path= None, method='use_catalog', catalog_path=None, footprint=None, nz_filename='input_files/Nz_qso_130618_2_colore1_hZs.txt', min_cat_z=1.8, max_cat_z=4.0, overwrite=False, N_side=16,start_MOCKID_rnd=10**10):
     """
     Routine to generate a random catalog in 3D following
     certain N(z) distribution
@@ -96,7 +97,7 @@ def generate_rnd(factor=3, out_path= None, method='use_catalog', catalog_path=No
     ra_rnd = 360.*np.random.random(size=len(z_rnd))
     cth_rnd = -1+2.*np.random.random(size=len(z_rnd))
     dec_rnd = np.arcsin(cth_rnd)*180/np.pi
-    MOCKID_rnd = np.array(list(range(ntot)))
+    MOCKID_rnd = (np.array(list(range(ntot))) + start_MOCKID_rnd).astype(int)
 
     #Filter the QSOs according to the input footprint.
     QSO_filter = utils.make_QSO_filter(footprint)
@@ -116,4 +117,4 @@ def generate_rnd(factor=3, out_path= None, method='use_catalog', catalog_path=No
     return
 
 # Execute
-generate_rnd(factor=factor,out_path=out_path,method=method,catalog_path=catalog_path,footprint=footprint,nz_filename=nz_filename,min_cat_z=min_cat_z,max_cat_z=max_cat_z,overwrite=overwrite,N_side=N_side)
+generate_rnd(factor=factor,out_path=out_path,method=method,catalog_path=catalog_path,footprint=footprint,nz_filename=nz_filename,min_cat_z=min_cat_z,max_cat_z=max_cat_z,overwrite=overwrite,N_side=N_side,start_MOCKID_rnd=start_MOCKID_rnd)
