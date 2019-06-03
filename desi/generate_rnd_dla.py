@@ -38,7 +38,6 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
     zvec = np.linspace(zmin,zmax,n_vec)
     zedges = np.concatenate([[zvec[0]]-(zvec[1]-zvec[0])/2.,(zvec[1:]+zvec[:-1])*0.5,[zvec[-1]+(-zvec[-2]+zvec[-1])*0.5]]).ravel()
     dz = zvec[1] - zvec[0]
-    dndz = DLA.dndz(zvec,NHI_min=NHI_min,NHI_max=NHI_max)
 
     #Use dndz to get the mean number of DLAs in each vector cell. Scale it by
     mean_n = dz * dndz
@@ -58,11 +57,36 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
     ntot = np.sum(mean_n) * n_qso
 
     #Generate random redshifts for the DLAs.
-    if method=='cdf':
-        #Method 1: Calculate the cumulative distribution and interpolate.
+    if method=='from_catalog':
+        #Method 1: choose from the DLA catalog and add small deviations.
+        if catalog_path is None:
+            raise ValueError('Needed a path to read the catalog')
+        tab = fits.open(catalog_path)['CATALOG'].data
+        z_master_RSD = tab['Z_DLA_RSD']
+        dndz_RSD = np.histogram(z_master_RSD,bins=zedges)
+        cdf_RSD = np.cumsum(dndz_RSD)/np.sum(dndz_RSD)
+        icdf_RSD = interp1d(icdf_RSD,zvec,fill_value='extrapolate',bounds_error=False)
+        z_rnd = icdf(np.random.random(size=ntot)) + np.random.normal(size=ntot,scale=10**-6)
+
+    elif method=='cdf':
+        #Method 2: Calculate the cumulative distribution and interpolate.
+        #Get the input n(z) file and set up vectors.
+        dndz = DLA.dndz(zvec,NHI_min=NHI_min,NHI_max=NHI_max)
+
+        #Generate redshifts without RSDs.
         cdf = np.cumsum(dndz)/np.sum(dndz)
         icdf = interp1d(cdf,zvec,fill_value='extrapolate',bounds_error=False)
         z_rnd = icdf(np.random.random(size=ntot))
+
+        #Measure sigma_RSD from the catalog and apply it as a Gaussian shift.
+        if catalog_path is None:
+            raise ValueError('Needed a path to read the catalog')
+        tab = fits.open(catalog_path)['DLACAT'].data
+        z_master_NO_RSD = tab['Z_DLA_NO_RSD']
+        z_master_RSD = tab['Z_DLA_RSD']
+        dz_rsd_master = z_master_RSD - z_master_NO_RSD
+        sigma_rsd_master = np.std(dz_rsd_master)
+        z_rnd += np.random.normal(size=ntot,scale=sigma_rsd_master)
 
     dla_z = np.zeros(ntot)
     dla_skw_id = np.zeros(ntot,dtype='int32')

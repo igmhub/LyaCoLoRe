@@ -30,12 +30,10 @@ def generate_rnd(factor=3, out_path= None, method='use_catalog', catalog_path=No
     method: Method to generate the random catalog (default: 'random_choice')
     """
 
-    #Get the input n(z) file and set up vectors.
-    nz_file = astropy.table.Table.read(nz_filename,format='ascii')
-    N_vec = 5000
+    #Set up vectors.
+    N_vec = 500
     zvec = np.linspace(np.min(nz_file['col1']),np.max(nz_file['col1']),N_vec)
-    spl_z = interp1d(nz_file['col1'],nz_file['col2'])
-    dndz = spl_z(zvec)
+    zedges = np.concatenate([[zvec[0]]-(zvec[1]-zvec[0])/2.,(zvec[1:]+zvec[:-1])*0.5,[zvec[-1]+(-zvec[-2]+zvec[-1])*0.5]]).ravel()
 
     #Fiter by the minimum z.
     ind = (zvec>=min_cat_z) * (zvec<=max_cat_z)
@@ -48,22 +46,44 @@ def generate_rnd(factor=3, out_path= None, method='use_catalog', catalog_path=No
     ntot = int(factor*ntot)
 
     #Generate random redshifts by one of 3 different methods:
-    if method=='use_catalog':
+    if method=='from_catalog':
         #Method 1: choose from the QSO catalog and add small deviations.
         if catalog_path is None:
             raise ValueError('Needed a path to read the catalog')
-        tab = fits.open(catalog_path)[1].data
-        z_rnd = np.random.choice(tab['Z_QSO_NO_RSD'], size=ntot)+1e-6*np.random.normal(size=ntot)
+        tab = fits.open(catalog_path)['CATALOG'].data
+        z_master_RSD = tab['Z_QSO_RSD']
+        dndz_RSD = np.histogram(z_master_RSD,bins=zedges)
+        cdf_RSD = np.cumsum(dndz_RSD)/np.sum(dndz_RSD)
+        icdf_RSD = interp1d(icdf_RSD,zvec,fill_value='extrapolate',bounds_error=False)
+        z_rnd = icdf(np.random.random(size=ntot)) + np.random.normal(size=ntot,scale=10**-6)
 
     elif method=='rnd_choice':
         #Method 2: choose from within the vectorisation of the dndz file.
+        #This just seems like a less good version of 3?
         z_rnd = np.random.choice(zvec,p=dndz/np.sum(dndz),size=ntot) + 2*np.random.normal(size=ntot,scale=dz)
 
     elif method=='cdf':
         #Method 3: Calculate the cumulative distribution and interpolate.
+
+        #Get the input n(z) file and set up vectors.
+        nz_file = astropy.table.Table.read(nz_filename,format='ascii')
+        spl_z = interp1d(nz_file['col1'],nz_file['col2'])
+        dndz = spl_z(zvec)
+
+        #Generate redshifts without RSDs.
         cdf = np.cumsum(dndz)/np.sum(dndz)
         icdf = interp1d(cdf,zvec,fill_value='extrapolate',bounds_error=False)
         z_rnd = icdf(np.random.random(size=ntot))
+
+        #Measure sigma_RSD from the catalog and apply it as a Gaussian shift.
+        if catalog_path is None:
+            raise ValueError('Needed a path to read the catalog')
+        tab = fits.open(catalog_path)['CATALOG'].data
+        z_master_NO_RSD = tab[['Z_QSO_NO_RSD']
+        z_master_RSD = tab['Z_QSO_RSD']
+        dz_rsd_master = z_master_RSD - z_master_NO_RSD
+        sigma_rsd_master = np.std(dz_rsd_master)
+        z_rnd += np.random.normal(size=ntot,scale=sigma_rsd_master)
 
     #Assign random positions on the sky, and MOCKIDs to the QSOs.
     ra_rnd = 360.*np.random.random(size=len(z_rnd))
