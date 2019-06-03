@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.interpolate import interp1d
 import astropy.io.fits as fits
 
 from lyacolore import DLA, utils
@@ -6,7 +7,7 @@ from lyacolore import DLA, utils
 lya = utils.lya_rest
 
 #Set up options
-factor = 1
+factor = 10
 out_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v7.3/v7.3.0/master_DLA_randoms.fits'
 method = 'cdf'
 DLA_catalog_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v7.3/v7.3.0/master_DLA.fits'
@@ -55,7 +56,8 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
     n_qso = z_qso.shape[0]
     h.close()
 
-    ntot = np.sum(mean_n) * n_qso
+    ntot = (np.sum(mean_n) * n_qso).astype('int')
+    print('generating {} random DLAs...'.format(ntot))
 
     #Generate random redshifts for the DLAs.
     if method=='cdf':
@@ -70,12 +72,13 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
 
     #For each DLA, place it in a skewer at random. Only keep it if it has
     #redshift lower than the quasar's.
-    for dla_z_value in z_rnd:
+    for i,dla_z_value in enumerate(z_rnd):
         skw_id = np.random.choice(n_qso)
         if dla_z_value < z_qso[skw_id]:
             dla_z[dla_count] = dla_z_value
             dla_skw_id[dla_count] = skw_id
             dla_count += 1
+        print((i*100/ntot).round(5),end='\r')
 
     """
 
@@ -113,22 +116,21 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
     dla_pixnum = pixnum[dla_skw_id]
 
     #Make DLAIDs.
-    MOCKID_rnd = np.array(list(range(dla_count)))
+    dlaid = np.array(list(range(dla_count)))
 
-    #Assign each DLA an NHI value if desired.
+    #Assign each DLA an NHI value if desired, and make a table.
     if add_NHI:
         dla_NHI = DLA.get_NHI(dla_z,NHI_min=NHI_min,NHI_max=NHI_max)
-        DLA_data = np.array(list(zip(dla_ra,dla_dec,dla_z_qso,dla_z_qso_rsd,dla_z,dla_NHI,dla_MOCKID,dlaid,dla_pixnum)))
-        dtype = [('RA', '>f8'), ('DEC', '>f8'), ('Z_QSO_NO_RSD', '>f8'), ('Z_QSO_RSD', '>f8'), ('Z_DLA_RSD', '>f8'), ('N_HI_DLA', '>f8'), ('MOCKID', '>i8'), ('DLAID', '>i8'), ('PIXNUM', '>i8')]
+        dtype = [('RA', '>f8'), ('DEC', '>f8'), ('Z_QSO_NO_RSD', '>f8'), ('Z_QSO_RSD', '>f8'), ('Z_DLA_NO_RSD', '>f8'), ('N_HI_DLA', '>f8'), ('MOCKID', '>i8'), ('DLAID', '>i8'), ('PIXNUM', '>i8')]
+        DLA_data = np.array(list(zip(dla_ra,dla_dec,dla_z_qso,dla_z_qso_rsd,dla_z,dla_NHI,dla_MOCKID,dlaid,dla_pixnum)),dtype=dtype)
     else:
-        DLA_data = np.array(list(zip(dla_ra,dla_dec,dla_z_qso,dla_z_qso_rsd,dla_z,dla_MOCKID,dlaid,dla_pixnum)))
-        dtype = [('RA', '>f8'), ('DEC', '>f8'), ('Z_QSO_NO_RSD', '>f8'), ('Z_QSO_RSD', '>f8'), ('Z_DLA_RSD', '>f8'), ('MOCKID', '>i8'), ('DLAID', '>i8'), ('PIXNUM', '>i8')]
+        dtype = [('RA', '>f8'), ('DEC', '>f8'), ('Z_QSO_NO_RSD', '>f8'), ('Z_QSO_RSD', '>f8'), ('Z_DLA_NO_RSD', '>f8'), ('MOCKID', '>i8'), ('DLAID', '>i8'), ('PIXNUM', '>i8')]
+        DLA_data = np.array(list(zip(dla_ra,dla_dec,dla_z_qso,dla_z_qso_rsd,dla_z,dla_MOCKID,dlaid,dla_pixnum)),dypte=dtype)
 
-    #Make the table and write the file.
-    DLA_data = np.array(DLA_data,dtype=dtype)
-    DLA.write_DLA_master(DLA_data,out_path,N_side,overwrite=overwrite)
+    #Write the file.
+    DLA.write_DLA_master([DLA_data],out_path,N_side,overwrite=overwrite)
 
     return
 
 # Execute
-generate_rnd(factor=3,out_path=out_path,DLA_catalog_path=DLA_catalog_path,QSO_catalog_path=QSO_catalog_path,footprint=footprint,lambda_min=lambda_min,lambda_max=lambda_max,NHI_min=NHI_min,NHI_max=NHI_max,overwrite=overwrite,N_side=N_side,add_NHI=add_NHI)
+generate_rnd(factor=factor,out_path=out_path,DLA_catalog_path=DLA_catalog_path,QSO_catalog_path=QSO_catalog_path,footprint=footprint,lambda_min=lambda_min,lambda_max=lambda_max,NHI_min=NHI_min,NHI_max=NHI_max,overwrite=overwrite,N_side=N_side,add_NHI=add_NHI)
