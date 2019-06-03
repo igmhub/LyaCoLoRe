@@ -9,7 +9,7 @@ from lyacolore import catalog,utils
 #Set up options
 factor = 10
 out_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v7.3/v7.3.0/master_randoms.fits'
-method = 'cdf'
+method = 'from_catalog'
 catalog_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v7.3/v7.3.0/master.fits'
 footprint = 'desi_pixel_plus'
 nz_filename = 'input_files/Nz_qso_130618_2_colore1_hZs.txt'
@@ -18,7 +18,7 @@ max_cat_z = 3.79
 overwrite = True
 N_side = 16
 
-def generate_rnd(factor=3, out_path= None, method='use_catalog', catalog_path=None, footprint=None, nz_filename='input_files/Nz_qso_130618_2_colore1_hZs.txt', min_cat_z=1.8, max_cat_z=3.79, overwrite=False, N_side=16):
+def generate_rnd(factor=3, out_path= None, method='use_catalog', catalog_path=None, footprint=None, nz_filename='input_files/Nz_qso_130618_2_colore1_hZs.txt', min_cat_z=1.8, max_cat_z=4.0, overwrite=False, N_side=16):
     """
     Routine to generate a random catalog in 3D following
     certain N(z) distribution
@@ -30,15 +30,11 @@ def generate_rnd(factor=3, out_path= None, method='use_catalog', catalog_path=No
     method: Method to generate the random catalog (default: 'random_choice')
     """
 
-    #Set up vectors.
+    #Set up vectors from n(z) file.
     N_vec = 500
-    zvec = np.linspace(np.min(nz_file['col1']),np.max(nz_file['col1']),N_vec)
-    zedges = np.concatenate([[zvec[0]]-(zvec[1]-zvec[0])/2.,(zvec[1:]+zvec[:-1])*0.5,[zvec[-1]+(-zvec[-2]+zvec[-1])*0.5]]).ravel()
-
-    #Fiter by the minimum z.
-    ind = (zvec>=min_cat_z) * (zvec<=max_cat_z)
-    zvec = zvec[ind]
-    dndz = dndz[ind]
+    nz_file = astropy.table.Table.read(nz_filename,format='ascii')
+    zedges = np.linspace(min_cat_z,max_cat_z,N_vec)
+    zvec = (zedges[1:] + zedges[:-1])/2.
     dz = zvec[1] - zvec[0]
 
     #Get the total number of QSOs.
@@ -48,14 +44,26 @@ def generate_rnd(factor=3, out_path= None, method='use_catalog', catalog_path=No
     #Generate random redshifts by one of 3 different methods:
     if method=='from_catalog':
         #Method 1: choose from the QSO catalog and add small deviations.
+        #Make a z vector with edges extended from min and max cat values.
+        #This is to take into account RSDs in QSOs near the edge of the range.
+        pc_extra = 0.05
+        extra = (max_cat_z - min_cat_z) * pc_extra
+        zedges = np.linspace(min_cat_z-extra,max_cat_z+extra,N_vec*(1+2*extra))
+        zvec = (zedges[1:] + zedges[:-1])/2.
+        dz = zvec[1] - zvec[0]
+
+        #Get catalog data and calculate dndz from it.
         if catalog_path is None:
             raise ValueError('Needed a path to read the catalog')
         tab = fits.open(catalog_path)['CATALOG'].data
         z_master_RSD = tab['Z_QSO_RSD']
-        dndz_RSD = np.histogram(z_master_RSD,bins=zedges)
+        dndz_RSD,_ = np.histogram(z_master_RSD,bins=zedges)
+
+        #Turn this into a cdf and draw redshifts from it
         cdf_RSD = np.cumsum(dndz_RSD)/np.sum(dndz_RSD)
-        icdf_RSD = interp1d(icdf_RSD,zvec,fill_value='extrapolate',bounds_error=False)
-        z_rnd = icdf(np.random.random(size=ntot)) + np.random.normal(size=ntot,scale=10**-6)
+        cdf_RSD_i = np.concatenate([[0],cdf_RSD])
+        icdf_RSD = interp1d(cdf_RSD_i,zedges,fill_value='extrapolate',bounds_error=False)
+        z_rnd = icdf_RSD(np.random.random(size=ntot)) + np.random.normal(size=ntot,scale=10**-6)
 
     elif method=='rnd_choice':
         #Method 2: choose from within the vectorisation of the dndz file.
@@ -65,21 +73,21 @@ def generate_rnd(factor=3, out_path= None, method='use_catalog', catalog_path=No
     elif method=='cdf':
         #Method 3: Calculate the cumulative distribution and interpolate.
 
-        #Get the input n(z) file and set up vectors.
-        nz_file = astropy.table.Table.read(nz_filename,format='ascii')
-        spl_z = interp1d(nz_file['col1'],nz_file['col2'])
+        #Get dndz by interpolating input file..
+        spl_z = interp1d(nz_file['col1'],nz_file['col2'],fill_value=0.)
         dndz = spl_z(zvec)
 
         #Generate redshifts without RSDs.
         cdf = np.cumsum(dndz)/np.sum(dndz)
-        icdf = interp1d(cdf,zvec,fill_value='extrapolate',bounds_error=False)
+        cdf_i = np.concatenate([[0],cdf])
+        icdf = interp1d(cdf_i,zedges,fill_value=(0.,1.),bounds_error=False)
         z_rnd = icdf(np.random.random(size=ntot))
 
         #Measure sigma_RSD from the catalog and apply it as a Gaussian shift.
         if catalog_path is None:
             raise ValueError('Needed a path to read the catalog')
         tab = fits.open(catalog_path)['CATALOG'].data
-        z_master_NO_RSD = tab[['Z_QSO_NO_RSD']
+        z_master_NO_RSD = tab['Z_QSO_NO_RSD']
         z_master_RSD = tab['Z_QSO_RSD']
         dz_rsd_master = z_master_RSD - z_master_NO_RSD
         sigma_rsd_master = np.std(dz_rsd_master)
