@@ -7,7 +7,7 @@ from lyacolore import DLA, utils
 lya = utils.lya_rest
 
 #Set up options
-factor = 10
+factor = 0.1
 out_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v7.3/v7.3.0/master_DLA_randoms.fits'
 method = 'cdf'
 DLA_catalog_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v7.3/v7.3.0/master_DLA.fits'
@@ -39,6 +39,7 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
     zvec = np.linspace(zmin,zmax,n_vec)
     zedges = np.concatenate([[zvec[0]]-(zvec[1]-zvec[0])/2.,(zvec[1:]+zvec[:-1])*0.5,[zvec[-1]+(-zvec[-2]+zvec[-1])*0.5]]).ravel()
     dz = zvec[1] - zvec[0]
+    dndz = DLA.dndz(zvec,NHI_min=NHI_min,NHI_max=NHI_max)
 
     #Use dndz to get the mean number of DLAs in each vector cell. Scale it by
     mean_n = dz * dndz
@@ -70,9 +71,9 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
         dz = zvec[1] - zvec[0]
 
         #Get catalog data and calculate dndz from it.
-        if catalog_path is None:
+        if DLA_catalog_path is None:
             raise ValueError('Needed a path to read the catalog')
-        tab = fits.open(catalog_path)['CATALOG'].data
+        tab = fits.open(DLA_catalog_path)['CATALOG'].data
         z_master_RSD = tab['Z_DLA_RSD']
         dndz_RSD,_ = np.histogram(z_master_RSD,bins=zedges)
 
@@ -94,9 +95,9 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
         z_rnd = icdf(np.random.random(size=ntot))
 
         #Measure sigma_RSD from the catalog and apply it as a Gaussian shift.
-        if catalog_path is None:
+        if DLA_catalog_path is None:
             raise ValueError('Needed a path to read the catalog')
-        tab = fits.open(catalog_path)['DLACAT'].data
+        tab = fits.open(DLA_catalog_path)['DLACAT'].data
         z_master_NO_RSD = tab['Z_DLA_NO_RSD']
         z_master_RSD = tab['Z_DLA_RSD']
         dz_rsd_master = z_master_RSD - z_master_NO_RSD
@@ -135,10 +136,10 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
     #Assign each DLA an NHI value if desired, and make a table.
     if add_NHI:
         dla_NHI = DLA.get_NHI(dla_z,NHI_min=NHI_min,NHI_max=NHI_max)
-        dtype = [('RA', '>f8'), ('DEC', '>f8'), ('Z_QSO_NO_RSD', '>f8'), ('Z_QSO_RSD', '>f8'), ('Z_DLA_NO_RSD', '>f8'), ('N_HI_DLA', '>f8'), ('MOCKID', '>i8'), ('DLAID', '>i8'), ('PIXNUM', '>i8')]
+        dtype = [('RA', '>f8'), ('DEC', '>f8'), ('Z_QSO_NO_RSD', '>f8'), ('Z_QSO_RSD', '>f8'), ('Z_DLA', '>f8'), ('N_HI_DLA', '>f8'), ('MOCKID', '>i8'), ('DLAID', '>i8'), ('PIXNUM', '>i8')]
         DLA_data = np.array(list(zip(dla_ra,dla_dec,dla_z_qso,dla_z_qso_rsd,dla_z,dla_NHI,dla_MOCKID,dlaid,dla_pixnum)),dtype=dtype)
     else:
-        dtype = [('RA', '>f8'), ('DEC', '>f8'), ('Z_QSO_NO_RSD', '>f8'), ('Z_QSO_RSD', '>f8'), ('Z_DLA_NO_RSD', '>f8'), ('MOCKID', '>i8'), ('DLAID', '>i8'), ('PIXNUM', '>i8')]
+        dtype = [('RA', '>f8'), ('DEC', '>f8'), ('Z_QSO_NO_RSD', '>f8'), ('Z_QSO_RSD', '>f8'), ('Z_DLA', '>f8'), ('MOCKID', '>i8'), ('DLAID', '>i8'), ('PIXNUM', '>i8')]
         DLA_data = np.array(list(zip(dla_ra,dla_dec,dla_z_qso,dla_z_qso_rsd,dla_z,dla_MOCKID,dlaid,dla_pixnum)),dypte=dtype)
 
     #Write the file.
