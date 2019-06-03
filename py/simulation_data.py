@@ -375,8 +375,11 @@ class SimulationData:
         #Remove DLAs that are no longer relevant, either because their QSO has
         #been removed, or they are outside the wavelength range.
         if self.DLA_table is not None:
-            relevant_DLAs = [id for id in range(self.DLA_table['MOCKID'].shape[0]) if  self.DLA_table['MOCKID'][id] in self.MOCKID and lya*(1+self.DLA_table['Z'])>lambda_min]
+            print(self.DLA_table['MOCKID'].shape[0],np.min(self.DLA_table['Z_DLA_NO_RSD']))
+
+            relevant_DLAs = [id for id in range(self.DLA_table['MOCKID'].shape[0]) if  self.DLA_table['MOCKID'][id] in self.MOCKID and lya*(1+self.DLA_table['Z_DLA_NO_RSD'][id])>lambda_min]
             self.DLA_table = self.DLA_table[relevant_DLAs]
+            print(self.DLA_table['MOCKID'].shape[0],np.min(self.DLA_table['Z_DLA_NO_RSD']))
 
         return
 
@@ -1037,11 +1040,11 @@ class SimulationData:
         return means
 
     #Function to save the means as a function of z.
-    def save_statistics(self,location,filename,overwrite=False):
+    def save_statistics(self,filepath,overwrite=False):
 
         means = self.get_means()
         statistics = stats.means_to_statistics(means)
-        stats.write_statistics(location,filename,statistics,overwrite=overwrite)
+        stats.write_statistics(filepath,statistics,overwrite=overwrite)
 
         return statistics
 
