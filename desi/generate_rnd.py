@@ -81,7 +81,7 @@ def generate_rnd(factor=3, out_path= None, method='use_catalog', catalog_path=No
     pix_rnd = utils.make_pixel_ID(N_side,ra_rnd,dec_rnd)
 
     #Write the catalog to file.
-    dtype = [('RA', 'd'), ('DEC', 'd'), ('Z', 'd'), ('PIXNUM', int)]
+    dtype = [('RA', 'd'), ('DEC', 'd'), ('Z', 'd'), ('PIXNUM', int), ('MOCKID', int)]
     ID_data = np.array(list(zip(ra_rnd,dec_rnd,z_rnd,pix_rnd,MOCKID_rnd)),dtype=dtype)
     if out_path is not None:
         catalog.write_ID(out_path,N_side,ID_data,overwrite=overwrite)
