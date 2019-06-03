@@ -372,6 +372,12 @@ class SimulationData:
             #Add the new dictionary to the object.
             self.RSD_weights = trimmed_RSD_weights
 
+        #Remove DLAs that are no longer relevant, either because their QSO has
+        #been removed, or they are outside the wavelength range.
+        if self.DLA_table is not None:
+            relevant_DLAs = [id for id in range(self.DLA_table['MOCKID'].shape[0]) if  self.DLA_table['MOCKID'][id] in self.MOCKID and lya*(1+self.DLA_table['Z'])>lambda_min]
+            self.DLA_table = self.DLA_table[relevant_DLAs]
+
         return
 
     #Function to add small scale gaussian fluctuations.
