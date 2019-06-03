@@ -61,14 +61,26 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
     #Generate random redshifts for the DLAs.
     if method=='from_catalog':
         #Method 1: choose from the DLA catalog and add small deviations.
+        #Make a z vector with edges extended from min and max cat values.
+        #This is to take into account RSDs in QSOs near the edge of the range.
+        pc_extra = 0.05
+        extra = (max_cat_z - min_cat_z) * pc_extra
+        zedges = np.linspace(min_cat_z-extra,max_cat_z+extra,N_vec*(1+2*extra))
+        zvec = (zedges[1:] + zedges[:-1])/2.
+        dz = zvec[1] - zvec[0]
+
+        #Get catalog data and calculate dndz from it.
         if catalog_path is None:
             raise ValueError('Needed a path to read the catalog')
         tab = fits.open(catalog_path)['CATALOG'].data
         z_master_RSD = tab['Z_DLA_RSD']
-        dndz_RSD = np.histogram(z_master_RSD,bins=zedges)
+        dndz_RSD,_ = np.histogram(z_master_RSD,bins=zedges)
+
+        #Turn this into a cdf and draw redshifts from it
         cdf_RSD = np.cumsum(dndz_RSD)/np.sum(dndz_RSD)
-        icdf_RSD = interp1d(icdf_RSD,zvec,fill_value='extrapolate',bounds_error=False)
-        z_rnd = icdf(np.random.random(size=ntot)) + np.random.normal(size=ntot,scale=10**-6)
+        cdf_RSD_i = np.concatenate([[0],cdf_RSD])
+        icdf_RSD = interp1d(cdf_RSD_i,zedges,fill_value=(0.,1.),bounds_error=False)
+        z_rnd = icdf_RSD(np.random.random(size=ntot)) + np.random.normal(size=ntot,scale=10**-6)
 
     elif method=='cdf':
         #Method 2: Calculate the cumulative distribution and interpolate.
@@ -77,7 +89,8 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
 
         #Generate redshifts without RSDs.
         cdf = np.cumsum(dndz)/np.sum(dndz)
-        icdf = interp1d(cdf,zvec,fill_value='extrapolate',bounds_error=False)
+        cdf_i = np.concatenate([[0],cdf])
+        icdf = interp1d(cdf_i,zedges,fill_value=(0.,1.),bounds_error=False)
         z_rnd = icdf(np.random.random(size=ntot))
 
         #Measure sigma_RSD from the catalog and apply it as a Gaussian shift.
@@ -104,30 +117,7 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
             dla_count += 1
         print((i*100/ntot).round(5),end='\r')
 
-    """
-
-    #Poisson sample to get DLAs.
-    dlas_in_cell = np.random.poisson(mean_n,size=(n_qso,n_vec))
-
-    ndlas = np.sum(dlas_in_cell)
-    dla_z = np.zeros(ndlas)
-    dla_skw_id = np.zeros(ndlas, dtype='int32')
-    dla_count = 0
-
-    for skw_id,dla in enumerate(dlas_in_cell):
-
-        #Find cells that will be allocated at least one DLA
-        dla_cells = np.where(dla>0)[0]
-
-        #For each dla, assign it a redshift, a velocity and a column density.
-        for cell in dla_cells:
-            if zvec[cell]<z_qso[skw_id]:
-                dla_z[dla_count:dla_count+dla[cell]] = np.random.uniform(low=(zedges[cell]),high=(zedges[cell+1]),size=dla[cell])
-                dla_skw_id[dla_count:dla_count+dla[cell]] = skw_id
-                dla_count = dla_count+dla[cell]
-
-    """
-
+    #Trim empty cells away.
     dla_z = dla_z[:dla_count]
     dla_skw_id = dla_skw_id[:dla_count]
 

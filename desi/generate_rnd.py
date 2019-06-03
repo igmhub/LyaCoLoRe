@@ -62,7 +62,7 @@ def generate_rnd(factor=3, out_path= None, method='use_catalog', catalog_path=No
         #Turn this into a cdf and draw redshifts from it
         cdf_RSD = np.cumsum(dndz_RSD)/np.sum(dndz_RSD)
         cdf_RSD_i = np.concatenate([[0],cdf_RSD])
-        icdf_RSD = interp1d(cdf_RSD_i,zedges,fill_value='extrapolate',bounds_error=False)
+        icdf_RSD = interp1d(cdf_RSD_i,zedges,fill_value=(0.,1.),bounds_error=False)
         z_rnd = icdf_RSD(np.random.random(size=ntot)) + np.random.normal(size=ntot,scale=10**-6)
 
     elif method=='rnd_choice':
@@ -72,7 +72,6 @@ def generate_rnd(factor=3, out_path= None, method='use_catalog', catalog_path=No
 
     elif method=='cdf':
         #Method 3: Calculate the cumulative distribution and interpolate.
-
         #Get dndz by interpolating input file..
         spl_z = interp1d(nz_file['col1'],nz_file['col2'],fill_value=0.)
         dndz = spl_z(zvec)
