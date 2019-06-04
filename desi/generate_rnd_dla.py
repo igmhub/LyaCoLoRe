@@ -23,7 +23,7 @@ N_side = 16
 add_NHI = True
 start_DLAID_rnd = 10**12
 
-def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_path=None, footprint='desi_pixel_plus', lambda_min=3470., lambda_max=6550., NHI_min=17.2, NHI_max=22.5, overwrite=False, N_side=16, add_NHI=True, method='cdf', start_DLAID_rnd=10**12):
+def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_path=None, footprint='desi_pixel_plus', lambda_min=3470., lambda_max=6550., NHI_min=17.2, NHI_max=22.5, overwrite=False, N_side=16, add_NHI=True, method='from_catalog', start_DLAID_rnd=10**12):
     """
     Routine to generate a random catalog in 3D following
     certain N(z) distribution
@@ -75,7 +75,7 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
         ntot = int(tab.shape[0] * factor)
         print(ntot)
 
-        #Turn dn/dz into a cdf and draw redshifts from it
+        #Turn dn/dz into a cdf and draw redshifts from it.
         cdf_RSD = np.cumsum(dndz_RSD)/np.sum(dndz_RSD)
         cdf_RSD_i = np.concatenate([[0],cdf_RSD])
         icdf_RSD = interp1d(cdf_RSD_i,zedges,fill_value=(0.,1.),bounds_error=False)
@@ -85,24 +85,32 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
         dla_skw_id = np.zeros(ntot,dtype='int32')
         dla_count = 0
 
-        #For each DLA, place it in a skewer at random. As we take dndz from the
-        #catalog, we ensure that each DLA is placed in a skewer so that
-        #z_qso > z_dla
+        #For each DLA, place it in a skewer at random.
+        #As we are using a *measured* dn/dz, we cannot discard any. Thus, for
+        #each DLA we search for a valid QSO: i.e. one with z_QSO > z_DLA.
+        max_n_att = 100
         for i,dla_z_value in enumerate(z_rnd):
             valid = False
             n_att = 0
             while valid == False:
+                #Choose a random skewer.
                 skw_id = np.random.choice(n_qso)
                 n_att += 1
+                #If the QSO is valid, stop searching.
                 if z_qso[skw_id] > dla_z_value:
                     valid = True
-                elif n_att > 100:
+                #Otherwise, if we have exceeded the maximum number of random
+                #attempts, find which skewers are valid.
+                elif n_att > max_n_att:
                     possibles = np.where(z_qso>dla_z_value)[0]
+                    #If there exist valid skewers, choose one of them.
                     if possibles.shape[0] > 0:
                         skw_id = np.random.choice(possibles)
                         valid = True
+                    #Otherwise exit.
                     else:
                         break
+            #If a valid skewer was found, store the information.
             if valid:
                 dla_z[dla_count] = dla_z_value
                 dla_skw_id[dla_count] = skw_id
@@ -144,7 +152,7 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
         dla_count = 0
 
         #For each DLA, place it in a skewer at random. Only keep it if it has
-        #redshift lower than the quasar's.
+        #redshift lower than the QSO's.
         for i,dla_z_value in enumerate(z_rnd):
             skw_id = np.random.choice(n_qso)
             if dla_z_value < z_qso[skw_id]:
@@ -156,7 +164,6 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
         #Trim empty cells away.
         dla_z = dla_z[:dla_count]
         dla_skw_id = dla_skw_id[:dla_count]
-
 
     print(dla_count)
     #Get the redshift of each DLA's skewer's QSO, its angular positions, MOCKID and pixel number.
