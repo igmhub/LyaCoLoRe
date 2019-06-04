@@ -3,6 +3,7 @@ import astropy.table
 from scipy.interpolate import interp1d
 import healpy as hp
 from astropy.io import fits
+import warnings
 
 from lyacolore import catalog,utils
 
@@ -93,10 +94,20 @@ def generate_rnd(factor=3, out_path= None, method='use_catalog', catalog_path=No
         sigma_rsd_master = np.std(dz_rsd_master)
         z_rnd += np.random.normal(size=ntot,scale=sigma_rsd_master)
 
-    #Assign random positions on the sky, and MOCKIDs to the QSOs.
+    #Assign random positions on the sky to the QSOs.
     ra_rnd = 360.*np.random.random(size=len(z_rnd))
     cth_rnd = -1+2.*np.random.random(size=len(z_rnd))
     dec_rnd = np.arcsin(cth_rnd)*180/np.pi
+
+    #Assign MOCKIDs to the QSOs, checking that there's no overlap with those in
+    #the master file.
+    if catalog_path is None:
+        raise ValueError('Needed a path to read the catalog')
+    tab = fits.open(catalog_path)['CATALOG'].data
+    max_cat_MOCKID = np.max(tab['MOCKID'])
+    while max_cat_MOCKID > start_MOCKID_rnd:
+        warnings.warn('Start value of randoms\' MOCKIDs is not high enough: increasing from {} to {}'.format(start_MOCKID_rnd,10*start_MOCKID_rnd))
+        start_MOCKID_rnd *= 10
     MOCKID_rnd = (np.array(list(range(ntot))) + start_MOCKID_rnd).astype(int)
 
     #Filter the QSOs according to the input footprint.

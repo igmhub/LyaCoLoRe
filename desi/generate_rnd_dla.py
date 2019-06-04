@@ -20,6 +20,7 @@ NHI_max = 22.5
 overwrite = True
 N_side = 16
 add_NHI = True
+start_DLAID_rnd = 10**12
 
 def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_path=None, footprint='desi_pixel_plus', lambda_min=3470., lambda_max=6550., NHI_min=17.2, NHI_max=22.5, overwrite=False, N_side=16, add_NHI=True, method='cdf'):
     """
@@ -130,8 +131,15 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
     dla_MOCKID = MOCKID[dla_skw_id]
     dla_pixnum = pixnum[dla_skw_id]
 
-    #Make DLAIDs.
-    dlaid = np.array(list(range(dla_count)))
+    #Assign DLAIDs to the DLAs, checking that there's no overlap with those in
+    #the master file.
+    if DLA_catalog_path is None:
+        raise ValueError('Needed a path to read the catalog')
+    tab = fits.open(DLA_catalog_path)['DLACAT'].data
+    max_cat_DLAID = np.max(tab['DLAID'])
+    while max_cat_DLAID > start_DLAID_rnd:
+        warnings.warn('Start value of randoms\' MOCKIDs is not high enough: increasing from {} to {}'.format(start_DLAID_rnd,10*start_DLAID_rnd))
+        start_DLAID_rnd *= 10
 
     #Assign each DLA an NHI value if desired, and make a table.
     if add_NHI:
