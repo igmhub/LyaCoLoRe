@@ -9,8 +9,8 @@ lya = utils.lya_rest
 
 #Set up options
 factor = 10
-out_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v7.3/v7.3.0/master_DLA_randoms.fits'
-method = 'cdf'
+out_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v7.3/v7.3.0/master_DLA_randoms_fc.fits'
+method = 'from_catalog'
 DLA_catalog_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v7.3/v7.3.0/master_DLA.fits'
 QSO_catalog_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v7.3/v7.3.0/master.fits'
 footprint = 'desi_pixel_plus'
@@ -72,7 +72,8 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
         dndz_RSD,_ = np.histogram(z_master_RSD,bins=zedges)
 
         #Calculate n_total from the number in the catalog.
-        ntot = tab.shape[0] * factor
+        ntot = int(tab.shape[0] * factor)
+        print(ntot)
 
         #Turn dn/dz into a cdf and draw redshifts from it
         cdf_RSD = np.cumsum(dndz_RSD)/np.sum(dndz_RSD)
@@ -88,12 +89,25 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
         #catalog, we ensure that each DLA is placed in a skewer so that
         #z_qso > z_dla
         for i,dla_z_value in enumerate(z_rnd):
-            possibles = np.where(z_qso>dla_z_value)[0]
-            skw_id = np.random.choice(possibles)
-            dla_z[dla_count] = dla_z_value
-            dla_skw_id[dla_count] = skw_id
-            dla_count += 1
-            print((i*100/ntot).round(5),end='\r')
+            valid = False
+            n_att = 0
+            while valid == False:
+                skw_id = np.random.choice(n_qso)
+                n_att += 1
+                if z_qso[skw_id] > dla_z_value:
+                    valid = True
+                elif n_att > 100:
+                    possibles = np.where(z_qso>dla_z_value)[0]
+                    if possibles.shape[0] > 0:
+                        skw_id = np.random.choice(possibles)
+                        valid = True
+                    else:
+                        break
+            if valid:
+                dla_z[dla_count] = dla_z_value
+                dla_skw_id[dla_count] = skw_id
+                dla_count += 1
+            print(round(i*100/ntot,5),end='\r')
 
         #Trim empty cells away.
         dla_z = dla_z[:dla_count]
@@ -107,6 +121,7 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
         mean_n = dz * dndz
         mean_n *= factor
         ntot = (np.sum(mean_n) * n_qso).astype('int')
+        print(ntot)
 
         #Generate redshifts without RSDs.
         cdf = np.cumsum(dndz)/np.sum(dndz)
@@ -161,7 +176,7 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
     while max_cat_DLAID > start_DLAID_rnd:
         warnings.warn('Start value of randoms\' MOCKIDs is not high enough: increasing from {} to {}'.format(start_DLAID_rnd,10*start_DLAID_rnd))
         start_DLAID_rnd *= 10
-    dlaid = np.array(list(range(dla_count))) + start_DLAID_rndi
+    dlaid = (np.array(list(range(dla_count))) + start_DLAID_rnd).astype('int')
     if np.max(dlaid) > (2**63 - 1):
         raise ValueError('Max DLAID exceeds max integer allowed by FITS.')
 
