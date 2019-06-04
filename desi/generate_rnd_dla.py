@@ -1,13 +1,14 @@
 import numpy as np
 from scipy.interpolate import interp1d
 import astropy.io.fits as fits
+import warnings
 
 from lyacolore import DLA, utils
 
 lya = utils.lya_rest
 
 #Set up options
-factor = 0.10
+factor = 10
 out_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v7.3/v7.3.0/master_DLA_randoms.fits'
 method = 'cdf'
 DLA_catalog_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v7.3/v7.3.0/master_DLA.fits'
@@ -22,7 +23,7 @@ N_side = 16
 add_NHI = True
 start_DLAID_rnd = 10**12
 
-def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_path=None, footprint='desi_pixel_plus', lambda_min=3470., lambda_max=6550., NHI_min=17.2, NHI_max=22.5, overwrite=False, N_side=16, add_NHI=True, method='cdf'):
+def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_path=None, footprint='desi_pixel_plus', lambda_min=3470., lambda_max=6550., NHI_min=17.2, NHI_max=22.5, overwrite=False, N_side=16, add_NHI=True, method='cdf', start_DLAID_rnd=10**12):
     """
     Routine to generate a random catalog in 3D following
     certain N(z) distribution
@@ -140,6 +141,7 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
     while max_cat_DLAID > start_DLAID_rnd:
         warnings.warn('Start value of randoms\' MOCKIDs is not high enough: increasing from {} to {}'.format(start_DLAID_rnd,10*start_DLAID_rnd))
         start_DLAID_rnd *= 10
+    dlaid = np.array(list(range(dla_count))) + start_DLAID_rnd
 
     #Assign each DLA an NHI value if desired, and make a table.
     if add_NHI:
@@ -156,4 +158,4 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
     return
 
 # Execute
-generate_rnd(factor=factor,out_path=out_path,DLA_catalog_path=DLA_catalog_path,QSO_catalog_path=QSO_catalog_path,footprint=footprint,lambda_min=lambda_min,lambda_max=lambda_max,NHI_min=NHI_min,NHI_max=NHI_max,overwrite=overwrite,N_side=N_side,add_NHI=add_NHI,method=method)
+generate_rnd(factor=factor,out_path=out_path,DLA_catalog_path=DLA_catalog_path,QSO_catalog_path=QSO_catalog_path,footprint=footprint,lambda_min=lambda_min,lambda_max=lambda_max,NHI_min=NHI_min,NHI_max=NHI_max,overwrite=overwrite,N_side=N_side,add_NHI=add_NHI,method=method,start_DLAID_rnd=start_DLAID_rnd)
