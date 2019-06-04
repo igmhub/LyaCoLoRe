@@ -14,7 +14,7 @@ from lyacolore import convert, Pk1D, utils, independent, tuning, simulation_data
 
 lya = utils.lya_rest
 
-N_files = 32
+N_files = 1
 N_processes = np.min((64,N_files))
 lambda_min = 3550.0
 min_cat_z = 1.8
@@ -32,20 +32,20 @@ d_delta = 10.**-3
 d_eta = 10**-9
 
 #Choose tuning parameter initial values.
-initial_C0 = 1.481673774598052
+initial_C0 = 1.4582950524445637
 initial_C1 = 4.5
 initial_C2 = 0.0
 initial_beta = 1.65
-initial_D0 = 6.053845236262855
-initial_D1 = 0.2917764771629268
+initial_D0 = 6.027975555853199
+initial_D1 = 0.29004412149984593
 initial_D2 = 0.0
-initial_n = 0.7565580418668016
-initial_k1 = 0.02832933666822373
+initial_n = 0.7827140569581266
+initial_k1 = 0.028056291381985118
 initial_R = 25.0 #kms-1
 initial_vb = 1.2
 
 #Choose parameters to fix.
-fix_all = True
+fix_all = False
 fix_C0 = False
 fix_C1 = True
 fix_C2 = True
@@ -60,8 +60,8 @@ fix_vb = True
 
 #Admin options
 k_plot_max = 0.1
-show_plots = True
-save_plots = True
+show_plots = False
+save_plots = False
 suffix = '_with_bias_vel{}_b{}'.format(initial_vb,initial_beta)
 save_tuning = False
 overwrite_tuning = False
@@ -69,7 +69,7 @@ tuning_filename = 'input_files/tuning_data' + suffix + '.fits'
 
 #Get the starting values of alpha, beta and sigma_G from file
 #Decide which z values we are going to sample at
-z_values = [2.0,2.2,2.4,2.6,2.8,3.0,3.2]
+z_values = [2.0,2.4,2.8,3.2]#[2.0,2.2,2.4,2.6,2.8,3.0,3.2]
 z_width = 0.1
 colours = ['C0','C1','C2','C3','C4','C5','C6']
 cell_size = 0.25 #Mpc/h
@@ -135,7 +135,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,R_kms,vel_boos
 
     #Make a pixel object from it.
     data = simulation_data.SimulationData.get_gaussian_skewers_object(location+gaussian_filename,None,input_format,IVAR_cutoff=IVAR_cutoff)
-    #print('{:3.2f} checkpoint sim_dat'.format(time.time()-t))
+    print('{:3.2f} checkpoint sim_dat'.format(time.time()-t))
     t = time.time()
 
     #Scale the RSD skewers.
@@ -167,7 +167,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,R_kms,vel_boos
         generator = np.random.RandomState(seed)
         data.add_small_scale_gaussian_fluctuations(cell_size,generator,white_noise=False,lambda_min=0.0,IVAR_cutoff=IVAR_cutoff,n=n,k1=k1,R_kms=R_kms)
 
-        #print('{:3.2f} checkpoint extra power'.format(time.time()-t))
+        print('{:3.2f} checkpoint extra power'.format(time.time()-t))
         t = time.time()
 
     #Copmute the physical skewers
@@ -193,18 +193,18 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,R_kms,vel_boos
 
     #Compute the tau skewers and add RSDs
     data.compute_tau_skewers(data.lya_absorber)
-    #print('{:3.2f} checkpoint tau'.format(time.time()-t))
+    print('{:3.2f} checkpoint tau'.format(time.time()-t))
     t = time.time()
 
     if prep:
         data.compute_RSD_weights(thermal=False)
 
-        #print(pixel,'{:3.2f} checkpoint RSD weights measured'.format(time.time()-t))
+        print(pixel,'{:3.2f} checkpoint RSD weights measured'.format(time.time()-t))
         t = time.time()
 
         b_eta_weights_dict = data.get_bias_eta_RSD_weights(z_values,d=d_eta,z_width=z_width,lambda_buffer=lambda_buffer)
 
-        #print(pixel,'{:3.2f} checkpoint b_eta weights measured'.format(time.time()-t))
+        print(pixel,'{:3.2f} checkpoint b_eta weights measured'.format(time.time()-t))
         t = time.time()
 
         return (pixel,data.RSD_weights,b_eta_weights_dict)
@@ -213,7 +213,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,R_kms,vel_boos
         bias_eta_weights = bias_eta_weights_dict[pixel]
         data.add_all_RSDs(thermal=False,weights=RSD_weights)
 
-        #print('{:3.2f} checkpoint RSDs'.format(time.time()-t))
+        print('{:3.2f} checkpoint RSDs'.format(time.time()-t))
         t = time.time()
 
         measurements = []
@@ -236,12 +236,12 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,R_kms,vel_boos
             measurement.add_bias_delta_measurement(data,d=d_delta,weights=RSD_weights)
             times_m[4] += time.time() - t_m
             t_m = time.time()
-            measurement.add_bias_eta_measurement(data,d=d_eta,weights_dict=bias_eta_weights,lambda_buffer=lambda_buffer)
+            #measurement.add_bias_eta_measurement(data,d=d_eta,weights_dict=bias_eta_weights,lambda_buffer=lambda_buffer)
             times_m[5] += time.time() - t_m
             measurements += [measurement]
 
-        #print('{:3.2f} checkpoint measurements'.format(time.time()-t))
-        #print('--> measurement_times: {:3.2f}, {:3.2f}, {:3.2f}, {:3.2f}, {:3.2f}, {:3.2f}'.format(times_m[0],times_m[1],times_m[2],times_m[3],times_m[4],times_m[5]))
+        print('{:3.2f} checkpoint measurements'.format(time.time()-t))
+        print('--> measurement_times: {:3.2f}, {:3.2f}, {:3.2f}, {:3.2f}, {:3.2f}, {:3.2f}'.format(times_m[0],times_m[1],times_m[2],times_m[3],times_m[4],times_m[5]))
 
         return measurements
 
@@ -318,12 +318,12 @@ def f(C0,C1,C2,beta,D0,D1,D2,n,k1,R,vb,return_measurements=False):
         m.add_mean_F_chi2(eps=eps_mean_F)
         m.add_Pk1D_chi2(max_k=max_k,denom="npower_cutoff",eps=eps_Pk1D)
         m.add_bias_delta_chi2(eps=eps_bias_delta)
-        m.add_bias_eta_chi2(eps=eps_bias_eta)
+        #m.add_bias_eta_chi2(eps=eps_bias_eta)
 
         Pk_kms_chi2 += m.Pk_kms_chi2
         mean_F_chi2 += m.mean_F_chi2
         bias_delta_chi2 += m.bias_delta_chi2
-        bias_eta_chi2 += m.bias_eta_chi2
+        #bias_eta_chi2 += m.bias_eta_chi2
         #print('z =',m.z_value,'number of k values =',m.k_kms.shape,'number of k values < max k =',np.sum(m.k_kms<max_k))
 
     chi2 = mean_F_chi2 + Pk_kms_chi2 + bias_delta_chi2 + bias_eta_chi2

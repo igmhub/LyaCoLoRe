@@ -270,7 +270,12 @@ class function_measurement:
         Pk_kms = (m1.Pk_kms*m1.N_skewers + m2.Pk_kms*m2.N_skewers)/(m1.N_skewers + m2.N_skewers)
         #sigma_dF = np.sqrt(((m1.sigma_dF**2)*m1.N_skewers + (m2.sigma_dF**2)*m2.N_skewers)/(m1.N_skewers + m2.N_skewers))
         bias_delta = (m1.bias_delta*m1.N_skewers + m2.bias_delta*m2.N_skewers)/(m1.N_skewers + m2.N_skewers)
-        bias_eta = (m1.bias_eta*m1.N_skewers + m2.bias_eta*m2.N_skewers)/(m1.N_skewers + m2.N_skewers)
+        if m1.bias_eta is not None and m2.bias_eta is not None:
+            bias_eta = (m1.bias_eta*m1.N_skewers + m2.bias_eta*m2.N_skewers)/(m1.N_skewers + m2.N_skewers)
+        elif m1.bias_eta is not None:
+            bias_eta = m1.bias_eta
+        elif m2.bias_eta is not None:
+            bias_eta = m2.bias_eta
 
         #Make the combined object.
         combined = cls(parameter_ID,z_value,z_width,N_skewers,n,k1,C0,C1,C2,beta,D0,D1,D2,pixels=pixels)
