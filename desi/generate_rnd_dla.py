@@ -7,13 +7,13 @@ from lyacolore import DLA, utils
 lya = utils.lya_rest
 
 #Set up options
-factor = 0.1
+factor = 0.10
 out_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v7.3/v7.3.0/master_DLA_randoms.fits'
 method = 'cdf'
 DLA_catalog_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v7.3/v7.3.0/master_DLA.fits'
 QSO_catalog_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v7.3/v7.3.0/master.fits'
 footprint = 'desi_pixel_plus'
-lambda_min = 3470.
+lambda_min = 3370.
 lambda_max = 6550.
 NHI_min = 17.2
 NHI_max = 22.5
@@ -35,8 +35,8 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
     #Generate a z vector and the dn/dz function.
     zmin = lambda_min/lya - 1
     zmax = lambda_max/lya - 1
-    n_vec = 100
-    zvec = np.linspace(zmin,zmax,n_vec)
+    N_vec = 1000
+    zvec = np.linspace(zmin,zmax,N_vec)
     zedges = np.concatenate([[zvec[0]]-(zvec[1]-zvec[0])/2.,(zvec[1:]+zvec[:-1])*0.5,[zvec[-1]+(-zvec[-2]+zvec[-1])*0.5]]).ravel()
     dz = zvec[1] - zvec[0]
     dndz = DLA.dndz(zvec,NHI_min=NHI_min,NHI_max=NHI_max)
@@ -65,15 +65,15 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
         #Make a z vector with edges extended from min and max cat values.
         #This is to take into account RSDs in QSOs near the edge of the range.
         pc_extra = 0.05
-        extra = (max_cat_z - min_cat_z) * pc_extra
-        zedges = np.linspace(min_cat_z-extra,max_cat_z+extra,N_vec*(1+2*extra))
+        extra = (zmax - zmin) * pc_extra
+        zedges = np.linspace(zmin-extra,zmax+extra,N_vec*(1+2*extra))
         zvec = (zedges[1:] + zedges[:-1])/2.
         dz = zvec[1] - zvec[0]
 
         #Get catalog data and calculate dndz from it.
         if DLA_catalog_path is None:
             raise ValueError('Needed a path to read the catalog')
-        tab = fits.open(DLA_catalog_path)['CATALOG'].data
+        tab = fits.open(DLA_catalog_path)['DLACAT'].data
         z_master_RSD = tab['Z_DLA_RSD']
         dndz_RSD,_ = np.histogram(z_master_RSD,bins=zedges)
 
@@ -81,7 +81,7 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
         cdf_RSD = np.cumsum(dndz_RSD)/np.sum(dndz_RSD)
         cdf_RSD_i = np.concatenate([[0],cdf_RSD])
         icdf_RSD = interp1d(cdf_RSD_i,zedges,fill_value=(0.,1.),bounds_error=False)
-        z_rnd = icdf_RSD(np.random.random(size=ntot)) + np.random.normal(size=ntot,scale=10**-6)
+        z_rnd = icdf_RSD(np.random.random(size=ntot))
 
     elif method=='cdf':
         #Method 2: Calculate the cumulative distribution and interpolate.
@@ -148,4 +148,4 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
     return
 
 # Execute
-generate_rnd(factor=factor,out_path=out_path,DLA_catalog_path=DLA_catalog_path,QSO_catalog_path=QSO_catalog_path,footprint=footprint,lambda_min=lambda_min,lambda_max=lambda_max,NHI_min=NHI_min,NHI_max=NHI_max,overwrite=overwrite,N_side=N_side,add_NHI=add_NHI)
+generate_rnd(factor=factor,out_path=out_path,DLA_catalog_path=DLA_catalog_path,QSO_catalog_path=QSO_catalog_path,footprint=footprint,lambda_min=lambda_min,lambda_max=lambda_max,NHI_min=NHI_min,NHI_max=NHI_max,overwrite=overwrite,N_side=N_side,add_NHI=add_NHI,method=method)
