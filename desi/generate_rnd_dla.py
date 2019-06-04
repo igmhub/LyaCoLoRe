@@ -41,11 +41,6 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
     zvec = np.linspace(zmin,zmax,N_vec)
     zedges = np.concatenate([[zvec[0]]-(zvec[1]-zvec[0])/2.,(zvec[1:]+zvec[:-1])*0.5,[zvec[-1]+(-zvec[-2]+zvec[-1])*0.5]]).ravel()
     dz = zvec[1] - zvec[0]
-    dndz = DLA.dndz(zvec,NHI_min=NHI_min,NHI_max=NHI_max)
-
-    #Use dndz to get the mean number of DLAs in each vector cell. Scale it by
-    mean_n = dz * dndz
-    mean_n *= factor
 
     #Get data about the QSO sample.
     h = fits.open(QSO_catalog_path)
@@ -57,9 +52,6 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
     MOCKID = h['CATALOG'].data['MOCKID']
     n_qso = z_qso.shape[0]
     h.close()
-
-    ntot = (np.sum(mean_n) * n_qso).astype('int')
-    print('generating {} random DLAs...'.format(ntot))
 
     #Generate random redshifts for the DLAs.
     if method=='from_catalog':
@@ -79,16 +71,42 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
         z_master_RSD = tab['Z_DLA_RSD']
         dndz_RSD,_ = np.histogram(z_master_RSD,bins=zedges)
 
-        #Turn this into a cdf and draw redshifts from it
+        #Calculate n_total from the number in the catalog.
+        ntot = tab.shape[0] * factor
+
+        #Turn dn/dz into a cdf and draw redshifts from it
         cdf_RSD = np.cumsum(dndz_RSD)/np.sum(dndz_RSD)
         cdf_RSD_i = np.concatenate([[0],cdf_RSD])
         icdf_RSD = interp1d(cdf_RSD_i,zedges,fill_value=(0.,1.),bounds_error=False)
         z_rnd = icdf_RSD(np.random.random(size=ntot))
 
+        dla_z = np.zeros(ntot)
+        dla_skw_id = np.zeros(ntot,dtype='int32')
+        dla_count = 0
+
+        #For each DLA, place it in a skewer at random. As we take dndz from the
+        #catalog, we ensure that each DLA is placed in a skewer so that
+        #z_qso > z_dla
+        for i,dla_z_value in enumerate(z_rnd):
+            possibles = np.where(z_qso>dla_z_value)[0]
+            skw_id = np.random.choice(possibles)
+            dla_z[dla_count] = dla_z_value
+            dla_skw_id[dla_count] = skw_id
+            dla_count += 1
+            print((i*100/ntot).round(5),end='\r')
+
+        #Trim empty cells away.
+        dla_z = dla_z[:dla_count]
+        dla_skw_id = dla_skw_id[:dla_count]
+
     elif method=='cdf':
         #Method 2: Calculate the cumulative distribution and interpolate.
-        #Get the input n(z) file and set up vectors.
+        #Get dndz, and use it to get the mean number of DLAs in each cell.
+        #Scale it up if necessary and calculate n_total.
         dndz = DLA.dndz(zvec,NHI_min=NHI_min,NHI_max=NHI_max)
+        mean_n = dz * dndz
+        mean_n *= factor
+        ntot = (np.sum(mean_n) * n_qso).astype('int')
 
         #Generate redshifts without RSDs.
         cdf = np.cumsum(dndz)/np.sum(dndz)
@@ -106,24 +124,26 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
         sigma_rsd_master = np.std(dz_rsd_master)
         z_rnd += np.random.normal(size=ntot,scale=sigma_rsd_master)
 
-    dla_z = np.zeros(ntot)
-    dla_skw_id = np.zeros(ntot,dtype='int32')
-    dla_count = 0
+        dla_z = np.zeros(ntot)
+        dla_skw_id = np.zeros(ntot,dtype='int32')
+        dla_count = 0
 
-    #For each DLA, place it in a skewer at random. Only keep it if it has
-    #redshift lower than the quasar's.
-    for i,dla_z_value in enumerate(z_rnd):
-        skw_id = np.random.choice(n_qso)
-        if dla_z_value < z_qso[skw_id]:
-            dla_z[dla_count] = dla_z_value
-            dla_skw_id[dla_count] = skw_id
-            dla_count += 1
-        print((i*100/ntot).round(5),end='\r')
+        #For each DLA, place it in a skewer at random. Only keep it if it has
+        #redshift lower than the quasar's.
+        for i,dla_z_value in enumerate(z_rnd):
+            skw_id = np.random.choice(n_qso)
+            if dla_z_value < z_qso[skw_id]:
+                dla_z[dla_count] = dla_z_value
+                dla_skw_id[dla_count] = skw_id
+                dla_count += 1
+            print((i*100/ntot).round(5),end='\r')
 
-    #Trim empty cells away.
-    dla_z = dla_z[:dla_count]
-    dla_skw_id = dla_skw_id[:dla_count]
+        #Trim empty cells away.
+        dla_z = dla_z[:dla_count]
+        dla_skw_id = dla_skw_id[:dla_count]
 
+
+    print(dla_count)
     #Get the redshift of each DLA's skewer's QSO, its angular positions, MOCKID and pixel number.
     dla_ra = RA[dla_skw_id]
     dla_dec = DEC[dla_skw_id]
@@ -141,7 +161,9 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
     while max_cat_DLAID > start_DLAID_rnd:
         warnings.warn('Start value of randoms\' MOCKIDs is not high enough: increasing from {} to {}'.format(start_DLAID_rnd,10*start_DLAID_rnd))
         start_DLAID_rnd *= 10
-    dlaid = np.array(list(range(dla_count))) + start_DLAID_rnd
+    dlaid = np.array(list(range(dla_count))) + start_DLAID_rndi
+    if np.max(dlaid) > (2**63 - 1):
+        raise ValueError('Max DLAID exceeds max integer allowed by FITS.')
 
     #Assign each DLA an NHI value if desired, and make a table.
     if add_NHI:

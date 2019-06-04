@@ -109,6 +109,8 @@ def generate_rnd(factor=3, out_path= None, method='use_catalog', catalog_path=No
         warnings.warn('Start value of randoms\' MOCKIDs is not high enough: increasing from {} to {}'.format(start_MOCKID_rnd,10*start_MOCKID_rnd))
         start_MOCKID_rnd *= 10
     MOCKID_rnd = (np.array(list(range(ntot))) + start_MOCKID_rnd).astype(int)
+    if np.max(MOCKID_rnd) > (2**63 - 1):
+        raise ValueError('Max MOCKID exceeds max integer allowed by FITS.')
 
     #Filter the QSOs according to the input footprint.
     QSO_filter = utils.make_QSO_filter(footprint)
