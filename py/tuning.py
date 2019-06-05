@@ -276,6 +276,8 @@ class function_measurement:
             bias_eta = m1.bias_eta
         elif m2.bias_eta is not None:
             bias_eta = m2.bias_eta
+        else:
+            bias_eta = None
 
         #Make the combined object.
         combined = cls(parameter_ID,z_value,z_width,N_skewers,n,k1,C0,C1,C2,beta,D0,D1,D2,pixels=pixels)
