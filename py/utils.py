@@ -3,14 +3,26 @@ from astropy.io import fits
 import time
 import os
 import healpy as hp
+import shutil
+import gzip
 
 lya_rest = 1215.67
 
-def get_file_name(base_dir,base_name,nside,pixel):
-    return base_dir+'/{}-{}-{}.fits.gz'.format(base_name,nside,pixel)
+def get_file_name(base_dir,base_name,nside,pixel,compressed=False):
+    if compressed:
+        return base_dir+'/{}-{}-{}.fits.gz'.format(base_name,nside,pixel)
+    else:
+        return base_dir+'/{}-{}-{}.fits'.format(base_name,nside,pixel)
 
 def get_dir_name(base_dir,pixel):
     return base_dir+'/{}/{}/'.format(pixel//100,pixel)
+
+def compress_file(filename,ext='.gz',remove=True):
+    with open(filename,'rb') as f_in, gzip.open(filename+ext,'wb') as f_out:
+        shutil.copyfileobj(f_in,f_out)
+    if remove:
+        os.remove(filename)
+    return
 
 #Define a function to print a progress bar.
 def progress_bar(N_complete,N_tasks,start_time):
@@ -216,6 +228,14 @@ def choose_filter(desi_footprint,desi_footprint_pixel,desi_footprint_pixel_plus,
 #Function to make ivar mask
 def make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP):
 
+    #Make an array of rest frame lambdas.
+    lambdas = 10**LOGLAM_MAP
+    lambdas_rf = np.outer(1/(1+Z_QSO),lambdas)
+    
+    #Filter according to the cutoff.
+    IVAR_rows = (lambdas_rf <= IVAR_cutoff).astype('float32')
+
+    """
     N_cells = LOGLAM_MAP.shape[0]
     N_qso = Z_QSO.shape[0]
 
@@ -228,6 +248,7 @@ def make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP):
 
         for j in range(last_relevant_cell+1,N_cells):
             IVAR_rows[i,j] = 0.
+    """
 
     return IVAR_rows
 

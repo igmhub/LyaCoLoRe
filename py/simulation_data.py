@@ -808,6 +808,9 @@ class SimulationData:
         hdulist.writeto(filename,overwrite=overwrite)
         hdulist.close
 
+        #Compress the file.
+        utils.compress_file(filename)
+
         return
 
     #Function to save in the picca format.
@@ -902,6 +905,9 @@ class SimulationData:
         hdulist = fits.HDUList([hdu_DELTA, hdu_iv, hdu_LOGLAM_MAP, hdu_CATALOG])
         hdulist.writeto(filename,overwrite=overwrite)
         hdulist.close()
+
+        #Compress the file.
+        utils.compress_file(filename)
 
         return
 
@@ -999,6 +1005,9 @@ class SimulationData:
         hdulist = fits.HDUList(list_hdu)
         hdulist.writeto(filename,overwrite=overwrite)
         hdulist.close()
+
+        #Compress the file.
+        utils.compress_file(filename)
 
         return
 
