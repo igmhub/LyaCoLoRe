@@ -8,7 +8,7 @@ from lyacolore import DLA, utils
 lya = utils.lya_rest
 
 #Set up options
-factor = 10
+factor = 10.0
 out_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v7.3/v7.3.0/master_DLA_randoms_fc.fits'
 method = 'from_catalog'
 DLA_catalog_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v7.3/v7.3.0/master_DLA.fits'
@@ -37,7 +37,7 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
     #Generate a z vector and the dn/dz function.
     zmin = lambda_min/lya - 1
     zmax = lambda_max/lya - 1
-    N_vec = 1000
+    N_vec = 500
     zvec = np.linspace(zmin,zmax,N_vec)
     zedges = np.concatenate([[zvec[0]]-(zvec[1]-zvec[0])/2.,(zvec[1:]+zvec[:-1])*0.5,[zvec[-1]+(-zvec[-2]+zvec[-1])*0.5]]).ravel()
     dz = zvec[1] - zvec[0]
@@ -69,10 +69,11 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
             raise ValueError('Needed a path to read the catalog')
         tab = fits.open(DLA_catalog_path)['DLACAT'].data
         z_master_RSD = tab['Z_DLA_RSD']
+        n_DLA_cat = z_master_RSD.shape[0]
         dndz_RSD,_ = np.histogram(z_master_RSD,bins=zedges)
 
         #Calculate n_total from the number in the catalog.
-        ntot = int(tab.shape[0] * factor)
+        ntot = int(n_DLA_cat * factor)
         print(ntot)
 
         #Turn dn/dz into a cdf and draw redshifts from it.
@@ -165,7 +166,6 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
         dla_z = dla_z[:dla_count]
         dla_skw_id = dla_skw_id[:dla_count]
 
-    print(dla_count)
     #Get the redshift of each DLA's skewer's QSO, its angular positions, MOCKID and pixel number.
     dla_ra = RA[dla_skw_id]
     dla_dec = DEC[dla_skw_id]
@@ -194,7 +194,7 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
         DLA_data = np.array(list(zip(dla_ra,dla_dec,dla_z_qso,dla_z_qso_rsd,dla_z,dla_NHI,dla_MOCKID,dlaid,dla_pixnum)),dtype=dtype)
     else:
         dtype = [('RA', '>f8'), ('DEC', '>f8'), ('Z_QSO_NO_RSD', '>f8'), ('Z_QSO_RSD', '>f8'), ('Z_DLA', '>f8'), ('MOCKID', '>i8'), ('DLAID', '>i8'), ('PIXNUM', '>i8')]
-        DLA_data = np.array(list(zip(dla_ra,dla_dec,dla_z_qso,dla_z_qso_rsd,dla_z,dla_MOCKID,dlaid,dla_pixnum)),dypte=dtype)
+        DLA_data = np.array(list(zip(dla_ra,dla_dec,dla_z_qso,dla_z_qso_rsd,dla_z,dla_MOCKID,dlaid,dla_pixnum)),dtype=dtype)
 
     #Write the file.
     DLA.write_DLA_master([DLA_data],out_path,N_side,overwrite=overwrite)
