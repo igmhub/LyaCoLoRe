@@ -1,6 +1,8 @@
 import numpy as np
 from astropy.io import fits
 
+from lyacolore import utils
+
 #
 def combine_pixel_means(results):
 
@@ -80,7 +82,7 @@ def means_to_statistics(means):
     return statistics
 
 #Function to write the statistics data to file, along with an HDU extension contanint cosmology data.
-def write_statistics(filename,statistics,overwrite=False):
+def write_statistics(filename,statistics,overwrite=False,compress=True):
 
     #Construct HDU from the statistics array.
     prihdr = fits.Header()
@@ -94,6 +96,10 @@ def write_statistics(filename,statistics,overwrite=False):
     hdulist = fits.HDUList([prihdu,hdu_stats])
     hdulist.writeto(filename,overwrite=overwrite)
     hdulist.close
+
+    #Compress the file if desired.
+    if compress:
+        utils.compress_file(filename)
 
     return
 
