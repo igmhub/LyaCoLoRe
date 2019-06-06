@@ -765,7 +765,7 @@ class SimulationData:
         return cls(N_qso,N_cells,SIGMA_G,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,R,Z,D,V,LOGLAM_MAP)
 
     #Function to save in the colore format.
-    def save_as_colore(self,quantity,filename,header,overwrite=False,cell_size=None):
+    def save_as_colore(self,quantity,filename,header,overwrite=False,cell_size=None,compress=True):
 
         #Organise the catalog data into a colore-format array.
         colore_1_data = []
@@ -808,13 +808,14 @@ class SimulationData:
         hdulist.writeto(filename,overwrite=overwrite)
         hdulist.close
 
-        #Compress the file.
-        utils.compress_file(filename)
+        #Compress the file if desired.
+        if compress:
+            utils.compress_file(filename)
 
         return
 
     #Function to save in the picca format.
-    def save_as_picca_delta(self,quantity,filename,header,mean_data=None,overwrite=False,min_number_cells=2,cell_size=None,notnorm=False,add_QSO_RSDs=False):
+    def save_as_picca_delta(self,quantity,filename,header,mean_data=None,overwrite=False,min_number_cells=2,cell_size=None,notnorm=False,add_QSO_RSDs=False,compress=True):
 
         lya_lambdas = 10**self.LOGLAM_MAP
 
@@ -906,8 +907,9 @@ class SimulationData:
         hdulist.writeto(filename,overwrite=overwrite)
         hdulist.close()
 
-        #Compress the file.
-        utils.compress_file(filename)
+        #Compress the file if desired.
+        if compress:
+            utils.compress_file(filename)
 
         return
 
@@ -930,7 +932,7 @@ class SimulationData:
         return F_grid
 
     #Function to save data as a transmission file.
-    def save_as_transmission(self,filename,header,overwrite=False,wave_min=3550.,wave_max=6500.,wave_step=0.2,fmt='final'):
+    def save_as_transmission(self,filename,header,overwrite=False,wave_min=3550.,wave_max=6500.,wave_step=0.2,fmt='final',compress=True):
 
         # define common wavelength grid to be written in files (in Angstroms)
         wave_grid = np.arange(wave_min,wave_max,wave_step).astype('float32')
@@ -1006,8 +1008,9 @@ class SimulationData:
         hdulist.writeto(filename,overwrite=overwrite)
         hdulist.close()
 
-        #Compress the file.
-        utils.compress_file(filename)
+        #Compress the file if desired.
+        if compress:
+            utils.compress_file(filename)
 
         return
 
