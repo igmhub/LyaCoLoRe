@@ -82,7 +82,7 @@ parameter_file_text += 'correl_type = {}\n'.format(args.corr_type)
 parameter_file_text += 'quantity = {}\n'.format(args.quantity)
 parameter_file_text += 'N_side = {}\n'.format(args.nside)
 parameter_file_text += 'N_pixels = {}\n'.format(args.npixels)
-parameter_file_text += 'quantities = {}\n'.format(args.nside)
+parameter_file_text += 'quantities = {}\n'.format(args.quant_code)
 parameter_file_text += 'rpmin = {}\n'.format(args.rpmin)
 parameter_file_text += 'rpmax = {}\n'.format(args.rpmax)
 parameter_file_text += 'rtmin = {}\n'.format(args.rtmin)
@@ -147,8 +147,8 @@ for rmin in args.rmin_values:
             config_text += 'rp-max = {}\n\n'.format(args.rpmax)
             config_text += 'rt-min = {}\n'.format(args.rtmin)
             config_text += 'rt-max = {}\n\n'.format(args.rtmax)
-            config_text += 'r-min = {}\n'.format(args.rmin)
-            config_text += 'r-max = {}\n\n'.format(args.rmax)
+            config_text += 'r-min = {}\n'.format(rmin)
+            config_text += 'r-max = {}\n\n'.format(rmax)
             if args.corr_type == 'xcf':
                 config_text += 'mu-min = -1.\n'
                 config_text += 'mu-max = +1.\n\n'
