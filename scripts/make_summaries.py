@@ -68,12 +68,12 @@ def log_error(retval):
 """
 Make the DLA master file.
 """
-
+"""
 print('Making the DLA master file...')
 
 def get_DLA_data(pixel):
     dirname = utils.get_dir_name(base_dir,pixel)
-    filename = utils.get_file_name(dirname,'transmission',N_side,pixel)
+    filename = utils.get_file_name(dirname,'transmission',N_side,pixel,compressed=True)
     DLA_data = DLA.get_DLA_data_from_transmission(pixel,filename)
     return DLA_data
 
@@ -94,7 +94,7 @@ if __name__ == '__main__':
 #Make the DLA master file
 filename = base_dir + '/master_DLA.fits'
 DLA.write_DLA_master(results,filename,N_side,overwrite=overwrite)
-
+"""
 ################################################################################
 """
 Make the global statistics file.
@@ -110,13 +110,13 @@ def get_statistics(pixel):
     dirname = utils.get_dir_name(base_dir,pixel)
 
     #Open up the statistics file without RSDs and extract data.
-    s_noRSD_filename = utils.get_file_name(dirname,'statistics-noRSD',N_side,pixel)
+    s_noRSD_filename = utils.get_file_name(dirname,'statistics-noRSD',N_side,pixel,compressed=True)
     s_noRSD = fits.open(s_noRSD_filename)
     statistics_noRSD = s_noRSD[1].data
     s_noRSD.close()
 
     #Open up the statistics file with RSDs and extract data.
-    s_filename = utils.get_file_name(dirname,'statistics',N_side,pixel)
+    s_filename = utils.get_file_name(dirname,'statistics',N_side,pixel,compressed=True)
     s = fits.open(s_filename)
     statistics = s[1].data
     s.close()
@@ -147,11 +147,11 @@ for result in results:
 #Combine the statistics from all of the pixels and save, with and without RSDs.
 statistics_noRSD = stats.combine_statistics(statistics_noRSD_list)
 filename = './statistics_noRSD.fits'
-stats.write_statistics(base_dir,filename,statistics_noRSD,overwrite=overwrite)
+stats.write_statistics(base_dir+filename,statistics_noRSD,overwrite=overwrite)
 
 statistics = stats.combine_statistics(statistics_list)
 filename = './statistics.fits'
-stats.write_statistics(base_dir,filename,statistics,overwrite=overwrite)
+stats.write_statistics(base_dir+filename,statistics,overwrite=overwrite)
 
 ################################################################################
 """
@@ -173,52 +173,60 @@ tasks = [(pixel,) for pixel in pixels]
 
 #For each pixel, and each quantity, renormalise the picca file
 def normalise_and_rebin(pixel):
-    #Open up the per-pixel stats files
+
+    #Get the directory name.
     dirname = utils.get_dir_name(base_dir,pixel)
-    #s_filename = utils.get_file_name(dirname,'statistics',N_side,pixel)
-    #s = fits.open(s_filename)
-    #s_noRSD_filename = utils.get_file_name(dirname,'statistics-noRSD',N_side,pixel)
-    #s_noRSD = fits.open(s_noRSD_filename)
 
     for N_merge in N_merge_values:
         for i,q in enumerate(type_1_quantities):
-
+ 
+            #print('rebinning {} file'.format(q))
+            t = time.time()
             #Rebin the files.
-            filename = utils.get_file_name(dirname,'picca-'+q,N_side,pixel)
+            filename = utils.get_file_name(dirname,'picca-'+q,N_side,pixel,compressed=True)
             if N_merge > 1:
                 out = utils.get_file_name(dirname,'picca-'+q+'-rebin-{}'.format(N_merge),N_side,pixel)
                 utils.renorm_rebin_picca_file(filename,N_merge=N_merge,out_filepath=out,overwrite=overwrite)
+            #print('--> {:1.3f}s'.format(time.time()-t))
 
         for i,q in enumerate(type_2_quantities):
 
+            #print('getting stats data')
+            t = time.time()
             #Get the old mean, and renormalise.
             # TODO: this use of "stats_quantities" is v ugly
             lookup_name = stats_quantities[i]+'_MEAN'
+            #print('--> {:1.3f}s'.format(time.time()-t))
 
+            #print('rebin/renorm-ing {} noRSD file'.format(q))
+            t = time.time()
             #Renormalise the files without RSDs.
             #old_mean = s_noRSD[1].data[lookup_name]
             old_mean = None
             new_mean = statistics_noRSD[lookup_name]
-            filename = utils.get_file_name(dirname,'picca-'+q+'-noRSD-notnorm',N_side,pixel)
+            filename = utils.get_file_name(dirname,'picca-'+q+'-noRSD-notnorm',N_side,pixel,compressed=True)
             if N_merge == 1:
                 out = utils.get_file_name(dirname,'picca-'+q+'-noRSD',N_side,pixel)
             else:
                 out = utils.get_file_name(dirname,'picca-'+q+'-noRSD-rebin-{}'.format(N_merge),N_side,pixel)
+            #print(out)
             utils.renorm_rebin_picca_file(filename,old_mean=old_mean,new_mean=new_mean,N_merge=N_merge,out_filepath=out,overwrite=overwrite)
+            #print('--> {:1.3f}s'.format(time.time()-t))
 
+            #print('rebin/renorm-ing {} RSD file'.format(q))
+            t = time.time()
             #Renormalise the files with RSDs.
             #old_mean = s[1].data[lookup_name]
             old_mean = None
             new_mean = statistics[lookup_name]
-            filename = utils.get_file_name(dirname,'picca-'+q+'-notnorm',N_side,pixel)
+            filename = utils.get_file_name(dirname,'picca-'+q+'-notnorm',N_side,pixel,compressed=True)
             if N_merge == 1:
                 out = utils.get_file_name(dirname,'picca-'+q,N_side,pixel)
             else:
                 out = utils.get_file_name(dirname,'picca-'+q+'-rebin-{}'.format(N_merge),N_side,pixel)
+            #print(out)
             utils.renorm_rebin_picca_file(filename,old_mean=old_mean,new_mean=new_mean,N_merge=N_merge,out_filepath=out,overwrite=overwrite)
-
-    #s.close()
-    #s_noRSD.close()
+            #print('--> {:1.3f}s'.format(time.time()-t))
 
     return
 

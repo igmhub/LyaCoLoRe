@@ -420,7 +420,7 @@ def merge_cells(rows,N_merge):
     return merged_rows
 
 #Function to renormalise and rebin data in a picca file.
-def renorm_rebin_picca_file(filepath,old_mean=None,new_mean=None,N_merge=None,IVAR_cutoff=1150.,min_number_cells=2,out_filepath=None,overwrite=False):
+def renorm_rebin_picca_file(filepath,old_mean=None,new_mean=None,N_merge=None,IVAR_cutoff=1150.,min_number_cells=2,out_filepath=None,overwrite=False,compress=True):
 
     #Open the existing file.
     h = fits.open(filepath)
@@ -430,6 +430,8 @@ def renorm_rebin_picca_file(filepath,old_mean=None,new_mean=None,N_merge=None,IV
     hdu_LOGLAM_MAP = h[2]
     hdu_CATALOG = h[3]
 
+    #print('--> renorm-ing...')
+    t = time.time()
     if old_mean is None and new_mean is None:
         renorm_delta_rows = old_delta_rows
     elif old_mean is None and new_mean is not None:
@@ -443,7 +445,10 @@ def renorm_rebin_picca_file(filepath,old_mean=None,new_mean=None,N_merge=None,IV
         cells = new_mean>0
         renorm_delta_rows = np.zeros(old_delta_rows.shape)
         renorm_delta_rows[:,cells] = (old_mean[cells]*(1 + old_delta_rows[:,cells]))/new_mean[cells] - 1
+    #print('----> {:1.3f}s'.format(time.time()-t))
 
+    #print('--> rebinning...')
+    t = time.time()
     #Rebin the deltas if necessary.
     if N_merge is not None:
         if N_merge > 1:
@@ -479,16 +484,26 @@ def renorm_rebin_picca_file(filepath,old_mean=None,new_mean=None,N_merge=None,IV
         hdu_iv_new = hdu_iv
         hdu_LOGLAM_MAP_new = hdu_LOGLAM_MAP
         hdu_CATALOG_new = hdu_CATALOG
+    #print('----> {:1.3f}s'.format(time.time()-t))
 
+    #print('--> saving...')
+    t = time.time()
     #Save the file again.
     hdulist = fits.HDUList([hdu_deltas_new, hdu_iv_new, hdu_LOGLAM_MAP_new, hdu_CATALOG_new])
-    if out_filepath:
-        hdulist.writeto(out_filepath,overwrite=overwrite)
-    else:
-        hdulist.writeto(filepath,overwrite=overwrite)
+    if not out_filepath:
+        out_filepath = filepath
+    hdulist.writeto(out_filepath,overwrite=overwrite)
     hdulist.close()
     h.close()
+    #print('----> {:1.3f}s'.format(time.time()-t))
 
+    #print('--> compressing...')
+    t = time.time()
+    #Compress the file if desired.
+    if compress:
+        compress_file(out_filepath)
+    #print('----> {:1.3f}s'.format(time.time()-t))
+    
     return
 
 #Function to produce values of a quadratic log functional form.
