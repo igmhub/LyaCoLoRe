@@ -68,7 +68,7 @@ def log_error(retval):
 """
 Make the DLA master file.
 """
-"""
+
 print('Making the DLA master file...')
 
 def get_DLA_data(pixel):
@@ -94,7 +94,7 @@ if __name__ == '__main__':
 #Make the DLA master file
 filename = base_dir + '/master_DLA.fits'
 DLA.write_DLA_master(results,filename,N_side,overwrite=overwrite)
-"""
+
 ################################################################################
 """
 Make the global statistics file.
