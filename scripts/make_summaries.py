@@ -225,7 +225,7 @@ if not transmission_only:
                 else:
                     out = utils.get_file_name(dirname,'picca-'+q+'-noRSD-rebin-{}'.format(N_merge),N_side,pixel)
                 #print(out)
-                utils.renorm_rebin_picca_file(filename,old_mean=old_mean,new_mean=new_mean,N_merge=N_merge,out_filepath=out,overwrite=overwrite,compress=compress)
+                utils.renorm_rebin_picca_file(filename,old_mean=old_mean,new_mean=new_mean,N_merge=N_merge,out_filepath=out,overwrite=overwrite)
                 #print('--> {:1.3f}s'.format(time.time()-t))
 
                 #print('rebin/renorm-ing {} RSD file'.format(q))
@@ -240,7 +240,7 @@ if not transmission_only:
                 else:
                     out = utils.get_file_name(dirname,'picca-'+q+'-rebin-{}'.format(N_merge),N_side,pixel)
                 #print(out)
-                utils.renorm_rebin_picca_file(filename,old_mean=old_mean,new_mean=new_mean,N_merge=N_merge,out_filepath=out,overwrite=overwrite,compress=compress)
+                utils.renorm_rebin_picca_file(filename,old_mean=old_mean,new_mean=new_mean,N_merge=N_merge,out_filepath=out,overwrite=overwrite)
                 #print('--> {:1.3f}s'.format(time.time()-t))
 
         return
