@@ -331,7 +331,7 @@ print('\nModifying header showing sigma_G in Gaussian CoLoRe files...')
 
 def modify_header(pixel):
     location = utils.get_dir_name(base_out_dir,pixel)
-    filename = utils.get_file_name(location,'gaussian-colore',N_side,pixel,compressed=True)
+    filename = utils.get_file_name(location,'gaussian-colore',N_side,pixel,compressed=compress)
     h = fits.open(filename)
     for HDU in h[1:]:
         HDU.header['SIGMA_G'] = measured_SIGMA_G
@@ -418,7 +418,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
 
     #We work from the gaussian colore files made in 'pixelise gaussian skewers'.
     location = utils.get_dir_name(base_out_dir,pixel)
-    gaussian_filename = utils.get_file_name(location,'gaussian-colore',N_side,pixel,compressed=True)
+    gaussian_filename = utils.get_file_name(location,'gaussian-colore',N_side,pixel,compressed=compress)
 
     #Make a pixel object from it.
     file_number = None

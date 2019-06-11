@@ -113,58 +113,59 @@ DLA.write_DLA_master(results,filename,N_side,overwrite=overwrite)
 Make the global statistics file.
 """
 
-print('Making the global statistics file...')
+if not transmission_only:
+    print('Making the global statistics file...')
 
 # TODO: paralellise
-#Get the statistics from all pixels.
-statistics_list = []
+    #Get the statistics from all pixels.
+    statistics_list = []
 
-def get_statistics(pixel):
-    dirname = utils.get_dir_name(base_dir,pixel)
+    def get_statistics(pixel):
+        dirname = utils.get_dir_name(base_dir,pixel)
 
-    #Open up the statistics file without RSDs and extract data.
-    s_noRSD_filename = utils.get_file_name(dirname,'statistics-noRSD',N_side,pixel,compressed=compressed_input)
-    s_noRSD = fits.open(s_noRSD_filename)
-    statistics_noRSD = s_noRSD[1].data
-    s_noRSD.close()
+        #Open up the statistics file without RSDs and extract data.
+        s_noRSD_filename = utils.get_file_name(dirname,'statistics-noRSD',N_side,pixel,compressed=compressed_input)
+        s_noRSD = fits.open(s_noRSD_filename)
+        statistics_noRSD = s_noRSD[1].data
+        s_noRSD.close()
 
-    #Open up the statistics file with RSDs and extract data.
-    s_filename = utils.get_file_name(dirname,'statistics',N_side,pixel,compressed=compressed_input)
-    s = fits.open(s_filename)
-    statistics = s[1].data
-    s.close()
+        #Open up the statistics file with RSDs and extract data.
+        s_filename = utils.get_file_name(dirname,'statistics',N_side,pixel,compressed=compressed_input)
+        s = fits.open(s_filename)
+        statistics = s[1].data
+        s.close()
 
-    return statistics_noRSD, statistics
+        return statistics_noRSD, statistics
 
-tasks = [(pixel,) for pixel in pixels]
+    tasks = [(pixel,) for pixel in pixels]
 
-#Run the multiprocessing pool
-if __name__ == '__main__':
-    pool = Pool(processes = N_processes)
-    results = []
-    start_time = time.time()
+    #Run the multiprocessing pool
+    if __name__ == '__main__':
+        pool = Pool(processes = N_processes)
+        results = []
+        start_time = time.time()
 
-    for task in tasks:
-        pool.apply_async(get_statistics,task,callback=log_result,error_callback=log_error)
+        for task in tasks:
+            pool.apply_async(get_statistics,task,callback=log_result,error_callback=log_error)
 
-    pool.close()
-    pool.join()
+        pool.close()
+        pool.join()
 
-#Make lists with and without RSDs
-statistics_noRSD_list = []
-statistics_list = []
-for result in results:
-    statistics_noRSD_list += [result[0]]
-    statistics_list += [result[1]]
+    #Make lists with and without RSDs
+    statistics_noRSD_list = []
+    statistics_list = []
+    for result in results:
+        statistics_noRSD_list += [result[0]]
+        statistics_list += [result[1]]
 
-#Combine the statistics from all of the pixels and save, with and without RSDs.
-statistics_noRSD = stats.combine_statistics(statistics_noRSD_list)
-filename = './statistics_noRSD.fits'
-stats.write_statistics(base_dir+filename,statistics_noRSD,overwrite=overwrite)
+    #Combine the statistics from all of the pixels and save, with and without RSDs.
+    statistics_noRSD = stats.combine_statistics(statistics_noRSD_list)
+    filename = './statistics_noRSD.fits'
+    stats.write_statistics(base_dir+filename,statistics_noRSD,overwrite=overwrite)
 
-statistics = stats.combine_statistics(statistics_list)
-filename = './statistics.fits'
-stats.write_statistics(base_dir+filename,statistics,overwrite=overwrite)
+    statistics = stats.combine_statistics(statistics_list)
+    filename = './statistics.fits'
+    stats.write_statistics(base_dir+filename,statistics,overwrite=overwrite)
 
 ################################################################################
 """
@@ -266,6 +267,7 @@ if compress:
 
     compress_file = utils.compress_file
     fi = glob.glob(base_dir+'/*/*/*.fits')
+    tasks = [(f,) for f in fi]
 
     #Run the multiprocessing pool
     if __name__ == '__main__':
@@ -273,8 +275,8 @@ if compress:
         results = []
         start_time = time.time()
 
-        for f in fi:
-            pool.apply_async(compress_file,f,callback=log_result,error_callback=log_error)
+        for task in tasks:
+            pool.apply_async(compress_file,task,callback=log_result,error_callback=log_error)
 
         pool.close()
         pool.join()

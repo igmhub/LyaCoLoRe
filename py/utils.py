@@ -45,10 +45,8 @@ def progress_bar(N_complete,N_tasks,start_time):
 #Function to create a file structure based on a set of numbers, of the form "x//100"/"x".
 def make_file_structure(base_location,numbers):
 
-    first_level = []
-    for number in numbers:
-        first_level += [number//100]
-
+    numbers = np.array(numbers)
+    first_level = numbers//100
     first_level_set = list(sorted(set(first_level)))
 
     for i in first_level_set:
@@ -56,13 +54,12 @@ def make_file_structure(base_location,numbers):
             os.mkdir(base_location+'/'+str(i))
         except FileExistsError:
             pass
-        for j, number in enumerate(numbers):
 
-            if first_level[j] == i:
-                try:
-                    os.mkdir(base_location+'/'+str(i)+'/'+str(number))
-                except FileExistsError:
-                    pass
+    for n in numbers:
+        try:
+            os.mkdir(base_location+'/'+str(n//100)+'/'+str(n))
+        except FileExistsError:
+            pass
 
     return
 
