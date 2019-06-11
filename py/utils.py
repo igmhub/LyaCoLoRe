@@ -231,7 +231,7 @@ def make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP):
     #Make an array of rest frame lambdas.
     lambdas = 10**LOGLAM_MAP
     lambdas_rf = np.outer(1/(1+Z_QSO),lambdas)
-    
+
     #Filter according to the cutoff.
     IVAR_rows = (lambdas_rf <= IVAR_cutoff).astype('float32')
 
@@ -420,7 +420,7 @@ def merge_cells(rows,N_merge):
     return merged_rows
 
 #Function to renormalise and rebin data in a picca file.
-def renorm_rebin_picca_file(filepath,old_mean=None,new_mean=None,N_merge=None,IVAR_cutoff=1150.,min_number_cells=2,out_filepath=None,overwrite=False,compress=True):
+def renorm_rebin_picca_file(filepath,old_mean=None,new_mean=None,N_merge=None,IVAR_cutoff=1150.,min_number_cells=2,out_filepath=None,overwrite=False,compress=False):
 
     #Open the existing file.
     h = fits.open(filepath)
@@ -503,7 +503,7 @@ def renorm_rebin_picca_file(filepath,old_mean=None,new_mean=None,N_merge=None,IV
     if compress:
         compress_file(out_filepath)
     #print('----> {:1.3f}s'.format(time.time()-t))
-    
+
     return
 
 #Function to produce values of a quadratic log functional form.
