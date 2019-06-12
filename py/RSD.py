@@ -104,12 +104,30 @@ def S(x):
     return S
 
 #
-def J(x,a,sigma):
+def J(x,a,sigma,):
     #Technically should have  -(1/(4*a))*(K(a,sigma)-K(-a,sigma)) too.
     #These cancel out, but if we want to include uneven cell size then they won't do.
     b = 1./(np.sqrt(2)*sigma)
     J = (1./(4*a*b))*(S((x+a)*b)-S((x-a)*b))
     return J
+
+#Integral of the erf function in a finite range.
+def int_erf(upp,low):
+    int = S(upp) - S(low)
+    return int
+
+#Weight assigned to an interval (a,b) given a starting velocity xstar, Gaussian
+#velocity dispersion sigma and cell width 2d.
+def W_interval(a,b,xstar,sigma,d):
+
+    upp1 = (b - xstar + d)/(np.sqrt(2) * sigma)
+    low1 = (a - xstar + d)/(np.sqrt(2) * sigma)
+    upp2 = (b - xstar - d)/(np.sqrt(2) * sigma)
+    low2 = (a - xstar - d)/(np.sqrt(2) * sigma)
+
+    W = (sigma/np.sqrt(2)) * (int_erf(upp1,low1) - int_erf(upp2,low2))
+
+    return W
 
 #
 def add_skewer_RSDs(initial_tau,initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,weights=None,d=0.0,z_r0=2.5):
@@ -265,7 +283,7 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
                     #Use the J function to integrate the weight in this range.
                     # TODO: update this to take into account that consecutive cells may not be precisely the same size
                     #weight = (0.5)*(math.erf((np.sqrt(2))*sigma_kms*top) - math.erf((np.sqrt(2))*sigma_kms*bot))
-                    weight = J(top,cell_size/2.,sigma_kms) - J(bot,cell_size/2.,sigma_kms)
+                    weight = W_interval(bot,top,new_x_kms_cell,sigma_kms,cell_size/2.)
 
                     indices += [j_value]
                     data += [weight]
@@ -341,9 +359,6 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
                     w = [w_lower,w_upper]
                     data += [w_lower,w_upper]
                     indptr += [(indptr[-1] + 2)]
-
-
-
 
         indptr += [indptr[-1]]*(N_cells + 1 - len(indptr))
         csc_weights = csc_matrix((data, indices, indptr), shape=(N_cells,N_cells))
