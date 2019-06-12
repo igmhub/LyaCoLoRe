@@ -6,7 +6,7 @@ TIME="00:30:00" #hh:mm:ss
 
 # specify process parameters
 NSIDE=16
-IVAR_CUT=1150.0
+IVAR_CUT=1200.0
 CELL_SIZE=0.25
 LAMBDA_MIN=3470.0
 MIN_CAT_Z=1.8
@@ -26,7 +26,7 @@ TRANS_DL=0.2
 # specify process flags
 #MM_FLAGS=""
 MM_FLAGS=""
-MT_FLAGS="--add-DLAs --add-RSDs --add-QSO-RSDs"
+MT_FLAGS="--add-DLAs --add-RSDs --add-QSO-RSDs --add-small-scale-fluctuations"
 
 # specify details of colore output
 COLORE_NGRID=4096
@@ -52,7 +52,7 @@ V_CODE_MIN="3"
 V_REALISATION="0"
 
 # full path to folder where output will be written
-OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v${V_CODE_MAJ}/v7_full_no_ssf/"
+OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v${V_CODE_MAJ}/v7_full_lr1200_tuned/"
 #OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v${V_CODE_MAJ}/v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}/"
 #OUTPUT_PATH="/project/projectdirs/desi/mocks/lya_forest/london/v${V_CODE_MAJ}.${V_CODE_MIN}/v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}/"
 
@@ -66,7 +66,7 @@ if [ ! -d $OUTPUT_PATH/logs ] ; then
 fi
 
 # full path to file with tuning sigma_G data
-TUNING_PATH="/global/homes/j/jfarr/Projects/LyaCoLoRe/input_files/tuning_data_with_bias_vel1.2_b1.65.fits"
+TUNING_PATH="/global/homes/j/jfarr/Projects/LyaCoLoRe/input_files/tuning_data_with_bias_vel1.2_b1.65_lr1200.fits"
 #TUNING_PATH="/global/homes/j/jfarr/Projects/LyaCoLoRe/input_files/tuning_data_with_bias_a2.0_b1.65.fits"
 
 # we will create this script

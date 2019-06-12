@@ -200,6 +200,8 @@ if add_picca_drqs:
 
 print('Time to make master files: {:4.0f}s.'.format(time.time()-start))
 
+print('\nCreating the output file structure...')
 #Make the new file structure
 pixel_list = list(sorted(set(master_data['PIXNUM'])))
 utils.make_file_structure(new_base_file_location,pixel_list)
+print('Done!')

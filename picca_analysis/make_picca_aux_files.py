@@ -140,7 +140,7 @@ for rmin in args.rmin_values:
                 config_text += 'tracer2 = LYA\n'
                 config_text += 'tracer1-type = discrete\n'
                 config_text += 'tracer2-type = continuous\n'
-            config_text += 'filename = {}\n'.format(args.base_dir+args.cf_filename)
+            config_text += 'filename = {}\n'.format(args.base_dir+args.cf_exp_filename)
             config_text += 'ell-max = 6\n\n'
             config_text += '[cuts]\n'
             config_text += 'rp-min = {}\n'.format(args.rpmin)

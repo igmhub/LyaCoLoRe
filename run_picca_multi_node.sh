@@ -1,13 +1,30 @@
+### START OF OPTIONS ###
+
+## INPUT DATA OPTIONS ##
 #number of pixels
 NPIXELS=1000
-NPIXPERNODE=100
-NCORES=64
+NPIXPERNODE=40
+#first quantity to correlate
+QUANTITY="flux-rebin-10"
+QC="FF"
+INDIR="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v7/v7_full_lr1200_tuned_vel1.3/"
+#INDIR="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test_velocity_interpolation_full_no_ssf/"
+#second quantity to correlate (if desired)
+#QUANTITY2="gaussian"
+#INDIR2="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v7/v7.0.0/"
+#INDIR2="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test_velocity_interpolation_full_no_ssf/"
+DRQ="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v7/v7_full_lr1200_tuned_vel1.3/master_picca_RSD.fits"
+NSIDELYACOLORE=16
 
+## NERSC OPTIONS ##
 # specify number of nodes and cores to use
 QUEUE='debug'
 NNODES=$((($NPIXELS+$NPIXPERNODE-1) / $NPIXPERNODE))
 TIME="00:30:00" #hh:mm:ss
+NCORES=64
+PICCA_PATH="/global/homes/j/jfarr/Programs/picca/"
 
+## CF OPTIONS ##
 #Set bin properties
 RPMIN=0.0
 RPMAX=160.0
@@ -15,43 +32,25 @@ RTMIN=0.0
 RTMAX=160.0
 NP=40
 NT=40
+ZMIN=2.4
+ZMAX=2.6
+CORRTYPE="cf"
+NSIDEPICCA=16
 
+##O UTPUT OPTIONS ##
+ANALYSIS_ID=40
+OUTPUT_FILENAME="cf.fits.gz"
+OUTPUT_EXP_FILENAME="cf_exp.fits.gz"
+
+## FIT OPTIONS ##
 #Set the fitting bin properties
 RMINS='20.0 40.0 60.0'
 RMAXS=160.0
 AFIXS='fixed free'
 
-ZMIN=2.4
-ZMAX=2.6
+### END OF OPTIONS ###
 
-#first quantity to correlate
-QUANTITY="tau"
-INDIR="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v7/v7_full_no_ssf/"
-#INDIR="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test_velocity_interpolation_full_no_ssf/"
-
-#second quantity to correlate (if desired)
-#QUANTITY2="gaussian"
-#INDIR2="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v7/v7.0.0/"
-#INDIR2="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test_velocity_interpolation_full_no_ssf/"
-
-#Correlation type
-CORRTYPE="cf"
-QC="TT"
-
-#picca nside value
-NSIDEPICCA=16
-
-#LyaCoLoRe nside value
-NSIDELYACOLORE=16
-
-#smoothing radius
-SR=2.0
-
-#set the path to the picca directory
-PICCA_PATH="/global/homes/j/jfarr/Programs/picca/"
-
-#decide analysis number
-ANALYSIS_ID=38
+#format analysis number
 ANALYSIS_ID=`printf "%03d" ${ANALYSIS_ID}`
 
 #find ID number
@@ -73,9 +72,7 @@ if [ ! -d $OUTPUT_PATH/logs ] ; then
     mkdir -p $OUTPUT_PATH/logs
 fi
 
-#Final output file names
-OUTPUT_FILENAME="cf.fits.gz"
-OUTPUT_EXP_FILENAME="cf_exp.fits.gz"
+#make paths to output files
 OUTPUT_FILE="${OUTPUT_PATH}/${OUTPUT_FILENAME}"
 OUTPUT_EXP_FILE="${OUTPUT_PATH}/${OUTPUT_EXP_FILENAME}"
 
@@ -126,7 +123,7 @@ for NODE in \`seq $NNODES\` ; do
 
         if [ -z "\${INDIR2}" ]; then
 
-            if [ -f "\$F" ]; then 
+            if [ -f "\$F" ]; then
                 NODE_FILES="\$NODE_FILES \$F";
                 N=\$(( \$N + 1 ));
                 N_TOTAL=\$(( \$N_TOTAL + 1 ));
@@ -135,9 +132,9 @@ for NODE in \`seq $NNODES\` ; do
 
         else
 
-            F2="${INDIR2}/\$(( \${i}/100 ))/\${i}/picca-${QUANTITY2}-16-\${i}.fits";
-        
-            if [ -f "\$F" ] && [ -f "\$F2" ]; then 
+            F2="${INDIR2}/\$(( \${i}/100 ))/\${i}/picca-${QUANTITY2}-16-\${i}.fits.gz";
+
+            if [ -f "\$F" ] && [ -f "\$F2" ]; then
                 NODE_FILES="\$NODE_FILES \$F";
                 NODE_FILES2="\$NODE_FILES2 \$F2";
                 N=\$(( \$N + 1 ));
@@ -198,38 +195,6 @@ date
 /global/homes/j/jfarr/Projects/LyaCoLoRe/picca_analysis/make_picca_aux_files.py --base-dir ${OUTPUT_PATH} --corr-type $CORRTYPE --quantity $QUANTITY --npixels ${NPIXELS} --quant-code ${QC} --zmin ${ZMIN} --zmax ${ZMAX} --cf-filename $OUTPUT_FILENAME --cf-exp-filename $OUTPUT_EXP_FILENAME --nside $NSIDEPICCA --rpmin ${RPMIN} --rpmax ${RPMAX} --rtmin ${RTMIN} --rtmax ${RTMAX} --np ${NP} --nt ${NT} --rmin-values ${RMINS} --rmax-values ${RMAXS} --afix-values ${AFIXS}
 
 EOF
-
-# we will create a paremter file to store the correlation parameters
-#PARAMETER_FILE=${OUTPUT_PATH}/parameters.txt
-#echo "parameterfile "${PARAMETER_FILE}
-
-#make parameter file
-#cat > $PARAMETER_FILE <<EOF
-#correl_type = $CORRTYPE
-#quantity = $QUANTITY
-#N_side = $NSIDEPICCA
-#N_pixels = ${NPIXELS}
-#quantities = ${QC}
-#rpmin = ${RPMIN}
-#rpmax = ${RPMAX}
-#rtmin = ${RTMIN}
-#rtmax = ${RTMAX}
-#np = ${NP}
-#nt = ${NT}
-#zmin = ${ZMIN}
-#zmax = ${ZMAX}
-#EOF
-
-#create config files for doing fits
-#for RMIN in ${RMINS}; do for RMAX in ${RMAXS}; do for AFIX in ${AFIXS}; do
-#SUFFIX="_${RMIN%%.*}r_a${AFIX}"
-#CONFIG_FILE="${OUTPUT_PATH}/config_${CORRTYPE}${SUFFIX}.ini"
-#source ${PICCA_PATH}/txt_templates/config_${CORRTYPE}.ini $OUTPUT_EXP_FILE $CONFIG_FILE $RPMIN $RPMAX $RTMIN $RTMAX $RMIN $RMAX $AFIX $AFIX
-#CHI2_FILE="${OUTPUT_PATH}/chi2${SUFFIX}.ini"
-#source ${PICCA_PATH}/txt_templates/chi2.ini $CHI2_FILE $ZEFF $CORRTYPE $SUFFIX
-#done; done; done
-
-#echo "config and chi2 files written"
 
 # send the job to the queue
 sbatch $RUN_FILE

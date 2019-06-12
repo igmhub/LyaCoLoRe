@@ -766,6 +766,7 @@ class SimulationData:
 
     #Function to save in the colore format.
     def save_as_colore(self,quantity,filename,header,overwrite=False,cell_size=None,compress=True):
+        t = time.time()
 
         #Organise the catalog data into a colore-format array.
         colore_1_data = []
@@ -806,17 +807,21 @@ class SimulationData:
         #Combine the HDUs into an HDUlist and save as a new file. Close the HDUlist.
         hdulist = fits.HDUList([prihdu, hdu_CATALOG, hdu_GAUSSIAN, hdu_VEL, hdu_COSMO])
         hdulist.writeto(filename,overwrite=overwrite)
-        hdulist.close
+        hdulist.close()
 
+        #print('--> saving takes {:2.3f}s'.format(time.time()-t))
+        t = time.time()
         #Compress the file if desired.
         if compress:
             utils.compress_file(filename)
+        #print('--> compressing takes {:2.3f}s'.format(time.time()-t))
 
         return
 
     #Function to save in the picca format.
     def save_as_picca_delta(self,quantity,filename,header,mean_data=None,overwrite=False,min_number_cells=2,cell_size=None,notnorm=False,add_QSO_RSDs=False,compress=True):
 
+        t = time.time()
         lya_lambdas = 10**self.LOGLAM_MAP
 
         #If not normalising:
@@ -904,12 +909,17 @@ class SimulationData:
 
         #Combine the HDUs into and HDUlist and save as a new file. Close the HDUlist.
         hdulist = fits.HDUList([hdu_DELTA, hdu_iv, hdu_LOGLAM_MAP, hdu_CATALOG])
+        #print('--> organising takes {:2.3f}s'.format(time.time()-t))
+        t = time.time()
         hdulist.writeto(filename,overwrite=overwrite)
+        #print('--> writing takes {:2.3f}s'.format(time.time()-t))
+        t = time.time()
         hdulist.close()
 
         #Compress the file if desired.
         if compress:
             utils.compress_file(filename)
+        #print('--> compressing takes {:2.3f}s'.format(time.time()-t))
 
         return
 
@@ -933,6 +943,8 @@ class SimulationData:
 
     #Function to save data as a transmission file.
     def save_as_transmission(self,filename,header,overwrite=False,wave_min=3550.,wave_max=6500.,wave_step=0.2,fmt='final',compress=True):
+
+        t = time.time()
 
         # define common wavelength grid to be written in files (in Angstroms)
         wave_grid = np.arange(wave_min,wave_max,wave_step).astype('float32')
@@ -1007,10 +1019,13 @@ class SimulationData:
         hdulist = fits.HDUList(list_hdu)
         hdulist.writeto(filename,overwrite=overwrite)
         hdulist.close()
+        #print('--> saving takes {:2.3f}s'.format(time.time()-t))
+        t = time.time()
 
         #Compress the file if desired.
         if compress:
             utils.compress_file(filename)
+        #print('--> compressing takes {:2.3f}s'.format(time.time()-t))
 
         return
 
@@ -1049,11 +1064,11 @@ class SimulationData:
         return means
 
     #Function to save the means as a function of z.
-    def save_statistics(self,filepath,overwrite=False):
+    def save_statistics(self,filepath,overwrite=False,compress=True):
 
         means = self.get_means()
         statistics = stats.means_to_statistics(means)
-        stats.write_statistics(filepath,statistics,overwrite=overwrite)
+        stats.write_statistics(filepath,statistics,overwrite=overwrite,compress=compress)
 
         return statistics
 
