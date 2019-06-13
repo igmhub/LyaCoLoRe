@@ -124,7 +124,7 @@ parser.add_argument('--transmission-delta-lambda', type = float, default = 0.2, 
                     help = 'pixel size of transmission files wavelength grid')
 
 parser.add_argument('--transmission-format', type = str, default = "final", required=False,
-                    choices=['develop','final'],
+                    choices=['develop','final','single_HDU'],
                     help = 'format of transmission files')
 
 parser.add_argument('--compress', action="store_true", default = False, required=False,
