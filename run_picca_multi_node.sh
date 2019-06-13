@@ -5,12 +5,12 @@ CF=0
 XCF=1
 
 ## INPUT DATA OPTIONS ##
+QC="Fq"
 #number of pixels
 NPIXELS=1000
 NPIXPERNODE=40
 #first quantity to correlate
 QUANTITY="flux-rebin-10"
-QC="FF"
 INDIR="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v7/v7_full_lr1200_tuned_vel1.3/"
 #INDIR="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test_velocity_interpolation_full_no_ssf/"
 #second quantity to correlate (if desired)
@@ -24,7 +24,7 @@ NSIDELYACOLORE=16
 # specify number of nodes and cores to use
 QUEUE='debug'
 NNODES=$((($NPIXELS+$NPIXPERNODE-1) / $NPIXPERNODE))
-TIME="00:30:00" #hh:mm:ss
+TIME="00:10:00" #hh:mm:ss
 NCORES=64
 PICCA_PATH="/global/homes/j/jfarr/Programs/picca/"
 
@@ -43,7 +43,7 @@ ZMAXQSO=2.6
 NSIDEPICCA=16
 
 ## OUTPUT OPTIONS ##
-ANALYSIS_ID=40
+ANALYSIS_ID=41
 CF_OUTPUT_FILENAME="cf.fits.gz"
 CF_OUTPUT_EXP_FILENAME="cf_exp.fits.gz"
 XCF_OUTPUT_FILENAME="xcf.fits.gz"
@@ -87,14 +87,14 @@ XCF_OUTPUT_EXP_FILE="${OUTPUT_PATH}/${XCF_OUTPUT_EXP_FILENAME}"
 # create scripts
 if [ $CF -eq 1 ]; then
 CF_RUN_FILE="${OUTPUT_PATH}/run_picca_cf_${ANALYSIS_ID}_${PICCA_ID}.sh"
-echo "cf run file "${RUN_FILE}
+echo "cf run file "${CF_RUN_FILE}
 cat > $CF_RUN_FILE <<EOF
 #!/bin/bash -l
 
 #SBATCH --partition ${QUEUE}
 #SBATCH --nodes ${NNODES}
 #SBATCH --time ${TIME}
-#SBATCH --job-name picca-${CORRTYPE}-${QC}-${NPIXELS}
+#SBATCH --job-name picca-cf-${QC}-${NPIXELS}
 #SBATCH --error "${OUTPUT_PATH}/picca-cf-%j.err"
 #SBATCH --output "${OUTPUT_PATH}/picca-cf-%j.out"
 #SBATCH -C haswell
@@ -191,28 +191,28 @@ done
 wait
 
 #Combine all of the individual output files together
-/global/homes/j/jfarr/Projects/LyaCoLoRe/picca_analysis/combine_picca_cf_files.py --in-dir ${NODE_OUTPUT_PATH} --out ${OUTPUT_FILE}
+/global/homes/j/jfarr/Projects/LyaCoLoRe/picca_analysis/combine_picca_cf_files.py --in-dir ${NODE_OUTPUT_PATH} --out ${CF_OUTPUT_FILE} --corr-type cf
 
 #Export
-${PICCA_PATH}/bin/picca_export.py --data ${OUTPUT_FILE} --out ${OUTPUT_EXP_FILE}
+${PICCA_PATH}/bin/picca_export.py --data ${CF_OUTPUT_FILE} --out ${CF_OUTPUT_EXP_FILE}
 date
 
 #Generate the aux files
-/global/homes/j/jfarr/Projects/LyaCoLoRe/picca_analysis/make_picca_aux_files.py --base-dir ${OUTPUT_PATH} --corr-type $CORRTYPE --quantity $QUANTITY --npixels ${NPIXELS} --quant-code ${QC} --zmin ${ZMIN} --zmax ${ZMAX} --cf-filename $OUTPUT_FILENAME --cf-exp-filename $OUTPUT_EXP_FILENAME --nside $NSIDEPICCA --rpmin ${RPMIN} --rpmax ${RPMAX} --rtmin ${RTMIN} --rtmax ${RTMAX} --np ${NP} --nt ${NT} --rmin-values ${RMINS} --rmax-values ${RMAXS} --afix-values ${AFIXS}
+/global/homes/j/jfarr/Projects/LyaCoLoRe/picca_analysis/make_picca_aux_files.py --base-dir ${OUTPUT_PATH} --corr-type cf --quantity $QUANTITY --npixels ${NPIXELS} --quant-code ${QC} --zmin ${ZMIN} --zmax ${ZMAX} --cf-filename $CF_OUTPUT_FILENAME --cf-exp-filename $CF_OUTPUT_EXP_FILENAME --nside $NSIDEPICCA --rpmin ${RPMIN} --rpmax ${RPMAX} --rtmin ${RTMIN} --rtmax ${RTMAX} --np ${NP} --nt ${NT} --rmin-values ${RMINS} --rmax-values ${RMAXS} --afix-values ${AFIXS}
 
 EOF
 fi
 
 if [ $XCF -eq 1 ]; then
 XCF_RUN_FILE="${OUTPUT_PATH}/run_picca_xcf_${ANALYSIS_ID}_${PICCA_ID}.sh"
-echo "xcf run file "${RUN_FILE}
+echo "xcf run file "${XCF_RUN_FILE}
 cat > $XCF_RUN_FILE <<EOF
 #!/bin/bash -l
 
 #SBATCH --partition ${QUEUE}
 #SBATCH --nodes ${NNODES}
 #SBATCH --time ${TIME}
-#SBATCH --job-name picca-${CORRTYPE}-${QC}-${NPIXELS}
+#SBATCH --job-name picca-xcf-${QC}-${NPIXELS}
 #SBATCH --error "${OUTPUT_PATH}/picca-xcf-%j.err"
 #SBATCH --output "${OUTPUT_PATH}/picca-xcf-%j.out"
 #SBATCH -C haswell
@@ -301,18 +301,22 @@ done
 wait
 
 #Combine all of the individual output files together
-/global/homes/j/jfarr/Projects/LyaCoLoRe/picca_analysis/combine_picca_cf_files.py --in-dir ${NODE_OUTPUT_PATH} --out ${OUTPUT_FILE}
+/global/homes/j/jfarr/Projects/LyaCoLoRe/picca_analysis/combine_picca_cf_files.py --in-dir ${NODE_OUTPUT_PATH} --out ${XCF_OUTPUT_FILE} --corr-type xcf
 
 #Export
-${PICCA_PATH}/bin/picca_export.py --data ${OUTPUT_FILE} --out ${OUTPUT_EXP_FILE}
+${PICCA_PATH}/bin/picca_export.py --data ${XCF_OUTPUT_FILE} --out ${XCF_OUTPUT_EXP_FILE}
 date
 
 #Generate the aux files
-/global/homes/j/jfarr/Projects/LyaCoLoRe/picca_analysis/make_picca_aux_files.py --base-dir ${OUTPUT_PATH} --corr-type $CORRTYPE --quantity $QUANTITY --npixels ${NPIXELS} --quant-code ${QC} --zmin ${ZMIN} --zmax ${ZMAX} --cf-filename $OUTPUT_FILENAME --cf-exp-filename $OUTPUT_EXP_FILENAME --nside $NSIDEPICCA --rpmin ${RPMIN} --rpmax ${RPMAX} --rtmin ${RTMIN} --rtmax ${RTMAX} --np ${NP} --nt ${NT} --rmin-values ${RMINS} --rmax-values ${RMAXS} --afix-values ${AFIXS}
+/global/homes/j/jfarr/Projects/LyaCoLoRe/picca_analysis/make_picca_aux_files.py --base-dir ${OUTPUT_PATH} --corr-type xcf --quantity $QUANTITY --npixels ${NPIXELS} --quant-code ${QC} --zmin ${ZMIN} --zmax ${ZMAX} --cf-filename $XCF_OUTPUT_FILENAME --cf-exp-filename $XCF_OUTPUT_EXP_FILENAME --nside $NSIDEPICCA --rpmin ${RPMIN} --rpmax ${RPMAX} --rtmin ${RTMIN} --rtmax ${RTMAX} --np ${NP} --nt ${NT} --rmin-values ${RMINS} --rmax-values ${RMAXS} --afix-values ${AFIXS}
 
 EOF
 fi
 
 # send the jobs to the queue
+if [ $CF -eq 1 ]; then
 sbatch $CF_RUN_FILE
+fi
+if [ $XCF -eq 1 ]; then
 sbatch $XCF_RUN_FILE
+fi
