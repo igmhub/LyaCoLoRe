@@ -149,24 +149,24 @@ for rmin in args.rmin_values:
             config_text += 'rt-max = {}\n\n'.format(args.rtmax)
             config_text += 'r-min = {}\n'.format(rmin)
             config_text += 'r-max = {}\n\n'.format(rmax)
-            if args.corr_type == 'xcf':
+            if args.corr_type == 'cf':
                 config_text += 'mu-min = -1.\n'
                 config_text += 'mu-max = +1.\n\n'
-            config_text += 'mu-min = 0.\n'
-            config_text += 'mu-max = 1.\n\n'
+            elif args.corr_type == 'xcf':
+                config_text += 'mu-min = -1.\n'
+                config_text += 'mu-max = +1.\n\n'
             config_text += '[model]\n'
             config_text += 'model-pk = pk_kaiser\n'
-            config_text += 'model-xi = xi\n'
+            if args.corr_type == 'cf':
+                config_text += 'model-xi = xi\n'
+            elif args.corr_type == 'xcf':
+                config_text += 'model-xi = xi_drp\n'
+                config_text += 'z evol QSO = bias_vs_z_std\n'
+                config_text += 'velocity dispersion = pk_velo_lorentz\n'
             config_text += 'z evol LYA = bias_vs_z_std\n'
             config_text += 'growth function = growth_factor_de\n'
             config_text += 'pk-gauss-smoothing = pk_gauss_smoothing\n\n'
             config_text += '[parameters]\n\n'
-            if args.corr_type == 'cf':
-                config_text += 'bias_eta_QSO  = 1. 0. None None fixed\n'
-                config_text += 'beta_QSO      = 0.5 0.1 None None fixed\n\n'
-            elif args.corr_type == 'xcf':
-                config_text += 'bias_eta_QSO  = 1. 0. None None fixed\n'
-                config_text += 'beta_QSO      = 0.5 0.1 None None free\n\n'
             config_text += 'croom_par0             = 0.53  0. None None fixed\n'
             config_text += 'croom_par1             = 0.289 0. None None fixed\n'
             config_text += 'drp_QSO                = 0. 0.1   None None fixed\n'
@@ -177,9 +177,13 @@ for rmin in args.rmin_values:
             config_text += 'sigmaNL_per = 3.24     0. None None fixed\n'
             config_text += 'sigmaNL_par = 6.36984 0.1 None None fixed\n'
             config_text += 'growth_rate = 0.962524 0. None None fixed\n\n'
-            config_text += 'bias_eta_LYA  = -0.0003512  1. None None free\n'
-            config_text += 'beta_LYA  = 0.5    0.1 None None free\n'
-            config_text += 'alpha_LYA = 2.9     0. None None fixed\n\n'
+            if args.corr_type == 'cf':
+                config_text += 'bias_eta_LYA  = -0.0003512  1. None None free\n'
+                config_text += 'beta_LYA  = 0.5    0.1 None None free\n'
+                config_text += 'alpha_LYA = 2.9     0. None None fixed\n\n'
+            elif args.corr_type == 'xcf':
+                config_text += 'bias_eta_QSO  = 1. 0. None None fixed\n'
+                config_text += 'beta_QSO      = 0.5 0.1 None None free\n\n'
             if args.corr_type == 'cf':
                 config_text += 'par binsize LYA(LYA)xLYA(LYA) = 4 0. None None fixed\n'
                 config_text += 'per binsize LYA(LYA)xLYA(LYA) = 4 0. None None fixed\n\n'
