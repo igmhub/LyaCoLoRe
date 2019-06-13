@@ -4,7 +4,7 @@ from astropy.io import fits
 
 from lyacolore import utils
 
-basedir = "/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v6/v6.0.0/" 
+basedir = "/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v6/v6.0.0/"
 N_side = 16
 pixel = 0
 i_skewer = 0
@@ -73,10 +73,10 @@ for i in range(N_stages):
 
     #Add a grid and labels.
     axs[i].grid()
-    axs[i].legend(loc=1)
+    axs[i].legend(loc=1,fontsize=20)
 
 plt.xlim(lambda_min,lambda_max)
-plt.xlabel(r'$\lambda\ /\ \mathrm{\AA}$')
-plt.savefig('skewers.pdf')
+plt.xlabel(r'$\lambda\ /\ \mathrm{\AA}$',fontsize=20)
 plt.tight_layout()
+plt.savefig('skewers.pdf')
 plt.show()
