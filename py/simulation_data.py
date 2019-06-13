@@ -969,7 +969,7 @@ class SimulationData:
         list_hdu = [prihdu, hdu_METADATA, hdu_WAVELENGTH]
 
         #Set up the absorber HDUs according to the input format 'fmt'.
-        if fmt=='final':
+        if fmt=='single_HDU':
 
             #Transmission of all absorbers.
             abs_header = header.copy()
@@ -984,6 +984,32 @@ class SimulationData:
                     F_grid *= self.compute_grid_transmission(metal,wave_grid).astype('float32')
             hdu_F = fits.ImageHDU(data=F_grid,header=abs_header,name='F')
             list_hdu += [hdu_F]
+
+        elif fmt == 'final':
+
+            #Gives transmission of Lya only
+            lya_header = header
+            lya_header['LYA'] = self.lya_absorber.rest_wave
+            list_hdu += [fits.ImageHDU(data=F_grid_Lya,header=lya_header,name='F_LYA')]
+
+            # compute Lyman beta transmission on grid of wavelengths
+            if self.lyb_absorber is not None:
+                F_grid_Lyb = self.compute_grid_transmission(self.lyb_absorber,wave_grid).astype('float32')
+                HDU_name = 'F_'+self.lyb_absorber.HDU_name
+                lyb_header = header.copy()
+                lyb_header[self.lyb_absorber.HDU_name] = self.lyb_absorber.rest_wave
+                list_hdu += [fits.ImageHDU(data=F_grid_Lyb,header=lyb_header,name=HDU_name)]
+
+            #Add an HDU for each metal computed.
+            if self.metals is not None:
+                F_grid_all_metals = np.ones_like(F_grid_Lya)
+                met_header = header.copy()
+                # compute metals' transmission on grid of wavelengths
+                for metal in iter(self.metals.values()):
+                    F_grid_all_metals *= self.compute_grid_transmission(metal,wave_grid).astype('float32')
+                    met_header[metal.HDU_name] = metal.rest_wave
+                HDU_name = 'F_METALS'
+                list_hdu += [fits.ImageHDU(data=F_grid_all_metals,header=met_header,name=HDU_name)]
 
         elif fmt == 'develop':
 
