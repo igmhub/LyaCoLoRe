@@ -762,32 +762,50 @@ def get_sigma_dF_P1D(z,l_hMpc=0.25,Om=0.3147):
 
     return sigma_dF
 
+"""
 #BOSS data.
-BOSS_z = np.array([2.4])
-BOSS_beta = np.array([1.650])
-BOSS_beta_err = np.array([0.081])
-BOSS_bias_delta_1plusbeta = np.array([-0.3544])
-BOSS_bias_delta_1plusbeta_err = np.array([0.0038])
+#DR12 combined auto+cross data, from du Mas des Bourboux et all (2017)
+data_z = np.array([2.4])
+data_beta = np.array([1.650])
+data_beta_err = np.array([0.081])
+data_bias_delta_1plusbeta = np.array([-0.3544])
+data_bias_delta_1plusbeta_err = np.array([0.0038])
 
-BOSS_f = 0.9625
-BOSS_bias_delta_z_evol_exponent = 2.9
+data_f = 0.9625
+data_bias_delta_z_evol_exponent = 2.9
 #Not sure about this?
-BOSS_bias_eta_z_evol_exponent = 2.9
+data_bias_eta_z_evol_exponent = 2.9
 
-BOSS_bias_delta = BOSS_bias_delta_1plusbeta / (1 + BOSS_beta)
-BOSS_bias_eta = BOSS_beta * BOSS_bias_delta / BOSS_f
+data_bias_delta = BOSS_bias_delta_1plusbeta / (1 + BOSS_beta)
+data_bias_eta = BOSS_beta * BOSS_bias_delta / BOSS_f
+"""
+
+#eBOSS data.
+#DR14 combined auto+cross data, from de Saintie Agathe et al. (2019)
+data_z = np.array([2.34])
+data_beta = np.array([1.994])
+data_beta_err = np.array([0.099])
+data_bias_eta = np.array([-0.214])
+data_bias_eta_err = np.array([0.004])
+
+data_f = 0.96612
+data_bias_delta_z_evol_exponent = 2.9
+#Not sure about this?
+data_bias_eta_z_evol_exponent = 2.9
+
+data_bias_delta = (data_f * data_bias_eta) / data_beta
 
 def get_bias_delta_model(z,model='BOSS'):
 
-    z_evol = ((1 + z)/(1 + BOSS_z))**BOSS_bias_delta_z_evol_exponent
-    bias_delta_model = BOSS_bias_delta * z_evol
+    z_evol = ((1 + z)/(1 + data_z))**data_bias_delta_z_evol_exponent
+    bias_delta_model = data_bias_delta * z_evol
 
     return bias_delta_model
 
 def get_bias_eta_model(z,model='BOSS'):
 
-    z_evol = ((1 + z)/(1 + BOSS_z))**BOSS_bias_eta_z_evol_exponent
-    bias_eta_model = BOSS_bias_eta * z_evol
+    z_evol = ((1 + z)/(1 + data_z))**data_bias_eta_z_evol_exponent
+    bias_eta_model = data_bias_eta * z_evol
 
     return bias_eta_model
 
