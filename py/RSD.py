@@ -111,6 +111,24 @@ def J(x,a,sigma):
     J = (1./(4*a*b))*(S((x+a)*b)-S((x-a)*b))
     return J
 
+#Integral of the erf function in a finite range.
+def int_erf(upp,low):
+    int = S(upp) - S(low)
+    return int
+
+#Weight assigned to an interval (a,b) given a starting velocity xstar, Gaussian
+#velocity dispersion sigma and cell width 2d.
+def W_interval(a,b,xstar,sigma,d):
+
+    upp1 = (b - xstar + d)/(np.sqrt(2) * sigma)
+    low1 = (a - xstar + d)/(np.sqrt(2) * sigma)
+    upp2 = (b - xstar - d)/(np.sqrt(2) * sigma)
+    low2 = (a - xstar - d)/(np.sqrt(2) * sigma)
+
+    W = (sigma/(2*np.sqrt(2)*d)) * (int_erf(upp1,low1) - int_erf(upp2,low2))
+
+    return W
+
 #
 def add_skewer_RSDs(initial_tau,initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,weights=None,d=0.0,z_r0=2.5):
 
@@ -167,7 +185,7 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
     z_edges = sciint.interp1d(r_hMpc,z,fill_value='extrapolate')(r_edges)
 
     #Not sure which of these is best, or if it will make much of a difference
-    x_edges = sciint.interp1d(r_hMpc,z,fill_value='extrapolate')(r_edges)
+    x_edges = sciint.interp1d(r_hMpc,x_kms,fill_value='extrapolate')(r_edges)
     #x_edges = r_edges * utils.get_dkms_dhMpc(z_edges)
 
     x_uedges = x_edges[1:]
@@ -178,6 +196,7 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
 
 
     for i in range(N_qso):
+
         indices = []
         data = []
         indptr = [0]
@@ -229,8 +248,7 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
 
             x_le_s = x_ledges_shifted[j]
             x_ue_s = x_uedges_shifted[j]
-
-
+            
             #If we want to include thermal effects, we include contributions to all cells within a chosen x_kms range.
             if thermal == True:
 
@@ -243,15 +261,13 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
                 x_lower_limit = new_x_kms_cell - x_kms_rad
 
                 #If at least one limit is within the skewer, determine which cells we determine weights for.
-                if x_upper_limit > x_kms[0] and x_lower_limit < x_kms[-1]:
-                    j_upper_limit = utils.NN_sorted(x_kms,x_upper_limit)
-                    j_lower_limit = utils.NN_sorted(x_kms,x_lower_limit)
-                    j_values = np.array(list(range(j_lower_limit,j_upper_limit+1)))
-                else:
-                    j_values = np.array([])
+                j_values = np.where((x_upper_limit > x_kms) * (x_lower_limit < x_kms))[0]
 
                 #For each such cell, find the bottom and top of the cell.
-                for j_value in j_values:
+                #Shift so that the centre of the new cell is at 0.
+                for k,j_value in enumerate(j_values):
+
+                    """
                     if j_value > 0 and j_value < N_cells-1:
                         bot = (x_kms[j_value-1] + x_kms[j_value])/2. - new_x_kms_cell
                         top = (x_kms[j_value] + x_kms[j_value+1])/2. - new_x_kms_cell
@@ -265,7 +281,11 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
                     #Use the J function to integrate the weight in this range.
                     # TODO: update this to take into account that consecutive cells may not be precisely the same size
                     #weight = (0.5)*(math.erf((np.sqrt(2))*sigma_kms*top) - math.erf((np.sqrt(2))*sigma_kms*bot))
-                    weight = J(top,cell_size/2.,sigma_kms) - J(bot,cell_size/2.,sigma_kms)
+                    weight_old = J(top,cell_size/2.,sigma_kms) - J(bot,cell_size/2.,sigma_kms)
+                    """
+
+                    weight = W_interval(x_ledges[j_value],x_uedges[j_value],new_x_kms_cell,sigma_kms,cell_size/2.)
+                    #weight = J(x_uedges[j_value]-new_x_kms_cell,cell_size/2.,sigma_kms) - J(x_ledges[j_value]-new_x_kms_cell,cell_size/2.,sigma_kms)
 
                     indices += [j_value]
                     data += [weight]
@@ -341,9 +361,6 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
                     w = [w_lower,w_upper]
                     data += [w_lower,w_upper]
                     indptr += [(indptr[-1] + 2)]
-
-
-
 
         indptr += [indptr[-1]]*(N_cells + 1 - len(indptr))
         csc_weights = csc_matrix((data, indices, indptr), shape=(N_cells,N_cells))
