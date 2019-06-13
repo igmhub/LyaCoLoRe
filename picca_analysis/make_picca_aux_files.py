@@ -181,7 +181,10 @@ for rmin in args.rmin_values:
                 config_text += 'bias_eta_LYA  = -0.0003512  1. None None free\n'
                 config_text += 'beta_LYA  = 0.5    0.1 None None free\n'
                 config_text += 'alpha_LYA = 2.9     0. None None fixed\n\n'
-            elif args.corr_type == 'xcf':
+            if args.corr_type == 'xcf':
+                config_text += 'bias_eta_LYA  = -0.0003512  1. None None free\n'
+                config_text += 'beta_LYA  = 0.5    0.1 None None free\n'
+                config_text += 'alpha_LYA = 2.9     0. None None fixed\n\n'
                 config_text += 'bias_eta_QSO  = 1. 0. None None fixed\n'
                 config_text += 'beta_QSO      = 0.5 0.1 None None free\n\n'
             if args.corr_type == 'cf':

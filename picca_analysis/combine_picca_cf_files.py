@@ -18,6 +18,9 @@ parser.add_argument('--in-dir', type = str, default = None, required=True,
 parser.add_argument('--out', type = str, default = None, required=True,
                     help = 'output filepath')
 
+parser.add_argument('--corr-type', type = str, default = 'cf', required=False,
+                    help = 'type of correlation')
+
 parser.add_argument('--files', type = str, default = None, required=False,
                     help = 'list of files to combine', nargs='*')
 
@@ -32,10 +35,11 @@ args = parser.parse_args()
 
 base_in_dir = args.in_dir
 out_filepath = args.out
+corr_type = args.corr_type
 if args.files:
     file_list = [base_in_dir+f for f in args.files]
 else:
-    file_list = glob.glob(base_in_dir+'cf*.fits.gz')
+    file_list = glob.glob(base_in_dir+'/'+corr_type+'*.fits.gz')
 overwrite = args.overwrite
 
 ################################################################################
