@@ -568,21 +568,37 @@ class SimulationData:
         return
 
     #Function to measure mean flux.
-    def get_mean_quantity(self,quantity,z_value=None,z_width=None,single_value=True,power=1):
+    def get_mean_quantity(self,quantity,z_value=None,z_width=None,single_value=True,power=1,all_absorbers=False):
 
         if quantity == 'gaussian':
             skewer_rows = self.GAUSSIAN_DELTA_rows ** power
         elif quantity == 'density':
             skewer_rows = (self.DENSITY_DELTA_rows + 1) ** power
         elif quantity == 'tau':
-            skewer_rows = self.lya_absorber.tau ** power
+            skewer_rows = self.lya_absorber.tau
+            if all_absorbers:
+                if self.lyb_absorber is not None:
+                    skewer_rows += self.lyb_absorber.tau
+                if self.metals is not None:
+                    for metal in iter(self.metals.values()):
+                        skewer_rows += metal.tau
+            skewer_rows = skewer_rows ** power
         elif quantity == 'flux':
-            skewer_rows = self.lya_absorber.transmission() ** power
+            skewer_rows = self.lya_absorber.transmission()
+            if all_absorbers:
+                if self.lyb_absorber is not None:
+                    skewer_rows += self.lyb_absorber.transmission()
+                if self.metals is not None:
+                    for metal in iter(self.metals.values()):
+                        skewer_rows += metal.transmission()
+            skewer_rows = skewer_rows ** power
         elif quantity == 'FlnF':
             #Use that ln(F)=-tau so FlnF = -F*tau
+            # TODO: metals in this option?
             skewer_rows = (-self.lya_absorber.transmission() * self.lya_absorber.tau) ** power
         elif quantity == 'FlnFlnF':
             #Use that ln(F)=-tau so FlnFlnF = F*tau**2
+            # TODO: metals in this option?
             skewer_rows = (self.lya_absorber.transmission() * (self.lya_absorber.tau)**2) ** power
 
         #If no z value, then compute the mean as a function of redshift.
@@ -819,7 +835,7 @@ class SimulationData:
         return
 
     #Function to save in the picca format.
-    def save_as_picca_delta(self,quantity,filename,header,mean_data=None,overwrite=False,min_number_cells=2,cell_size=None,notnorm=False,add_QSO_RSDs=False,compress=True):
+    def save_as_picca_delta(self,quantity,filename,header,mean_data=None,overwrite=False,min_number_cells=2,cell_size=None,notnorm=False,add_QSO_RSDs=False,compress=True,all_absorbers=False):
 
         t = time.time()
         lya_lambdas = 10**self.LOGLAM_MAP
@@ -832,8 +848,42 @@ class SimulationData:
                 skewer_rows = self.DENSITY_DELTA_rows
             elif quantity == 'tau':
                 skewer_rows = self.lya_absorber.tau
+                #If desired, add all metal absorbers.
+                if all_absorbers:
+                    if self.lyb_absorber is not None:
+                        #Shift the skewers according to absorber rest wavelength.
+                        lyb_lam = (10**self.LOGLAM_MAP)*self.lyb_absorber.rest_wave/lya
+                        lyb_skewers = interp1d(lyb_lam,self.lyb_absorber.tau,axis=1,fill_value=(0.,0.),bounds_error=False)(10**self.LOGLAM_MAP)
+                        #Add tau contribution and rest wavelength to header.
+                        skewer_rows += lyb_skewers
+                        header[self.lyb_absorber.HDU_name] = self.lyb_absorber.rest_wave
+                    if self.metals is not None:
+                        for metal in iter(self.metals.values()):
+                            #Shift the skewers according to absorber rest wavelength.
+                            metal_lam = (10**self.LOGLAM_MAP)*metal.rest_wave/lya
+                            metal_skewers = interp1d(metal_lam,metal.tau,axis=1,fill_value=(0.,0.),bounds_error=False)(10**self.LOGLAM_MAP)
+                            #Add tau contribution and rest wavelength to header.
+                            skewer_rows += metal_skewers
+                            header[metal.HDU_name] = metal.rest_wave
             elif quantity == 'flux':
                 skewer_rows = self.lya_absorber.transmission()
+                #If desired, add all metal absorbers.
+                if all_absorbers:
+                    if self.lyb_absorber is not None:
+                        #Shift the skewers according to absorber rest wavelength.
+                        lyb_lam = (10**self.LOGLAM_MAP)*self.lyb_absorber.rest_wave/lya
+                        lyb_skewers = interp1d(lyb_lam,self.lyb_absorber.transmission(),axis=1,fill_value=(1.,1.),bounds_error=False)(10**self.LOGLAM_MAP)
+                        #Add tau contribution and rest wavelength to header.
+                        skewer_rows *= lyb_skewers
+                        header[self.lyb_absorber.HDU_name] = self.lyb_absorber.rest_wave
+                    if self.metals is not None:
+                        for metal in iter(self.metals.values()):
+                            #Shift the skewers according to absorber rest wavelength.
+                            metal_lam = (10**self.LOGLAM_MAP)*metal.rest_wave/lya
+                            metal_skewers = interp1d(metal_lam,metal.transmission(),axis=1,fill_value=(1.,1.),bounds_error=False)(10**self.LOGLAM_MAP)
+                            #Add tau contribution and rest wavelength to header.
+                            skewer_rows *= metal_skewers
+                            header[metal.HDU_name] = metal.rest_wave
 
         #If normalising:
         else:
@@ -845,20 +895,60 @@ class SimulationData:
                 skewer_rows = np.zeros(self.lya_absorber.tau.shape)
                 cells = np.sum(self.IVAR_rows,axis=0)>0
                 #print('min mean tau:',np.min(mean[cells]))
+                skewer_rows[:,cells] = self.lya_absorber.tau[:,cells]
+                #If desired, add all metal absorbers.
+                if all_absorbers:
+                    if self.lyb_absorber is not None:
+                        #Shift the skewers according to absorber rest wavelength.
+                        lyb_lam = (10**self.LOGLAM_MAP)*self.lyb_absorber.rest_wave/lya
+                        lyb_skewers = interp1d(lyb_lam,self.lyb_absorber.tau,axis=1,fill_value=(0.,0.),bounds_error=False)(10**self.LOGLAM_MAP)
+                        #Add tau contribution and rest wavelength to header.
+                        skewer_rows += lyb_skewers
+                        header[self.lyb_absorber.HDU_name] = self.lyb_absorber.rest_wave
+                    if self.metals is not None:
+                        for metal in iter(self.metals.values()):
+                            #Shift the skewers according to absorber rest wavelength.
+                            metal_lam = (10**self.LOGLAM_MAP)*metal.rest_wave/lya
+                            metal_skewers = interp1d(metal_lam,metal.tau,axis=1,fill_value=(0.,0.),bounds_error=False)(10**self.LOGLAM_MAP)
+                            #Add tau contribution and rest wavelength to header.
+                            skewer_rows += metal_skewers
+                            header[metal.HDU_name] = metal.rest_wave
+                #Get mean with redshift.
                 if mean_data is None:
-                    mean = self.get_mean_quantity('tau')
+                    mean = self.get_mean_quantity('tau',all_absorbers=all_absorbers)
                 else:
                     mean = np.interp(self.Z,mean_data['z'],mean_data['mean'])
-                skewer_rows[:,cells] = self.lya_absorber.tau[:,cells]/mean[cells] - 1
+                #Normalise to get deltas
+                skewer_rows[:,cells] = skewer_rows[:,cells]/mean[cells] - 1
             elif quantity == 'flux':
                 skewer_rows = np.zeros(self.lya_absorber.transmission().shape)
                 cells = np.sum(self.IVAR_rows,axis=0)>0
                 #print('min mean flux:',np.min(mean[cells]))
+                skewer_rows[:,cells] = self.lya_absorber.transmission()[:,cells]
+                #If desired, add all metal absorbers.
+                if all_absorbers:
+                    if self.lyb_absorber is not None:
+                        #Shift the skewers according to absorber rest wavelength.
+                        lyb_lam = (10**self.LOGLAM_MAP)*self.lyb_absorber.rest_wave/lya
+                        lyb_skewers = interp1d(lyb_lam,self.lyb_absorber.transmission(),axis=1,fill_value=(1.,1.),bounds_error=False)(10**self.LOGLAM_MAP)
+                        #Add tau contribution and rest wavelength to header.
+                        skewer_rows *= lyb_skewers
+                        header[self.lyb_absorber.HDU_name] = self.lyb_absorber.rest_wave
+                    if self.metals is not None:
+                        for metal in iter(self.metals.values()):
+                            #Shift the skewers according to absorber rest wavelength.
+                            metal_lam = (10**self.LOGLAM_MAP)*metal.rest_wave/lya
+                            metal_skewers = interp1d(metal_lam,metal.transmission(),axis=1,fill_value=(1.,1.),bounds_error=False)(10**self.LOGLAM_MAP)
+                            #Add tau contribution and rest wavelength to header.
+                            skewer_rows *= metal_skewers
+                            header[metal.HDU_name] = metal.rest_wave
+                #Get mean with redshift.
                 if mean_data is None:
-                    mean = self.get_mean_quantity('tau')
+                    mean = self.get_mean_quantity('flux',all_absorbers=all_absorbers)
                 else:
                     mean = np.interp(self.Z,mean_data['z'],mean_data['mean'])
-                skewer_rows[:,cells] = self.lya_absorber.transmission()[:,cells]/mean[cells] - 1
+                #Normalise to get deltas
+                skewer_rows[:,cells] = skewer_rows[:,cells]/mean[cells] - 1
 
         #Determine the relevant QSOs: those that have relevant cells (IVAR > 0) beyond the first_relevant_cell.
         #We impose a minimum number of cells per skewer here to avoid problems with picca.
