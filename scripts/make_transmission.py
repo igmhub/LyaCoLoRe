@@ -85,7 +85,10 @@ parser.add_argument('--add-Lyb', action="store_true", default = False, required=
                     help = 'add Lyman-beta absorption to TRANSMISSION HDU')
 
 parser.add_argument('--add-metals', action="store_true", default = False, required=False,
-                    help = 'add METALS HDU with metal absorption')
+                    help = 'include metal absorbers in the transmission files')
+
+parser.add_argument('--picca-all-absorbers', action="store_true", default = False, required=False,
+                    help = 'combine all absorbers in the picca tau and flux files')
 
 parser.add_argument('--include-thermal-effects', action="store_true", default = False, required=False,
                     help = 'add thermal RSDs to the transmission file')
@@ -168,6 +171,7 @@ dla_bias_method = args.DLA_bias_method
 add_RSDs = args.add_RSDs
 add_Lyb = args.add_Lyb
 add_metals = args.add_metals
+picca_all_absorbers = args.picca_all_absorbers
 include_thermal_effects = args.include_thermal_effects
 retune_small_scale_fluctuations = args.retune_small_scale_fluctuations
 tuning_file = args.tuning_file
@@ -505,11 +509,11 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
 
         #Picca tau
         filename = utils.get_file_name(location,'picca-tau-noRSD-notnorm',N_side,pixel)
-        pixel_object.save_as_picca_delta('tau',filename,header,notnorm=True,overwrite=overwrite,add_QSO_RSDs=False,compress=compress)
+        pixel_object.save_as_picca_delta('tau',filename,header,notnorm=True,overwrite=overwrite,add_QSO_RSDs=False,compress=compress,all_absorbers=picca_all_absorbers)
 
         #Picca flux
         filename = utils.get_file_name(location,'picca-flux-noRSD-notnorm',N_side,pixel)
-        pixel_object.save_as_picca_delta('flux',filename,header,notnorm=True,overwrite=overwrite,add_QSO_RSDs=False,compress=compress)
+        pixel_object.save_as_picca_delta('flux',filename,header,notnorm=True,overwrite=overwrite,add_QSO_RSDs=False,compress=compress,all_absorbers=picca_all_absorbers)
 
         #Save the no RSD statistics file for this pixel.
         filename = utils.get_file_name(location,'statistics-noRSD',N_side,pixel)
@@ -540,11 +544,11 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
     if transmission_only == False:
         #Picca tau
         filename = utils.get_file_name(location,'picca-tau-notnorm',N_side,pixel)
-        pixel_object.save_as_picca_delta('tau',filename,header,notnorm=True,overwrite=overwrite,add_QSO_RSDs=add_QSO_RSDs,compress=compress)
+        pixel_object.save_as_picca_delta('tau',filename,header,notnorm=True,overwrite=overwrite,add_QSO_RSDs=add_QSO_RSDs,compress=compress,all_absorbers=picca_all_absorbers)
 
         #Picca flux
         filename = utils.get_file_name(location,'picca-flux-notnorm',N_side,pixel)
-        pixel_object.save_as_picca_delta('flux',filename,header,notnorm=True,overwrite=overwrite,add_QSO_RSDs=add_QSO_RSDs,compress=compress)
+        pixel_object.save_as_picca_delta('flux',filename,header,notnorm=True,overwrite=overwrite,add_QSO_RSDs=add_QSO_RSDs,compress=compress,all_absorbers=picca_all_absorbers)
 
         #Save the final statistics file for this pixel.
         filename = utils.get_file_name(location,'statistics',N_side,pixel)
