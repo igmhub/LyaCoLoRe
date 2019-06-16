@@ -568,7 +568,7 @@ class SimulationData:
         return
 
     #Function to measure mean flux.
-    def get_mean_quantity(self,quantity,z_value=None,z_width=None,single_value=True,power=1,all_absorbers=False):
+    def get_mean_quantity(self,quantity,z_value=None,z_width=None,single_value=True,power=1,all_absorbers=True):
 
         if quantity == 'gaussian':
             skewer_rows = self.GAUSSIAN_DELTA_rows ** power
@@ -1146,26 +1146,26 @@ class SimulationData:
         return
 
     #Function to calculate the mean and variance of the different quantities as a function of Z.
-    def get_means(self):
+    def get_means(self,all_absorbers=True):
 
         #For each cell, determine the number of skewers for which it is relevant.
         N_skewers = np.sum(self.IVAR_rows,axis=0)
 
         #Calculate the mean in each cell of the gaussian delta and its square.
-        GM = self.get_mean_quantity('gaussian')
-        GSM = self.get_mean_quantity('gaussian',power=2.)
+        GM = self.get_mean_quantity('gaussian',all_absorbers=all_absorbers)
+        GSM = self.get_mean_quantity('gaussian',power=2.,all_absorbers=all_absorbers)
 
         #Calculate the mean in each cell of the density delta and its square.
-        DM = self.get_mean_quantity('density')
-        DSM = self.get_mean_quantity('density',power=2.)
+        DM = self.get_mean_quantity('density',all_absorbers=all_absorbers)
+        DSM = self.get_mean_quantity('density',power=2.,all_absorbers=all_absorbers)
 
         #Calculate the mean in each cell of the tau and its square.
-        TM = self.get_mean_quantity('tau')
-        TSM = self.get_mean_quantity('tau',power=2.)
+        TM = self.get_mean_quantity('tau',all_absorbers=all_absorbers)
+        TSM = self.get_mean_quantity('tau',power=2.,all_absorbers=all_absorbers)
 
         #Calculate the mean in each cell of the flux and its square.
-        FM = self.get_mean_quantity('flux')
-        FSM = self.get_mean_quantity('flux',power=2.)
+        FM = self.get_mean_quantity('flux',all_absorbers=all_absorbers)
+        FSM = self.get_mean_quantity('flux',power=2.,all_absorbers=all_absorbers)
 
         #Calculate the mean in each cell of the flux delta and its square.
         #FDB = np.average(relevant_delta_F,weights=relevant_IVAR+small,axis=0)*relevant_cells
@@ -1180,9 +1180,9 @@ class SimulationData:
         return means
 
     #Function to save the means as a function of z.
-    def save_statistics(self,filepath,overwrite=False,compress=True):
+    def save_statistics(self,filepath,overwrite=False,compress=True,all_absorbers=True):
 
-        means = self.get_means()
+        means = self.get_means(all_absorbers=all_absorbers)
         statistics = stats.means_to_statistics(means)
         stats.write_statistics(filepath,statistics,overwrite=overwrite,compress=compress)
 
