@@ -42,6 +42,9 @@ parser.add_argument('--compress', action="store_true", default = False, required
 parser.add_argument('--transmission-only', action="store_true", default = False, required=False,
                     help = 'save only the transmission file')
 
+parser.add_argument('--add-picca-DLA-drqs', action="store_true", default = False, required=False,
+                    help = 'save picca format drq files for DLAs')
+
 args = parser.parse_args()
 
 base_dir = args.base_dir
@@ -57,6 +60,7 @@ overwrite = args.overwrite
 compressed_input = args.compressed_input
 compress = args.compress
 transmission_only = args.transmission_only
+add_picca_DLA_drqs = args.add_picca_DLA_drqs
 
 ################################################################################
 
@@ -107,6 +111,11 @@ if __name__ == '__main__':
 #Make the DLA master file
 filename = base_dir + '/master_DLA.fits'
 DLA.write_DLA_master(results,filename,N_side,overwrite=overwrite)
+
+#Write DLA data to picca DRQ format files if desired.
+if add_picca_DLA_drqs:
+    DLA.write_DLA_master(results,filename,N_side,overwrite=overwrite,picca_DRQ=True,add_DRQ_RSDs=True)
+    DLA.write_DLA_master(results,filename,N_side,overwrite=overwrite,picca_DRQ=True,add_DRQ_RSDs=False)
 
 ################################################################################
 """
@@ -225,7 +234,7 @@ if not transmission_only:
                 else:
                     out = utils.get_file_name(dirname,'picca-'+q+'-noRSD-rebin-{}'.format(N_merge),N_side,pixel)
                 #print(out)
-                utils.renorm_rebin_picca_file(filename,old_mean=old_mean,new_mean=new_mean,N_merge=N_merge,out_filepath=out,overwrite=overwrite)
+                utils.renorm_rebin_picca_file(filename,old_mean=old_mean,new_mean=new_mean,N_merge=N_merge,out_filepath=out,overwrite=overwrite,compress=compress)
                 #print('--> {:1.3f}s'.format(time.time()-t))
 
                 #print('rebin/renorm-ing {} RSD file'.format(q))
@@ -240,7 +249,7 @@ if not transmission_only:
                 else:
                     out = utils.get_file_name(dirname,'picca-'+q+'-rebin-{}'.format(N_merge),N_side,pixel)
                 #print(out)
-                utils.renorm_rebin_picca_file(filename,old_mean=old_mean,new_mean=new_mean,N_merge=N_merge,out_filepath=out,overwrite=overwrite)
+                utils.renorm_rebin_picca_file(filename,old_mean=old_mean,new_mean=new_mean,N_merge=N_merge,out_filepath=out,overwrite=overwrite,compress=compress)
                 #print('--> {:1.3f}s'.format(time.time()-t))
 
         return

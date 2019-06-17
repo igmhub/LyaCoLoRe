@@ -284,9 +284,27 @@ def get_DLA_data_from_transmission(pixel,filename):
 
     return DLA_data
 
-def write_DLA_master(DLA_data_list,filename,N_side,overwrite=False):
+def write_DLA_master(DLA_data_list,filename,N_side,overwrite=False,picca_DRQ=False,add_DRQ_RSDs=True):
 
     DLA_master_data = np.concatenate(DLA_data_list)
+
+    if picca_DRQ:
+        if add_DRQ_RSDs:
+            DRQ_RSD_option = 'RSD'
+        else:
+            DRQ_RSD_option = 'NO_RSD'
+        RA = DLA_master_data['RA']
+        DEC = DLA_master_data['DEC']
+        Z = DLA_master_data['Z_DLA_'+DRQ_RSD_option]
+        THING_ID = DLA_master_data['MOCKID']
+        MJD = np.zeros(RA.shape[0])
+        FID = np.zeros(RA.shape[0])
+        PLATE = THING_ID
+        PIXNUM = DLA_master_data['PIXNUM']
+   
+        #Make the data array.
+        dtype = [('RA','f4'),('DEC','f4'),('Z','f4'),('THING_ID',int),('MJD','f4'),('FIBERID',int),('PLATE',int),('PIXNUM',int)]
+        DLA_master_data = np.array(list(zip(RA,DEC,Z,THING_ID,MJD,FID,PLATE,PIXNUM)),dtype=dtype)
 
     #Make an appropriate header.
     header = fits.Header()
