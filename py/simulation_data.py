@@ -587,10 +587,10 @@ class SimulationData:
             skewer_rows = self.lya_absorber.transmission()
             if all_absorbers:
                 if self.lyb_absorber is not None:
-                    skewer_rows += self.lyb_absorber.transmission()
+                    skewer_rows *= self.lyb_absorber.transmission()
                 if self.metals is not None:
                     for metal in iter(self.metals.values()):
-                        skewer_rows += metal.transmission()
+                        skewer_rows *= metal.transmission()
             skewer_rows = skewer_rows ** power
         elif quantity == 'FlnF':
             #Use that ln(F)=-tau so FlnF = -F*tau
