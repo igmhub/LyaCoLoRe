@@ -462,7 +462,7 @@ def make_wedge_plots(corr_objects,mu_boundaries,plot_system,r_power,fit_type='pi
             plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
 
             for i,mu_bin in enumerate(mu_bins):
-                plot_label = '{}<mu<{}'.format(mu_bin[0],mu_bin[1])
+                plot_label = r'{}<$\mu$<{}'.format(mu_bin[0],mu_bin[1])
                 corr_object.plot_wedge(mu_bin,plot_label,r_power,colours[i])
                 if fit_type == 'picca':
                     plot_label += ' (fit)'
