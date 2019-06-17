@@ -128,7 +128,7 @@ Get the data
 """
 
 if args.Pk1D_data is None:
-    print('Assembling the skewers data...')
+    print('Getting Pk1D from each pixel...')
 
     #Get z and R along the skewers.
     m = fits.open(base_dir+'/master.fits')
@@ -146,14 +146,20 @@ if args.Pk1D_data is None:
     dr_hMpc = (R[-1] - R[0])/(R.shape[0] - 1)
 
     #Function to get deltas and ivar from each pixel.
-    def get_pixel_data(pixel):
+    def get_pixel_P1D(pixel):
         dirname = utils.get_dir_name(base_dir,pixel)
         filename = utils.get_file_name(dirname,'picca-'+file_type,N_side,pixel,compressed=args.compressed_input)
         h = fits.open(filename)
         delta_rows = h[0].data.T
         ivar_rows = h[1].data.T
         z = 10**(h[2].data)/lya - 1
-        return (delta_rows,ivar_rows,z)
+        Pk1D_results = {}
+        for z_value in z_values:
+            k, Pk, var = Pk1D.get_Pk1D(delta_rows,ivar_rows,dr_hMpc,z,z_value=z_value
+                                    ,z_width=z_width,units=units,R1=smoothing_radius
+                                    ,gaussian=gaussian)
+            Pk1D_results[z_value] = {'k':k, 'Pk':Pk, 'var':var}
+        return (pixel,Pk1D_results)
 
     tasks = [(pixel,) for pixel in pixels]
 
@@ -170,18 +176,35 @@ if args.Pk1D_data is None:
         pool.join()
 
     #Combine the results from each pixel.
+    Pk1D_results = {}
+    for z_value in z_values:
+        #This assumes each pixel has the same weight. Ideally would have different weights for each k-mode from each pixel.
+        N = 1
+        P_sum = results[0][1]['Pk']
+        P2_sum = results[0][1]['Pk']**2
+        for result in results[1:]:
+            N += 1
+            P_sum += result[1]['Pk']
+            P2_sum += result[1]['Pk']**2
+        Pk1D_zval_results = {'k': result[1]['k'],
+                            'Pk': P_sum/N,
+                            'var': (P2_sum/N - (P_sum/N)**2)}
+        Pk1D_results[z_value] = Pk1D_zval_results
+
+    """
     delta_rows = results[0][0]
     ivar_rows = results[0][1]
     z = results[0][2]
     for result in results[1:]:
         delta_rows = np.append(delta_rows,result[0],axis=0)
         ivar_rows = np.append(ivar_rows,result[1],axis=0)
+    """
 
 ################################################################################
 """
 Compute the P1D
 """
-
+"""
 Pk1D_results = {}
 if args.Pk1D_data is None:
     print('Computing the 1D power spectrum...')
@@ -197,7 +220,7 @@ else:
     Pk1D_data = fits.open(args.Pk1D_data)
     for hdu in Pk1D_data[1:]:
         Pk1D_results[float(hdu.name)] = {'k':hdu.data['k'], 'Pk':hdu.data['Pk'], 'var':hdu.data['var']}
-
+"""
 ################################################################################
 """
 Make a plot.
