@@ -39,7 +39,7 @@ corr_type = args.corr_type
 if args.files:
     file_list = [base_in_dir+f for f in args.files]
 else:
-    file_list = glob.glob(base_in_dir+'/'+corr_type+'*.fits.gz')
+    file_list = glob.glob(base_in_dir+'/'+corr_type+'_[0123456789]*.fits.gz')
 overwrite = args.overwrite
 
 ################################################################################
