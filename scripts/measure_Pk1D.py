@@ -66,8 +66,26 @@ parser.add_argument('--k-min-plot', type = float, default = 0.001, required=Fals
 parser.add_argument('--k-max-plot', type = float, default = 0.02, required=False,
                     help = 'max value of k to plot')
 
+parser.add_argument('--N-k-values', type = int, default = None, required=False,
+                    help = 'number of values of k to plot')
+
 parser.add_argument('--Pk1D-data', type = str, default = None, required=False,
                     help = 'previously calculated Pk1d')
+
+parser.add_argument('--k-plot-power', type = float, default = 0.0, required=False,
+                    help = 'power of k by which to multiply Pk1D')
+
+parser.add_argument('--add-error-areas', action="store_true", default = False, required=False,
+                    help = 'plot errors in the form of a filled area')
+
+parser.add_argument('--add-error-bars', action="store_true", default = False, required=False,
+                    help = 'plot errors in the form of error bars')
+
+parser.add_argument('--add-model-interval-areas', type = float, default = None, required=False,
+                    help = 'plot areas of +/- %age on model values')
+
+parser.add_argument('--add-model-interval-lines', type = float, default = None, required=False,
+                    help = 'plot lines of +/- %age on model values')
 
 ################################################################################
 
@@ -102,6 +120,7 @@ else:
     N_pix = 12*N_side**2
 
 colours = ['C0','C1','C2','C3','C4','C5','C6','C7','C8','C9'] * 2
+fontsize = 14
 
 ################################################################################
 
@@ -170,7 +189,7 @@ if args.Pk1D_data is None:
         start_time = time.time()
 
         for task in tasks:
-            pool.apply_async(get_pixel_data,task,callback=log_result,error_callback=log_error)
+            pool.apply_async(get_pixel_P1D,task,callback=log_result,error_callback=log_error)
 
         pool.close()
         pool.join()
@@ -180,13 +199,13 @@ if args.Pk1D_data is None:
     for z_value in z_values:
         #This assumes each pixel has the same weight. Ideally would have different weights for each k-mode from each pixel.
         N = 1
-        P_sum = results[0][1]['Pk']
-        P2_sum = results[0][1]['Pk']**2
+        P_sum = results[0][1][z_value]['Pk']
+        P2_sum = results[0][1][z_value]['Pk']**2
         for result in results[1:]:
             N += 1
-            P_sum += result[1]['Pk']
-            P2_sum += result[1]['Pk']**2
-        Pk1D_zval_results = {'k': result[1]['k'],
+            P_sum += result[1][z_value]['Pk']
+            P2_sum += result[1][z_value]['Pk']**2
+        Pk1D_zval_results = {'k': result[1][z_value]['k'],
                             'Pk': P_sum/N,
                             'var': (P2_sum/N - (P_sum/N)**2)}
         Pk1D_results[z_value] = Pk1D_zval_results
@@ -204,7 +223,7 @@ if args.Pk1D_data is None:
 """
 Compute the P1D
 """
-"""
+
 Pk1D_results = {}
 if args.Pk1D_data is None:
     print('Computing the 1D power spectrum...')
@@ -219,8 +238,10 @@ else:
     print('Loading pre-computed 1D power spectrum...')
     Pk1D_data = fits.open(args.Pk1D_data)
     for hdu in Pk1D_data[1:]:
-        Pk1D_results[float(hdu.name)] = {'k':hdu.data['k'], 'Pk':hdu.data['Pk'], 'var':hdu.data['var']}
-"""
+        z_value = float(hdu.name)
+        if z_value in z_values: 
+            Pk1D_results[float(hdu.name)] = {'k':hdu.data['k'], 'Pk':hdu.data['Pk'], 'var':hdu.data['var']}
+
 ################################################################################
 """
 Make a plot.
@@ -228,15 +249,17 @@ Make a plot.
 
 #Plot the power spectra
 def plot_P1D_values(Pk1D_results,show_plot=True):
-    plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
+    plt.figure(figsize=(8, 6), dpi= 80, facecolor='w', edgecolor='k')
+    plt.rc('xtick',labelsize=fontsize)
+    plt.rc('ytick',labelsize=fontsize)
 
     #Extract the z values and sort them.
     z_values = np.array([key for key in Pk1D_results.keys()])
     z_values.sort()
 
     #Set up to record the max/min values of P so we can set axis scales well.
-    P_model_min = 10**10.
-    P_model_max = 0.
+    plot_model_min = 10**10.
+    plot_model_max = 0.
 
     #For each z value, plot Pk1D and a model line.
     for i,z_value in enumerate(z_values):
@@ -251,19 +274,44 @@ def plot_P1D_values(Pk1D_results,show_plot=True):
         k_rel = (k>args.k_min_plot) * (k<args.k_max_plot)
 
         #Plot the result and a "model" comparison +/-10%
-        plt.loglog(k,Pk,label='z={}'.format(z_value),c=colour)
-        #plt.errorbar(k,Pk,yerr=np.sqrt(var),label='z={}'.format(z_value),c=colour)
+        #plt.loglog(k,Pk,label='z={}'.format(z_value),c=colour)
+        to_plot_data = Pk * (k ** args.k_plot_power)
+        to_plot_data_err = np.sqrt(var) * (k ** args.k_plot_power)
+        if args.add_error_bars:
+            if args.N_k_values is not None:
+                #Extract the k values we want to plot.
+                N_rel = np.sum(k_rel)
+                N_low = np.sum(k<args.k_min_plot)
+                ind_orig = np.arange(N_low,N_low+N_rel,1)
+                spacing = N_rel // args.N_k_values
+                ind = ind_orig[(ind_orig % spacing) == 0]
+                print(k.shape,Pk.shape,ind.shape)
+                plt.errorbar(k[ind],to_plot_data[ind],yerr=to_plot_data_err[ind],label='z={}'.format(z_value),c=colour,fmt='o')
+            else:
+                plt.errorbar(k,to_plot_data,yerr=to_plot_data_err,label='z={}'.format(z_value),c=colour,fmt='o')
+        elif args.add_error_areas:
+            plt.plot(k,to_plot_data,label='z={}'.format(z_value),c=colour)
+            plt.fill_between(k,to_plot_data+to_plot_data_err,to_plot_data-to_plot_data_err,color=colour,alpha=0.2)
+        else:
+            plt.plot(k,to_plot_data,label='z={}'.format(z_value),c=colour)
         plt.semilogx()
         plt.semilogy()
 
         if 'flux' in file_type:
             model_Pk_kms = tuning.P1D_z_kms_PD2013(z_value,k)
-            plt.plot(k,model_Pk_kms,c=colour,linestyle=':')
-            #plt.loglog(k,model_Pk_kms,label='DR9 z={}'.format(key),c=colour,linestyle=':')
-            #plt.loglog(k,model_Pk_kms*0.9,color=[0.5,0.5,0.5],alpha=0.5)
-            #plt.loglog(k,model_Pk_kms*1.1,color=[0.5,0.5,0.5],alpha=0.5)
-            P_model_min = np.minimum(P_model_min,np.min(model_Pk_kms[k_rel]))
-            P_model_max = np.maximum(P_model_max,np.max(model_Pk_kms[k_rel]))
+            to_plot_model = model_Pk_kms * (k ** args.k_plot_power)
+            plt.plot(k,to_plot_model,c=colour,linestyle='--')
+            if args.add_model_interval_areas is not None:
+                to_plot_lower = to_plot_model * (1 - args.add_model_interval_areas)
+                to_plot_upper = to_plot_model * (1 + args.add_model_interval_areas)
+                plt.fill_between(k,to_plot_upper,to_plot_lower,color=colour,alpha=0.2)
+            elif args.add_model_interval_lines is not None:
+                to_plot_lower = to_plot_model * (1 - args.add_model_interval_lines)
+                to_plot_upper = to_plot_model * (1 + args.add_model_interval_lines)
+                plt.plot(k,to_plot_upper,color=colour,linestyle=':')
+                plt.plot(k,to_plot_lower,color=colour,linestyle=':')
+            plot_model_min = np.minimum(plot_model_min,np.min(to_plot_model[k_rel]))
+            plot_model_max = np.maximum(plot_model_max,np.max(to_plot_model[k_rel]))
 
         #plt.errorbar(k,Pk,yerr=np.sqrt(var),label='z={}'.format(key),marker='o',c=colour)
         #model_Pk_kms = tuning.P1D_z_kms_PD2013(key,k)
@@ -274,20 +322,26 @@ def plot_P1D_values(Pk1D_results,show_plot=True):
     #plt.semilogy()
     #plt.semilogx()
 
-    ylim_lower = P_model_min * 0.8
-    ylim_upper = P_model_max * 1.2
+    space = 0.1
+    ylim_lower = plot_model_min * (1 - space)
+    ylim_upper = plot_model_max * (1 + space)
     plt.xlim(args.k_min_plot,args.k_max_plot)
     plt.ylim(ylim_lower,ylim_upper)
 
-    plt.grid()
-    plt.legend(fontsize=12)
-    plt.ylabel(r'$P_{1D}$',fontsize=12)
+    #plt.grid()
+    plt.legend(fontsize=fontsize)
+    ylabel = r'$P_{1D}$'
+    if args.k_plot_power == 1 :
+        ylabel = r'$k P_{{1D}}(k)\ /\ (kms^{{-1}})^{{-{:d}}}$'.format(int(args.k_plot_power))
+    elif args.k_plot_power > 1 :
+        ylabel = r'$k^{:d} P_{{1D}}(k)\ /\ (kms^{{-1}})^{{-{:d}}}$'.format(int(args.k_plot_power),int(args.k_plot_power))
+    plt.ylabel(ylabel,fontsize=fontsize)
     if units == 'km/s':
-        plt.xlabel(r'$k\ /\ (kms^{-1})^{-1}$',fontsize=12)
+        plt.xlabel(r'$k\ /\ (kms^{-1})^{-1}$',fontsize=fontsize)
     elif units == 'Mpc/h':
-        plt.xlabel(r'$k\ /\ (Mpch^{-1})^{-1}$',fontsize=12)
+        plt.xlabel(r'$k\ /\ (Mpch^{-1})^{-1}$',fontsize=fontsize)
     filename = 'Pk1D_{}_{}.pdf'.format(file_type,N_pixels)
-    plt.savefig('Pk1D_{}.pdf'.format(file_type))
+    plt.savefig('Pk1D_k{}_vs_k_{}.pdf'.format(int(args.k_plot_power),file_type))
     if show_plot:
         plt.show()
     return
