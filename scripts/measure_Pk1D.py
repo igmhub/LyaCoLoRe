@@ -66,6 +66,9 @@ parser.add_argument('--k-min-plot', type = float, default = 0.001, required=Fals
 parser.add_argument('--k-max-plot', type = float, default = 0.02, required=False,
                     help = 'max value of k to plot')
 
+parser.add_argument('--Pk1D-data', type = str, default = None, required=False,
+                    help = 'previously calculated Pk1d')
+
 ################################################################################
 
 print('setup arguments from parser')
@@ -82,7 +85,7 @@ if not pixels:
     pixels = list(range(12*N_side**2))
 N_pixels = len(pixels)
 N_processes = args.nproc
-z_values = args.z_values
+z_values = np.array(args.z_values)
 z_width = args.z_width
 file_type = args.file_type
 units = args.units
@@ -124,69 +127,76 @@ def log_error(retval):
 Get the data
 """
 
-print('Assembling the skewers data...')
+if args.Pk1D_data is None:
+    print('Assembling the skewers data...')
 
-#Get z and R along the skewers.
-m = fits.open(base_dir+'/master.fits')
-if 'colorecell' in file_type:
-    z = m['COSMO_COL'].data['Z']
-    R = m['COSMO_COL'].data['R']
-else:
-    z = m['COSMO_EXP'].data['Z']
-    R = m['COSMO_EXP'].data['R']
-m.close()
+    #Get z and R along the skewers.
+    m = fits.open(base_dir+'/master.fits')
+    if 'colorecell' in file_type:
+        z = m['COSMO_COL'].data['Z']
+        R = m['COSMO_COL'].data['R']
+    else:
+        z = m['COSMO_EXP'].data['Z']
+        R = m['COSMO_EXP'].data['R']
+    m.close()
 
-#Determine if we're looking at the Gaussian skewers.
-gaussian = ('colorecell' in file_type)
+    #Determine if we're looking at the Gaussian skewers.
+    gaussian = ('colorecell' in file_type)
 
-dr_hMpc = (R[-1] - R[0])/(R.shape[0] - 1)
+    dr_hMpc = (R[-1] - R[0])/(R.shape[0] - 1)
 
-#Function to get deltas and ivar from each pixel.
-def get_pixel_data(pixel):
-    dirname = utils.get_dir_name(base_dir,pixel)
-    filename = utils.get_file_name(dirname,'picca-'+file_type,N_side,pixel,compressed=args.compressed_input)
-    h = fits.open(filename)
-    delta_rows = h[0].data.T
-    ivar_rows = h[1].data.T
-    z = 10**(h[2].data)/lya - 1
-    return (delta_rows,ivar_rows,z)
+    #Function to get deltas and ivar from each pixel.
+    def get_pixel_data(pixel):
+        dirname = utils.get_dir_name(base_dir,pixel)
+        filename = utils.get_file_name(dirname,'picca-'+file_type,N_side,pixel,compressed=args.compressed_input)
+        h = fits.open(filename)
+        delta_rows = h[0].data.T
+        ivar_rows = h[1].data.T
+        z = 10**(h[2].data)/lya - 1
+        return (delta_rows,ivar_rows,z)
 
-tasks = [(pixel,) for pixel in pixels]
+    tasks = [(pixel,) for pixel in pixels]
 
-#Run the multiprocessing pool
-if __name__ == '__main__':
-    pool = Pool(processes = N_processes)
-    results = []
-    start_time = time.time()
+    #Run the multiprocessing pool
+    if __name__ == '__main__':
+        pool = Pool(processes = N_processes)
+        results = []
+        start_time = time.time()
 
-    for task in tasks:
-        pool.apply_async(get_pixel_data,task,callback=log_result,error_callback=log_error)
+        for task in tasks:
+            pool.apply_async(get_pixel_data,task,callback=log_result,error_callback=log_error)
 
-    pool.close()
-    pool.join()
+        pool.close()
+        pool.join()
 
-#Combine the results from each pixel.
-delta_rows = results[0][0]
-ivar_rows = results[0][1]
-z = results[0][2]
-for result in results[1:]:
-    delta_rows = np.append(delta_rows,result[0],axis=0)
-    ivar_rows = np.append(ivar_rows,result[1],axis=0)
+    #Combine the results from each pixel.
+    delta_rows = results[0][0]
+    ivar_rows = results[0][1]
+    z = results[0][2]
+    for result in results[1:]:
+        delta_rows = np.append(delta_rows,result[0],axis=0)
+        ivar_rows = np.append(ivar_rows,result[1],axis=0)
 
 ################################################################################
 """
 Compute the P1D
 """
 
-print('Computing the 1D power spectrum...')
-
 Pk1D_results = {}
-for i,z_value in enumerate(z_values):
-    #print(z_value,delta_rows.shape,ivar_rows.shape,R.shape,z.shape)
-    k, Pk, var = Pk1D.get_Pk1D(delta_rows,ivar_rows,dr_hMpc,z,z_value=z_value
-                            ,z_width=z_width,units=units,R1=smoothing_radius
-                            ,gaussian=gaussian)
-    Pk1D_results[z_value] = {'k':k, 'Pk':Pk, 'var':var}
+if args.Pk1D_data is None:
+    print('Computing the 1D power spectrum...')
+
+    for i,z_value in enumerate(z_values):
+        #print(z_value,delta_rows.shape,ivar_rows.shape,R.shape,z.shape)
+        k, Pk, var = Pk1D.get_Pk1D(delta_rows,ivar_rows,dr_hMpc,z,z_value=z_value
+                                ,z_width=z_width,units=units,R1=smoothing_radius
+                                ,gaussian=gaussian)
+        Pk1D_results[z_value] = {'k':k, 'Pk':Pk, 'var':var}
+else:
+    print('Loading pre-computed 1D power spectrum...')
+    Pk1D_data = fits.open(args.Pk1D_data)
+    for hdu in Pk1D_data[1:]:
+        Pk1D_results[float(hdu.name)] = {'k':hdu.data['k'], 'Pk':hdu.data['Pk'], 'var':hdu.data['var']}
 
 ################################################################################
 """
@@ -197,21 +207,40 @@ Make a plot.
 def plot_P1D_values(Pk1D_results,show_plot=True):
     plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
 
-    for key in Pk1D_results.keys():
+    #Extract the z values and sort them.
+    z_values = np.array([key for key in Pk1D_results.keys()])
+    z_values.sort()
+
+    #Set up to record the max/min values of P so we can set axis scales well.
+    P_model_min = 10**10.
+    P_model_max = 0.
+
+    #For each z value, plot Pk1D and a model line.
+    for i,z_value in enumerate(z_values):
 
         #Extract the data from the results dictionary.
-        k = Pk1D_results[key]['k']
-        Pk = Pk1D_results[key]['Pk']
-        var = Pk1D_results[key]['var']
-        colour = colours[np.searchsorted(z_values,key)]
+        k = Pk1D_results[z_value]['k']
+        Pk = Pk1D_results[z_value]['Pk']
+        var = Pk1D_results[z_value]['var']
+        colour = colours[i]
+
+        #Get the relevant k values for this plot.
+        k_rel = (k>args.k_min_plot) * (k<args.k_max_plot)
 
         #Plot the result and a "model" comparison +/-10%
-        plt.loglog(k,Pk,label='z={}'.format(key),c=colour)
+        plt.loglog(k,Pk,label='z={}'.format(z_value),c=colour)
+        #plt.errorbar(k,Pk,yerr=np.sqrt(var),label='z={}'.format(z_value),c=colour)
+        plt.semilogx()
+        plt.semilogy()
+
         if 'flux' in file_type:
-            model_Pk_kms = tuning.P1D_z_kms_PD2013(key,k)
-            plt.loglog(k,model_Pk_kms,label='DR9 z={}'.format(key),c=colour,linestyle=':')
-            plt.loglog(k,model_Pk_kms*0.9,color=[0.5,0.5,0.5],alpha=0.5)
-            plt.loglog(k,model_Pk_kms*1.1,color=[0.5,0.5,0.5],alpha=0.5)
+            model_Pk_kms = tuning.P1D_z_kms_PD2013(z_value,k)
+            plt.plot(k,model_Pk_kms,c=colour,linestyle=':')
+            #plt.loglog(k,model_Pk_kms,label='DR9 z={}'.format(key),c=colour,linestyle=':')
+            #plt.loglog(k,model_Pk_kms*0.9,color=[0.5,0.5,0.5],alpha=0.5)
+            #plt.loglog(k,model_Pk_kms*1.1,color=[0.5,0.5,0.5],alpha=0.5)
+            P_model_min = np.minimum(P_model_min,np.min(model_Pk_kms[k_rel]))
+            P_model_max = np.maximum(P_model_max,np.max(model_Pk_kms[k_rel]))
 
         #plt.errorbar(k,Pk,yerr=np.sqrt(var),label='z={}'.format(key),marker='o',c=colour)
         #model_Pk_kms = tuning.P1D_z_kms_PD2013(key,k)
@@ -222,10 +251,10 @@ def plot_P1D_values(Pk1D_results,show_plot=True):
     #plt.semilogy()
     #plt.semilogx()
 
-    #ylim_lower = min(model_Pk_kms) * 0.8
-    #ylim_upper = max(model_Pk_kms) * 1.2
+    ylim_lower = P_model_min * 0.8
+    ylim_upper = P_model_max * 1.2
     plt.xlim(args.k_min_plot,args.k_max_plot)
-    #plt.ylim(ylim_lower,ylim_upper)
+    plt.ylim(ylim_lower,ylim_upper)
 
     plt.grid()
     plt.legend(fontsize=12)
