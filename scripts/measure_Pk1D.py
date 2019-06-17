@@ -57,6 +57,15 @@ parser.add_argument('--smoothing-radius', type = float, default = 25.0, required
 parser.add_argument('--overwrite', action="store_true", default = False, required=False,
                     help = 'overwrite existing files')
 
+parser.add_argument('--compressed-input', action="store_true", default = False, required=False,
+                    help = 'compress output files to .fits.gz')
+
+parser.add_argument('--k-min-plot', type = float, default = 0.001, required=False,
+                    help = 'min value of k to plot')
+
+parser.add_argument('--k-max-plot', type = float, default = 0.02, required=False,
+                    help = 'max value of k to plot')
+
 ################################################################################
 
 print('setup arguments from parser')
@@ -135,7 +144,7 @@ dr_hMpc = (R[-1] - R[0])/(R.shape[0] - 1)
 #Function to get deltas and ivar from each pixel.
 def get_pixel_data(pixel):
     dirname = utils.get_dir_name(base_dir,pixel)
-    filename = utils.get_file_name(dirname,'picca-'+file_type,N_side,pixel)
+    filename = utils.get_file_name(dirname,'picca-'+file_type,N_side,pixel,compressed=args.compressed_input)
     h = fits.open(filename)
     delta_rows = h[0].data.T
     ivar_rows = h[1].data.T
@@ -215,6 +224,7 @@ def plot_P1D_values(Pk1D_results,show_plot=True):
 
     #ylim_lower = min(model_Pk_kms) * 0.8
     #ylim_upper = max(model_Pk_kms) * 1.2
+    plt.xlim(args.k_min_plot,args.k_max_plot)
     #plt.ylim(ylim_lower,ylim_upper)
 
     plt.grid()
