@@ -121,6 +121,8 @@ else:
 
 colours = ['C0','C1','C2','C3','C4','C5','C6','C7','C8','C9'] * 2
 fontsize = 14
+plt.rc('xtick',labelsize=fontsize)
+plt.rc('ytick',labelsize=fontsize)
 
 ################################################################################
 
@@ -143,9 +145,10 @@ def log_error(retval):
 
 ################################################################################
 """
-Get the data
+Get P1D
 """
 
+Pk1D_results = {}
 if args.Pk1D_data is None:
     print('Getting Pk1D from each pixel...')
 
@@ -195,7 +198,6 @@ if args.Pk1D_data is None:
         pool.join()
 
     #Combine the results from each pixel.
-    Pk1D_results = {}
     for z_value in z_values:
         #This assumes each pixel has the same weight. Ideally would have different weights for each k-mode from each pixel.
         N = 1
@@ -209,38 +211,53 @@ if args.Pk1D_data is None:
                             'Pk': P_sum/N,
                             'var': (P2_sum/N - (P_sum/N)**2)}
         Pk1D_results[z_value] = Pk1D_zval_results
-
-    """
-    delta_rows = results[0][0]
-    ivar_rows = results[0][1]
-    z = results[0][2]
-    for result in results[1:]:
-        delta_rows = np.append(delta_rows,result[0],axis=0)
-        ivar_rows = np.append(ivar_rows,result[1],axis=0)
-    """
-
-################################################################################
-"""
-Compute the P1D
-"""
-
-Pk1D_results = {}
-if args.Pk1D_data is None:
-    print('Computing the 1D power spectrum...')
-
-    for i,z_value in enumerate(z_values):
-        #print(z_value,delta_rows.shape,ivar_rows.shape,R.shape,z.shape)
-        k, Pk, var = Pk1D.get_Pk1D(delta_rows,ivar_rows,dr_hMpc,z,z_value=z_value
-                                ,z_width=z_width,units=units,R1=smoothing_radius
-                                ,gaussian=gaussian)
-        Pk1D_results[z_value] = {'k':k, 'Pk':Pk, 'var':var}
 else:
     print('Loading pre-computed 1D power spectrum...')
     Pk1D_data = fits.open(args.Pk1D_data)
+    N_pixels = Pk1D_data[0].header['N_pixels']
     for hdu in Pk1D_data[1:]:
         z_value = float(hdu.name)
         if z_value in z_values: 
             Pk1D_results[float(hdu.name)] = {'k':hdu.data['k'], 'Pk':hdu.data['Pk'], 'var':hdu.data['var']}
+
+################################################################################
+"""
+Save the data.
+"""
+
+#Save the data.
+def save_P1D_values(Pk1D_results):
+
+    header = fits.Header()
+    header['units'] = units
+    header['N_side'] = N_side
+    header['N_pixels'] = N_pixels
+
+    prihdu = fits.PrimaryHDU(header=header)
+    hdus = [prihdu]
+
+    for key in Pk1D_results.keys():
+
+        #Extract the data from the results dictionary.
+        k = Pk1D_results[key]['k']
+        Pk = Pk1D_results[key]['Pk']
+        var = Pk1D_results[key]['var']
+
+        dtype = [('k', 'f4'), ('Pk', 'f4'), ('var', 'f4')]
+        data = np.array(list(zip(k,Pk,var)),dtype=dtype)
+        hdu = fits.BinTableHDU.from_columns(data,header=header,name=str(key))
+        hdus += [hdu]
+
+    #Combine the HDUs into an HDUlist and save as a new file. Close the HDUlist.
+    hdulist = fits.HDUList(hdus)
+    filename = 'Pk1D_data_{}_{}.fits'.format(file_type,N_pixels)
+    hdulist.writeto(filename,overwrite=overwrite)
+    hdulist.close
+
+    return
+
+if save_data:
+    save_P1D_values(Pk1D_results)
 
 ################################################################################
 """
@@ -249,9 +266,7 @@ Make a plot.
 
 #Plot the power spectra
 def plot_P1D_values(Pk1D_results,show_plot=True):
-    plt.figure(figsize=(8, 6), dpi= 80, facecolor='w', edgecolor='k')
-    plt.rc('xtick',labelsize=fontsize)
-    plt.rc('ytick',labelsize=fontsize)
+    fig = plt.figure(figsize=(8, 5), dpi= 80, facecolor='w', edgecolor='k')
 
     #Extract the z values and sort them.
     z_values = np.array([key for key in Pk1D_results.keys()])
@@ -276,7 +291,7 @@ def plot_P1D_values(Pk1D_results,show_plot=True):
         #Plot the result and a "model" comparison +/-10%
         #plt.loglog(k,Pk,label='z={}'.format(z_value),c=colour)
         to_plot_data = Pk * (k ** args.k_plot_power)
-        to_plot_data_err = np.sqrt(var) * (k ** args.k_plot_power)
+        to_plot_data_err = np.sqrt(var/N_pixels) * (k ** args.k_plot_power)
         if args.add_error_bars:
             if args.N_k_values is not None:
                 #Extract the k values we want to plot.
@@ -328,8 +343,10 @@ def plot_P1D_values(Pk1D_results,show_plot=True):
     plt.xlim(args.k_min_plot,args.k_max_plot)
     plt.ylim(ylim_lower,ylim_upper)
 
-    #plt.grid()
     plt.legend(fontsize=fontsize)
+    #plt.grid()
+    #plt.subplots_adjust(right=0.65)
+    #ax.legend(fontsize=fontsize,loc='upper left',bbox_to_anchor= (1.01, 1.0))
     ylabel = r'$P_{1D}$'
     if args.k_plot_power == 1 :
         ylabel = r'$k P_{{1D}}(k)\ /\ (kms^{{-1}})^{{-{:d}}}$'.format(int(args.k_plot_power))
@@ -347,45 +364,6 @@ def plot_P1D_values(Pk1D_results,show_plot=True):
     return
 
 plot_P1D_values(Pk1D_results,show_plot=show_plot)
-
-################################################################################
-"""
-Save the data.
-"""
-
-#Save the data.
-def save_P1D_values(Pk1D_results):
-
-    header = fits.Header()
-    header['units'] = units
-    header['N_side'] = N_side
-
-    prihdr = fits.Header()
-    prihdu = fits.PrimaryHDU(header=prihdr)
-    hdus = [prihdu]
-
-    for key in Pk1D_results.keys():
-
-        #Extract the data from the results dictionary.
-        k = Pk1D_results[key]['k']
-        Pk = Pk1D_results[key]['Pk']
-        var = Pk1D_results[key]['var']
-
-        dtype = [('k', 'f4'), ('Pk', 'f4'), ('var', 'f4')]
-        data = np.array(list(zip(k,Pk,var)),dtype=dtype)
-        hdu = fits.BinTableHDU.from_columns(data,header=header,name=str(key))
-        hdus += [hdu]
-
-    #Combine the HDUs into an HDUlist and save as a new file. Close the HDUlist.
-    hdulist = fits.HDUList(hdus)
-    filename = 'Pk1D_data_{}_{}.fits'.format(file_type,N_pixels)
-    hdulist.writeto(filename,overwrite=overwrite)
-    hdulist.close
-
-    return
-
-if save_data:
-    save_P1D_values(Pk1D_results)
 
 ################################################################################
 """
