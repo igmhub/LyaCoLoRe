@@ -114,8 +114,8 @@ DLA.write_DLA_master(results,filename,N_side,overwrite=overwrite)
 
 #Write DLA data to picca DRQ format files if desired.
 if add_picca_DLA_drqs:
-    DLA.write_DLA_master(results,filename,N_side,overwrite=overwrite,picca_DRQ=True,add_DRQ_RSDs=True)
-    DLA.write_DLA_master(results,filename,N_side,overwrite=overwrite,picca_DRQ=True,add_DRQ_RSDs=False)
+    DLA.write_DLA_master(results,base_dir+'/master_DLA_picca_RSD.fits',N_side,overwrite=overwrite,picca_DRQ=True,add_DRQ_RSDs=True)
+    DLA.write_DLA_master(results,base_dir+'/master_DLA_picca_NO_RSD.fits',N_side,overwrite=overwrite,picca_DRQ=True,add_DRQ_RSDs=False)
 
 ################################################################################
 """

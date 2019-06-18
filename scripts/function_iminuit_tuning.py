@@ -14,33 +14,33 @@ from lyacolore import convert, Pk1D, utils, independent, tuning, simulation_data
 
 lya = utils.lya_rest
 
-N_files = 1
+N_files = 64
 N_processes = np.min((64,N_files))
 lambda_min = 3550.0
 min_cat_z = 1.8
-IVAR_cutoff = 1150.0
+IVAR_cutoff = 1200.0
 global_seed = 123
 add_ssf = True
 lambda_buffer = 100. #Angstroms
 
 #Choose parameter values.
 eps_Pk1D = 0.1
-eps_mean_F = 0.0125
+eps_mean_F = 0.025
 eps_bias_delta = 0.025
 eps_bias_eta = 10**6#0.025
 d_delta = 10.**-3
 d_eta = 10**-9
 
 #Choose tuning parameter initial values.
-initial_C0 = 1.4582950524445637
+initial_C0 = 3.8536245285223316
 initial_C1 = 4.5
 initial_C2 = 0.0
 initial_beta = 1.65
-initial_D0 = 6.027975555853199
-initial_D1 = 0.29004412149984593
+initial_D0 = 7.504787060847673
+initial_D1 = 0.35368964644538153
 initial_D2 = 0.0
-initial_n = 0.7827140569581266
-initial_k1 = 0.028056291381985118
+initial_n = 0.5809546536996302
+initial_k1 = 0.0131720447097049
 initial_R = 25.0 #kms-1
 initial_vb = 1.2
 
@@ -59,12 +59,12 @@ fix_R = True
 fix_vb = True
 
 #Admin options
-k_plot_max = 0.1
+k_plot_max = 0.02
 show_plots = False
-save_plots = False
-suffix = '_with_bias_vel{}_b{}'.format(initial_vb,initial_beta)
-save_tuning = False
-overwrite_tuning = False
+save_plots = True
+suffix = '_with_bias_vel{}_b{}_lr1200_DR14'.format(initial_vb,initial_beta)
+save_tuning = True
+overwrite_tuning = True
 tuning_filename = 'input_files/tuning_data' + suffix + '.fits'
 
 #Get the starting values of alpha, beta and sigma_G from file
@@ -76,11 +76,11 @@ cell_size = 0.25 #Mpc/h
 max_k = 0.01 #skm-1
 
 #Open up the Gaussian colore files
-base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v5/v5.0.0/'
+base_file_location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v7/v7_full_lr1200/'
 N_side = 16
 
 new_file_structure = '{}/{}/'               #pixel number//100, pixel number
-new_filename_structure = '{}-{}-{}.fits'    #file type, nside, pixel number
+new_filename_structure = '{}-{}-{}.fits.gz'    #file type, nside, pixel number
 
 input_format = 'gaussian_colore'
 
@@ -135,7 +135,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,R_kms,vel_boos
 
     #Make a pixel object from it.
     data = simulation_data.SimulationData.get_gaussian_skewers_object(location+gaussian_filename,None,input_format,IVAR_cutoff=IVAR_cutoff)
-    print('{:3.2f} checkpoint sim_dat'.format(time.time()-t))
+    #print('{:3.2f} checkpoint sim_dat'.format(time.time()-t))
     t = time.time()
 
     #Scale the RSD skewers.
@@ -167,7 +167,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,R_kms,vel_boos
         generator = np.random.RandomState(seed)
         data.add_small_scale_gaussian_fluctuations(cell_size,generator,white_noise=False,lambda_min=0.0,IVAR_cutoff=IVAR_cutoff,n=n,k1=k1,R_kms=R_kms)
 
-        print('{:3.2f} checkpoint extra power'.format(time.time()-t))
+        #print('{:3.2f} checkpoint extra power'.format(time.time()-t))
         t = time.time()
 
     #Copmute the physical skewers
@@ -193,18 +193,19 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,R_kms,vel_boos
 
     #Compute the tau skewers and add RSDs
     data.compute_tau_skewers(data.lya_absorber)
-    print('{:3.2f} checkpoint tau'.format(time.time()-t))
+    #print('{:3.2f} checkpoint tau'.format(time.time()-t))
     t = time.time()
 
     if prep:
         data.compute_RSD_weights(thermal=False)
 
-        print(pixel,'{:3.2f} checkpoint RSD weights measured'.format(time.time()-t))
+        #print(pixel,'{:3.2f} checkpoint RSD weights measured'.format(time.time()-t))
         t = time.time()
 
-        b_eta_weights_dict = data.get_bias_eta_RSD_weights(z_values,d=d_eta,z_width=z_width,lambda_buffer=lambda_buffer)
+        #b_eta_weights_dict = data.get_bias_eta_RSD_weights(z_values,d=d_eta,z_width=z_width,lambda_buffer=lambda_buffer)
+        b_eta_weights_dict = None
 
-        print(pixel,'{:3.2f} checkpoint b_eta weights measured'.format(time.time()-t))
+        #print(pixel,'{:3.2f} checkpoint b_eta weights measured'.format(time.time()-t))
         t = time.time()
 
         return (pixel,data.RSD_weights,b_eta_weights_dict)
@@ -213,7 +214,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,R_kms,vel_boos
         bias_eta_weights = bias_eta_weights_dict[pixel]
         data.add_all_RSDs(thermal=False,weights=RSD_weights)
 
-        print('{:3.2f} checkpoint RSDs'.format(time.time()-t))
+        #print('{:3.2f} checkpoint RSDs'.format(time.time()-t))
         t = time.time()
 
         measurements = []
@@ -240,8 +241,8 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,R_kms,vel_boos
             times_m[5] += time.time() - t_m
             measurements += [measurement]
 
-        print('{:3.2f} checkpoint measurements'.format(time.time()-t))
-        print('--> measurement_times: {:3.2f}, {:3.2f}, {:3.2f}, {:3.2f}, {:3.2f}, {:3.2f}'.format(times_m[0],times_m[1],times_m[2],times_m[3],times_m[4],times_m[5]))
+        #print('{:3.2f} checkpoint measurements'.format(time.time()-t))
+        #print('--> measurement_times: {:3.2f}, {:3.2f}, {:3.2f}, {:3.2f}, {:3.2f}, {:3.2f}'.format(times_m[0],times_m[1],times_m[2],times_m[3],times_m[4],times_m[5]))
 
         return measurements
 
@@ -486,8 +487,8 @@ def plot_P1D_values(m_set,show_plot=True,save_plot=False):
         plt.plot(m.k_kms,model_Pk_kms,c=colour,linestyle=':')#,label='z={} DR9'.format(m.z_value))
         m.add_Pk1D_chi2(max_k=max_k,denom="npower_cutoff")
         eps = m.Pk_kms_chi2_eps
-        plt.plot(m.k_kms,model_Pk_kms*0.9,color=[0.5,0.5,0.5],alpha=0.5)
-        plt.plot(m.k_kms,model_Pk_kms*1.1,color=[0.5,0.5,0.5],alpha=0.5)
+        #plt.plot(m.k_kms,model_Pk_kms*0.9,color=[0.5,0.5,0.5],alpha=0.5)
+        #plt.plot(m.k_kms,model_Pk_kms*1.1,color=[0.5,0.5,0.5],alpha=0.5)
         #plt.fill_between(m.k_kms,model_Pk_kms*1.1,model_Pk_kms*0.9,color=[0.5,0.5,0.5],alpha=0.3)#,label='DR9 +/- 10%')
         lower = np.maximum(np.ones_like(model_Pk_kms)*10**(-6),model_Pk_kms * (1. - eps))
         upper = model_Pk_kms * (1. + eps)
@@ -496,8 +497,8 @@ def plot_P1D_values(m_set,show_plot=True,save_plot=False):
         plt.fill_between(m.k_kms,upper,lower,color=[0.8,0.8,0.8],alpha=0.3)
         max_power_plot = np.max((max_power_plot,np.max(model_Pk_kms[m.k_kms<k_plot_max])))
         min_power_plot = np.min((min_power_plot,np.min(model_Pk_kms[m.k_kms<k_plot_max])))
-    plt.title('C=({:2.4f},{:2.4f},{:2.4f}), D=({:2.4f},{:2.4f},{:2.4f}), n={:2.4f}, k1={:2.6f}'.format(m.C0,m.C1,m.C2,m.D0,m.D1,m.D2,m.n,m.k1),fontsize=12)
-    plt.axvline(x=max_k,color='k')
+    #plt.title('C=({:2.4f},{:2.4f},{:2.4f}), D=({:2.4f},{:2.4f},{:2.4f}), n={:2.4f}, k1={:2.6f}'.format(m.C0,m.C1,m.C2,m.D0,m.D1,m.D2,m.n,m.k1),fontsize=12)
+    #plt.axvline(x=max_k,color='k')
     plt.semilogy()
     plt.semilogx()
     ylim_lower = min_power_plot * 0.8
