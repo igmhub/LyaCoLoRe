@@ -31,7 +31,7 @@ NCORES=64
 PICCA_PATH="/global/homes/j/jfarr/Programs/picca/"
 
 ## CF OPTIONS ##
-CF_QC="Fq"
+CF_QC="FF"
 #Set bin properties
 CF_RPMIN=0.0
 CF_RPMAX=200.0
