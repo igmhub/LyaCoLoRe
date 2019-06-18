@@ -21,13 +21,13 @@ fit_type = 'picca'
 #Gaussian
 #fit_data = {'b1': 1.0, 'b2': 1.0, 'beta1': 0., 'beta2': 0.}
 #Lognormal
-fit_data = {'b1': 1.0, 'b2': 1.0, 'beta1': 0., 'beta2': 0.}
+#fit_data = {'b1': 1.0, 'b2': 1.0, 'beta1': 0., 'beta2': 0.}
 #Tau noRSD
 #fit_data = {'b1': 1.65*1., 'b2': 1.65, 'beta1': 0., 'beta2': 0.}
 #Tau
 #fit_data = {'b1': 1.65, 'b2': 1.65, 'beta1': 1., 'beta2': 1.}
 #Flux
-#fit_data = {'b1': -0.133, 'b2': -0.133, 'beta1': 0.649, 'beta2': 0.649}
+fit_data = {'b1': -0.133, 'b2': -0.133, 'beta1': 1.4, 'beta2': 1.4}
 
 r_power = 2
 nr = 40

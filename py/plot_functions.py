@@ -397,7 +397,7 @@ def get_correlation_objects(locations,filenames=None,res_name=None):
         checked_locations = []
         filenames = []
         for location in locations:
-            fi = glob.glob(location+'/cf_exp.fits.gz')
+            fi = glob.glob(location+'/*cf_exp.fits.gz')
             for f in fi:
                 filenames += [f[(len(f)-f[::-1].find('/')):]]
                 checked_locations += [location]
