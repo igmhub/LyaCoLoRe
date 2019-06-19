@@ -133,7 +133,7 @@ class picca_correlation:
 
         if res_name:
             #get fit paramters
-            fit_parameters = get_fit_from_result(location+res_name)
+            fit_parameters = get_fit_from_result(location,res_name,parameters['correl_type'])
         else:
             fit_parameters = None
 
@@ -333,9 +333,10 @@ class picca_correlation:
         return
 
 
-def get_fit_from_result(filepath):
+def get_fit_from_result(location,result_name,corr_type):
 
-    ff = h5py.File(filepath,'r')
+    result_filepath = location + result_name
+    ff = h5py.File(result_filepath,'r')
     fit = {}
 
     zeff = ff['best fit'].attrs['zeff']
@@ -358,11 +359,11 @@ def get_fit_from_result(filepath):
             print('{} = {} +/- {}'.format(par,value,error))
 
     # TODO: This won't work if it's not the lya auto correlation
-    try:
+    if corr_type == 'cf':
         fit['xi_grid'] = ff['LYA(LYA)xLYA(LYA)/fit'][...]
-    except KeyError:
+    elif corr_type == 'xcf':
         fit['xi_grid'] = ff['LYA(LYA)xQSO/fit'][...]
-
+        
     ff.close()
 
     return fit

@@ -10,7 +10,7 @@ from lyacolore import plot_functions
 
 #Housekeeping options.
 fontsize = 16
-plotsize = (12, 5)
+figsize = (12, 5)
 dpi = 80
 show_plot = True
 save_plot = True
@@ -57,7 +57,7 @@ for key in subplots.keys():
     j = key[1] + 1
     N_rows = np.max((i,N_rows))
     N_cols = np.max((j,N_cols))
-fig, axs = plt.subplots(N_rows, N_cols, figsize=plotsize, dpi=dpi, facecolor='w', edgecolor='k')
+fig, axs = plt.subplots(N_rows, N_cols, figsize=figsize, dpi=dpi, facecolor='w', edgecolor='k')
 axs = np.reshape(axs,(N_rows,N_cols))
 
 #Make the correlation objects and plot.
