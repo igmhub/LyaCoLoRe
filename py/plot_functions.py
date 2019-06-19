@@ -9,6 +9,7 @@ import mcfit
 from lyacolore import correlation_model
 import glob
 import h5py
+import warnings
 
 class picca_correlation:
     def __init__(self,loc,p,cd,f):
@@ -138,7 +139,7 @@ class picca_correlation:
 
         return cls(location,parameters,correlation_data,fit_parameters)
 
-    def plot_wedge(self,mubin,plot_label,r_power,colour,nr=40,rmax=160.):
+    def plot_wedge(self,ax,mubin,plot_label,colour,r_power=2,nr=40,rmax=160.):
 
         mumin = mubin[0]
         mumax = mubin[1]
@@ -167,7 +168,7 @@ class picca_correlation:
         xi_wed = xi_wed[cut]
         err_wed = err_wed[cut]
 
-        plt.errorbar(r,(r**r_power) * xi_wed,yerr=(r**r_power) * err_wed,fmt='o',label=plot_label)
+        ax.errorbar(r,(r**r_power) * xi_wed,yerr=(r**r_power) * err_wed,fmt='o',label=plot_label)
 
         return
 
@@ -238,7 +239,7 @@ class picca_correlation:
 
         return
 
-    def plot_fit(self,mubin,plot_label,r_power,colour,nr=40,rmax=160.):
+    def plot_fit(self,ax,mubin,plot_label,colour,r_power=2,nr=40,rmax=160.):
 
         #Using data in picca fit
         mumin = mubin[0]
@@ -257,11 +258,11 @@ class picca_correlation:
 
         r, fit_xi_wed, _ = b.wedge(self.fit_xi_grid,self.cov)
 
-        plt.plot(r,(r**r_power) * fit_xi_wed,c=colour,label=plot_label)
+        ax.plot(r,(r**r_power) * fit_xi_wed,c=colour,label=plot_label)
 
         return
 
-    def plot_manual_model(self,b1,b2,beta1,beta2,mubin,plot_label,r_power,colour,nr=40,rmax=160.):
+    def plot_manual_model(self,ax,b1,b2,beta1,beta2,mubin,plot_label,colour,r_power=2,nr=40,rmax=160.):
 
         #Using data in picca fit
         mumin = mubin[0]
@@ -278,7 +279,7 @@ class picca_correlation:
         r = r[indices]
         xi = xi[indices]
 
-        plt.plot(r,(r**r_power) * xi,c=colour,label=plot_label)
+        ax.plot(r,(r**r_power) * xi,c=colour,label=plot_label)
 
         return
 
@@ -357,7 +358,10 @@ def get_fit_from_result(filepath):
             print('{} = {} +/- {}'.format(par,value,error))
 
     # TODO: This won't work if it's not the lya auto correlation
-    fit['xi_grid'] = ff['LYA(LYA)xLYA(LYA)/fit'][...]
+    try:
+        fit['xi_grid'] = ff['LYA(LYA)xLYA(LYA)/fit'][...]
+    except KeyError:
+        fit['xi_grid'] = ff['LYA(LYA)xQSO/fit'][...]
 
     ff.close()
 
@@ -391,26 +395,14 @@ def get_parameters_from_param_file(filepath):
 
     return params
 
-def get_correlation_objects(locations,filenames=None,res_name=None):
+def get_correlation_object(plot_info):
 
-    if not filenames:
-        checked_locations = []
-        filenames = []
-        for location in locations:
-            fi = glob.glob(location+'/*cf_exp.fits.gz')
-            for f in fi:
-                filenames += [f[(len(f)-f[::-1].find('/')):]]
-                checked_locations += [location]
+    location = plot_info['location']
+    filename = plot_info['filename']
+    res_name = 'result_{}r_a{}.h5'.format(str(int(plot_info['picca_fit_data']['rmin'])),plot_info['picca_fit_data']['afix'])
+    corr_object = picca_correlation.make_correlation_object(location,filename,res_name=res_name)
 
-        locations = checked_locations
-
-    print(locations)
-    print(filenames)
-    objects = []
-    for i,location in enumerate(locations):
-        objects += [picca_correlation.make_correlation_object(location,filenames[i],res_name=res_name)]
-
-    return objects
+    return corr_object
 
 def make_colour_plots(corr_objects,r_power=0.,vmax=10**-4,save_plots=True,show_plots=True,suffix=''):
 
@@ -425,6 +417,41 @@ def make_colour_plots(corr_objects,r_power=0.,vmax=10**-4,save_plots=True,show_p
 
         if show_plots:
             plt.show()
+
+    return
+
+def plot_wedges(ax,plot_info):
+
+    #Unpack the plot_info dictionary.
+    corr_obj = plot_info['corr_object']
+
+    for i,mubin in enumerate(plot_info['mu_bins']):
+        #Plot the data.
+        plot_label = r'${}<\mu<{}$'.format(mubin[0],mubin[1])
+        colour = plot_info['mu_bin_colours'][i]
+        corr_obj.plot_wedge(ax,mubin,plot_label,colour,**plot_info['plot_data'])
+
+        #Add a model or fit.
+        if plot_info['plot_picca_fit']:
+            corr_obj.plot_fit(ax,mubin,'',colour,**plot_info['plot_data'])
+        elif plot_info['plot_manual_fit']:
+            b1,b2,beta1,beta2 = plot_info['manual_fit_data'].values()
+            corr_obj.plot_fit(ax,mubin,b1,b2,beta1,beta2,'',colour,**plot_info['plot_data'])
+
+    #Add axis labels.
+    if plot_info['format']['xlabel']:
+        ax.set_xlabel(r'$r\ [Mpc/h]$')
+    if plot_info['format']['ylabel']:
+        if plot_info['plot_data']['r_power'] > 1:
+            ax.set_ylabel(r'$r^{} \xi (r)\ [(Mpc/h)^{}]$'.format(int(plot_info['plot_data']['r_power']),int(plot_info['plot_data']['r_power'])))
+        elif plot_info['plot_data']['r_power'] == 1:
+            ax.set_ylabel(r'$r\xi (r)\ [Mpc/h]$')
+        elif plot_info['plot_data']['r_power'] == 0:
+            ax.set_ylabel(r'$\xi (r)$')
+
+    #Add a legend if desired.
+    if plot_info['format']['legend']:
+        ax.legend()
 
     return
 
