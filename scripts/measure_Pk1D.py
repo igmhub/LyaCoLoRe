@@ -120,9 +120,13 @@ else:
     N_pix = 12*N_side**2
 
 colours = ['C0','C1','C2','C3','C4','C5','C6','C7','C8','C9'] * 2
-fontsize = 14
-plt.rc('xtick',labelsize=fontsize)
-plt.rc('ytick',labelsize=fontsize)
+fontsize = 16
+plotsize = (12, 5)
+dpi = 80
+
+#Set style options everywhere.
+#plt.rc('text', usetex=True)
+plt.rc('font', size=fontsize)
 
 ################################################################################
 
@@ -217,7 +221,7 @@ else:
     N_pixels = Pk1D_data[0].header['N_pixels']
     for hdu in Pk1D_data[1:]:
         z_value = float(hdu.name)
-        if z_value in z_values: 
+        if z_value in z_values:
             Pk1D_results[float(hdu.name)] = {'k':hdu.data['k'], 'Pk':hdu.data['Pk'], 'var':hdu.data['var']}
 
 ################################################################################
@@ -343,20 +347,20 @@ def plot_P1D_values(Pk1D_results,show_plot=True):
     plt.xlim(args.k_min_plot,args.k_max_plot)
     plt.ylim(ylim_lower,ylim_upper)
 
-    plt.legend(fontsize=fontsize)
+    plt.legend()
     #plt.grid()
     #plt.subplots_adjust(right=0.65)
-    #ax.legend(fontsize=fontsize,loc='upper left',bbox_to_anchor= (1.01, 1.0))
+    #ax.legend(loc='upper left',bbox_to_anchor= (1.01, 1.0))
     ylabel = r'$P_{1D}$'
     if args.k_plot_power == 1 :
         ylabel = r'$k P_{{1D}}(k)\ /\ (kms^{{-1}})^{{-{:d}}}$'.format(int(args.k_plot_power))
     elif args.k_plot_power > 1 :
         ylabel = r'$k^{:d} P_{{1D}}(k)\ /\ (kms^{{-1}})^{{-{:d}}}$'.format(int(args.k_plot_power),int(args.k_plot_power))
-    plt.ylabel(ylabel,fontsize=fontsize)
+    plt.ylabel(ylabel)
     if units == 'km/s':
-        plt.xlabel(r'$k\ /\ (kms^{-1})^{-1}$',fontsize=fontsize)
+        plt.xlabel(r'$k\ /\ (kms^{-1})^{-1}$')
     elif units == 'Mpc/h':
-        plt.xlabel(r'$k\ /\ (Mpch^{-1})^{-1}$',fontsize=fontsize)
+        plt.xlabel(r'$k\ /\ (Mpch^{-1})^{-1}$')
     filename = 'Pk1D_{}_{}.pdf'.format(file_type,N_pixels)
     plt.savefig('Pk1D_k{}_vs_k_{}.pdf'.format(int(args.k_plot_power),file_type))
     if show_plot:
