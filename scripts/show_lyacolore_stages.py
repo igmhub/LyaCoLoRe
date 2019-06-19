@@ -8,7 +8,12 @@ basedir = "/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v6/v6.0.0/"
 N_side = 16
 pixel = 0
 i_skewer = 0
-fontsize = 14
+fontsize = 16
+figsize = (12, 5)
+dpi = 80
+
+#plt.rc('text', usetex=True)
+plt.rc('font', size=fontsize)
 
 #Plot variables.
 stages_1 = ['picca-gaussian', 'picca-density', 'picca-tau-notnorm', 'picca-flux-notnorm']
@@ -18,7 +23,7 @@ label_2 = [r'$\delta_C$',None,r'$\tau_\mathrm{noRSD}$',r'$F_\mathrm{noRSD}$']
 axis_label = ['Gaussian\nfield','Lognormal\ndensity','Optical\ndepth','Transmitted\nflux fraction']
 symmetrical = [True, False, False, False]
 add_one = [False,True,False,False]
-h_lines = {0: [0], 1: [0], 2: [0], 3: [0,1]} 
+h_lines = {0: [0], 1: [0], 2: [0], 3: [0,1]}
 plot_types = ['skewer']
 lambda_min = 3750. #Angstroms
 lambda_max = 3850. #Angstroms
@@ -37,9 +42,7 @@ N_stages = len(stages_1)
 N_types = len(plot_types)
 
 #Make the subplots, and reduce the horizontal space between axes to 0.
-plt.rc('xtick',labelsize=fontsize)
-plt.rc('ytick',labelsize=fontsize)
-fig, axs = plt.subplots(N_stages, N_types, sharex=True, figsize=(8, 10), dpi= 80, facecolor='w', edgecolor='k')
+fig, axs = plt.subplots(N_stages, N_types, sharex=True, figsize=figsize, dpi=dpi, facecolor='w', edgecolor='k')
 
 for i in range(N_stages):
     dirname = utils.get_dir_name(basedir,pixel)
@@ -83,7 +86,7 @@ for i in range(N_stages):
     #Add a grid and labels.
     #axs[i].grid()
     axs[i].legend(loc=1,fontsize=fontsize)
-    
+
     #Add an arrow to show progression
     if i<N_stages-1:
          axs[i].annotate('', xy=(-0.13, -0.1), xycoords='axes fraction', xytext=(-0.13, 0.1), arrowprops=dict(arrowstyle="->", color='k'))
