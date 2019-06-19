@@ -6,7 +6,7 @@ XCF=1
 
 ## INPUT DATA OPTIONS ##
 #number of pixels
-NPIXELS=1000
+NPIXELS=50
 NPIXPERNODE=50
 #first quantity to correlate
 QUANTITY="flux-rebin-10"
@@ -21,6 +21,7 @@ DRQ="${INDIR}/master_picca_RSD.fits"
 ## OTHER PICCA OPTIONS ##
 XCFSHUFFLESEED=1
 NSIDELYACOLORE=16
+FID_OM=0.3147
 
 ## NERSC OPTIONS ##
 # specify number of nodes and cores to use
@@ -46,17 +47,18 @@ CF_NSIDEPICCA=16
 ## XCF OPTIONS ##
 XCF_QC="Fq"
 #Set bin properties
-XCF_RPMIN=0.0
+XCF_RPMIN=-200.0
 XCF_RPMAX=200.0
-XCF_RTMIN=-200.0
+XCF_RTMIN=0.0
 XCF_RTMAX=200.0
-XCF_NP=50
-XCF_NT=100
-XCF_ZMIN=2.4
-XCF_ZMAX=2.6
-XCF_ZMINQSO=1.8
-XCF_ZMAXQSO=4.0
+XCF_NP=100
+XCF_NT=50
+XCF_ZMIN=0.0
+XCF_ZMAX=10.0
+XCF_ZMINQSO=0.0
+XCF_ZMAXQSO=10.0
 XCF_NSIDEPICCA=16
+XCF_Z_EVOL_OBJ=1.44
 
 ## OUTPUT OPTIONS ##
 ANALYSIS_ID=41
@@ -115,7 +117,7 @@ cat > $CF_RUN_FILE <<EOF
 #SBATCH --partition ${QUEUE}
 #SBATCH --nodes ${NNODES}
 #SBATCH --time ${TIME}
-#SBATCH --job-name picca-cf-${QC}-${NPIXELS}
+#SBATCH --job-name picca-cf-${CF_QC}-${NPIXELS}
 #SBATCH --error "${OUTPUT_PATH}/picca-cf-%j.err"
 #SBATCH --output "${OUTPUT_PATH}/picca-cf-%j.out"
 #SBATCH -C haswell
@@ -184,11 +186,11 @@ for NODE in \`seq $NNODES\` ; do
 
     if [ -z "\${INDIR2}" ]; then
 
-        command="srun -N 1 -n 1 -c ${NCORES} ${PICCA_PATH}/bin/picca_cf.py --in-dir \"dummy\" --from-image \${NODE_FILES} --out \${NODE_OUTPUT_FILE} --rp-min ${CF_RPMIN} --rp-max ${CF_RPMAX} --rt-max ${CF_RTMAX} --np ${CF_NP} --nt ${CF_NT} --no-project --nside ${CF_NSIDEPICCA} --nproc 64 --z-cut-min ${CF_ZMIN} --z-cut-max ${CF_ZMAX}";
+        command="srun -N 1 -n 1 -c ${NCORES} ${PICCA_PATH}/bin/picca_cf.py --in-dir \"dummy\" --from-image \${NODE_FILES} --out \${NODE_OUTPUT_FILE} --rp-min ${CF_RPMIN} --rp-max ${CF_RPMAX} --rt-max ${CF_RTMAX} --np ${CF_NP} --nt ${CF_NT} --no-project --nside ${CF_NSIDEPICCA} --nproc 64 --z-cut-min ${CF_ZMIN} --z-cut-max ${CF_ZMAX} --fid-Om ${FID_OM}";
 
     else
 
-        command="srun -N 1 -n 1 -c ${NCORES} ${PICCA_PATH}/bin/picca_cf.py --in-dir \"dummy\" --from-image \${NODE_FILES} --in-dir2 \"dummy\" --from-image2 \${NODE_FILES2} --out \${NODE_OUTPUT_FILE} --rp-min ${CF_RPMIN} --rp-max ${CF_RPMAX} --rt-max ${CF_RTMAX} --np ${CF_NP} --nt ${CF_NT} --no-project --nside ${CF_NSIDEPICCA} --nproc 64 --z-cut-min ${CF_ZMIN} --z-cut-max ${CF_ZMAX}";
+        command="srun -N 1 -n 1 -c ${NCORES} ${PICCA_PATH}/bin/picca_cf.py --in-dir \"dummy\" --from-image \${NODE_FILES} --in-dir2 \"dummy\" --from-image2 \${NODE_FILES2} --out \${NODE_OUTPUT_FILE} --rp-min ${CF_RPMIN} --rp-max ${CF_RPMAX} --rt-max ${CF_RTMAX} --np ${CF_NP} --nt ${CF_NT} --no-project --nside ${CF_NSIDEPICCA} --nproc 64 --z-cut-min ${CF_ZMIN} --z-cut-max ${CF_ZMAX} --fid-Om ${FID_OM}";
 
     fi
 
@@ -235,7 +237,7 @@ cat > $XCF_RUN_FILE <<EOF
 #SBATCH --partition ${QUEUE}
 #SBATCH --nodes ${NNODES_XCF_TOT}
 #SBATCH --time ${TIME}
-#SBATCH --job-name picca-xcf-${QC}-${NPIXELS}
+#SBATCH --job-name picca-xcf-${XCF_QC}-${NPIXELS}
 #SBATCH --error "${OUTPUT_PATH}/picca-xcf-%j.err"
 #SBATCH --output "${OUTPUT_PATH}/picca-xcf-%j.out"
 #SBATCH -C haswell
@@ -286,7 +288,7 @@ for NODE in \`seq $NNODES\` ; do
 
     #Run xcf without shuffling.
     NODE_OUTPUT_FILE="${NODE_OUTPUT_PATH}/xcf_\${START_INDEX}_\${STOP_INDEX}.fits.gz"
-    command="srun -N 1 -n 1 -c ${NCORES} ${PICCA_PATH}/bin/picca_xcf.py --in-dir \"dummy\" --from-image \${NODE_FILES} --drq ${DRQ} --out \${NODE_OUTPUT_FILE} --rp-min ${XCF_RPMIN} --rp-max ${XCF_RPMAX} --rt-max ${XCF_RTMAX} --np ${XCF_NP} --nt ${XCF_NT} --no-project --no-remove-mean-lambda-obs --nside ${XCF_NSIDEPICCA} --nproc 64 --z-cut-min ${XCF_ZMIN} --z-cut-max ${XCF_ZMAX} --z-min-obj ${XCF_ZMINQSO} --z-max-obj ${XCF_ZMAXQSO}";
+    command="srun -N 1 -n 1 -c ${NCORES} ${PICCA_PATH}/bin/picca_xcf.py --in-dir \"dummy\" --from-image \${NODE_FILES} --drq ${DRQ} --out \${NODE_OUTPUT_FILE} --rp-min ${XCF_RPMIN} --rp-max ${XCF_RPMAX} --rt-max ${XCF_RTMAX} --np ${XCF_NP} --nt ${XCF_NT} --no-project --no-remove-mean-lambda-obs --nside ${XCF_NSIDEPICCA} --nproc 64 --z-cut-min ${XCF_ZMIN} --z-cut-max ${XCF_ZMAX} --z-min-obj ${XCF_ZMINQSO} --z-max-obj ${XCF_ZMAXQSO} --fid-Om ${FID_OM} --z-evol-obj ${XCF_Z_EVOL_OBJ}";
     echo \$command
     \$command >& ${OUTPUT_PATH}/logs/node-\${NODE}.log &
 
@@ -294,7 +296,7 @@ for NODE in \`seq $NNODES\` ; do
     if [ ! -z ${XCFSHUFFLESEED} ]; then
 
         NODE_OUTPUT_FILE="${NODE_OUTPUT_PATH}/xcf_shuffle_\${START_INDEX}_\${STOP_INDEX}.fits.gz"
-        command="srun -N 1 -n 1 -c ${NCORES} ${PICCA_PATH}/bin/picca_xcf.py --in-dir \"dummy\" --from-image \${NODE_FILES} --drq ${DRQ} --out \${NODE_OUTPUT_FILE} --rp-min ${XCF_RPMIN} --rp-max ${XCF_RPMAX} --rt-max ${XCF_RTMAX} --np ${XCF_NP} --nt ${XCF_NT} --no-project --no-remove-mean-lambda-obs --nside ${XCF_NSIDEPICCA} --nproc 64 --z-cut-min ${XCF_ZMIN} --z-cut-max ${XCF_ZMAX} --z-min-obj ${XCF_ZMINQSO} --z-max-obj ${XCF_ZMAXQSO} --shuffle-distrib-obj-seed ${XCFSHUFFLESEED}";
+        command="srun -N 1 -n 1 -c ${NCORES} ${PICCA_PATH}/bin/picca_xcf.py --in-dir \"dummy\" --from-image \${NODE_FILES} --drq ${DRQ} --out \${NODE_OUTPUT_FILE} --rp-min ${XCF_RPMIN} --rp-max ${XCF_RPMAX} --rt-max ${XCF_RTMAX} --np ${XCF_NP} --nt ${XCF_NT} --no-project --no-remove-mean-lambda-obs --nside ${XCF_NSIDEPICCA} --nproc 64 --z-cut-min ${XCF_ZMIN} --z-cut-max ${XCF_ZMAX} --z-min-obj ${XCF_ZMINQSO} --z-max-obj ${XCF_ZMAXQSO} --fid-Om ${FID_OM} --z-evol-obj ${XCF_Z_EVOL_OBJ} --shuffle-distrib-obj-seed ${XCFSHUFFLESEED}";
         echo \$command
         \$command >& ${OUTPUT_PATH}/logs/node-\${NODE}-shuffle.log &
 
