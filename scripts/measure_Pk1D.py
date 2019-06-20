@@ -406,8 +406,10 @@ def plot_P1D_values(Pk1D_results,show_plot=True):
     #Add appropriate labels.
     if args.k_plot_power == 1 :
         ylabel = r'$k\ P_{1\mathrm{D}}(k)$'
-    elif args.k_plot_power > 1 :
-        ylabel = r'$k^{:d}\ P_{{1\mathrm{{D}}}}(k)\ [\mathrm{{s}}^{{{:d}}}\ \mathrm{{km}}^{{-{:d}}}]$'.format(int(args.k_plot_power),int(args.k_plot_power)-1,int(args.k_plot_power)-1)
+    elif args.k_plot_power == 2:
+        ylabel = r'$k^{:d}\ P_{{1\mathrm{{D}}}}(k)\ [\mathrm{{s}}\ \mathrm{{km}}^{{-1}}]$'.format(int(args.k_plot_power))
+    elif args.k_plot_power > 2 :
+        ylabel = r'$k^{:d}\ P_{{1\mathrm{{D}}}}(k)\ [(\mathrm{{s}}\ \mathrm{{km}}^{{-1}})^{{{:d}}}]$'.format(int(args.k_plot_power),int(args.k_plot_power)-1,int(args.k_plot_power)-1)
     else:
         ylabel = r'$P_{1\mathrm{D}}\ [\mathrm{km\ s}^{{-1}}]$'
     plt.ylabel(ylabel,fontsize=fontsize)
