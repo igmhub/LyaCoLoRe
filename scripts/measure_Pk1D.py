@@ -88,8 +88,11 @@ parser.add_argument('--add-model-interval-areas', type = float, default = None, 
 parser.add_argument('--add-model-interval-lines', type = float, default = None, required=False,
                     help = 'plot lines of +/- %age on model values')
 
-parser.add_argument('--add-vertical-line', type = float, default = None, required=False,
+parser.add_argument('--add-vline', type = float, default = None, required=False,
                     help = 'add vertical line')
+
+parser.add_argument('--fill-right-vline', action="store_true", default = False, required=False,
+                    help = 'shade to the right of the vertical line')
 
 ################################################################################
 
@@ -129,6 +132,7 @@ figsize = (12, 6)
 dpi = 80
 #plt.rc('text', usetex=True)
 plt.rc('font', size=fontsize)
+plt.rc('hatch', color='gray')
 
 ################################################################################
 
@@ -345,16 +349,23 @@ def plot_P1D_values(Pk1D_results,show_plot=True):
             plot_model_min = np.minimum(plot_model_min,np.min(to_plot_model[k_rel]))
             plot_model_max = np.maximum(plot_model_max,np.max(to_plot_model[k_rel]))
 
-    #Add vertical line.
-    if args.add_vertical_line is not None:
-        plt.axvline(x=args.add_vertical_line,linestyle='-.',color='gray')
-
     #Set the axis spacing correctly.
     space = 0.3
     ylim_lower = plot_model_min * (1 - space)
     ylim_upper = plot_model_max * (1 + space)
     plt.xlim(args.k_min_plot,args.k_max_plot)
     plt.ylim(ylim_lower,ylim_upper)
+
+    #Add vertical line, and shade if desired.
+    if args.add_vline is not None:
+        plt.axvline(x=args.add_vline,linestyle='-.',color='gray')
+        if args.fill_right_vline:
+            extend = 0.1
+            k_shade = np.array([args.add_vline,args.k_max_plot*(1+extend)])
+            y_shade_upper = np.array([ylim_upper*(1+extend)]*2)
+            y_shade_lower = np.array([ylim_lower*(1-extend)]*2)
+            plt.fill_between(k_shade,y_shade_upper,y_shade_lower,facecolor='gray',hatch='/',zorder=0,alpha=0.2)
+            #plt.fill_between(k_shade,y_shade_upper,y_shade_lower,facecolor='none',hatch='/',zorder=0)
 
     #Add blank elements to describe data plot types in legend.
     descriptor_plots = {}
