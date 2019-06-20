@@ -762,7 +762,6 @@ def get_sigma_dF_P1D(z,l_hMpc=0.25,Om=0.3147):
 
     return sigma_dF
 
-"""
 #BOSS data.
 #DR12 combined auto+cross data, from du Mas des Bourboux et all (2017)
 data_z = np.array([2.4])
@@ -778,6 +777,7 @@ data_bias_eta_z_evol_exponent = 2.9
 
 data_bias_delta = BOSS_bias_delta_1plusbeta / (1 + BOSS_beta)
 data_bias_eta = BOSS_beta * BOSS_bias_delta / BOSS_f
+
 """
 
 #eBOSS data.
@@ -794,6 +794,7 @@ data_bias_delta_z_evol_exponent = 2.9
 data_bias_eta_z_evol_exponent = 2.9
 
 data_bias_delta = (data_f * data_bias_eta) / data_beta
+"""
 
 def get_bias_delta_model(z,model='BOSS'):
 

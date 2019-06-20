@@ -133,7 +133,7 @@ class picca_correlation:
 
         if res_name:
             #get fit paramters
-            fit_parameters = get_fit_from_result(location+res_name)
+            fit_parameters = get_fit_from_result(location,res_name,parameters['correl_type'])
         else:
             fit_parameters = None
 
@@ -333,9 +333,10 @@ class picca_correlation:
         return
 
 
-def get_fit_from_result(filepath):
+def get_fit_from_result(location,result_name,corr_type):
 
-    ff = h5py.File(filepath,'r')
+    result_filepath = location + result_name
+    ff = h5py.File(result_filepath,'r')
     fit = {}
 
     zeff = ff['best fit'].attrs['zeff']
@@ -358,11 +359,11 @@ def get_fit_from_result(filepath):
             print('{} = {} +/- {}'.format(par,value,error))
 
     # TODO: This won't work if it's not the lya auto correlation
-    try:
+    if corr_type == 'cf':
         fit['xi_grid'] = ff['LYA(LYA)xLYA(LYA)/fit'][...]
-    except KeyError:
+    elif corr_type == 'xcf':
         fit['xi_grid'] = ff['LYA(LYA)xQSO/fit'][...]
-
+        
     ff.close()
 
     return fit
@@ -399,7 +400,10 @@ def get_correlation_object(plot_info):
 
     location = plot_info['location']
     filename = plot_info['filename']
-    res_name = 'result_{}r_a{}.h5'.format(str(int(plot_info['picca_fit_data']['rmin'])),plot_info['picca_fit_data']['afix'])
+    if plot_info['plot_picca_fit']:
+        res_name = 'result_{}r_a{}.h5'.format(str(int(plot_info['picca_fit_data']['rmin'])),plot_info['picca_fit_data']['afix'])
+    else:
+        res_name = None
     corr_object = picca_correlation.make_correlation_object(location,filename,res_name=res_name)
 
     return corr_object
@@ -436,7 +440,7 @@ def plot_wedges(ax,plot_info):
             corr_obj.plot_fit(ax,mubin,'',colour,**plot_info['plot_data'])
         elif plot_info['plot_manual_fit']:
             b1,b2,beta1,beta2 = plot_info['manual_fit_data'].values()
-            corr_obj.plot_fit(ax,mubin,b1,b2,beta1,beta2,'',colour,**plot_info['plot_data'])
+            corr_obj.plot_manual_model(ax,b1,b2,beta1,beta2,mubin,'',colour,**plot_info['plot_data'])
 
     #Add axis labels.
     if plot_info['format']['xlabel']:
