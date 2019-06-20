@@ -775,8 +775,8 @@ data_bias_delta_z_evol_exponent = 2.9
 #Not sure about this?
 data_bias_eta_z_evol_exponent = 2.9
 
-data_bias_delta = BOSS_bias_delta_1plusbeta / (1 + BOSS_beta)
-data_bias_eta = BOSS_beta * BOSS_bias_delta / BOSS_f
+data_bias_delta = data_bias_delta_1plusbeta / (1 + data_beta)
+data_bias_eta = data_beta * data_bias_delta / data_f
 
 """
 
