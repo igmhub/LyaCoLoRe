@@ -400,7 +400,10 @@ def get_correlation_object(plot_info):
 
     location = plot_info['location']
     filename = plot_info['filename']
-    res_name = 'result_{}r_a{}.h5'.format(str(int(plot_info['picca_fit_data']['rmin'])),plot_info['picca_fit_data']['afix'])
+    if plot_info['plot_picca_fit']:
+        res_name = 'result_{}r_a{}.h5'.format(str(int(plot_info['picca_fit_data']['rmin'])),plot_info['picca_fit_data']['afix'])
+    else:
+        res_name = None
     corr_object = picca_correlation.make_correlation_object(location,filename,res_name=res_name)
 
     return corr_object
@@ -437,7 +440,7 @@ def plot_wedges(ax,plot_info):
             corr_obj.plot_fit(ax,mubin,'',colour,**plot_info['plot_data'])
         elif plot_info['plot_manual_fit']:
             b1,b2,beta1,beta2 = plot_info['manual_fit_data'].values()
-            corr_obj.plot_fit(ax,mubin,b1,b2,beta1,beta2,'',colour,**plot_info['plot_data'])
+            corr_obj.plot_manual_model(ax,b1,b2,beta1,beta2,mubin,'',colour,**plot_info['plot_data'])
 
     #Add axis labels.
     if plot_info['format']['xlabel']:
