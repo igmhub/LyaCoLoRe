@@ -14,7 +14,9 @@ def get_metal_dict():
       'SiII(1260)'  : absorber.AbsorberData('SiII(1260)',  1260.42, 3.542e-4,  'SI1260'),
       'SiIII(1207)' : absorber.AbsorberData('SiIII(1207)', 1206.50, 1.8919e-3, 'SI1207'),
       'SiII(1193)'  : absorber.AbsorberData('SiII(1193)',  1193.29, 9.0776e-4, 'SI1193'),
-      'SiII(1190)'  : absorber.AbsorberData('SiII(1190)',  1190.42, 6.4239e-4, 'SI1190'),
+      'SiII(1190)'  : absorber.AbsorberData('SiII(1190)',  1190.42, 1.28478e-3, 'SI1190'),
+      #Used in version 7.x. Boosted by 50% in v8.x.x following analysis.
+      #'SiII(1190)'  : absorber.AbsorberData('SiII(1190)',  1190.42, 6.4239e-4, 'SI1190'),
       #Until the memory needs are known, the following metals will not be added.
       #'NV(1243)'    : absorber.AbsorberData('NV(1243)',  1242.804, 5.e-4,    'N1243'),
       #'NV(1239)'    : absorber.AbsorberData('NV(1239)',  1238.821, 5.e-4,    'N1239'),
