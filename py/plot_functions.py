@@ -363,7 +363,7 @@ def get_fit_from_result(location,result_name,corr_type):
         fit['xi_grid'] = ff['LYA(LYA)xLYA(LYA)/fit'][...]
     elif corr_type == 'xcf':
         fit['xi_grid'] = ff['LYA(LYA)xQSO/fit'][...]
-        
+
     ff.close()
 
     return fit
@@ -444,12 +444,12 @@ def plot_wedges(ax,plot_info):
 
     #Add axis labels.
     if plot_info['format']['xlabel']:
-        ax.set_xlabel(r'$r\ [Mpc/h]$')
+        ax.set_xlabel(r'$r\ [\mathrm{{Mpc}}/h]$')
     if plot_info['format']['ylabel']:
         if plot_info['plot_data']['r_power'] > 1:
-            ax.set_ylabel(r'$r^{} \xi (r)\ [(Mpc/h)^{}]$'.format(int(plot_info['plot_data']['r_power']),int(plot_info['plot_data']['r_power'])))
+            ax.set_ylabel(r'$r^{:d}\ \xi (r)\ [(\mathrm{{Mpc}}\ h^{{-1}})^{{{:d}}}]$'.format(int(plot_info['plot_data']['r_power']),int(plot_info['plot_data']['r_power'])))
         elif plot_info['plot_data']['r_power'] == 1:
-            ax.set_ylabel(r'$r\xi (r)\ [Mpc/h]$')
+            ax.set_ylabel(r'$r\ \xi (r)\ [\mathrm{{Mpc}}\ h^{{-1}}]$')
         elif plot_info['plot_data']['r_power'] == 0:
             ax.set_ylabel(r'$\xi (r)$')
 
