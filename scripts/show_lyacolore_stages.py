@@ -9,7 +9,7 @@ N_side = 16
 pixel = 0
 i_skewer = 0
 fontsize = 16
-figsize = (12, 5)
+figsize = (12, 15)
 dpi = 80
 
 #plt.rc('text', usetex=True)
