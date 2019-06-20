@@ -578,20 +578,38 @@ class SimulationData:
             skewer_rows = self.lya_absorber.tau
             if all_absorbers:
                 if self.lyb_absorber is not None:
-                    skewer_rows += self.lyb_absorber.tau
+                    #Shift the skewers according to absorber rest wavelength.
+                    lyb_lam = (10**self.LOGLAM_MAP)*self.lyb_absorber.rest_wave/lya
+                    lyb_skewers = interp1d(lyb_lam,self.lyb_absorber.tau,axis=1,fill_value=(0.,0.),bounds_error=False)(10**self.LOGLAM_MAP)
+                    #Add tau contribution and rest wavelength to header.
+                    skewer_rows += lyb_skewers
                 if self.metals is not None:
                     for metal in iter(self.metals.values()):
-                        skewer_rows += metal.tau
+                        #Shift the skewers according to absorber rest wavelength.
+                        metal_lam = (10**self.LOGLAM_MAP)*metal.rest_wave/lya
+                        metal_skewers = interp1d(metal_lam,metal.tau,axis=1,fill_value=(0.,0.),bounds_error=False)(10**self.LOGLAM_MAP)
+                        #Add tau contribution and rest wavelength to header.
+                        skewer_rows += metal_skewers
             skewer_rows = skewer_rows ** power
+
         elif quantity == 'flux':
             skewer_rows = self.lya_absorber.transmission()
             if all_absorbers:
                 if self.lyb_absorber is not None:
-                    skewer_rows *= self.lyb_absorber.transmission()
+                    #Shift the skewers according to absorber rest wavelength.
+                    lyb_lam = (10**self.LOGLAM_MAP)*self.lyb_absorber.rest_wave/lya
+                    lyb_skewers = interp1d(lyb_lam,self.lyb_absorber.transmission(),axis=1,fill_value=(1.,1.),bounds_error=False)(10**self.LOGLAM_MAP)
+                    #Add tau contribution and rest wavelength to header.
+                    skewer_rows *= lyb_skewers
                 if self.metals is not None:
                     for metal in iter(self.metals.values()):
-                        skewer_rows *= metal.transmission()
+                        #Shift the skewers according to absorber rest wavelength.
+                        metal_lam = (10**self.LOGLAM_MAP)*metal.rest_wave/lya
+                        metal_skewers = interp1d(metal_lam,metal.transmission(),axis=1,fill_value=(1.,1.),bounds_error=False)(10**self.LOGLAM_MAP)
+                        #Add tau contribution and rest wavelength to header.
+                        skewer_rows *= metal_skewers
             skewer_rows = skewer_rows ** power
+
         elif quantity == 'FlnF':
             #Use that ln(F)=-tau so FlnF = -F*tau
             # TODO: metals in this option?
