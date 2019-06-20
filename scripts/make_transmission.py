@@ -48,7 +48,7 @@ parser.add_argument('--nside', type = int, default = 16, required=False,
 parser.add_argument('--pixels', type = int, default = None, required=False,
                     help = 'which pixel numbers to work on', nargs='*')
 
-parser.add_argument('--IVAR-cut', type = float, default = 1150., required=False,
+parser.add_argument('--IVAR-cut', type = float, default = 1200., required=False,
                     help = 'maximum rest frame lambda for IVAR=1 (Å)')
 
 parser.add_argument('--cell-size', type = float, default = 0.25, required=False,
@@ -111,12 +111,6 @@ parser.add_argument('--overwrite', action="store_true", default = False, require
 parser.add_argument('--add-QSO-RSDs', action="store_true", default = False, required=False,
                     help = 'add QSO RSDs to the transmission file')
 
-parser.add_argument('--smoothing-R-kms', type = float, default = 25.0, required=False,
-                    help = 'size in km/s of extra power smoothing radius')
-
-parser.add_argument('--velocity-multiplier', type = float, default = 1.0, required=False,
-                    help = 'multiply CoLoRe velocities by this factor')
-
 parser.add_argument('--transmission-lambda-min', type = float, default = 3550., required=False,
                     help = 'minimum wavelength stored in the transmission files')
 
@@ -132,11 +126,6 @@ parser.add_argument('--transmission-format', type = str, default = "final", requ
 
 parser.add_argument('--compress', action="store_true", default = False, required=False,
                     help = 'compress output files to .fits.gz')
-
-
-# TODO: this is now defunct.
-parser.add_argument('--fit-function-to-tuning-data', action="store_true", default = False, required=False,
-                    help = 'fit a function of the form A0 * (z^A1) + A2 to the tuning data')
 
 ################################################################################
 
@@ -181,8 +170,6 @@ global_seed = args.seed
 fit_function_to_tuning_data = args.fit_function_to_tuning_data
 overwrite = args.overwrite
 add_QSO_RSDs = args.add_QSO_RSDs
-R_kms = args.smoothing_R_kms
-vel_mult = args.velocity_multiplier
 trans_lmin = args.transmission_lambda_min
 trans_lmax = args.transmission_lambda_max
 trans_dl = args.transmission_delta_lambda
@@ -383,9 +370,12 @@ tuning_sigma_Gs = h[1].data['sigma_G']
 #D2 = h[1].header['D2']
 
 #Parameters for extra power's shape.
-#k0 = h[1].header['k0']
-#E1 = h[1].header['E1']
-#E2 = h[1].header['E2']
+#k1 = h[1].header['k1']
+#n = h[1].header['n']
+
+#Additional parameters.
+R_kms = h[1].header['R']
+vel_mult = h[1].header['vb']
 
 h.close()
 

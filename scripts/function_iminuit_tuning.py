@@ -32,20 +32,20 @@ d_delta = 10.**-3
 d_eta = 10**-9
 
 #Choose tuning parameter initial values.
-initial_C0 = 3.8536245285223316
+initial_C0 = 1.482229863221668
 initial_C1 = 4.5
 initial_C2 = 0.0
 initial_beta = 1.65
-initial_D0 = 7.504787060847673
-initial_D1 = 0.35368964644538153
+initial_D0 = 6.018308640829534
+initial_D1 = 0.2756162052010332
 initial_D2 = 0.0
-initial_n = 0.5809546536996302
-initial_k1 = 0.0131720447097049
+initial_n = 0.7318824370864454
+initial_k1 = 0.0341049400675243
 initial_R = 25.0 #kms-1
-initial_vb = 1.2
+initial_vb = 1.3
 
 #Choose parameters to fix.
-fix_all = False
+fix_all = True
 fix_C0 = False
 fix_C1 = True
 fix_C2 = True
@@ -62,7 +62,7 @@ fix_vb = True
 k_plot_max = 0.02
 show_plots = False
 save_plots = True
-suffix = '_with_bias_vel{}_b{}_lr1200_DR14'.format(initial_vb,initial_beta)
+suffix = '_with_bias_vel{}_b{}_lr1200'.format(initial_vb,initial_beta)
 save_tuning = True
 overwrite_tuning = True
 tuning_filename = 'input_files/tuning_data' + suffix + '.fits'
@@ -411,6 +411,8 @@ def save_tuning_file(filename,overwrite=False):
     header['D2'] = D2
     header['n'] = n
     header['k1'] = k1
+    header['R'] = R
+    header['vb'] = vb
 
     prihdr = fits.Header()
     prihdu = fits.PrimaryHDU(header=prihdr)
