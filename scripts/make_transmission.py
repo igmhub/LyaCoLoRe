@@ -93,9 +93,6 @@ parser.add_argument('--picca-all-absorbers', action="store_true", default = Fals
 parser.add_argument('--include-thermal-effects', action="store_true", default = False, required=False,
                     help = 'add thermal RSDs to the transmission file')
 
-parser.add_argument('--retune-small-scale-fluctuations', action="store_true", default = False, required=False,
-                    help = 'recalculate the values of sigma_G and alpha needed')
-
 parser.add_argument('--transmission-only', action="store_true", default = False, required=False,
                     help = 'save only the transmission file')
 
@@ -162,12 +159,10 @@ add_Lyb = args.add_Lyb
 add_metals = args.add_metals
 picca_all_absorbers = args.picca_all_absorbers
 include_thermal_effects = args.include_thermal_effects
-retune_small_scale_fluctuations = args.retune_small_scale_fluctuations
 tuning_file = args.tuning_file
 transmission_only = args.transmission_only
 N_skewers = args.nskewers
 global_seed = args.seed
-fit_function_to_tuning_data = args.fit_function_to_tuning_data
 overwrite = args.overwrite
 add_QSO_RSDs = args.add_QSO_RSDs
 trans_lmin = args.transmission_lambda_min
