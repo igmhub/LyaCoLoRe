@@ -1,7 +1,7 @@
 # specify number of nodes and cores to use
 QUEUE='debug'
-NNODES=32
-NCORES=64
+NNODES=12
+NCORES=32
 TIME="00:30:00" #hh:mm:ss
 
 # specify process parameters
@@ -13,10 +13,10 @@ MIN_CAT_Z=1.8
 LYACOLORE_SEED=123
 DLA_BIAS=2.0
 DLA_BIAS_METHOD='b_const'
-DOWNSAMPLING=1.0
-VEL_BOOST=1.2
-FOOTPRINT='full_sky'
-TRANSMISSION_FORMAT='develop'
+DOWNSAMPLING=0.5
+FOOTPRINT='desi_pixel_plus'
+PIXELS=`echo {0..3071}`
+TRANSMISSION_FORMAT='final'
 
 # specify transmission file wavelength grid
 TRANS_LMIN=3470.0
@@ -24,9 +24,8 @@ TRANS_LMAX=6500.0
 TRANS_DL=0.2
 
 # specify process flags
-#MM_FLAGS=""
 MM_FLAGS=""
-MT_FLAGS="--add-DLAs --add-RSDs --add-QSO-RSDs --add-small-scale-fluctuations"
+MT_FLAGS="--add-DLAs --add-RSDs --add-QSO-RSDs --add-small-scale-fluctuations --add-metals --add-Lyb --compress --transmission-only"
 
 # specify details of colore output
 COLORE_NGRID=4096
@@ -47,14 +46,14 @@ NFILES=`echo $INPUT_FILES | wc -w`
 echo "${NFILES} input files have been found"
 
 # code version
-V_CODE_MAJ="7"
-V_CODE_MIN="3"
+V_CODE_MAJ="8"
+V_CODE_MIN="0"
 V_REALISATION="0"
 
 # full path to folder where output will be written
-OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v${V_CODE_MAJ}/v7_full_lr1200_tuned/"
+#OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v${V_CODE_MAJ}/v7_test_picca_all_absorbers/"
 #OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v${V_CODE_MAJ}/v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}/"
-#OUTPUT_PATH="/project/projectdirs/desi/mocks/lya_forest/london/v${V_CODE_MAJ}.${V_CODE_MIN}/v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}/"
+OUTPUT_PATH="/project/projectdirs/desi/mocks/lya_forest/develop/london/v${V_CODE_MAJ}.${V_CODE_MIN}/v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}/"
 
 echo "output will written to "$OUTPUT_PATH
 if [ ! -d $OUTPUT_PATH ] ; then
@@ -66,11 +65,10 @@ if [ ! -d $OUTPUT_PATH/logs ] ; then
 fi
 
 # full path to file with tuning sigma_G data
-TUNING_PATH="/global/homes/j/jfarr/Projects/LyaCoLoRe/input_files/tuning_data_with_bias_vel1.2_b1.65_lr1200.fits"
-#TUNING_PATH="/global/homes/j/jfarr/Projects/LyaCoLoRe/input_files/tuning_data_with_bias_a2.0_b1.65.fits"
+TUNING_PATH="/global/homes/j/jfarr/Projects/LyaCoLoRe/input_files/tuning_data_with_bias_vel1.3_b1.65_lr1200.fits"
 
 # we will create this script
-RUN_FILE="/global/homes/j/jfarr/Projects/LyaCoLoRe/run_files/process_colore_v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}.sh"
+RUN_FILE="${OUTPUT_PATH}/process_colore_v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}.sh"
 echo "run file "$RUN_FILE
 
 # we create a log of the inputs/parameters used in the run
@@ -79,7 +77,7 @@ PARAM_FILE="${OUTPUT_PATH}/input.param"
 # make master file and new file structure
 date
 echo "making master file"
-${PROCESS_PATH}/make_master.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} --nside ${NSIDE} --nproc ${NCORES} --min-cat-z ${MIN_CAT_Z} ${MM_FLAGS} --downsampling ${DOWNSAMPLING} --footprint ${FOOTPRINT}
+${PROCESS_PATH}/make_master.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} --nside ${NSIDE} --nproc ${NCORES} --min-cat-z ${MIN_CAT_Z} ${MM_FLAGS} --downsampling ${DOWNSAMPLING} --footprint ${FOOTPRINT} --pixels ${PIXELS}
 wait
 date
 
@@ -120,7 +118,7 @@ for NODE in \`seq $NNODES\` ; do
 
     echo "looking at pixels: \${NODE_PIXELS}"
 
-    command="srun -N 1 -n 1 -c ${NCORES} ${PROCESS_PATH}/make_transmission.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} ${MT_FLAGS} --pixels \${NODE_PIXELS} --tuning-file ${TUNING_PATH} --nside ${NSIDE} --nproc ${NCORES} --IVAR-cut ${IVAR_CUT} --cell-size ${CELL_SIZE} --lambda-min ${LAMBDA_MIN} --seed ${LYACOLORE_SEED} --DLA-bias ${DLA_BIAS} --DLA-bias-method ${DLA_BIAS_METHOD} --velocity-multiplier ${VEL_BOOST} --transmission-lambda-min ${TRANS_LMIN} --transmission-lambda-max ${TRANS_LMAX} --transmission-delta-lambda ${TRANS_DL} --transmission-format ${TRANSMISSION_FORMAT}"
+    command="srun -N 1 -n 1 -c ${NCORES} ${PROCESS_PATH}/make_transmission.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} ${MT_FLAGS} --pixels \${NODE_PIXELS} --tuning-file ${TUNING_PATH} --nside ${NSIDE} --nproc ${NCORES} --IVAR-cut ${IVAR_CUT} --cell-size ${CELL_SIZE} --lambda-min ${LAMBDA_MIN} --seed ${LYACOLORE_SEED} --DLA-bias ${DLA_BIAS} --DLA-bias-method ${DLA_BIAS_METHOD} --transmission-lambda-min ${TRANS_LMIN} --transmission-lambda-max ${TRANS_LMAX} --transmission-delta-lambda ${TRANS_DL} --transmission-format ${TRANSMISSION_FORMAT}"
 
     echo \$command
     \$command >& ${OUTPUT_PATH}/logs/node-\${NODE}.log &
@@ -175,9 +173,6 @@ MT_FLAGS=${MT_FLAGS}
 COLORE_PARAM_PATH=${COLORE_PARAM_PATH}
 EOF
 cat ${COLORE_PARAM_PATH} >> ${PARAM_FILE}
-
-# copy run file to the output location for record
-cp $RUN_FILE $OUTPUT_PATH
 
 # send the job to the queue
 sbatch $RUN_FILE
