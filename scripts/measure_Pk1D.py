@@ -132,7 +132,6 @@ figsize = (12, 6)
 dpi = 80
 #plt.rc('text', usetex=True)
 plt.rc('font', size=fontsize)
-plt.rc('hatch', color='gray')
 
 ################################################################################
 
@@ -315,19 +314,18 @@ def plot_P1D_values(Pk1D_results,show_plot=True):
                 ind_orig = np.arange(N_low,N_low+N_rel,1)
                 spacing = N_rel // args.N_k_values
                 ind = ind_orig[(ind_orig % spacing) == 0]
-                print(k.shape,Pk.shape,ind.shape)
-                d = plt.errorbar(k[ind],to_plot_data[ind],yerr=to_plot_data_err[ind],label='z={}'.format(z_value),c=colour,fmt='o',zorder=0)
+                d = plt.errorbar(k[ind],to_plot_data[ind],yerr=to_plot_data_err[ind],label='z={}'.format(z_value),c=colour,fmt='o',zorder=3)
             else:
-                d = plt.errorbar(k,to_plot_data,yerr=to_plot_data_err,label='z={}'.format(z_value),c=colour,fmt='o',zorder=0)
+                d = plt.errorbar(k,to_plot_data,yerr=to_plot_data_err,label='z={}'.format(z_value),c=colour,fmt='o',zorder=3)
 
         #Otherwise, plot a line with error areas if required.
         elif args.add_error_areas:
             d = plt.plot(k,to_plot_data,label='z={}'.format(z_value),c=colour)
-            plt.fill_between(k,to_plot_data+to_plot_data_err,to_plot_data-to_plot_data_err,color=colour,alpha=0.2,zorder=0)
+            plt.fill_between(k,to_plot_data+to_plot_data_err,to_plot_data-to_plot_data_err,color=colour,alpha=0.2,zorder=3)
 
         #Otherwise, just plot a line.
         else:
-            d = plt.plot(k,to_plot_data,label='z={}'.format(z_value),c=colour,zorder=0)
+            d = plt.plot(k,to_plot_data,label='z={}'.format(z_value),c=colour,zorder=3)
 
         #Add the plotted data to the dictionary.
         data_plots[z_value] = d
@@ -336,16 +334,16 @@ def plot_P1D_values(Pk1D_results,show_plot=True):
         if 'flux' in file_type:
             model_Pk_kms = tuning.P1D_z_kms_PD2013(z_value,k)
             to_plot_model = model_Pk_kms * (k ** args.k_plot_power)
-            plt.plot(k,to_plot_model,c=colour,linestyle='--',zorder=1)
+            plt.plot(k,to_plot_model,c=colour,linestyle='--',zorder=2)
             if args.add_model_interval_areas is not None:
                 to_plot_lower = to_plot_model * (1 - args.add_model_interval_areas)
                 to_plot_upper = to_plot_model * (1 + args.add_model_interval_areas)
-                plt.fill_between(k,to_plot_upper,to_plot_lower,color=colour,alpha=0.2,zorder=2)
+                plt.fill_between(k,to_plot_upper,to_plot_lower,color=colour,alpha=0.2,zorder=1)
             elif args.add_model_interval_lines is not None:
                 to_plot_lower = to_plot_model * (1 - args.add_model_interval_lines)
                 to_plot_upper = to_plot_model * (1 + args.add_model_interval_lines)
-                plt.plot(k,to_plot_upper,color=colour,linestyle=':',zorder=2)
-                plt.plot(k,to_plot_lower,color=colour,linestyle=':',zorder=2)
+                plt.plot(k,to_plot_upper,color=colour,linestyle=':',zorder=1)
+                plt.plot(k,to_plot_lower,color=colour,linestyle=':',zorder=1)
             plot_model_min = np.minimum(plot_model_min,np.min(to_plot_model[k_rel]))
             plot_model_max = np.maximum(plot_model_max,np.max(to_plot_model[k_rel]))
 
@@ -355,17 +353,6 @@ def plot_P1D_values(Pk1D_results,show_plot=True):
     ylim_upper = plot_model_max * (1 + space)
     plt.xlim(args.k_min_plot,args.k_max_plot)
     plt.ylim(ylim_lower,ylim_upper)
-
-    #Add vertical line, and shade if desired.
-    if args.add_vline is not None:
-        plt.axvline(x=args.add_vline,linestyle='-.',color='gray')
-        if args.fill_right_vline:
-            extend = 0.1
-            k_shade = np.array([args.add_vline,args.k_max_plot*(1+extend)])
-            y_shade_upper = np.array([ylim_upper*(1+extend)]*2)
-            y_shade_lower = np.array([ylim_lower*(1-extend)]*2)
-            plt.fill_between(k_shade,y_shade_upper,y_shade_lower,facecolor='w',hatch='/',zorder=-1,alpha=0.5)
-            #plt.fill_between(k_shade,y_shade_upper,y_shade_lower,facecolor='none',hatch='/',zorder=0)
 
     #Add blank elements to describe data plot types in legend.
     descriptor_plots = {}
@@ -384,6 +371,16 @@ def plot_P1D_values(Pk1D_results,show_plot=True):
             err_i = plt.fill_between([], [], [], color='gray', alpha=0.2, label=r'DR9 $\pm$ 10%')
         descriptor_plots['error'] = err
         descriptor_plots['error_interval'] = err_i
+
+    #Add vertical line, and shade if desired.
+    if args.add_vline is not None:
+        plt.axvline(x=args.add_vline,linestyle='-.',color='darkgrey',zorder=4)
+        if args.fill_right_vline:
+            extend = 0.1
+            k_shade = np.array([args.add_vline,args.k_max_plot*(1+extend)])
+            y_shade_upper = np.array([ylim_upper*(1+extend)]*2)
+            y_shade_lower = np.array([ylim_lower*(1-extend)]*2)
+            plt.fill_between(k_shade,y_shade_upper,y_shade_lower,linewidth=0.0,edgecolor='darkgrey',facecolor='none',hatch='/',zorder=4)
 
     #Add a legend, ensuring everything is in the right order.
     legend_items = []
