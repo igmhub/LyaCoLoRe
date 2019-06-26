@@ -168,7 +168,7 @@ def write_DRQ(filename,RSD_option,ID_data,N_side,overwrite=False):
     #Create a new master file, with the same filename concatenated with '_picca_' and the RSD option chosen.
     prihdr = fits.Header()
     prihdu = fits.PrimaryHDU(header=prihdr)
-    hdu_DRQ = fits.BinTableHDU.from_columns(DRQ_data,header=header)
+    hdu_DRQ = fits.BinTableHDU(DRQ_data,header=header)
 
     hdulist = fits.HDUList([prihdu,hdu_DRQ])
     hdulist.writeto(filename,overwrite=overwrite)
