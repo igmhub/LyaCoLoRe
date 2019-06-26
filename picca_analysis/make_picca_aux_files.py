@@ -76,6 +76,12 @@ parser.add_argument('--afix-values', type = str, default = None, required=True,
 args = parser.parse_args()
 
 
+#Calculate the effective redshift.
+h = fits.open(args.base_dir+'/'+args.cf_exp_filename)
+R = np.sqrt(h[1].data['RP']**2 + h[1].data['RT']**2)
+cells = (R > 80.) * (R < 120.)
+zeff = np.average(h[1].data['Z'][cells],weights=h[1].data['NB'][cells])
+
 #Write parameter file.
 parameter_file_text = ''
 parameter_file_text += 'correl_type = {}\n'.format(args.corr_type)
@@ -91,15 +97,10 @@ parameter_file_text += 'np = {}\n'.format(args.np)
 parameter_file_text += 'nt = {}\n'.format(args.nt)
 parameter_file_text += 'zmin = {}\n'.format(args.zmin)
 parameter_file_text += 'zmax = {}\n'.format(args.zmax)
+parameter_file_text += 'zeff = {}\n'.format(zeff)
 file = open(args.base_dir+args.parameter_filename,'w')
 file.write(parameter_file_text)
 file.close()
-
-#Calculate the effective redshift.
-h = fits.open(args.base_dir+'/'+args.cf_filename)
-R = np.sqrt(h[1].data['RP']**2 + h[1].data['RT']**2)
-cells = (R > 80.) * (R < 120.)
-zeff = np.average(h[1].data['Z'][cells],weights=h[1].data['NB'][cells])
 
 #create config files for doing fits
 for rmin in args.rmin_values:
