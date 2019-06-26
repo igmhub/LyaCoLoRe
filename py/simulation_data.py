@@ -386,18 +386,17 @@ class SimulationData:
         times = []
         start = time.time(); times += [start]
 
-        #Add small scale fluctuations
+        #Define the new R grid.
+        Rmin = self.R[0] - (self.R[1] - self.R[0])/2.
+        Rmax = self.R[-1] + (self.R[-1] - self.R[-2])/2.
+        new_R_edges = np.arange(Rmin,Rmax,cell_size)
+        new_R = (new_R_edges[1:] + new_R_edges[:-1])/2.
         old_R = self.R
-        Rmax = np.max(old_R)
-        Rmin = np.min(old_R)
-        new_R = np.arange(Rmin,Rmax,cell_size)
         new_N_cells = new_R.shape[0]
 
         # TODO: could just use scipy.interp1d here
+        #Get the nearest grid points.
         NGPs = utils.get_NGPs(old_R,new_R)
-        #expanded_GAUSSIAN_DELTA_rows = np.zeros((self.N_qso,new_N_cells))
-        expanded_GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows[:,NGPs]
-        #expanded_GAUSSIAN_DELTA_rows = interp1d(old_R,self.GAUSSIAN_DELTA_rows,axis=1,kind='linear')(new_R)
 
         #Redefine the necessary variables (N_cells, Z, D etc)
         self.N_cells = new_N_cells
@@ -408,6 +407,11 @@ class SimulationData:
         self.D = np.interp(new_R,old_R,self.D)
         self.V = np.interp(new_R,old_R,self.V)
         self.LOGLAM_MAP = np.log10(lya*(1+self.Z))
+
+        #Expand the Gaussian rows, and mask all cells beyond the QSOs.
+        expanded_GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows[:,NGPs]
+        lya_lr_mask = utils.make_IVAR_rows(lya,self.Z_QSO,self.LOGLAM_MAP)
+        expanded_GAUSSIAN_DELTA_rows *= lya_lr_mask
 
         # TODO: What to do with this?
         #self.VEL_rows = interp1d(old_R,self.VEL_rows,axis=1,kind='linear')(self.R)
