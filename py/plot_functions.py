@@ -30,6 +30,7 @@ class picca_correlation:
         self.nt = int(p['nt'])
         self.zmin = float(p['zmin'])
         self.zmax = float(p['zmax'])
+        self.zeff = float(p['zeff'])
 
         """
         #input skewer parameters
@@ -273,13 +274,12 @@ class picca_correlation:
 
         #Using our model
         model = 'Slosar11'
-        z_value = (self.zmin + self.zmax) / 2.
-        r,xi = correlation_model.get_model_xi(model,self.quantity_1,self.quantity_2,b1,b2,beta1,beta2,z_value,mubin)
+        r,xi = correlation_model.get_model_xi(model,self.quantity_1,self.quantity_2,b1,b2,beta1,beta2,self.zeff,mubin)
         indices = r<rmax
         r = r[indices]
         xi = xi[indices]
 
-        ax.plot(r,(r**r_power) * xi,c=colour,label=plot_label)
+        ax.plot(r,(r**r_power) * xi,c=colour,label=plot_label,linestyle=':')
 
         return
 
@@ -356,7 +356,7 @@ def get_fit_from_result(location,result_name,corr_type):
             par_dict['value'] = value
             par_dict['error'] = error
             fit[par] = par_dict
-            print('{} = {} +/- {}'.format(par,value,error))
+            print('{} = {:1.4f} +/- {:1.4f}'.format(par,value,error))
 
     # TODO: This won't work if it's not the lya auto correlation
     if corr_type == 'cf':
@@ -438,7 +438,7 @@ def plot_wedges(ax,plot_info):
         #Add a model or fit.
         if plot_info['plot_picca_fit']:
             corr_obj.plot_fit(ax,mubin,'',colour,**plot_info['plot_data'])
-        elif plot_info['plot_manual_fit']:
+        if plot_info['plot_manual_fit']:
             b1,b2,beta1,beta2 = plot_info['manual_fit_data'].values()
             corr_obj.plot_manual_model(ax,b1,b2,beta1,beta2,mubin,'',colour,**plot_info['plot_data'])
 
