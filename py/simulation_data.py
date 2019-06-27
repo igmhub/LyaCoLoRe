@@ -404,15 +404,15 @@ class SimulationData:
         self.R = new_R
 
         # TODO: Ideally would want to recompute these rather than interpolating?
-        old_Z_edges = utils.get_edges(self.Z)
-        old_D_edges = utils.get_edges(self.D)
-        old_V_edges = utils.get_edges(self.V)
+        old_Z_edges = interp1d(old_R,old_Z,fill_value='extrapolate')(old_R_edges)
+        old_D_edges = interp1d(old_R,old_D,fill_value='extrapolate')(old_R_edges)
+        old_V_edges = interp1d(old_R,old_V,fill_value='extrapolate')(old_R_edges)
         new_Z_edges = interp1d(old_R_edges,old_Z_edges,fill_value='extrapolate')(new_R_edges)
         new_D_edges = interp1d(old_R_edges,old_D_edges,fill_value='extrapolate')(new_R_edges)
         new_V_edges = interp1d(old_R_edges,old_V_edges,fill_value='extrapolate')(new_R_edges)
-        self.Z = utils.get_centres(new_Z_edges)
-        self.D = utils.get_centres(new_D_edges)
-        self.V = utils.get_centres(new_V_edges)
+        self.Z = interp1d(new_R_edges,new_Z_edges,fill_value='extrapolate')(new_R)
+        self.D = interp1d(new_R_edges,new_D_edges,fill_value='extrapolate')(new_R)
+        self.V = interp1d(new_R_edges,new_V_edges,fill_value='extrapolate')(new_R)
         self.LOGLAM_MAP = np.log10(lya*(1+self.Z))
 
         #Expand the skewers.
@@ -456,7 +456,9 @@ class SimulationData:
 
         #Add the extra fluctuations to the expanded rows, and mask beyond the QSOs.
         expanded_GAUSSIAN_DELTA_rows += extra_var
-        lya_lr_mask = utils.make_IVAR_rows(lya,self.Z_QSO,self.LOGLAM_MAP)
+        new_Z_ledges = new_Z_edges[:-1]
+        LOGLAM_ledges = np.log10(lya*(1+new_Z_ledges))
+        lya_lr_mask = utils.make_IVAR_rows(lya,self.Z_QSO,LOGLAM_ledges)
         expanded_GAUSSIAN_DELTA_rows *= lya_lr_mask
         times += [time.time()]
 

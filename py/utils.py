@@ -201,7 +201,6 @@ def make_QSO_filter(footprint,N_side=16,pixel_list=None):
 
     return QSO_filter
 
-
 #Function to return a filter for restricting the QSO footprint.
 def choose_filter(desi_footprint,desi_footprint_pixel,desi_footprint_pixel_plus,desimodel_installed,N_side=16,pixel_list=None):
 
