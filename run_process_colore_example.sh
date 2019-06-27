@@ -2,7 +2,7 @@
 LYACOLORE_PATH="/Users/James//Projects/LyaCoLoRe/"
 
 # specify number of cores to use
-NCORES=2
+NCORES=1
 
 ################################################################################
 
@@ -16,7 +16,6 @@ LYACOLORE_SEED=123
 DLA_BIAS=2.0
 DLA_BIAS_METHOD='b_const'
 DOWNSAMPLING=0.5
-VEL_BOOST=1.2
 FOOTPRINT='full_sky'
 
 # specify transmission file wavelength grid
@@ -25,8 +24,8 @@ TRANS_LMAX=6500.0
 TRANS_DL=0.2
 
 # specify process flags
-MM_FLAGS="--overwrite"
-MT_FLAGS="--add-DLAs --add-RSDs --add-QSO-RSDs --add-small-scale-fluctuations --add-Lyb --overwrite"
+MM_FLAGS="--overwrite --pixels 0"
+MT_FLAGS="--add-DLAs --add-RSDs --add-QSO-RSDs --add-small-scale-fluctuations --overwrite --compress"
 
 # specify details of colore output
 COLORE_NGRID=4096
@@ -61,7 +60,7 @@ if [ ! -d $OUTPUT_PATH/logs ] ; then
 fi
 
 # full path to file with tuning sigma_G data
-TUNING_PATH="${LYACOLORE_PATH}/input_files/tuning_data_v7.0.0.fits"
+TUNING_PATH="${LYACOLORE_PATH}/input_files/tuning_data_with_bias_vel1.3_b1.65_lr1200.fits"
 
 # make master file and new file structure
 echo "making master file"
@@ -81,7 +80,7 @@ done
 PIXELS=${PIXELS[@]:0:$NPIXELS}
 
 echo "looking at pixels: ${NODE_PIXELS}"
-command="${PROCESS_PATH}/make_transmission.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} ${MT_FLAGS} --pixels ${PIXELS} --tuning-file ${TUNING_PATH} --nside ${NSIDE} --nproc ${NCORES} --IVAR-cut ${IVAR_CUT} --cell-size ${CELL_SIZE} --lambda-min ${LAMBDA_MIN} --seed ${LYACOLORE_SEED} --DLA-bias ${DLA_BIAS} --DLA-bias-method ${DLA_BIAS_METHOD} --velocity-multiplier ${VEL_BOOST} --transmission-lambda-min ${TRANS_LMIN} --transmission-lambda-max ${TRANS_LMAX} --transmission-delta-lambda ${TRANS_DL}"
+command="${PROCESS_PATH}/make_transmission.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} ${MT_FLAGS} --pixels ${PIXELS} --tuning-file ${TUNING_PATH} --nside ${NSIDE} --nproc ${NCORES} --IVAR-cut ${IVAR_CUT} --cell-size ${CELL_SIZE} --lambda-min ${LAMBDA_MIN} --seed ${LYACOLORE_SEED} --DLA-bias ${DLA_BIAS} --DLA-bias-method ${DLA_BIAS_METHOD} --transmission-lambda-min ${TRANS_LMIN} --transmission-lambda-max ${TRANS_LMAX} --transmission-delta-lambda ${TRANS_DL}"
 $command
 
 echo "producing analysis pixels"

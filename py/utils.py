@@ -24,6 +24,14 @@ def compress_file(filename,ext='.gz',remove=True):
         os.remove(filename)
     return
 
+def get_edges(x):
+    x_edges = np.concatenate([[(x[0]-(x[1]-x[0])/2)],(x[1:]+x[:-1])/2,[(x[-1]+(x[-1]-x[-2])/2)]])
+    return x_edges
+
+def get_centres(x_edges):
+    x = (x_edges[1:] + x_edges[:-1])/2.
+    return x
+
 #Define a function to print a progress bar.
 def progress_bar(N_complete,N_tasks,start_time):
 
@@ -231,21 +239,6 @@ def make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP):
 
     #Filter according to the cutoff.
     IVAR_rows = (lambdas_rf <= IVAR_cutoff).astype('float32')
-
-    """
-    N_cells = LOGLAM_MAP.shape[0]
-    N_qso = Z_QSO.shape[0]
-
-    lya_lambdas = IVAR_cutoff*(1+Z_QSO)
-    IVAR_rows = np.ones((N_qso,N_cells),dtype='float32')
-    lambdas = 10**LOGLAM_MAP
-
-    for i in range(N_qso):
-        last_relevant_cell = np.searchsorted(lambdas,lya_lambdas[i]) - 1
-
-        for j in range(last_relevant_cell+1,N_cells):
-            IVAR_rows[i,j] = 0.
-    """
 
     return IVAR_rows
 

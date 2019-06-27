@@ -415,7 +415,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
 
     pixel_object.transformation = transformation
 
-    pixel_object.VEL_rows *= vel_mult
+    #pixel_object.VEL_rows *= vel_mult
     #print('{:3.2f} checkpoint object'.format(time.time()-t)); t = time.time()
 
     #Add Lyb and metal absorbers if needed.
@@ -494,11 +494,11 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
 
         #Picca tau
         filename = utils.get_file_name(location,'picca-tau-noRSD-notnorm',N_side,pixel)
-        pixel_object.save_as_picca_delta('tau',filename,header,notnorm=True,overwrite=overwrite,add_QSO_RSDs=False,compress=compress,all_absorbers=picca_all_absorbers)
+        pixel_object.save_as_picca_delta('tau',filename,header,notnorm=True,overwrite=overwrite,add_QSO_RSDs=add_QSO_RSDs,compress=compress,all_absorbers=picca_all_absorbers)
 
         #Picca flux
         filename = utils.get_file_name(location,'picca-flux-noRSD-notnorm',N_side,pixel)
-        pixel_object.save_as_picca_delta('flux',filename,header,notnorm=True,overwrite=overwrite,add_QSO_RSDs=False,compress=compress,all_absorbers=picca_all_absorbers)
+        pixel_object.save_as_picca_delta('flux',filename,header,notnorm=True,overwrite=overwrite,add_QSO_RSDs=add_QSO_RSDs,compress=compress,all_absorbers=picca_all_absorbers)
 
         #Save the no RSD statistics file for this pixel.
         filename = utils.get_file_name(location,'statistics-noRSD',N_side,pixel)
@@ -524,9 +524,9 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
 
     #transmission
     filename = utils.get_file_name(location,'transmission',N_side,pixel)
-    pixel_object.save_as_transmission(filename,header,overwrite=overwrite,wave_min=trans_lmin,wave_max=trans_lmax,wave_step=trans_dl,fmt=transmission_format,compress=compress)
+    pixel_object.save_as_transmission(filename,header,overwrite=overwrite,wave_min=trans_lmin,wave_max=trans_lmax,wave_step=trans_dl,fmt=transmission_format,add_QSO_RSDs=add_QSO_RSDs,compress=compress)
 
-    if transmission_only == False:
+    if transmission_only == False and add_RSDs == True:
         #Picca tau
         filename = utils.get_file_name(location,'picca-tau-notnorm',N_side,pixel)
         pixel_object.save_as_picca_delta('tau',filename,header,notnorm=True,overwrite=overwrite,add_QSO_RSDs=add_QSO_RSDs,compress=compress,all_absorbers=picca_all_absorbers)
