@@ -404,6 +404,9 @@ class SimulationData:
         self.R = new_R
 
         # TODO: Ideally would want to recompute these rather than interpolating?
+        old_Z = self.Z
+        old_D = self.D
+        old_V = self.V
         old_Z_edges = interp1d(old_R,old_Z,fill_value='extrapolate')(old_R_edges)
         old_D_edges = interp1d(old_R,old_D,fill_value='extrapolate')(old_R_edges)
         old_V_edges = interp1d(old_R,old_V,fill_value='extrapolate')(old_R_edges)
