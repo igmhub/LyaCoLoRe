@@ -179,9 +179,7 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
     #total = 0
     #count = 0
 
-    r_edge_start = r_hMpc[0] - (r_hMpc[1] - r_hMpc[0])/2.
-    r_edge_end = r_hMpc[-1] + (r_hMpc[-1] - r_hMpc[-2])/2.
-    r_edges = np.concatenate(([r_edge_start],(r_hMpc[1:]+r_hMpc[:-1])/2.,[r_edge_end]))
+    r_edges = utils.get_edges(r_hMpc)
     z_edges = sciint.interp1d(r_hMpc,z,fill_value='extrapolate')(r_edges)
 
     #Not sure which of these is best, or if it will make much of a difference
@@ -248,7 +246,7 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
 
             x_le_s = x_ledges_shifted[j]
             x_ue_s = x_uedges_shifted[j]
-            
+
             #If we want to include thermal effects, we include contributions to all cells within a chosen x_kms range.
             if thermal == True:
 

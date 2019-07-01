@@ -386,36 +386,42 @@ class SimulationData:
         times = []
         start = time.time(); times += [start]
 
-        #Add small scale fluctuations
+        #Define the new R grid.
         old_R = self.R
-        Rmax = np.max(old_R)
-        Rmin = np.min(old_R)
-        new_R = np.arange(Rmin,Rmax,cell_size)
+        old_R_edges = utils.get_edges(old_R)
+        Rmin = self.R[0] - (self.R[1] - self.R[0])/2.
+        Rmax = self.R[-1] + (self.R[-1] - self.R[-2])/2.
+        new_R_edges = np.arange(Rmin,Rmax,cell_size)
+        new_R = utils.get_centres(new_R_edges)
         new_N_cells = new_R.shape[0]
 
         # TODO: could just use scipy.interp1d here
+        #Get the nearest grid points.
         NGPs = utils.get_NGPs(old_R,new_R)
-        #expanded_GAUSSIAN_DELTA_rows = np.zeros((self.N_qso,new_N_cells))
-        expanded_GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows[:,NGPs]
-        #expanded_GAUSSIAN_DELTA_rows = interp1d(old_R,self.GAUSSIAN_DELTA_rows,axis=1,kind='linear')(new_R)
 
         #Redefine the necessary variables (N_cells, Z, D etc)
         self.N_cells = new_N_cells
         self.R = new_R
 
         # TODO: Ideally would want to recompute these rather than interpolating?
-        self.Z = np.interp(new_R,old_R,self.Z)
-        self.D = np.interp(new_R,old_R,self.D)
-        self.V = np.interp(new_R,old_R,self.V)
+        old_Z = self.Z
+        old_D = self.D
+        old_V = self.V
+        old_Z_edges = interp1d(old_R,old_Z,fill_value='extrapolate')(old_R_edges)
+        old_D_edges = interp1d(old_R,old_D,fill_value='extrapolate')(old_R_edges)
+        old_V_edges = interp1d(old_R,old_V,fill_value='extrapolate')(old_R_edges)
+        new_Z_edges = interp1d(old_R_edges,old_Z_edges,fill_value='extrapolate')(new_R_edges)
+        new_D_edges = interp1d(old_R_edges,old_D_edges,fill_value='extrapolate')(new_R_edges)
+        new_V_edges = interp1d(old_R_edges,old_V_edges,fill_value='extrapolate')(new_R_edges)
+        self.Z = interp1d(new_R_edges,new_Z_edges,fill_value='extrapolate')(new_R)
+        self.D = interp1d(new_R_edges,new_D_edges,fill_value='extrapolate')(new_R)
+        self.V = interp1d(new_R_edges,new_V_edges,fill_value='extrapolate')(new_R)
         self.LOGLAM_MAP = np.log10(lya*(1+self.Z))
 
-        # TODO: What to do with this?
-        #self.VEL_rows = interp1d(old_R,self.VEL_rows,axis=1,kind='linear')(self.R)
+        #Expand the skewers.
+        expanded_GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows[:,NGPs]
         self.VEL_rows = self.VEL_rows[:,NGPs]
-
-        #Can either make new IVAR rows, or just use NGPs on the old ones.
         self.IVAR_rows = self.IVAR_rows[:,NGPs]
-        #self.IVAR_rows = utils.make_IVAR_rows(IVAR_cutoff,self.Z_QSO,self.LOGLAM_MAP)
 
         times += [time.time()]
         #For each skewer, determine the last relevant cell
@@ -451,10 +457,12 @@ class SimulationData:
         extra_var *= extra_sigma_G
         times += [time.time()]
 
-        mask = utils.make_IVAR_rows(lya,self.Z_QSO,self.LOGLAM_MAP)
-        extra_var *= mask
-
+        #Add the extra fluctuations to the expanded rows, and mask beyond the QSOs.
         expanded_GAUSSIAN_DELTA_rows += extra_var
+        new_Z_ledges = new_Z_edges[:-1]
+        LOGLAM_ledges = np.log10(lya*(1+new_Z_ledges))
+        lya_lr_mask = utils.make_IVAR_rows(lya,self.Z_QSO,LOGLAM_ledges)
+        expanded_GAUSSIAN_DELTA_rows *= lya_lr_mask
         times += [time.time()]
 
         self.GAUSSIAN_DELTA_rows = expanded_GAUSSIAN_DELTA_rows
@@ -853,7 +861,7 @@ class SimulationData:
         return
 
     #Function to save in the picca format.
-    def save_as_picca_delta(self,quantity,filename,header,mean_data=None,overwrite=False,min_number_cells=2,cell_size=None,notnorm=False,add_QSO_RSDs=False,compress=True,all_absorbers=False):
+    def save_as_picca_delta(self,quantity,filename,header,mean_data=None,overwrite=False,min_number_cells=2,cell_size=None,notnorm=False,add_QSO_RSDs=True,compress=True,all_absorbers=False):
 
         t = time.time()
         lya_lambdas = 10**self.LOGLAM_MAP
@@ -1032,7 +1040,7 @@ class SimulationData:
         return
 
     #Compute transmission for a particular absorber, on a particular grid
-    def compute_grid_transmission(self,absorber,wave_grid):
+    def compute_grid_transmission(self,absorber,wave_grid,add_QSO_RSDs=True):
         #Get transmission on each cell, from tau stored in absorber
         F_skewer = absorber.transmission()
         #Get rest-frame wavelength for this particular absorber
@@ -1044,13 +1052,22 @@ class SimulationData:
         N_los = F_skewer.shape[0]
         N_w = wave_grid.shape[0]
         F_grid = np.empty([N_los,N_w])
+
+        #Get QSO redshifts with or without RSDs.
+        if add_QSO_RSDs:
+            Z_QSO = self.Z_QSO + self.DZ_RSD
+        else:
+            Z_QSO = self.Z_QSO
+
         for i in range(N_los):
             F_grid[i,] = np.interp(wave_grid,wave_skewer,F_skewer[i],left=1.0,right=1.0)
+            #beyond_QSO = (wave_grid > rest_wave*(1 + Z_QSO[i]))
+            #F_grid[i,beyond_QSO] = 1.
 
         return F_grid
 
     #Function to save data as a transmission file.
-    def save_as_transmission(self,filename,header,overwrite=False,wave_min=3550.,wave_max=6500.,wave_step=0.2,fmt='final',compress=True):
+    def save_as_transmission(self,filename,header,overwrite=False,wave_min=3550.,wave_max=6500.,wave_step=0.2,fmt='final',add_QSO_RSDs=True,compress=True):
 
         t = time.time()
 
@@ -1058,11 +1075,14 @@ class SimulationData:
         wave_grid = np.arange(wave_min,wave_max,wave_step).astype('float32')
 
         # compute Lyman alpha transmission on grid of wavelengths
-        F_grid_Lya = self.compute_grid_transmission(self.lya_absorber,wave_grid).astype('float32')
+        F_grid_Lya = self.compute_grid_transmission(self.lya_absorber,wave_grid,add_QSO_RSDs=add_QSO_RSDs).astype('float32')
 
         # construct quasar catalog HDU
-        Z_RSD = self.Z_QSO + self.DZ_RSD
-        catalog_data = list(zip(self.RA,self.DEC,Z_RSD,self.Z_QSO,self.MOCKID))
+        if add_QSO_RSDs:
+            Z_QSO = self.Z_QSO + self.DZ_RSD
+        else:
+            Z_QSO = self.Z_QSO
+        catalog_data = list(zip(self.RA,self.DEC,Z_QSO,self.Z_QSO,self.MOCKID))
         dtype = [('RA', 'f4'), ('DEC', 'f4'), ('Z', 'f4'), ('Z_noRSD', 'f4'), ('MOCKID', int)]
         catalog_data = np.array(catalog_data,dtype=dtype)
 

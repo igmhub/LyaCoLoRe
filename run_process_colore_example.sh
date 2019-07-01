@@ -2,7 +2,7 @@
 LYACOLORE_PATH="/Users/jfarr//Projects/LyaCoLoRe/"
 
 # specify number of cores to use
-NCORES=2
+NCORES=1
 
 ################################################################################
 
@@ -24,8 +24,8 @@ TRANS_LMAX=6500.0
 TRANS_DL=0.2
 
 # specify process flags
-MM_FLAGS="--overwrite"
-MT_FLAGS="--add-DLAs --add-RSDs --add-QSO-RSDs --add-small-scale-fluctuations --add-Lyb --overwrite"
+MM_FLAGS="--overwrite --pixels 0"
+MT_FLAGS="--add-DLAs --add-RSDs --add-QSO-RSDs --add-small-scale-fluctuations --overwrite --compress"
 
 # specify details of colore output
 COLORE_NGRID=4096
