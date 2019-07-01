@@ -450,10 +450,10 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
     #Save picca format files without adding small scale power.
     if transmission_only == False:
         filename = utils.get_file_name(location,'picca-gaussian-colorecell',N_side,pixel)
-        pixel_object.save_as_picca_delta('gaussian',filename,header,overwrite=overwrite,compress=compress)
+        pixel_object.save_as_picca_delta('gaussian',filename,header,overwrite=overwrite,add_QSO_RSDs=add_QSO_RSDs,compress=compress)
 
         filename = utils.get_file_name(location,'picca-density-colorecell',N_side,pixel)
-        pixel_object.save_as_picca_delta('density',filename,header,overwrite=overwrite,compress=compress)
+        pixel_object.save_as_picca_delta('density',filename,header,overwrite=overwrite,add_QSO_RSDs=add_QSO_RSDs,compress=compress)
 
     #print('{:3.2f} checkpoint colore files'.format(time.time()-t)); t = time.time()
 
