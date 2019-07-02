@@ -18,9 +18,9 @@ plt.rc('font', size=fontsize)
 
 #Plot variables.
 stages_1 = ['picca-gaussian', 'picca-density', 'picca-tau-notnorm', 'picca-flux-notnorm']
-label_1 = [r'$\delta_G$',r'1+$\delta$',r'$\tau$',r'$F$']
+label_1 =  [r'$\delta_G$',r'1+$\delta$',r'$\tau$',r'$F$']
 stages_2 = ['picca-gaussian-colorecell', None, 'picca-tau-noRSD-notnorm', 'picca-flux-noRSD-notnorm']
-label_2 = [r'$\delta_C$',None,r'$\tau_\mathrm{noRSD}$',r'$F_\mathrm{noRSD}$']
+label_2 =  [r'$\delta_C$',None,r'$\tau_\mathrm{noRSD}$',r'$F_\mathrm{noRSD}$']
 axis_label = ['Gaussian\nfield','Lognormal\ndensity','Optical\ndepth','Transmitted\nflux fraction']
 symmetrical = [True, False, False, False]
 add_one = [False,True,False,False]

@@ -9,10 +9,10 @@ lya = utils.lya_rest
 
 #Set up options
 factor = 10.0
-out_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v7.3/v7.3.0/master_DLA_randoms_fc.fits'
+out_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v8.0/v8.0.0/master_DLA_randoms.fits'
 method = 'from_catalog'
-DLA_catalog_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v7.3/v7.3.0/master_DLA.fits'
-QSO_catalog_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v7.3/v7.3.0/master.fits'
+DLA_catalog_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v8.0/v8.0.0/master_DLA.fits'
+QSO_catalog_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v8.0/v8.0.0/master.fits'
 footprint = 'desi_pixel_plus'
 lambda_min = 3370.
 lambda_max = 6550.

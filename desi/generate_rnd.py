@@ -9,9 +9,9 @@ from lyacolore import catalog,utils
 
 #Set up options
 factor = 10
-out_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v7.3/v7.3.0/master_randoms.fits'
+out_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v8.0/v8.0.0/master_randoms.fits'
 method = 'from_catalog'
-catalog_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v7.3/v7.3.0/master.fits'
+catalog_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v8.0/v8.0.0/master.fits'
 footprint = 'desi_pixel_plus'
 nz_filename = 'input_files/Nz_qso_130618_2_colore1_hZs.txt'
 min_cat_z = 1.8

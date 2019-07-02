@@ -1,6 +1,6 @@
 # specify number of nodes and cores to use
-QUEUE='debug'
-NNODES=12
+QUEUE='regular'
+NNODES=32
 NCORES=32
 TIME="00:30:00" #hh:mm:ss
 
@@ -13,10 +13,10 @@ MIN_CAT_Z=1.8
 LYACOLORE_SEED=123
 DLA_BIAS=2.0
 DLA_BIAS_METHOD='b_const'
-DOWNSAMPLING=0.5
-FOOTPRINT='desi_pixel_plus'
+DOWNSAMPLING=1.0
+FOOTPRINT='full_sky'
 PIXELS=`echo {0..3071}`
-TRANSMISSION_FORMAT='final'
+TRANSMISSION_FORMAT='develop'
 
 # specify transmission file wavelength grid
 TRANS_LMIN=3470.0
@@ -24,7 +24,7 @@ TRANS_LMAX=6500.0
 TRANS_DL=0.2
 
 # specify process flags
-MM_FLAGS=""
+MM_FLAGS="--overwrite --add-picca-drqs"
 MT_FLAGS="--add-DLAs --add-RSDs --add-QSO-RSDs --add-small-scale-fluctuations --add-metals --add-Lyb --compress --transmission-only"
 
 # specify details of colore output
@@ -32,6 +32,7 @@ COLORE_NGRID=4096
 COLORE_NODES=32
 R_SMOOTH=2.0
 COLORE_SEED=1003
+echo "using colore seed $COLORE_SEED and lyacolore seed $LYACOLORE_SEED"
 
 # full path to proces_colore executable (parallel version)
 PROCESS_PATH="/global/homes/j/jfarr/Projects/LyaCoLoRe/scripts/"
@@ -47,13 +48,13 @@ echo "${NFILES} input files have been found"
 
 # code version
 V_CODE_MAJ="8"
-V_CODE_MIN="0"
+V_CODE_MIN="1"
 V_REALISATION="0"
 
 # full path to folder where output will be written
 #OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v${V_CODE_MAJ}/v7_test_picca_all_absorbers/"
-#OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v${V_CODE_MAJ}/v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}/"
-OUTPUT_PATH="/project/projectdirs/desi/mocks/lya_forest/develop/london/v${V_CODE_MAJ}.${V_CODE_MIN}/v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}/"
+OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v${V_CODE_MAJ}/v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}_full/"
+#OUTPUT_PATH="/project/projectdirs/desi/mocks/lya_forest/develop/london/v${V_CODE_MAJ}.${V_CODE_MIN}/v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}/"
 
 echo "output will written to "$OUTPUT_PATH
 if [ ! -d $OUTPUT_PATH ] ; then
