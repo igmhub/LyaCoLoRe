@@ -145,6 +145,32 @@ class picca_correlation:
         mumin = mubin[0]
         mumax = mubin[1]
 
+        #Create the wedge, and wedgise the correlation.
+        b = wedgize.wedge(mumin=mumin,mumax=mumax,rtmax=self.rtmax,nrt=self.nt,
+            rpmin=self.rpmin,rpmax=self.rpmax,nrp=self.np,nr=nr,rmax=rmax)
+        r, xi_wed, cov_wed = b.wedge(self.xi,self.cov)
+
+        #Get the errors.
+        Nr = len(r)
+        err_wed = np.zeros(Nr)
+        for i in range(Nr):
+            err_wed[i] = np.sqrt(cov_wed[i][i])
+
+        #Define the variables to plot, and plot them.
+        cut = err_wed>0
+        r = r[cut]
+        xi_wed = xi_wed[cut]
+        err_wed = err_wed[cut]
+        ax.errorbar(r,(r**r_power) * xi_wed,yerr=(r**r_power) * err_wed,fmt='o',label=plot_label)
+
+        return
+
+    def plot_wedge_fit(self,ax,mubin,plot_label,colour,r_power=2,nr=40,rmax=160.):
+
+        #Using data in picca fit
+        mumin = mubin[0]
+        mumax = mubin[1]
+
         b = wedgize.wedge(mumin=mumin,mumax=mumax,rtmax=self.rtmax,nrt=self.nt,
             rpmin=self.rpmin,rpmax=self.rpmax,nrp=self.np,nr=nr,rmax=rmax)
 
@@ -156,20 +182,84 @@ class picca_correlation:
                     self.cov_grid[i,j]=0
         """
 
-        r, xi_wed, cov_wed = b.wedge(self.xi,self.cov)
+        r, fit_xi_wed, _ = b.wedge(self.fit_xi_grid,self.cov)
 
-        Nr = len(r)
-        err_wed = np.zeros(Nr)
-        for i in range(Nr):
-            err_wed[i] = np.sqrt(cov_wed[i][i])
+        ax.plot(r,(r**r_power) * fit_xi_wed,c=colour,label=plot_label)
 
-        cut = err_wed>0
+        return
 
-        r = r[cut]
-        xi_wed = xi_wed[cut]
-        err_wed = err_wed[cut]
+    def plot_wedge_manual_model(self,ax,b1,b2,beta1,beta2,mubin,plot_label,colour,r_power=2,nr=40,rmax=160.):
 
-        ax.errorbar(r,(r**r_power) * xi_wed,yerr=(r**r_power) * err_wed,fmt='o',label=plot_label)
+        #Using data in picca fit
+        mumin = mubin[0]
+        mumax = mubin[1]
+
+        b = wedgize.wedge(mumin=mumin,mumax=mumax,rtmax=self.rtmax,nrt=self.nt,
+            rpmin=self.rpmin,rpmax=self.rpmax,nrp=self.np,nr=nr,rmax=rmax)
+
+        #Using our model
+        model = 'Slosar11'
+        r,xi = correlation_model.get_model_xi(model,self.quantity_1,self.quantity_2,b1,b2,beta1,beta2,self.zeff,mubin)
+        indices = r<rmax
+        r = r[indices]
+        xi = xi[indices]
+
+        ax.plot(r,(r**r_power) * xi,c=colour,label=plot_label,linestyle=':')
+
+        return
+
+    def plot_rp_bin_vs_rt(self,ax,rpbin,plot_label,colour,r_power=2,nr=40,rmax=160.):
+
+        rpmin = rpbin[0]
+        rpmax = rpbin[1]
+
+        #Get the weights of how to group the bins in rp.
+        rp_edges = np.linspace(self.rpmin,self.rpmax,self.np+1)
+        weights = np.maximum(0.,np.minimum(rp_bin_widths,np.minimum(rpmax-rp_edges[:-1],rp_edges[1:]-rpmin))) / rp_bin_widths
+        weights_grid = np.outer(weights,np.ones(self.nt))
+
+        rt = np.average(self.rt_grid,weights=weights_grid,axis=0)
+        rp = np.average(self.rp_grid,weights=weights_grid,axis=0)
+        xi = np.average(self.xi_grid,weights=weights_grid,axis=0)
+        err_grid = np.sqrt(np.diag(self.cov_grid)).resnape((self.np,self.nt))
+
+        # TODO: Not sure about this...
+        xi_err = 1 / np.sqrt(np.sum(1 / (err_grid[weights_grid>0] * weights_grid)**2 ))
+
+        #Define the variables to plot, and plot them.
+        r = np.sqrt(rp**2 + rt**2)
+        xi_err_plot = xi_err*(r**r_power)
+        xi_plot = xi*(r**r_power)
+        ax.errorbar(rt,xi_plot,yerr=xi_err_plot,label=r'${:3.1f}<r_p<{:3.1f}$'.format(rpmin,rpmax),fmt='o',color=colour)
+
+        return
+
+    def plot_rp_bin_vs_rt_manual_model(self,ax,b1,b2,beta1,beta2,rpbin,plot_label,colour,r_power=2,nr=40,rmax=160.):
+
+        #Using data in picca fit
+        rpmin = rpbin[0]
+        rpmax = rpbin[1]
+
+        #Set up a finer rp-rt grid to plot our model with.
+        model = 'Slosar11'
+        N_mult_res = 10
+        np_model = self.np * N_mult_res
+        nt_model = self.nt * N_mult_res
+        rp_model = np.linspace(self.rpmin,self.rpmax,np_model+1)
+        rt_model = np.linspace(self.rtmin,self.rtmax,nt_model+1)
+        rp_model_grid = np.outer(rp_model,np.ones(nt_model))
+        rt_model_grid = np.outer(np.ones(np_model),rt_model)
+        r_model_grid,xi_model_grid = get_model_xi_grid(model,self.quantity_1,self.quantity_2,b1,b2,beta1,beta2,self.zeff,rp_model_grid,rt_model_grid,sr=0.0)
+
+        #Calculate the weights on this finer grid.
+        rp_bin_widths = rp_model[1:] - rp_model[:-1]
+        weights = np.maximum(0.,np.minimum(rp_bin_widths,np.minimum(self.rpmax-rp_model[:-1],rp_model[1:]-self.rpmin))) / rp_bin_widths
+        weights_grid = np.outer(weights,np.ones(nt_model))
+
+        #Plot the model.
+        r_model = np.average(r_model_grid,weights=weights_grid,axis=0)
+        xi_model = np.average(xi_model_grid,weights=weights_grid,axis=0)
+        plt.plot(rt_model,xi_model*(r_model**r_power),c=col)
 
         return
 
@@ -237,98 +327,6 @@ class picca_correlation:
 
         ax.cax.colorbar(im)
         ax.cax.toggle_label(True)
-
-        return
-
-    def plot_fit(self,ax,mubin,plot_label,colour,r_power=2,nr=40,rmax=160.):
-
-        #Using data in picca fit
-        mumin = mubin[0]
-        mumax = mubin[1]
-
-        b = wedgize.wedge(mumin=mumin,mumax=mumax,rtmax=self.rtmax,nrt=self.nt,
-            rpmin=self.rpmin,rpmax=self.rpmax,nrp=self.np,nr=nr,rmax=rmax)
-
-        """
-        #REMOVE NON_DIAGONALS FROM COV MATRIX
-        for i in range(self.cov_grid.shape[0]):
-            for j in range(self.cov_grid.shape[1]):
-                if i!=j:
-                    self.cov_grid[i,j]=0
-        """
-
-        r, fit_xi_wed, _ = b.wedge(self.fit_xi_grid,self.cov)
-
-        ax.plot(r,(r**r_power) * fit_xi_wed,c=colour,label=plot_label)
-
-        return
-
-    def plot_manual_model(self,ax,b1,b2,beta1,beta2,mubin,plot_label,colour,r_power=2,nr=40,rmax=160.):
-
-        #Using data in picca fit
-        mumin = mubin[0]
-        mumax = mubin[1]
-
-        b = wedgize.wedge(mumin=mumin,mumax=mumax,rtmax=self.rtmax,nrt=self.nt,
-            rpmin=self.rpmin,rpmax=self.rpmax,nrp=self.np,nr=nr,rmax=rmax)
-
-        #Using our model
-        model = 'Slosar11'
-        r,xi = correlation_model.get_model_xi(model,self.quantity_1,self.quantity_2,b1,b2,beta1,beta2,self.zeff,mubin)
-        indices = r<rmax
-        r = r[indices]
-        xi = xi[indices]
-
-        ax.plot(r,(r**r_power) * xi,c=colour,label=plot_label,linestyle=':')
-
-        return
-
-    def plot_vs_rt(self,np_bins,b1,b2,beta1,beta2,bin_list=None,r_power=0.,add_model=True):
-
-        rp_vals_per_bin = self.np // np_bins
-
-        if add_model:
-
-            N_mult_res = 10
-            np_model = self.np * N_mult_res
-            nt_model = self.nt * N_mult_res
-            rp_model = np.linspace(self.rpmin,self.rpmax,np_model)
-            rt_model = np.linspace(self.rtmin,self.rtmax,nt_model)
-
-            rp_model_grid = np.outer(rp_model,np.ones(nt_model))
-            rt_model_grid = np.outer(np.ones(np_model),rt_model)
-
-            z_value = (self.zmin + self.zmax) / 2.
-            r_model_grid,xi_model_grid = correlation_model.get_model_xi_grid('Slosar11',self.quantity_1,self.quantity_2,b1,b2,beta1,beta2,z_value,rp_model_grid,rt_model_grid)
-
-        for ind,i in enumerate(bin_list):
-            col = 'C'+str(ind)
-
-            rt = np.average(self.rt_grid[i*rp_vals_per_bin:(i+1)*rp_vals_per_bin,:], weights=self.nb_grid[i*rp_vals_per_bin:(i+1)*rp_vals_per_bin,:],axis=0)
-            rp = np.average(self.rp_grid[i*rp_vals_per_bin:(i+1)*rp_vals_per_bin,:], weights=self.nb_grid[i*rp_vals_per_bin:(i+1)*rp_vals_per_bin,:],axis=0)
-
-            xi = np.average(self.xi_grid[i*rp_vals_per_bin:(i+1)*rp_vals_per_bin,:], weights=self.nb_grid[i*rp_vals_per_bin:(i+1)*rp_vals_per_bin,:],axis=0)
-
-            err_grid = np.sqrt(np.diag(self.cov_grid).reshape((self.np,self.nt)))
-
-            xi_err = 1/np.sqrt(np.sum(1/(err_grid**2)[i*rp_vals_per_bin:(i+1)*rp_vals_per_bin,:],axis=0))
-
-            r = np.sqrt(rp**2 + rt**2)
-            xi_err_plot = xi_err*(r**r_power)
-            xi_plot = xi*(r**r_power)
-
-            drp = (self.rpmax - self.rpmin) / self.np
-
-            plt.errorbar(rt,xi_plot,yerr=xi_err_plot,label=r'${:3.1f}<r_p<{:3.1f}$'.format(i*rp_vals_per_bin*drp,(i+1)*rp_vals_per_bin*drp),fmt='o',color=col)
-
-            if add_model:
-
-               rp_vals_per_bin_model = np_model // np_bins
-
-               r_model = np.average(r_model_grid[i*rp_vals_per_bin_model:(i+1)*rp_vals_per_bin_model,:],axis=0)
-               xi_model = np.average(xi_model_grid[i*rp_vals_per_bin_model:(i+1)*rp_vals_per_bin_model,:],axis=0)
-               plt.plot(rt_model,xi_model*(r_model**r_power),c=col)
-               #plt.plot(rt,xi_model*(r**r_power),c=col)
 
         return
 
@@ -459,6 +457,78 @@ def plot_wedges(ax,plot_info):
 
     return
 
+def bins_from_boundaries(boundaries):
+
+    bins = list(zip(boundaries[:-1],boundaries[1:]))
+
+    return bins
+
+def plot_rp_bins_vs_rt(ax,plot_info):
+
+    #Unpack the plot_info dictionary.
+    corr_obj = plot_info['corr_object']
+
+    for i,rpbin in enumerate(plot_info['rp_bins']):
+        #Plot the data.
+        plot_label = r'${}<r_\perp<{}$'.format(rpbin[0],rpbin[1])
+        colour = plot_info['rp_bin_colours'][i]
+        corr_obj.plot_rp_bin_vs_rt(ax,rpbin,plot_label,colour,**plot_info['plot_data'])
+
+        #Add a model or fit.
+        if plot_info['plot_picca_fit']:
+            corr_obj.plot_rp_bin_vs_rt_fit(ax,mubin,'',colour,**plot_info['plot_data'])
+        if plot_info['plot_manual_fit']:
+            b1,b2,beta1,beta2 = plot_info['manual_fit_data'].values()
+            corr_obj.plot_rp_bin_vs_rt_manual_model(ax,b1,b2,beta1,beta2,rpbin,'',colour,**plot_info['plot_data'])
+
+    #Add axis labels.
+    if plot_info['format']['xlabel']:
+        ax.set_xlabel(r'$r_\parallel\ [\mathrm{{Mpc}}/h]$')
+    if plot_info['format']['ylabel']:
+        if plot_info['plot_data']['r_power'] > 1:
+            ax.set_ylabel(r'$r^{:d}\ \xi (r)\ [(\mathrm{{Mpc}}\ h^{{-1}})^{{{:d}}}]$'.format(int(plot_info['plot_data']['r_power']),int(plot_info['plot_data']['r_power'])))
+        elif plot_info['plot_data']['r_power'] == 1:
+            ax.set_ylabel(r'$r\ \xi (r)\ [\mathrm{{Mpc}}\ h^{{-1}}]$')
+        elif plot_info['plot_data']['r_power'] == 0:
+            ax.set_ylabel(r'$\xi (r)$')
+
+    #Add a legend if desired.
+    if plot_info['format']['legend']:
+        ax.legend()
+
+    return
+
+
+def make_plot_vs_rt(corr_objects,np_bins,fit_data,bin_list=None,r_power=0.,show_plots=True,save_plots=True):
+
+    for corr_object in corr_objects:
+        plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
+        b1 = fit_data['b1']
+        b2 = fit_data['b2']
+        beta1 = fit_data['beta1']
+        beta2 = fit_data['beta2']
+        corr_object.plot_vs_rt(np_bins,b1,b2,beta1,beta2,bin_list=bin_list,r_power=r_power)
+        plt.grid()
+        plt.legend()
+        plt.xlabel(r'$r_t$')
+        plt.ylabel(r'$\xi r^{}$'.format(int(r_power)))
+
+        title_line_1 = r'{} {}{}; {} pix @ Nside {}; ${} < z < {}$; $r_{{min}} = $??'.format(corr_object.correl_type,corr_object.quantity_1,corr_object.quantity_2,corr_object.N_pixels,16,corr_object.zmin,corr_object.zmax)
+        title_line_2 = r'Model is Legendre decomposition using: $b_\delta$s$ = {:1.3f},{:1.3f}$; $\beta$s$ = {:1.3f},{:1.3f}$'.format(b1,b2,beta1,beta2)
+        title = title_line_1 + '\n' + title_line_2
+        plt.title(title)
+
+        if save_plots:
+            plt.savefig(corr_object.location+'/cf_xi_vs_rt.pdf')
+        if show_plots:
+            plt.show()
+
+    return
+
+
+###############################################################################
+
+
 def make_wedge_plots(corr_objects,mu_boundaries,plot_system,r_power,fit_type='picca',fit_data=None,nr=40,rmin=10.,rmax=160.,save_plots=True,show_plots=True,save_loc='.',suffix=''):
 
     colours = ['C0','C1','C2','C3','C4','C5','C6']
@@ -529,42 +599,6 @@ def make_wedge_plots(corr_objects,mu_boundaries,plot_system,r_power,fit_type='pi
         plt.show()
 
     return
-
-def bins_from_boundaries(boundaries):
-
-    bins = list(zip(boundaries[:-1],boundaries[1:]))
-
-    return bins
-
-def make_plot_vs_rt(corr_objects,np_bins,fit_data,bin_list=None,r_power=0.,show_plots=True,save_plots=True):
-
-    for corr_object in corr_objects:
-        plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
-        b1 = fit_data['b1']
-        b2 = fit_data['b2']
-        beta1 = fit_data['beta1']
-        beta2 = fit_data['beta2']
-        corr_object.plot_vs_rt(np_bins,b1,b2,beta1,beta2,bin_list=bin_list,r_power=r_power)
-        plt.grid()
-        plt.legend()
-        plt.xlabel(r'$r_t$')
-        plt.ylabel(r'$\xi r^{}$'.format(int(r_power)))
-
-        title_line_1 = r'{} {}{}; {} pix @ Nside {}; ${} < z < {}$; $r_{{min}} = $??'.format(corr_object.correl_type,corr_object.quantity_1,corr_object.quantity_2,corr_object.N_pixels,16,corr_object.zmin,corr_object.zmax)
-        title_line_2 = r'Model is Legendre decomposition using: $b_\delta$s$ = {:1.3f},{:1.3f}$; $\beta$s$ = {:1.3f},{:1.3f}$'.format(b1,b2,beta1,beta2)
-        title = title_line_1 + '\n' + title_line_2
-        plt.title(title)
-
-        if save_plots:
-            plt.savefig(corr_object.location+'/cf_xi_vs_rt.pdf')
-        if show_plots:
-            plt.show()
-
-    return
-
-
-###############################################################################
-
 
 
 

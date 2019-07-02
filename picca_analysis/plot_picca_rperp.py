@@ -6,34 +6,72 @@ import sys
 
 from lyacolore import plot_functions
 
-default_location = ['/global/homes/j/jfarr/Programs/picca/picca_analysis_000/picca_00000/']
+################################################################################
 
-if len(sys.argv) > 1:
-    locations = sys.argv[1:]
-else:
-    locations = default_location
+#Housekeeping options.
+fontsize = 16
+figsize = (12, 5)
+dpi = 80
+show_plot = True
+save_plot = True
+filename = 'corr_plot_systematics.pdf'
 
-#Plotting decisions
-plot_system = 'plot_per_file' #per bin or per file
-#Gaussian
-#fit_data = {'b1': 1.0, 'b2': 1.0, 'beta1': 0., 'beta2': 0.}
-#Lognormal-Gaussian
-#fit_data = {'b1': 1.16, 'b2': 1.0, 'beta1': 0., 'beta2': 0.}
-#Lognormal
-fit_data = {'b1': 1., 'b2': 1., 'beta1': 0., 'beta2': 0.}
-#Tau noRSD
-#fit_data = {'b1': 1.65*1.13, 'b2': 1.65*1.13, 'beta1': 0., 'beta2': 0.}
-#Tau
-#fit_data = {'b1': 1.65*1.13, 'b2': 1.65*1.13, 'beta1': 0.9625/(1.65*1.13), 'beta2': 0.9625/(1.65*1.13)}
-#fit_data = {'b1': 2.22, 'b2': 2.22, 'beta1': 0.56, 'beta2': 0.56}
-#Flux
-#fit_data = {'b1': -0.135, 'b2': -0.135, 'beta1': 1.178, 'beta2': 1.178}
+#Create a dictionary with all information about the subplots:
 
-np_bins = 40
-bin_list = [0,5,10,15,20]
-show_plots = True
-save_plots = True
-r_power = 2.
+#Main method correlations plot:
+filename = 'corr_plot.pdf'
+subplots = {}
+subplots[(0,0)] =  {'location':         '/global/homes/j/jfarr/Programs/picca/picca_analysis_037/combined/',
+                    'filename':         'cf_exp.fits.gz',
+                    'rp_bins':          [(0.0,4.0),(20.0,24.0),(40.0,44.0),(60.0,64.0)],
+                    'rp_bin_colours':   ['C0','C1','C2','C3'],
+                    'plot_data':        {'r_power': 2, 'nr': 40, 'rmax': 160.0},
+                    'plot_picca_fit':   True,
+                    'picca_fit_data':   {'rmin': 40., 'afix': 'free'},
+                    'plot_manual_fit':  False,
+                    'manual_fit_data':  {'b1': -0.133, 'b2': -0.133, 'beta1': 1.4, 'beta2': 1.4},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True},
+                    }
+subplots[(0,1)] =  {'location':         '/global/homes/j/jfarr/Programs/picca/picca_analysis_041/picca_00223/',
+                    'filename':         'xcf_exp_2400k_shuffle.fits.gz',
+                    'rp_bins':          [(0.0,4.0),(20.0,24.0),(40.0,44.0),(60.0,64.0)],
+                    'rp_bin_colours':   ['C0','C1','C2','C3'],
+                    'plot_data':        {'r_power': 2, 'nr': 40, 'rmax': 160.0},
+                    'plot_picca_fit':   True,
+                    'picca_fit_data':   {'rmin': 40., 'afix': 'free'},
+                    'plot_manual_fit':  False,
+                    'manual_fit_data':  {'b1': -0.133, 'b2': 2.0, 'beta1': 1.4, 'beta2': 0.79},
+                    'format':           {'legend': False, 'xlabel': True, 'ylabel': True},
+                    }
 
-corr_objects = plot_functions.get_correlation_objects(locations)
-plot_functions.make_plot_vs_rt(corr_objects,np_bins,fit_data,bin_list=bin_list,r_power=r_power,show_plots=show_plots,save_plots=save_plots)
+################################################################################
+
+#Set style options everywhere.
+#plt.rc('text', usetex=True)
+plt.rc('font', size=fontsize)
+
+#Make a figure to accomodate all the subplots.
+N_rows = 0
+N_cols = 0
+for key in subplots.keys():
+    i = key[0] + 1
+    j = key[1] + 1
+    N_rows = np.max((i,N_rows))
+    N_cols = np.max((j,N_cols))
+fig, axs = plt.subplots(N_rows, N_cols, figsize=figsize, dpi=dpi, facecolor='w', edgecolor='k')
+axs = np.reshape(axs,(N_rows,N_cols))
+
+#Make the correlation objects and plot.
+for key in subplots.keys():
+    corr_obj = plot_functions.get_correlation_object(subplots[key])
+    subplots[key]['corr_object'] = corr_obj
+    plot_functions.plot_rp_bins_vs_rt(axs[key],subplots[key])
+
+#Save and show if desired.
+plt.tight_layout()
+if save_plot:
+    fig.savefig(filename)
+if show_plot:
+    plt.show()
+
+################################################################################
