@@ -386,12 +386,15 @@ class SimulationData:
         times = []
         start = time.time(); times += [start]
 
-        #Define the new R grid.
+        #Define the new R grid. Ensure that we include the entire range of R.
+        # TODO: Need to extend the value of Rmax slightly, as max(new_R_edges) < max(old_R_edges as it currently stands)
         old_R = self.R
         old_R_edges = utils.get_edges(old_R)
-        Rmin = self.R[0] - (self.R[1] - self.R[0])/2.
-        Rmax = self.R[-1] + (self.R[-1] - self.R[-2])/2.
-        new_R_edges = np.arange(Rmin,Rmax,cell_size)
+        R_edge_min = old_R_edges[0]
+        R_edge_max = old_R_edges[-1]
+        new_N_cells = (R_edge_max - R_edge_min) // cell_size + 1
+        R_edge_max = R_edge_min + cell_size * new_N_cells
+        new_R_edges = np.linspace(R_edge_min,R_edge_max,new_N_cells+1)
         new_R = utils.get_centres(new_R_edges)
         new_N_cells = new_R.shape[0]
 
@@ -404,6 +407,7 @@ class SimulationData:
         self.R = new_R
 
         # TODO: Ideally would want to recompute these rather than interpolating?
+        # TODO: Could use exponentials here to match any curvature? Only issue is if an edge is at 0 or lower?
         old_Z = self.Z
         old_D = self.D
         old_V = self.V
@@ -423,6 +427,8 @@ class SimulationData:
         self.VEL_rows = self.VEL_rows[:,NGPs]
         self.IVAR_rows = self.IVAR_rows[:,NGPs]
 
+        """
+        # TODO: Think we can get rid of this:
         times += [time.time()]
         #For each skewer, determine the last relevant cell
         first_relevant_cells = np.zeros(self.N_qso)
@@ -440,10 +446,9 @@ class SimulationData:
             last_relevant_cells[i] = last_relevant_cell
         times += [time.time()]
         extra_var = np.zeros(expanded_GAUSSIAN_DELTA_rows.shape)
+        """
 
-        #Interpolate the extra sigma_G values using logs.
-        #extra_sigma_G = np.exp(np.interp(np.log(self.Z),np.log(sigma_G_z_values),np.log(extra_sigma_G_values)))
-        #extra_sigma_G = seps_z(self.Z)
+        #Get the extra sigma_G values from the transformation.
         extra_sigma_G = self.transformation.get_seps(self.Z)
 
         # TODO: dv is not constant at the moment - how to deal with this
