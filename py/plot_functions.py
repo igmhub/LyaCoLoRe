@@ -6,7 +6,7 @@ from picca import wedgize
 import sys
 from numpy import linalg
 import mcfit
-from lyacolore import correlation_model
+from lyacolore import correlation_model, utils
 import glob
 import h5py
 import warnings
@@ -215,13 +215,14 @@ class picca_correlation:
 
         #Get the weights of how to group the bins in rp.
         rp_edges = np.linspace(self.rpmin,self.rpmax,self.np+1)
+        rp_bin_widths = rp_edges[1:] - rp_edges[:-1]
         weights = np.maximum(0.,np.minimum(rp_bin_widths,np.minimum(rpmax-rp_edges[:-1],rp_edges[1:]-rpmin))) / rp_bin_widths
         weights_grid = np.outer(weights,np.ones(self.nt))
 
         rt = np.average(self.rt_grid,weights=weights_grid,axis=0)
         rp = np.average(self.rp_grid,weights=weights_grid,axis=0)
         xi = np.average(self.xi_grid,weights=weights_grid,axis=0)
-        err_grid = np.sqrt(np.diag(self.cov_grid)).resnape((self.np,self.nt))
+        err_grid = np.sqrt(np.diag(self.cov_grid)).reshape((self.np,self.nt))
 
         # TODO: Not sure about this...
         xi_err = 1 / np.sqrt(np.sum(1 / (err_grid[weights_grid>0] * weights_grid)**2 ))
@@ -245,21 +246,23 @@ class picca_correlation:
         N_mult_res = 10
         np_model = self.np * N_mult_res
         nt_model = self.nt * N_mult_res
-        rp_model = np.linspace(self.rpmin,self.rpmax,np_model+1)
-        rt_model = np.linspace(self.rtmin,self.rtmax,nt_model+1)
+        rp_model_edges = np.linspace(self.rpmin,self.rpmax,np_model+1)
+        rt_model_edges = np.linspace(self.rtmin,self.rtmax,nt_model+1)
+        rp_model = utils.get_centres(rp_model_edges)
+        rt_model = utils.get_centres(rt_model_edges)
         rp_model_grid = np.outer(rp_model,np.ones(nt_model))
         rt_model_grid = np.outer(np.ones(np_model),rt_model)
-        r_model_grid,xi_model_grid = get_model_xi_grid(model,self.quantity_1,self.quantity_2,b1,b2,beta1,beta2,self.zeff,rp_model_grid,rt_model_grid,sr=0.0)
+        r_model_grid,xi_model_grid = correlation_model.get_model_xi_grid(model,self.quantity_1,self.quantity_2,b1,b2,beta1,beta2,self.zeff,rp_model_grid,rt_model_grid,sr=0.0)
 
         #Calculate the weights on this finer grid.
-        rp_bin_widths = rp_model[1:] - rp_model[:-1]
-        weights = np.maximum(0.,np.minimum(rp_bin_widths,np.minimum(self.rpmax-rp_model[:-1],rp_model[1:]-self.rpmin))) / rp_bin_widths
+        rp_bin_widths = rp_model_edges[1:] - rp_model_edges[:-1]
+        weights = np.maximum(0.,np.minimum(rp_bin_widths,np.minimum(self.rpmax-rp_model_edges[:-1],rp_model_edges[1:]-self.rpmin))) / rp_bin_widths
         weights_grid = np.outer(weights,np.ones(nt_model))
 
         #Plot the model.
         r_model = np.average(r_model_grid,weights=weights_grid,axis=0)
         xi_model = np.average(xi_model_grid,weights=weights_grid,axis=0)
-        plt.plot(rt_model,xi_model*(r_model**r_power),c=col)
+        plt.plot(rt_model,xi_model*(r_model**r_power),c=colour)
 
         return
 

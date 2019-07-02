@@ -19,7 +19,8 @@ filename = 'corr_plot_systematics.pdf'
 #Create a dictionary with all information about the subplots:
 
 #Main method correlations plot:
-filename = 'corr_plot.pdf'
+"""
+filename = 'corr_plot_vs_rt.pdf'
 subplots = {}
 subplots[(0,0)] =  {'location':         '/global/homes/j/jfarr/Programs/picca/picca_analysis_037/combined/',
                     'filename':         'cf_exp.fits.gz',
@@ -43,6 +44,63 @@ subplots[(0,1)] =  {'location':         '/global/homes/j/jfarr/Programs/picca/pi
                     'manual_fit_data':  {'b1': -0.133, 'b2': 2.0, 'beta1': 1.4, 'beta2': 0.79},
                     'format':           {'legend': False, 'xlabel': True, 'ylabel': True},
                     }
+
+"""
+"""
+
+#Systematics correlations plot:
+filename = 'corr_plot_systematics_vs_rt.pdf'
+subplots = {}
+subplots[(0,0)] =  {'location':         '/global/homes/j/jfarr/Programs/picca/picca_analysis_042/picca_00224/',
+                    'filename':         'cf_exp_800k.fits.gz',
+                    'rp_bins':          [(0.0,4.0),(20.0,24.0),(40.0,44.0),(60.0,64.0)],
+                    'rp_bin_colours':   ['C0','C1','C2','C3'],
+                    'plot_data':        {'r_power': 2, 'nr': 40, 'rmax': 160.0},
+                    'plot_picca_fit':   False,
+                    'picca_fit_data':   {'rmin': 40., 'afix': 'free'},
+                    'plot_manual_fit':  True,
+                    'manual_fit_data':  {'b1': -0.1049, 'b2': -0.1049, 'beta1': 1.3783, 'beta2': 1.3783},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True},
+                    }
+subplots[(0,1)] =  {'location':         '/global/homes/j/jfarr/Programs/picca/picca_analysis_041/picca_00214/',
+                    'filename':         'xcf_exp_noshuffle.fits.gz',
+                    'rp_bins':          [(0.0,4.0),(20.0,24.0),(40.0,44.0),(60.0,64.0)],
+                    'rp_bin_colours':   ['C0','C1','C2','C3'],
+                    'plot_data':        {'r_power': 2, 'nr': 40, 'rmax': 160.0},
+                    'plot_picca_fit':   False,
+                    'picca_fit_data':   {'rmin': 40., 'afix': 'free'},
+                    'plot_manual_fit':  True,
+                    'manual_fit_data':  {'b1': -0.1049, 'b2': 2.0, 'beta1': 1.4, 'beta2': 0.79},
+                    'format':           {'legend': False, 'xlabel': True, 'ylabel': True},
+                    }
+"""
+
+#HCDs test plot:
+filename = 'corr_plot_HCDs_vs_rt.pdf'
+subplots = {}
+subplots[(0,0)] =  {'location':         '/global/homes/j/jfarr/Programs/picca/picca_analysis_041/picca_00226/',
+                    'filename':         'xcf_exp_2400k_pdcov.fits.gz',
+                    'rp_bins':          [(0.0,4.0),(20.0,24.0),(40.0,44.0),(60.0,64.0)],
+                    'rp_bin_colours':   ['C0','C1','C2','C3'],
+                    'plot_data':        {'r_power': 2, 'nr': 40, 'rmax': 160.0},
+                    'plot_picca_fit':   False,
+                    'picca_fit_data':   {'rmin': 40., 'afix': 'free'},
+                    'plot_manual_fit':  True,
+                    'manual_fit_data':  {'b1': -0.1049, 'b2': 2.0, 'beta1': 1.3783, 'beta2': 0.79},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True},
+                    }
+subplots[(0,1)] =  {'location':         '/global/homes/j/jfarr/Programs/picca/picca_analysis_041/picca_00227/',
+                    'filename':         'xcf_exp_zb0.05_2400k_pdcov.fits.gz',
+                    'rp_bins':          [(0.0,4.0),(20.0,24.0),(40.0,44.0),(60.0,64.0)],
+                    'rp_bin_colours':   ['C0','C1','C2','C3'],
+                    'plot_data':        {'r_power': 2, 'nr': 40, 'rmax': 160.0},
+                    'plot_picca_fit':   False,
+                    'picca_fit_data':   {'rmin': 40., 'afix': 'free'},
+                    'plot_manual_fit':  True,
+                    'manual_fit_data':  {'b1': -0.1049, 'b2': 2.0, 'beta1': 1.3783, 'beta2': 0.79},
+                    'format':           {'legend': False, 'xlabel': True, 'ylabel': True},
+                    }
+
 
 ################################################################################
 
