@@ -424,8 +424,8 @@ class SimulationData:
 
         #Expand the skewers.
         expanded_GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows[:,NGPs]
-        self.VEL_rows = self.VEL_rows[:,NGPs]
-        self.IVAR_rows = self.IVAR_rows[:,NGPs]
+        expanded_VEL_rows = self.VEL_rows[:,NGPs]
+        expanded_IVAR_rows = self.IVAR_rows[:,NGPs]
 
         """
         # TODO: Think we can get rid of this:
@@ -462,15 +462,22 @@ class SimulationData:
         extra_var *= extra_sigma_G
         times += [time.time()]
 
-        #Add the extra fluctuations to the expanded rows, and mask beyond the QSOs.
+        #Add the extra fluctuations to the expanded rows.
         expanded_GAUSSIAN_DELTA_rows += extra_var
+        times += [time.time()]
+
+        #Mask beyond the QSOs.
         new_Z_ledges = new_Z_edges[:-1]
         LOGLAM_ledges = np.log10(lya*(1+new_Z_ledges))
         lya_lr_mask = utils.make_IVAR_rows(lya,self.Z_QSO,LOGLAM_ledges)
         expanded_GAUSSIAN_DELTA_rows *= lya_lr_mask
-        times += [time.time()]
+        expanded_VEL_rows *= lya_lr_mask
+        expanded_IVAR_rows *= lya_lr_mask
 
+        #Assign the new skewers.
         self.GAUSSIAN_DELTA_rows = expanded_GAUSSIAN_DELTA_rows
+        self.VEL_rows = expanded_VEL_rows
+        self.IVAR_rows = expanded_IVAR_rows
         self.SIGMA_G = np.sqrt(extra_sigma_G**2 + (self.SIGMA_G)**2)
 
         times += [time.time()]

@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import scipy.interpolate as sciint
+from scipy.interpolate import interp1d
 from scipy.sparse import dok_matrix,csc_matrix,csr_matrix
 import math
 import time
@@ -160,11 +160,12 @@ def add_skewer_RSDs(initial_tau,initial_density,velocity_skewer_dz,z,r_hMpc,z_qs
 #
 def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,d=0.0,z_r0=2.5):
 
+    #Get the pivot value of r.
     r0 = np.interp(z_r0,z,r_hMpc)
 
+    #Set up variables.
     N_qso = velocity_skewer_dz.shape[0]
     N_cells = velocity_skewer_dz.shape[1]
-
     weights = {}
 
     #Convert radial distance to a velocity.
@@ -175,77 +176,104 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
     if thermal == True:
         T_K = get_T_K(z,initial_density)
 
-    #count = np.zeros(100)
-    #total = 0
-    #count = 0
-
+    #Calculate the edges of the cells in terms of r, z and x.
     r_edges = utils.get_edges(r_hMpc)
-    z_edges = sciint.interp1d(r_hMpc,z,fill_value='extrapolate')(r_edges)
+    z_edges = interp1d(r_hMpc,z,fill_value='extrapolate')(r_edges)
+    x_edges = interp1d(r_hMpc,x_kms,fill_value='extrapolate')(r_edges)
 
-    #Not sure which of these is best, or if it will make much of a difference
-    x_edges = sciint.interp1d(r_hMpc,x_kms,fill_value='extrapolate')(r_edges)
-    #x_edges = r_edges * utils.get_dkms_dhMpc(z_edges)
-
+    #Define the upper and lower edges in terms of x, and get the cell sizes.
     x_uedges = x_edges[1:]
     x_ledges = x_edges[:-1]
     cell_sizes = x_uedges - x_ledges
 
     start = time.time()
 
-
     for i in range(N_qso):
 
+        #Set up the variables for storing the sparse matrix data.
         indices = []
         data = []
         indptr = [0]
 
+        #extract the velocity skewer, and shift the edges of the cells.
         dz = velocity_skewer_dz[i,:]
-        dz_edges = np.concatenate([[dz[0]],(dz[1:]+dz[:-1])/2.,[dz[-1]]])
-        z_edges_shifted = z_edges + dz_edges
-        r_edges_shifted = sciint.interp1d(z_edges,r_edges,fill_value='extrapolate')(z_edges_shifted)
 
-        #Or should this be:
-        #r_edges_shifted -= (r_edges - r0) * d
-        r_edges_shifted -= (r_edges_shifted - r0) * d
+        #Calculate dz of the edges by getting midpoints of dz of cells.
+        #This takes into account the compression/expansion of the cells.
+        #dz_edges_mid = utils.get_edges(dz)
+        #dz_ledges = dz_edges_mid[:-1]
+        #dz_uedges = dz_edges_mid[1:]
 
-        x_edges_shifted = sciint.interp1d(r_edges,x_edges,fill_value='extrapolate')(r_edges_shifted)
+        #Calculated dz of the edges from the dz of the cells.
+        #This ignores the compression/expansion of the cells.
+        dz_ledges = dz
+        dz_uedges = dz
 
-        x_uedges_shifted = x_edges_shifted[1:]
-        x_ledges_shifted = x_edges_shifted[:-1]
+        #Shift all of the z edges and cells.
+        z_ledges_shifted = z_edges[:-1] + dz_ledges
+        z_uedges_shifted = z_edges[1:] + dz_uedges
+        z_shifted = z + dz
 
-        cell_sizes = x_uedges_shifted - x_ledges_shifted
+        #Calculate the r edges and cells by interpolating.
+        r_of_z = interp1d(z_edges,r_edges,fill_value='extrapolate')
+        r_ledges_shifted = r_of_z(z_ledges_shifted)
+        r_uedges_shifted = r_of_z(z_uedges_shifted)
+        r_shifted = r_of_z(z_shifted)
 
-        #print('shifted',i,end='\r')
+        #Shift the cell again to simulate an extra velocity gradient.
+        r_ledges_shifted -= (r_hMpc - r0) * d
+        r_uedges_shifted -= (r_hMpc - r0) * d
+        r_shifted -= (r_hMpc - r0) * d
 
-        #Go through each cell up to the QSO
-        j_limit = np.searchsorted(z,z_qso[i])
-        #count += j_limit
+        #Calculate the r edges and cells by interpolating.
+        x_of_r = interp1d(r_edges,x_edges,fill_value='extrapolate')
+        x_ledges_shifted = x_of_r(r_ledges_shifted)
+        x_uedges_shifted = x_of_r(r_uedges_shifted)
+        x_shifted = x_of_r(r_shifted)
 
+        #Go through each cell up to the cell the QSO is in.
+        j_limit = np.searchsorted(z_edges[:-1],z_qso[i])
         for j in range(j_limit):
+
+            """
+            ###OLD###
+
             #Add the dz from the velocity skewers to get a 'new_z' for each cell
             z_cell = z[j]
             r_hMpc_cell = r_hMpc[j]
             dz_cell = dz[j]
             new_z_cell = z_cell + dz_cell
 
-            x_kms_cell = x_kms[j]
-            if j > 0 and j < N_cells-1:
-                cell_size = (x_kms[j+1] - x_kms[j-1])/2.
-            elif j == 0:
-                cell_size = (x_kms[j+1] - x_kms[j])
-            elif j == N_cells:
-                cell_size = (x_kms[j] - x_kms[j-1])
+            #Shift z_edges by using the average of the velocity the pixel and its neighbour.
+            #z_cell_ledge = z_edges[:-1][j] + dz_edges_mid[:-1][j]
+            #z_cell_uedge = z_edges[1:][j] + dz_edges_mid[1:][j]
+
+            #Shift z_edges by using the velocity of the pixel.
+            new_z_cell_ledge = z_edges[:-1][j] + dz_cell
+            new_z_cell_uedge = z_edges[1:][j] + dz_cell
 
             #Find new r of cell by interpolating.
-            new_r_hMpc_cell = np.interp(new_z_cell,z,r_hMpc)
+            #new_r_hMpc_cell_ledge, new_r_hMpc_cell, new_r_hMpc_cell_uedge = interp1d(z_edges,r_edges,fill_value='extrapolate')([new_z_cell_ledge,new_z_cell,new_z_cell_uedge])
+            new_r_hMpc_cell_ledge = np.interp(new_z_cell_ledge,z_edges,r_edges)
+            new_r_hMpc_cell = np.interp(new_z_cell,z_edges,r_edges)
+            new_r_hMpc_cell_uedge = np.interp(new_z_cell_uedge,z_edges,r_edges)
 
             #Shift the cell again to simulate an extra velocity gradient.
             new_r_hMpc_cell -= (new_r_hMpc_cell - r0) * d
-            new_x_kms_cell = np.interp(new_r_hMpc_cell,r_hMpc,x_kms)
-            #new_x_kms_cell = new_r_hMpc_cell * utils.get_dkms_dhMpc(new_z_cell)
+            new_r_hMpc_cell_ledge -= (new_r_hMpc_cell_ledge - r0) * d
+            new_r_hMpc_cell_uedge -= (new_r_hMpc_cell_uedge - r0) * d
 
-            x_le_s = x_ledges_shifted[j]
-            x_ue_s = x_uedges_shifted[j]
+            #Find the new x of the cell.
+            #new_x_kms_cell_ledge, new_x_kms_cell, new_x_kms_cell_uedge = interp1d(r_edges,x_edges,fill_value='extrapolate')([new_r_hMpc_cell_ledge,new_r_hMpc_cell,new_r_hMpc_cell_uedge])
+            new_x_kms_cell_ledge = np.interp(new_r_hMpc_cell_ledge,r_edges,x_edges)
+            new_x_kms_cell = np.interp(new_r_hMpc_cell,r_edges,x_edges)
+            new_x_kms_cell_uedge = np.interp(new_r_hMpc_cell_uedge,r_edges,x_edges)
+
+            """
+
+            new_x_kms_cell_ledge = x_ledges_shifted[j]
+            new_x_kms_cell_uedge = x_uedges_shifted[j]
+            new_x_kms_cell = x_shifted[j]
 
             #If we want to include thermal effects, we include contributions to all cells within a chosen x_kms range.
             if thermal == True:
@@ -293,22 +321,17 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
             #If we do not want to include thermal effects, we only allocate to the cell above and the cell below.
             else:
 
-
-                """
-
                 #If the cell ends up having some overlap with the skewer, find which cells it contributes to.
-                if (x_ue_s > x_ledges[0]) * (x_le_s < x_uedges[-1]):
-                    j_lower = np.searchsorted(x_uedges,x_le_s)
-                    j_upper = np.searchsorted(x_ledges,x_ue_s) - 1
-                    j_values = list(range(j_lower,j_upper+1))
-                else:
-                    j_values = []
+                j_values = list(np.where((new_x_kms_cell_uedge>x_ledges)*(new_x_kms_cell_ledge<x_uedges))[0])
 
                 #For the cells it contributes to, find how its weight is spread
+                #cell_weights = np.maximum(0.,np.minimum(x_uedges[j_values],new_x_kms_cell_uedge) - np.maximum(x_ledges[j_values],new_x_kms_cell_ledge)) / (new_x_kms_cell_uedge - new_x_kms_cell_ledge)
+                #w = list(cell_weights)
+
                 w = []
                 for j_value in j_values:
-                    overlap = max(0., min(x_uedges[j_value], x_ue_s) - max(x_ledges[j_value], x_le_s))
-                    weight = overlap/(x_ue_s - x_le_s)
+                    overlap = max(0., min(x_uedges[j_value], new_x_kms_cell_uedge) - max(x_ledges[j_value], new_x_kms_cell_ledge))
+                    weight = overlap/(new_x_kms_cell_uedge - new_x_kms_cell_ledge)
                     w += [weight]
 
                 #Add the data to the inputs for the sparse matrix
@@ -317,7 +340,9 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
                 data += w
 
                 """
-
+                ###OLD###
+                ###MOVES THE CELL AND ASSUMES CELL SIZE IN VEL SPACE IS CONST###
+                
                 j_upper = np.searchsorted(x_kms,new_x_kms_cell)
                 j_lower = j_upper - 1
 
@@ -359,6 +384,7 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
                     w = [w_lower,w_upper]
                     data += [w_lower,w_upper]
                     indptr += [(indptr[-1] + 2)]
+                """
 
         indptr += [indptr[-1]]*(N_cells + 1 - len(indptr))
         csc_weights = csc_matrix((data, indices, indptr), shape=(N_cells,N_cells))
