@@ -8,6 +8,8 @@ import os
 import matplotlib.pyplot as plt
 from astropy.cosmology import Planck15
 
+from lyacolore import utils
+
 try:
     from pyigm.fN.fnmodel import FNModel
     fN_default = FNModel.default_model(cosmo=Planck15)
@@ -37,21 +39,20 @@ def get_bias_z(fname,dla_bias):
     bias = dla_bias/D*y(2.25)
     return z, bias, D
 
-def get_sigma_g(object, mode='SG'):
+def get_sigma_g(object,mode='SG'):
     if mode=='SG':
+        #Get sG from the object. This is the average across all skewers in the
+        #realisation, rather than just the pixel.
         return object.SIGMA_G
     if mode=='SKW':
-        # Approximation 2: Take the skewers (biased when QSOs are present)
+        #Measure sG from the object's skewers with redshift, including cells close to QSOs.
         skewers = object.GAUSSIAN_DELTA_rows
-        weights = np.zeros(skewers.shape)
-        for i in range(weights.shape[0]):
-            weights[i,:] = object.Z<object.Z_QSO[i]
+        weights = utils.make_IVAR_rows(utils.lya_rest,object.Z_QSO,object.LOGLAM_MAP)
         weights += (10**-10)
         mean = np.average(skewers,weights=weights,axis=0)
         mean2 = np.average(skewers**2,weights=weights,axis=0)
         sG = np.sqrt(mean2 - mean**2)
-        #HACK TO REMOVE ZEROS
-        sG[sG==0] = np.average(sG[sG>0])
+        # TODO: Could smooth the final result as there won't be a huge number of skewers.
         return sG
 
 def flag_DLA(z_qso,z_cells,deltas,nu_arr,sigma_g):
@@ -79,25 +80,12 @@ def dndz(z, NHI_min=17.2, NHI_max=22.5):
         for a given range in N"""
 
     if use_pyigm:
-        """
-        #Alternative version, needs an input NHI_nsamp.
-        #Probably slower, but clearer.
-        log_NHI = np.linspace(NHI_min,NHI_max,NHI_nsamp)
-        NHI = 10**log_NHI
-        f = 10**(fN_default.evaluate(log_NHI, z))
-        dndX = np.trapz(f,NHI,axis=0)
-        dXdz = fN_cosmo.abs_distance_integrand(z)
-        dndz = dndX * dXdz
-        """
-
         # get incidence rate per path length dX (in comoving coordinates)
         dndX = fN_default.calculate_lox(z,NHI_min,NHI_max)
         # convert dX to dz
         dXdz = fN_cosmo.abs_distance_integrand(z)
         dndz = dndX * dXdz
-
         return dndz
-
     else:
         return dnHD_dz_cumlgN(z,Nmax)-dnHD_dz_cumlgN(z,Nmin)
 
@@ -301,7 +289,7 @@ def write_DLA_master(DLA_data_list,filename,N_side,overwrite=False,picca_DRQ=Fal
         FID = np.zeros(RA.shape[0])
         PLATE = THING_ID
         PIXNUM = DLA_master_data['PIXNUM']
-   
+
         #Make the data array.
         dtype = [('RA','f4'),('DEC','f4'),('Z','f4'),('THING_ID',int),('MJD','f4'),('FIBERID',int),('PLATE',int),('PIXNUM',int)]
         DLA_master_data = np.array(list(zip(RA,DEC,Z,THING_ID,MJD,FID,PLATE,PIXNUM)),dtype=dtype)
