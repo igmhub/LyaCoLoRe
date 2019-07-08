@@ -6,17 +6,25 @@ import glob
 import healpy
 import scipy.interpolate as interpolate
 import iminuit
+from multiprocessing import Pool
+import multiprocessing
+import time
 
 from picca.data import delta
+from lyacolore import utils
 
 ################################################################################
+#Options
+make_zcat = False
+
 #Locations of data
 #infiles ?
+infiles = None
 indir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v9/v9.0.0_full/'
 outdir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v9/v9.0.0_full/'
 
 #Processing quantities.
-downsampling = 0.2
+downsampling = 0.5
 nproc = 64
 
 # Wavelength grid for output.
@@ -25,6 +33,25 @@ lObs_max = 5500.
 lRF_min = 1040.
 lRF_max = 1200.
 dll = 3.e-4
+
+################################################################################
+
+"""
+Define the multiprocessing tracking functions
+"""
+
+#Define a progress-tracking function.
+def log_result(retval):
+
+    results.append(retval)
+    N_complete = len(results)
+    N_tasks = len(tasks)
+
+    utils.progress_bar(N_complete,N_tasks,start_time)
+
+#Define an error-tracking function.
+def log_error(retval):
+    print('Error:',retval)
 
 ################################################################################
 #Make the zcat.
@@ -109,7 +136,8 @@ def create_cat(indir,outdir,downsampling):
 
     return
 
-create_cat(indir,outdir,downsampling)
+if make_zcat:
+    create_cat(indir,outdir,downsampling)
 
 ################################################################################
 #Make the delta files.
@@ -161,7 +189,7 @@ elif indir is not None:
     nest = h['METADATA'].read_header()['HPXNEST']
     h.close()
     in_pixs = healpy.ang2pix(in_nside, sp.pi/2.-zcat_dec, zcat_ra, nest=nest)
-    fi = sp.sort(sp.array(['{}/{}/{}/transmission-{}-{}.fits'.format(indir,int(f//100),f,in_nside,f) for f in sp.unique(in_pixs)]))
+    fi = sp.sort(sp.array(['{}/{}/{}/transmission-{}-{}.fits.gz'.format(indir,int(f//100),f,in_nside,f) for f in sp.unique(in_pixs)]))
 else:
     fi = sp.sort(sp.array(infiles))
 print('INFO: Found {} files'.format(fi.size))
@@ -186,7 +214,16 @@ def get_stack_data(f):
     dec = h['METADATA']['DEC'][:].astype(sp.float64)*sp.pi/180.
     z = h['METADATA']['Z'][:]
     ll = sp.log10(h['WAVELENGTH'].read())
-    trans = h['TRANSMISSION'].read()
+    try:
+        trans = h['F_LYA'].read()
+    except KeyError:
+        try:
+            trans = h['F'].read()
+        except KeyError:
+            try:
+                trans = h['TRANSMISSION'].read()
+            except KeyError:
+                print('Transmission not found')
     nObj = z.size
     pixnum = f.split('-')[-1].split('.')[0]
 
@@ -235,14 +272,15 @@ def get_stack_data(f):
 
     return (n_stack,T_stack,deltas)
 
+tasks = [(f,) for f in fi]
+
 #Run the multiprocessing pool
-print(__name__)
 if __name__ == '__main__':
     pool = Pool(processes = nproc)
     results = []
     start_time = time.time()
-    for f in fi:
-        pool.apply_async(get_stack_data,f) #,callback=log_result,error_callback=log_error)
+    for task in tasks:
+        pool.apply_async(get_stack_data,task,callback=log_result,error_callback=log_error)
     pool.close()
     pool.join()
 
@@ -261,7 +299,6 @@ T_stack[w] /= n_stack[w]
 def normalise_deltas(p):
     if len(deltas[p])==0:
         print('No data in {}'.format(p))
-        continue
     out = fitsio.FITS(outdir+'/delta-{}'.format(p)+'.fits.gz','rw',clobber=True)
     for d in deltas[p]:
         bins = sp.floor((d.ll-lmin)/dll+0.5).astype(int)
@@ -285,13 +322,14 @@ def normalise_deltas(p):
     out.close()
     return
 
+tasks = [(p,) for p in deltas.keys()]
+
 #Run the multiprocessing pool
-print(__name__)
 if __name__ == '__main__':
     pool = Pool(processes = nproc)
     results = []
     start_time = time.time()
-    for p in deltas.keys():
-        pool.apply_async(get_stack_data,p) #,callback=log_result,error_callback=log_error)
+    for task in tasks:
+        pool.apply_async(normalise_deltas,task,callback=log_result,error_callback=log_error)
     pool.close()
     pool.join()
