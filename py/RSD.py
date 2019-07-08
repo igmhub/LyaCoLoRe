@@ -7,54 +7,6 @@ import time
 
 from . import utils
 
-#Function to add linear RSDs from the velocity skewers.
-#delete?
-def add_linear_skewer_RSDs(initial_skewer,velocity_skewer_dz,z):
-
-    N_qso = initial_skewer.shape[0]
-    N_cells = initial_skewer.shape[1]
-
-    final_skewer = np.zeros(initial_skewer.shape)
-
-    for i in range(N_qso):
-        for j in range(N_cells):
-            #Add the dz from the velocity skewers to get a 'new_z' for each cell
-            z_cell = z[j]
-            dz_cell = velocity_skewer_dz[i,j]
-            new_z_cell = z_cell + dz_cell
-
-            #Work out where in the skewer the cell 'moves' to.
-            #i.e. what are the new neighbouring cells.
-            j_upper = np.searchsorted(z,new_z_cell)
-            j_lower = j_upper - 1
-
-            #If it has moved off the z=0 end of the skewer, push it back.
-            if j_lower < 0:
-                w_upper = 1.0
-                w_lower = 0.0
-                j_lower += 1
-
-            #If it has moved off the max z end of the skewer, push it back.
-            elif j_upper >= N_cells:
-                w_lower = 1.0
-                w_upper = 0.0
-                j_upper -= 1
-
-            #Otherwise, split the contribution between the new neighbours, distance weighted.
-            else:
-                z_upper = z[j_upper]
-                z_lower = z[j_lower]
-
-                w_upper = abs(new_z_cell - z_lower)/(z_upper - z_lower)
-                w_lower = abs(new_z_cell - z_upper)/(z_upper - z_lower)
-
-            final_skewer[i,j_upper] += w_upper*initial_skewer[i,j]
-            final_skewer[i,j_lower] += w_lower*initial_skewer[i,j]
-
-        #print(np.sum(initial_skewer[i,:]),np.sum(final_skewer[i,:]))
-
-    return final_skewer
-
 #
 def get_sigma_kms(T_K):
 
@@ -184,7 +136,7 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
     #Define the upper and lower edges in terms of x, and get the cell sizes.
     x_uedges = x_edges[1:]
     x_ledges = x_edges[:-1]
-    cell_sizes = x_uedges - x_ledges
+    old_cell_sizes = x_uedges - x_ledges
 
     start = time.time()
 
@@ -214,7 +166,7 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
         z_uedges_shifted = z_edges[1:] + dz_uedges
         z_shifted = z + dz
 
-        #Calculate the r edges and cells by interpolating.
+        #Calculate the shifted r edges and cells by interpolating.
         r_of_z = interp1d(z_edges,r_edges,fill_value='extrapolate')
         r_ledges_shifted = r_of_z(z_ledges_shifted)
         r_uedges_shifted = r_of_z(z_uedges_shifted)
@@ -225,55 +177,25 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
         r_uedges_shifted -= (r_hMpc - r0) * d
         r_shifted -= (r_hMpc - r0) * d
 
-        #Calculate the r edges and cells by interpolating.
+        #Calculate the shifted x edges and cells by interpolating.
         x_of_r = interp1d(r_edges,x_edges,fill_value='extrapolate')
         x_ledges_shifted = x_of_r(r_ledges_shifted)
         x_uedges_shifted = x_of_r(r_uedges_shifted)
         x_shifted = x_of_r(r_shifted)
 
+        #Get the new cell sizes.
+        new_cell_sizes = x_uedges_shifted - x_ledges_shifted
+
         #Go through each cell up to the cell the QSO is in.
         j_limit = np.searchsorted(z_edges[:-1],z_qso[i])
         for j in range(j_limit):
 
-            """
-            ###OLD###
-
-            #Add the dz from the velocity skewers to get a 'new_z' for each cell
-            z_cell = z[j]
-            r_hMpc_cell = r_hMpc[j]
-            dz_cell = dz[j]
-            new_z_cell = z_cell + dz_cell
-
-            #Shift z_edges by using the average of the velocity the pixel and its neighbour.
-            #z_cell_ledge = z_edges[:-1][j] + dz_edges_mid[:-1][j]
-            #z_cell_uedge = z_edges[1:][j] + dz_edges_mid[1:][j]
-
-            #Shift z_edges by using the velocity of the pixel.
-            new_z_cell_ledge = z_edges[:-1][j] + dz_cell
-            new_z_cell_uedge = z_edges[1:][j] + dz_cell
-
-            #Find new r of cell by interpolating.
-            #new_r_hMpc_cell_ledge, new_r_hMpc_cell, new_r_hMpc_cell_uedge = interp1d(z_edges,r_edges,fill_value='extrapolate')([new_z_cell_ledge,new_z_cell,new_z_cell_uedge])
-            new_r_hMpc_cell_ledge = np.interp(new_z_cell_ledge,z_edges,r_edges)
-            new_r_hMpc_cell = np.interp(new_z_cell,z_edges,r_edges)
-            new_r_hMpc_cell_uedge = np.interp(new_z_cell_uedge,z_edges,r_edges)
-
-            #Shift the cell again to simulate an extra velocity gradient.
-            new_r_hMpc_cell -= (new_r_hMpc_cell - r0) * d
-            new_r_hMpc_cell_ledge -= (new_r_hMpc_cell_ledge - r0) * d
-            new_r_hMpc_cell_uedge -= (new_r_hMpc_cell_uedge - r0) * d
-
-            #Find the new x of the cell.
-            #new_x_kms_cell_ledge, new_x_kms_cell, new_x_kms_cell_uedge = interp1d(r_edges,x_edges,fill_value='extrapolate')([new_r_hMpc_cell_ledge,new_r_hMpc_cell,new_r_hMpc_cell_uedge])
-            new_x_kms_cell_ledge = np.interp(new_r_hMpc_cell_ledge,r_edges,x_edges)
-            new_x_kms_cell = np.interp(new_r_hMpc_cell,r_edges,x_edges)
-            new_x_kms_cell_uedge = np.interp(new_r_hMpc_cell_uedge,r_edges,x_edges)
-
-            """
-
+            #Define new variables for commonly used vector elements.
             new_x_kms_cell_ledge = x_ledges_shifted[j]
             new_x_kms_cell_uedge = x_uedges_shifted[j]
             new_x_kms_cell = x_shifted[j]
+            old_cell_size = old_cell_sizes[j]
+            new_cell_size = new_cell_sizes[j]
 
             #If we want to include thermal effects, we include contributions to all cells within a chosen x_kms range.
             if thermal == True:
@@ -282,7 +204,7 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
                 sigma_kms = get_sigma_kms(T_K[i,j])
 
                 #Define the x_kms range over which we will add contributions.
-                x_kms_rad = cell_size/2. + 5.*sigma_kms
+                x_kms_rad = old_cell_size/2. + 5.*sigma_kms
                 x_upper_limit = new_x_kms_cell + x_kms_rad
                 x_lower_limit = new_x_kms_cell - x_kms_rad
 
@@ -318,7 +240,8 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
 
                 indptr += [(indptr[-1]+len(j_values))]
 
-            #If we do not want to include thermal effects, we only allocate to the cell above and the cell below.
+            #If we do not want to include thermal effects, we only allocate to
+            #the cell above and the cell below according to the overlap.
             else:
 
                 #If the cell ends up having some overlap with the skewer, find which cells it contributes to.
@@ -331,7 +254,7 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
                 w = []
                 for j_value in j_values:
                     overlap = max(0., min(x_uedges[j_value], new_x_kms_cell_uedge) - max(x_ledges[j_value], new_x_kms_cell_ledge))
-                    weight = overlap/(new_x_kms_cell_uedge - new_x_kms_cell_ledge)
+                    weight = overlap/new_cell_size
                     w += [weight]
 
                 #Add the data to the inputs for the sparse matrix
@@ -339,53 +262,7 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
                 indptr += [(indptr[-1] + len(j_values))]
                 data += w
 
-                """
-                ###OLD###
-                ###MOVES THE CELL AND ASSUMES CELL SIZE IN VEL SPACE IS CONST###
-                
-                j_upper = np.searchsorted(x_kms,new_x_kms_cell)
-                j_lower = j_upper - 1
-
-                #If it has moved off the low-z end of the skewer, lower weight is 0
-                #Only include an upper weight if it is within 1 cell's width.
-                if j_lower < 0:
-                    w_lower = 0.
-                    if abs(x_kms[0] - new_x_kms_cell) < abs(x_kms[0] - x_kms[1]):
-                        w_upper = 1. - abs(x_kms[0] - new_x_kms_cell)/abs(x_kms[1] - x_kms[0])
-                        indices += [j_upper]
-                        data += [w_upper]
-                        indptr += [(indptr[-1]+1)]
-                    else:
-                        w_upper = 0.
-                        indptr += [(indptr[-1])]
-
-                #If it has moved off the high-z end of the skewer, upper weight is 0
-                #Only include a lower weight if it is within 1 cell's width.
-                elif j_upper >= N_cells:
-                    w_upper = 0.
-                    if abs(x_kms[-1] - new_x_kms_cell) < abs(x_kms[-1] - x_kms[-2]):
-                        w_lower = 1. - abs(x_kms[-1] - new_x_kms_cell)/abs(x_kms[-1] - x_kms[-2])
-                        indices += [j_lower]
-                        data += [w_lower]
-                        indptr += [(indptr[-1]+1)]
-                    else:
-                        w_lower = 0.
-                        indptr += [(indptr[-1])]
-
-                #Otherwise, split the contribution between the new neighbours, distance weighted.
-                else:
-                    x_kms_upper = x_kms[j_upper]
-                    x_kms_lower = x_kms[j_lower]
-
-                    w_upper = abs(new_x_kms_cell - x_kms_lower)/(x_kms_upper - x_kms_lower)
-                    w_lower = abs(new_x_kms_cell - x_kms_upper)/(x_kms_upper - x_kms_lower)
-
-                    indices += [j_lower,j_upper]
-                    w = [w_lower,w_upper]
-                    data += [w_lower,w_upper]
-                    indptr += [(indptr[-1] + 2)]
-                """
-
+        #Make the sparse matrix, and add it to the dictionary.
         indptr += [indptr[-1]]*(N_cells + 1 - len(indptr))
         csc_weights = csc_matrix((data, indices, indptr), shape=(N_cells,N_cells))
         weights[i] = csc_weights
@@ -393,3 +270,54 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
     #print('time to calc RSDs weights is {:2.3f}'.format(time.time()-start))
 
     return weights
+
+
+################################################################################
+
+#Function to add linear RSDs from the velocity skewers.
+#delete?
+def add_linear_skewer_RSDs(initial_skewer,velocity_skewer_dz,z):
+
+    N_qso = initial_skewer.shape[0]
+    N_cells = initial_skewer.shape[1]
+
+    final_skewer = np.zeros(initial_skewer.shape)
+
+    for i in range(N_qso):
+        for j in range(N_cells):
+            #Add the dz from the velocity skewers to get a 'new_z' for each cell
+            z_cell = z[j]
+            dz_cell = velocity_skewer_dz[i,j]
+            new_z_cell = z_cell + dz_cell
+
+            #Work out where in the skewer the cell 'moves' to.
+            #i.e. what are the new neighbouring cells.
+            j_upper = np.searchsorted(z,new_z_cell)
+            j_lower = j_upper - 1
+
+            #If it has moved off the z=0 end of the skewer, push it back.
+            if j_lower < 0:
+                w_upper = 1.0
+                w_lower = 0.0
+                j_lower += 1
+
+            #If it has moved off the max z end of the skewer, push it back.
+            elif j_upper >= N_cells:
+                w_lower = 1.0
+                w_upper = 0.0
+                j_upper -= 1
+
+            #Otherwise, split the contribution between the new neighbours, distance weighted.
+            else:
+                z_upper = z[j_upper]
+                z_lower = z[j_lower]
+
+                w_upper = abs(new_z_cell - z_lower)/(z_upper - z_lower)
+                w_lower = abs(new_z_cell - z_upper)/(z_upper - z_lower)
+
+            final_skewer[i,j_upper] += w_upper*initial_skewer[i,j]
+            final_skewer[i,j_lower] += w_lower*initial_skewer[i,j]
+
+        #print(np.sum(initial_skewer[i,:]),np.sum(final_skewer[i,:]))
+
+    return final_skewer

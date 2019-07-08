@@ -106,16 +106,16 @@ class SimulationData:
 
         h = fits.open(filename)
 
+        #Get data about the catalog and cosmology.
         h_MOCKID = read_files.get_MOCKID(h,input_format,file_number)
         h_R, h_Z, h_D, h_V = read_files.get_COSMO(h,input_format)
         h_lya_lambdas = read_files.get_lya_lambdas(h,input_format)
+        h_lya_lambdas_edges = utils.get_edges(h_lya_lambdas)
 
-
+        #Work out which rows in the hdulist we are interested in.
         if MOCKIDs is not None:
-            #Work out which rows in the hdulist we are interested in.
             rows = []
             s = set(MOCKIDs)
-
             for i, qso in enumerate(h_MOCKID):
                 if qso in s:
                     rows += [i]
@@ -123,8 +123,7 @@ class SimulationData:
             rows = list(range(h_MOCKID.shape[0]))
 
         #Calculate the first_relevant_cell.
-        first_relevant_cell = np.searchsorted(h_lya_lambdas,lambda_min)
-        actual_lambda_min = h_lya_lambdas[first_relevant_cell]
+        first_relevant_cell = np.searchsorted(h_lya_lambdas_edges[1:],lambda_min)
 
         if input_format == 'physical_colore':
 
@@ -134,11 +133,8 @@ class SimulationData:
             DEC = h[1].data['DEC'][rows]
             Z_QSO = h[1].data['Z_COSMO'][rows]
             DZ_RSD = h[1].data['DZ_RSD'][rows]
-
-            DENSITY_DELTA_rows = h[2].data[rows,first_relevant_cell:]
-
-            VEL_rows = h[3].data[rows,first_relevant_cell:]
-
+            DENSITY_DELTA_rows = h[2].data[rows,:][:,first_relevant_cell:]
+            VEL_rows = h[3].data[rows,:][:,first_relevant_cell:]
             Z = h[4].data['Z'][first_relevant_cell:]
             R = h[4].data['R'][first_relevant_cell:]
             D = h[4].data['D'][first_relevant_cell:]
@@ -157,15 +153,14 @@ class SimulationData:
             #Calculate the Gaussian skewers.
             GAUSSIAN_DELTA_rows = convert.lognormal_delta_to_gaussian(DENSITY_DELTA_rows,SIGMA_G,D)
 
-            #Set the remaining variables to None
-            DENSITY_DELTA_rows = None
+            #Make binary IVAR_rows for picca.
+            IVAR_rows = utils.make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP)
 
             #Insert placeholder values for remaining variables.
+            DENSITY_DELTA_rows = None
             PLATE = MOCKID
             MJD = np.zeros(N_qso)
             FIBER = np.zeros(N_qso)
-
-            IVAR_rows = utils.make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP)
 
         elif input_format == 'gaussian_colore':
 
@@ -175,11 +170,8 @@ class SimulationData:
             DEC = h[1].data['DEC'][rows]
             Z_QSO = h[1].data['Z_COSMO'][rows]
             DZ_RSD = h[1].data['DZ_RSD'][rows]
-
-            GAUSSIAN_DELTA_rows = h[2].data[rows,first_relevant_cell:]
-
-            VEL_rows = h[3].data[rows,first_relevant_cell:]
-
+            GAUSSIAN_DELTA_rows = h[2].data[rows,:][:,first_relevant_cell:]
+            VEL_rows = h[3].data[rows,:][:,first_relevant_cell:]
             Z = h[4].data['Z'][first_relevant_cell:]
             R = h[4].data['R'][first_relevant_cell:]
             D = h[4].data['D'][first_relevant_cell:]
@@ -198,60 +190,14 @@ class SimulationData:
                 MOCKID = read_files.get_MOCKID(h,input_format,file_number)
             LOGLAM_MAP = np.log10(lya*(1+Z))
 
-            #Set the remaining variables to None
-            DENSITY_DELTA_rows = None
+            #Make binary IVAR_rows for picca.
+            IVAR_rows = utils.make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP)
 
             #Insert placeholder values for remaining variables.
+            DENSITY_DELTA_rows = None
             PLATE = MOCKID
             MJD = np.zeros(N_qso)
             FIBER = np.zeros(N_qso)
-
-            IVAR_rows = utils.make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP)
-
-        elif input_format == 'picca_density':
-
-            #Extract data from the HDUlist.
-            DENSITY_DELTA_rows = h[0].data.T[rows,first_relevant_cell:]
-
-            IVAR_rows = h[1].data.T[rows,first_relevant_cell:]
-
-            LOGLAM_MAP = h[2].data[first_relevant_cell:]
-
-            RA = h[3].data['RA'][rows]
-            DEC = h[3].data['DEC'][rows]
-            Z_QSO = h[3].data['Z'][rows]
-            PLATE = h[3].data['PLATE'][rows]
-            MJD = h[3].data['MJD'][rows]
-            FIBER = h[3].data['FIBER'][rows]
-            MOCKID = h[3].data['THING_ID'][rows]
-
-            #Derive the number of quasars and cells in the file.
-            N_qso = RA.shape[0]
-            N_cells = LOGLAM_MAP.shape[0]
-            if SIGMA_G == None:
-                SIGMA_G = h[4].header['SIGMA_G']
-
-            #Derive Z and transmitted flux fraction.
-            Z = (10**LOGLAM_MAP)/lya - 1
-
-            #Calculate the Gaussian skewers.
-            GAUSSIAN_DELTA_rows = convert.lognormal_delta_to_gaussian(DENSITY_DELTA_rows,SIGMA_G,D)
-
-            #Set the remaining variables to None
-            DENSITY_DELTA_rows = None
-
-            """
-            Can we calculate DZ_RSD,R,D,V?
-            """
-
-            #Insert placeholder variables for remaining variables.
-            TYPE = np.zeros(RA.shape[0])
-            R = np.zeros(Z.shape[0])
-            D = np.zeros(Z.shape[0])
-            V = np.zeros(Z.shape[0])
-            DZ_RSD = np.zeros(RA.shape[0])
-            VEL_rows = np.zeros(DENSITY_DELTA_rows.shape)
-
         else:
             print('Input format not recognised: current options are "colore" and "picca".')
             print('Please choose one of these options and try again.')
@@ -263,12 +209,19 @@ class SimulationData:
     #Function to trim skewers according to a minimum value of lambda. QSOs with no relevant cells are removed.
     def trim_skewers(self,lambda_min=0.,min_catalog_z=0.,extra_cells=0,lambda_max=None,whole_lambda_range=False,remove_irrelevant_QSOs=False):
 
+        #Find the first relevant cell, and the last one if desired.
+        #We make sure to include all frequencies within (lambda_min,lambda_max).
         lambdas = 10**(self.LOGLAM_MAP)
-        first_relevant_cell = np.searchsorted(lambdas,lambda_min)
+        lambda_edges = utils.get_edges(lambdas)
+        first_relevant_cell = np.searchsorted(lambda_edges[1:],lambda_min)
         if lambda_max:
-            last_relevant_cell = np.searchsorted(lambdas,lambda_max) - 1
+            last_relevant_cell = np.searchsorted(lambda_edges[1:],lambda_max) - 1
         else:
             last_relevant_cell = -1 % self.N_cells
+
+        #Calculate the actual values of lambda min and max.
+        actual_lambda_min = lambda_edges[:-1][first_relevant_cell]
+        actual_lambda_max = lambda_edges[:-1][last_relevant_cell]
 
         #If we want to keep any extra_cells, we subtract from the first_relevant_cell.
         #If we cannot add enough extra cells, then we just set the first relevant cell to 0.
@@ -375,7 +328,8 @@ class SimulationData:
         #Remove DLAs that are no longer relevant, either because their QSO has
         #been removed, or they are outside the wavelength range.
         if self.DLA_table is not None:
-            relevant_DLAs = [id for id in range(self.DLA_table['MOCKID'].shape[0]) if  self.DLA_table['MOCKID'][id] in self.MOCKID and lya*(1+self.DLA_table['Z_DLA_NO_RSD'][id])>lambda_min]
+            DLA_lambdas = lya*(1+self.DLA_table['Z_DLA_NO_RSD'])
+            relevant_DLAs = [id for id in range(self.DLA_table['MOCKID'].shape[0]) if self.DLA_table['MOCKID'][id] in self.MOCKID and DLA_lambdas[id]>actual_lambda_min and DLA_lambdas[id]<actual_lambda_max]
             self.DLA_table = self.DLA_table[relevant_DLAs]
 
         return
@@ -383,11 +337,7 @@ class SimulationData:
     #Function to add small scale gaussian fluctuations.
     def add_small_scale_gaussian_fluctuations(self,cell_size,generator,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n=0.7,k1=0.001,A0=58.6,R_kms=25.0):
 
-        times = []
-        start = time.time(); times += [start]
-
         #Define the new R grid. Ensure that we include the entire range of R.
-        # TODO: Need to extend the value of Rmax slightly, as max(new_R_edges) < max(old_R_edges as it currently stands)
         old_R = self.R
         old_R_edges = utils.get_edges(old_R)
         R_edge_min = old_R_edges[0]
@@ -398,16 +348,14 @@ class SimulationData:
         new_R = utils.get_centres(new_R_edges)
         new_N_cells = new_R.shape[0]
 
-        # TODO: could just use scipy.interp1d here
         #Get the nearest grid points.
-        NGPs = utils.get_NGPs(old_R,new_R)
+        NGPs = interp1d(old_R,list(range(self.N_cells)),kind='nearest',fill_value=(0,self.N_cells-1),bounds_error=False)(new_R).astype('int')
 
         #Redefine the necessary variables (N_cells, Z, D etc)
         self.N_cells = new_N_cells
         self.R = new_R
 
-        # TODO: Ideally would want to recompute these rather than interpolating?
-        # TODO: Could use exponentials here to match any curvature? Only issue is if an edge is at 0 or lower?
+        #Compute the new Z, D and V by interpolating.
         old_Z = self.Z
         old_D = self.D
         old_V = self.V
@@ -427,44 +375,17 @@ class SimulationData:
         expanded_VEL_rows = self.VEL_rows[:,NGPs]
         expanded_IVAR_rows = self.IVAR_rows[:,NGPs]
 
-        """
-        # TODO: Think we can get rid of this:
-        times += [time.time()]
-        #For each skewer, determine the last relevant cell
-        first_relevant_cells = np.zeros(self.N_qso)
-        last_relevant_cells = np.zeros(self.N_qso)
-        for i in range(self.N_qso):
-            first_relevant_cell = np.searchsorted(10**(self.LOGLAM_MAP),lambda_min)
-            # it is not clear whether to cut at Z_QSO or Z_QSO + DZ_RSD
-            last_relevant_cell = np.searchsorted(self.Z,self.Z_QSO[i]) - 1
-
-            #Clip the gaussian skewers so that they are zero after the quasar.
-            #This avoids effects from NGP interpolation).
-            expanded_GAUSSIAN_DELTA_rows[i,last_relevant_cell + 1:] = 0
-
-            first_relevant_cells[i] = first_relevant_cell
-            last_relevant_cells[i] = last_relevant_cell
-        times += [time.time()]
-        extra_var = np.zeros(expanded_GAUSSIAN_DELTA_rows.shape)
-        """
-
         #Get the extra sigma_G values from the transformation.
         extra_sigma_G = self.transformation.get_seps(self.Z)
 
-        # TODO: dv is not constant at the moment - how to deal with this
         #Generate extra variance, either white noise or correlated.
         dkms_dhMpc = utils.get_dkms_dhMpc(0.)
         dv_kms = cell_size * dkms_dhMpc
         extra_var = independent.get_gaussian_fields(generator,self.N_cells,dv_kms=dv_kms,N_skewers=self.N_qso,white_noise=white_noise,n=n,k1=k1,A0=A0,R_kms=R_kms,norm=True)
-
-        times += [time.time()]
-
         extra_var *= extra_sigma_G
-        times += [time.time()]
 
         #Add the extra fluctuations to the expanded rows.
         expanded_GAUSSIAN_DELTA_rows += extra_var
-        times += [time.time()]
 
         #Mask beyond the QSOs.
         new_Z_ledges = new_Z_edges[:-1]
@@ -479,9 +400,6 @@ class SimulationData:
         self.VEL_rows = expanded_VEL_rows
         self.IVAR_rows = expanded_IVAR_rows
         self.SIGMA_G = np.sqrt(extra_sigma_G**2 + (self.SIGMA_G)**2)
-
-        times += [time.time()]
-        #print(np.array(times)-start)
 
         return
 
@@ -507,14 +425,14 @@ class SimulationData:
 
         # scale optical depth for this particular absorber (=1 for Lya)
         absorber_tau0 = tau0*absorber.flux_transform_m
-        #print('absorber',absorber.name,'has m =',absorber.flux_transform_m)
-        #print('absorber',absorber.name,'has first alphas =',absorber_alpha[0:5])
         absorber.tau = convert.density_to_tau(self.DENSITY_DELTA_rows+1,absorber_tau0,texp)
 
         #Set tau to 0 beyond the quasars.
-        for i in range(self.N_qso):
-            last_relevant_cell = np.searchsorted(self.Z,self.Z_QSO[i]) - 1
-            absorber.tau[i,last_relevant_cell+1:] = 0
+        R_edges = utils.get_edges(self.R)
+        Z_edges = interp1d(self.R,self.Z,fill_value='extrapolate')(R_edges)
+        LOGLAM_edges = np.log10(lya*(1+Z_edges))
+        lya_lr_mask = utils.make_IVAR_rows(lya,self.Z_QSO,LOGLAM_edges[:-1])
+        absorber.tau *= lya_lr_mask
 
         return
 
@@ -1016,15 +934,6 @@ class SimulationData:
         dtype = [('RA', 'f4'), ('DEC', 'f4'), ('Z', 'f4'), ('PLATE', int), ('MJD', 'f4'), ('FIBER', int), ('THING_ID', int)]
         picca_3 = np.array(picca_3_data,dtype=dtype)
 
-        """
-        picca_3_data = []
-        for i in range(self.N_qso):
-            if i in relevant_QSOs:
-                picca_3_data += [(self.RA[i],self.DEC[i],Z_QSO[i],self.PLATE[i],self.MJD[i],self.FIBER[i],self.MOCKID[i])]
-        dtype = [('RA', 'f4'), ('DEC', 'f4'), ('Z', 'f4'), ('PLATE', int), ('MJD', 'f4'), ('FIBER', int), ('THING_ID', int)]
-        picca_3 = np.array(picca_3_data,dtype=dtype)
-        """
-
         #Add cell size to the header (average)
         dr_hMpc = (self.R[-1] - self.R[0])/(self.N_cells - 1)
         header['dr_hMpc'] = dr_hMpc
@@ -1052,29 +961,21 @@ class SimulationData:
         return
 
     #Compute transmission for a particular absorber, on a particular grid
-    def compute_grid_transmission(self,absorber,wave_grid,add_QSO_RSDs=True):
-        #Get transmission on each cell, from tau stored in absorber
+    def compute_grid_transmission(self,absorber,wave_grid):
+
+        #Get data from the absorber.
         F_skewer = absorber.transmission()
-        #Get rest-frame wavelength for this particular absorber
         rest_wave = absorber.rest_wave
-        #Get wavelength on each original cell, for this particular absorber
         wave_skewer = rest_wave*(1+self.Z)
 
-        # interpolate F into the common grid
+        #Create the F_grid.
         N_los = F_skewer.shape[0]
         N_w = wave_grid.shape[0]
         F_grid = np.empty([N_los,N_w])
 
-        #Get QSO redshifts with or without RSDs.
-        if add_QSO_RSDs:
-            Z_QSO = self.Z_QSO + self.DZ_RSD
-        else:
-            Z_QSO = self.Z_QSO
-
+        #Interpolate the skewers.
         for i in range(N_los):
             F_grid[i,] = np.interp(wave_grid,wave_skewer,F_skewer[i],left=1.0,right=1.0)
-            #beyond_QSO = (wave_grid > rest_wave*(1 + Z_QSO[i]))
-            #F_grid[i,beyond_QSO] = 1.
 
         return F_grid
 
@@ -1087,9 +988,9 @@ class SimulationData:
         wave_grid = np.arange(wave_min,wave_max,wave_step).astype('float32')
 
         # compute Lyman alpha transmission on grid of wavelengths
-        F_grid_Lya = self.compute_grid_transmission(self.lya_absorber,wave_grid,add_QSO_RSDs=add_QSO_RSDs).astype('float32')
+        F_grid_Lya = self.compute_grid_transmission(self.lya_absorber,wave_grid).astype('float32')
 
-        # construct quasar catalog HDU
+        #construct quasar catalog HDU
         if add_QSO_RSDs:
             Z_QSO = self.Z_QSO + self.DZ_RSD
         else:
