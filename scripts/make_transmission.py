@@ -306,8 +306,8 @@ print('\nTime to make Gaussian pixel files: {:4.0f}s.\n'.format(time.time()-star
 To correctly calculate the physical fields, we must measure sigma from the Gaussian skewers.
 """
 
+#Calculate the mean and variance of the Gaussian skewers from the measurements.
 means_data_array = np.array(results)
-
 gaussian_mean = np.average(means_data_array[:,1],weights=means_data_array[:,0])
 gaussian_variance = np.average(means_data_array[:,2],weights=means_data_array[:,0]) - gaussian_mean**2
 measured_SIGMA_G = np.sqrt(gaussian_variance)
@@ -344,38 +344,23 @@ We would like to add small scale flucatuations to the Gaussian field.
 We load values of the parameters from file.
 """
 
+#Open the tuning file and extract the lognormal/FGPA transformation parameters.
 h = fits.open(tuning_file)
-n = h[1].header['n']
-k1 = h[1].header['k1']
 tuning_z_values = h[1].data['z']
 tuning_alphas = h[1].data['alpha']
 tuning_betas = h[1].data['beta']
 tuning_sigma_Gs = h[1].data['sigma_G']
 
-#Parameters for tau0.
-#C0 = h[1].header['C0']
-#C1 = h[1].header['C1']
-#C2 = h[1].header['C2']
-
-#Parameters for exponent.
-
-#Parameters for sigma epsilon.
-#D0 = h[1].header['D0']
-#D1 = h[1].header['D1']
-#D2 = h[1].header['D2']
-
-#Parameters for extra power's shape.
-#k1 = h[1].header['k1']
-#n = h[1].header['n']
-
-#Additional parameters.
+#Extract additional parameters from the file's header.
+n = h[1].header['n']
+k1 = h[1].header['k1']
 R_kms = h[1].header['R']
 vel_mult = h[1].header['vb']
 
+#Close the file.
 h.close()
 
 #Make a transformation object to store all of this data
-#Once the parameterisation of the transformation is finalised, can use transformation.add_parameters_from_functions with utils.quadratic_log
 transformation = tuning.transformation()
 transformation.add_parameters_from_data(tuning_z_values,tuning_alphas,tuning_betas,tuning_sigma_Gs)
 
@@ -391,8 +376,7 @@ We may now do the main work of LyaCoLoRe. This includes:
  - convert from tau to flux
  - save the transmission files
 We also save picca format delta files for running correlation function tests.
-Deltas are caclulated using the mean quantity in each pixel.
-They are renormalised using the global mean in 'make_summaries'
+Deltas are normalised using the global mean in 'make_summaries'
 """
 
 print('\nWorking on per-HEALPix pixel final skewer files...')
@@ -413,9 +397,9 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
     file_number = None
     pixel_object = simulation_data.SimulationData.get_gaussian_skewers_object(gaussian_filename,file_number,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
 
+    #Add the transformation object, and use the velocity multiplier.
     pixel_object.transformation = transformation
-
-    #pixel_object.VEL_rows *= vel_mult
+    pixel_object.VEL_rows *= vel_mult
     #print('{:3.2f} checkpoint object'.format(time.time()-t)); t = time.time()
 
     #Add Lyb and metal absorbers if needed.
@@ -476,10 +460,8 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
 
     #print('{:3.2f} checkpoint SSF'.format(time.time()-t)); t = time.time()
 
-    #Recompute physical skewers.
+    #Recompute physical skewers, and then the tau skewers.
     pixel_object.compute_physical_skewers()
-
-    #Add tau skewers to the object, starting with Lyman-alpha
     pixel_object.compute_all_tau_skewers()
 
     if transmission_only == False:
@@ -522,7 +504,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
     #Make a variable containing the new cosmology data.
     new_cosmology = pixel_object.return_cosmology()
 
-    #transmission
+    #Save the transmission file.
     filename = utils.get_file_name(location,'transmission',N_side,pixel)
     pixel_object.save_as_transmission(filename,header,overwrite=overwrite,wave_min=trans_lmin,wave_max=trans_lmax,wave_step=trans_dl,fmt=transmission_format,add_QSO_RSDs=add_QSO_RSDs,compress=compress)
 
