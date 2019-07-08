@@ -438,10 +438,10 @@ def plot_wedges(ax,plot_info):
 
         #Add a model or fit.
         if plot_info['plot_picca_fit']:
-            corr_obj.plot_fit(ax,mubin,'',colour,**plot_info['plot_data'])
+            corr_obj.plot_wedge_fit(ax,mubin,'',colour,**plot_info['plot_data'])
         if plot_info['plot_manual_fit']:
             b1,b2,beta1,beta2 = plot_info['manual_fit_data'].values()
-            corr_obj.plot_manual_model(ax,b1,b2,beta1,beta2,mubin,'',colour,**plot_info['plot_data'])
+            corr_obj.plot_wedge_manual_model(ax,b1,b2,beta1,beta2,mubin,'',colour,**plot_info['plot_data'])
 
     #Add axis labels.
     if plot_info['format']['xlabel']:
