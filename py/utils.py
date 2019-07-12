@@ -193,11 +193,13 @@ def make_QSO_filter(footprint,N_side=16,pixel_list=None):
 
     #Else if we don't want to filter at all, set the filter to "None".
     elif footprint=='full_sky':
-        QSO_filter = None
+        def QSO_filter(RA,DEC):
+            return np.ones(RA.shape).astype('bool')
 
     else:
         print('Footprint not recognised; no filter applied.')
-        QSO_filter = None
+        def QSO_filter(RA,DEC):
+            return np.ones(RA.shape)
 
     return QSO_filter
 
