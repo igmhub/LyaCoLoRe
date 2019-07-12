@@ -8,11 +8,13 @@ import warnings
 from lyacolore import catalog,utils
 
 #Set up options
-factor = 10
-out_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v8.0/v8.0.0/master_randoms.fits'
+factor = 2
+#out_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v8.0/v8.0.0/master_randoms.fits'
+out_path = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v9/v9.0.0_full/master_randoms.fits'
 method = 'from_catalog'
-catalog_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v8.0/v8.0.0/master.fits'
-footprint = 'desi_pixel_plus'
+#catalog_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v8.0/v8.0.0/master.fits'
+catalog_path = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v9/v9.0.0_full/master.fits'
+footprint = 'full_sky'
 nz_filename = 'input_files/Nz_qso_130618_2_colore1_hZs.txt'
 min_cat_z = 1.8
 max_cat_z = 3.79
@@ -60,6 +62,9 @@ def generate_rnd(factor=3, out_path= None, method='use_catalog', catalog_path=No
         tab = fits.open(catalog_path)['CATALOG'].data
         z_master_RSD = tab['Z_QSO_RSD']
         dndz_RSD,_ = np.histogram(z_master_RSD,bins=zedges)
+
+        #Get ntot
+        ntot = factor*tab.shape[0]
 
         #Turn this into a cdf and draw redshifts from it
         cdf_RSD = np.cumsum(dndz_RSD)/np.sum(dndz_RSD)

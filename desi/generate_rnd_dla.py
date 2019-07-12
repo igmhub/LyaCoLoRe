@@ -8,12 +8,15 @@ from lyacolore import DLA, utils
 lya = utils.lya_rest
 
 #Set up options
-factor = 10.0
-out_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v8.0/v8.0.0/master_DLA_randoms.fits'
+factor = 2.0
+#out_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v8.0/v8.0.0/master_DLA_randoms.fits'
+out_path = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v9/v9.0.0_full/master_DLA_randoms.fits'
 method = 'from_catalog'
-DLA_catalog_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v8.0/v8.0.0/master_DLA.fits'
-QSO_catalog_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v8.0/v8.0.0/master.fits'
-footprint = 'desi_pixel_plus'
+#DLA_catalog_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v8.0/v8.0.0/master_DLA.fits'
+#QSO_catalog_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v8.0/v8.0.0/master.fits'
+DLA_catalog_path = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v9/v9.0.0_full/master_DLA.fits'
+QSO_catalog_path = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v9/v9.0.0_full/master.fits'
+footprint = 'full_sky'
 lambda_min = 3370.
 lambda_max = 6550.
 NHI_min = 17.2
