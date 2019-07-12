@@ -90,10 +90,14 @@ class picca_correlation:
                 self.bias_QSO = self.bias_QSO_eta * self.growth_rate / self.beta_QSO
                 self.bias_QSO_err = abs(self.bias_LYA * np.sqrt((self.bias_QSO_eta_err/self.bias_QSO_eta)**2 + (self.beta_QSO_err/self.beta_QSO)**2 + (self.growth_rate_err/self.growth_rate)**2))
 
-            self.ap = f['ap']['value']
+            self.ap = f['ap']['value'] 
             self.ap_err = f['ap']['error']
             self.at = f['at']['value']
             self.at_err = f['at']['error']
+
+            self.fval = f['fval']
+            self.ndata = f['ndata']
+            self.npar = f['npar']
 
             self.fit_xi_grid = f['xi_grid']
 
@@ -140,14 +144,14 @@ class picca_correlation:
 
         return cls(location,parameters,correlation_data,fit_parameters)
 
-    def plot_wedge(self,ax,mubin,plot_label,colour,r_power=2,nr=40,rmax=160.):
+    def plot_wedge(self,ax,mubin,plot_label,colour,r_power=2,nr=40,rmax_plot=160.):
 
         mumin = mubin[0]
         mumax = mubin[1]
 
         #Create the wedge, and wedgise the correlation.
         b = wedgize.wedge(mumin=mumin,mumax=mumax,rtmax=self.rtmax,nrt=self.nt,
-            rpmin=self.rpmin,rpmax=self.rpmax,nrp=self.np,nr=nr,rmax=rmax)
+            rpmin=self.rpmin,rpmax=self.rpmax,nrp=self.np,nr=nr,rmax=rmax_plot)
         r, xi_wed, cov_wed = b.wedge(self.xi,self.cov)
 
         #Get the errors.
@@ -165,14 +169,14 @@ class picca_correlation:
 
         return
 
-    def plot_wedge_fit(self,ax,mubin,plot_label,colour,r_power=2,nr=40,rmax=160.):
+    def plot_wedge_fit(self,ax,mubin,plot_label,colour,r_power=2,nr=40,rmax_plot=200.,rmin_fit=None,rmax_fit=None):
 
         #Using data in picca fit
         mumin = mubin[0]
         mumax = mubin[1]
 
         b = wedgize.wedge(mumin=mumin,mumax=mumax,rtmax=self.rtmax,nrt=self.nt,
-            rpmin=self.rpmin,rpmax=self.rpmax,nrp=self.np,nr=nr,rmax=rmax)
+            rpmin=self.rpmin,rpmax=self.rpmax,nrp=self.np,nr=nr,rmax=rmax_plot)
 
         """
         #REMOVE NON_DIAGONALS FROM COV MATRIX
@@ -184,23 +188,33 @@ class picca_correlation:
 
         r, fit_xi_wed, _ = b.wedge(self.fit_xi_grid,self.cov)
 
-        ax.plot(r,(r**r_power) * fit_xi_wed,c=colour,label=plot_label)
+        if rmin_fit == None:
+            rmin_fit = 0.
+        if rmax_fit == None:
+            rmax_fit = rmax_plot
+
+        #Plot the fit up to rmax_plot in a dashed line.
+        ax.plot(r,(r**r_power) * fit_xi_wed,c=colour,linestyle='--')
+
+        #Plot the fit in the fitted region in a solid line.
+        fit_bins = (r>rmin_fit) * (r<rmax_fit)
+        ax.plot(r[fit_bins],(r[fit_bins]**r_power) * fit_xi_wed[fit_bins],c=colour,label=plot_label)
 
         return
 
-    def plot_wedge_manual_model(self,ax,b1,b2,beta1,beta2,mubin,plot_label,colour,r_power=2,nr=40,rmax=160.):
+    def plot_wedge_manual_model(self,ax,b1,b2,beta1,beta2,mubin,plot_label,colour,r_power=2,nr=40,rmax_plot=160.):
 
         #Using data in picca fit
         mumin = mubin[0]
         mumax = mubin[1]
 
         b = wedgize.wedge(mumin=mumin,mumax=mumax,rtmax=self.rtmax,nrt=self.nt,
-            rpmin=self.rpmin,rpmax=self.rpmax,nrp=self.np,nr=nr,rmax=rmax)
+            rpmin=self.rpmin,rpmax=self.rpmax,nrp=self.np,nr=nr,rmax=rmax_plot)
 
         #Using our model
         model = 'Slosar11'
         r,xi = correlation_model.get_model_xi(model,self.quantity_1,self.quantity_2,b1,b2,beta1,beta2,self.zeff,mubin)
-        indices = r<rmax
+        indices = r<rmax_plot
         r = r[indices]
         xi = xi[indices]
 
@@ -259,10 +273,11 @@ class picca_correlation:
         weights = np.maximum(0.,np.minimum(rp_bin_widths,np.minimum(self.rpmax-rp_model_edges[:-1],rp_model_edges[1:]-self.rpmin))) / rp_bin_widths
         weights_grid = np.outer(weights,np.ones(nt_model))
 
+        print(r_model_grid.shape,xi_model_grid.shape)
         #Plot the model.
         r_model = np.average(r_model_grid,weights=weights_grid,axis=0)
         xi_model = np.average(xi_model_grid,weights=weights_grid,axis=0)
-        plt.plot(rt_model,xi_model*(r_model**r_power),c=colour)
+        ax.plot(rt_model,xi_model*(r_model**r_power),c=colour)
 
         return
 
@@ -349,7 +364,7 @@ def get_fit_from_result(location,result_name,corr_type):
     npar = ff['best fit'].attrs['npar']
     fit['npar'] = npar
 
-    cosmo_pars = ["bias_eta_LYA","beta_LYA","bias_eta_QSO","beta_QSO","ap","at","growth_rate"]
+    cosmo_pars = ["bias_eta_LYA","beta_LYA","bias_eta_QSO","beta_QSO","ap","at","growth_rate","drp_QSO"]
     for par in cosmo_pars:
         if par in ff['best fit'].attrs:
             par_dict = {}
@@ -358,6 +373,15 @@ def get_fit_from_result(location,result_name,corr_type):
             par_dict['error'] = error
             fit[par] = par_dict
             print('{} = {:1.4f} +/- {:1.4f}'.format(par,value,error))
+
+    fit_pars = ['fval','ndata','npar']
+    for par in fit_pars:
+        if par in ff['best fit'].attrs:
+            value = ff['best fit'].attrs[par]
+            fit[par] = value
+
+    print('chi2: {:4.1f}/({:d}-{:d})'.format(fit['fval'],fit['ndata'],fit['npar']))
+
 
     # TODO: This won't work if it's not the lya auto correlation
     if corr_type == 'cf':
@@ -438,7 +462,9 @@ def plot_wedges(ax,plot_info):
 
         #Add a model or fit.
         if plot_info['plot_picca_fit']:
-            corr_obj.plot_wedge_fit(ax,mubin,'',colour,**plot_info['plot_data'])
+            rmin_fit = plot_info['picca_fit_data']['rmin']
+            rmax_fit = plot_info['picca_fit_data']['rmax']
+            corr_obj.plot_wedge_fit(ax,mubin,'',colour,**plot_info['plot_data'],rmin_fit=rmin_fit,rmax_fit=rmax_fit)
         if plot_info['plot_manual_fit']:
             b1,b2,beta1,beta2 = plot_info['manual_fit_data'].values()
             corr_obj.plot_wedge_manual_model(ax,b1,b2,beta1,beta2,mubin,'',colour,**plot_info['plot_data'])
@@ -479,6 +505,7 @@ def plot_rp_bins_vs_rt(ax,plot_info):
 
         #Add a model or fit.
         if plot_info['plot_picca_fit']:
+            # TODO: ideally want to read rmin and max from the config file.
             corr_obj.plot_rp_bin_vs_rt_fit(ax,mubin,'',colour,**plot_info['plot_data'])
         if plot_info['plot_manual_fit']:
             b1,b2,beta1,beta2 = plot_info['manual_fit_data'].values()
