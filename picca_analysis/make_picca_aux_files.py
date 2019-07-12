@@ -34,11 +34,11 @@ parser.add_argument('--zmin', type = float, default = None, required=True,
 parser.add_argument('--zmax', type = float, default = None, required=True,
                     help = 'maximum redshift cut value')
 
-parser.add_argument('--cf-filename', type = str, default = 'cf.fits.gz', required=False,
-                    help = 'name of cf file')
+parser.add_argument('--corr-filename', type = str, default = 'cf.fits.gz', required=False,
+                    help = 'name of correlation file')
 
-parser.add_argument('--cf-exp-filename', type = str, default = 'cf_exp.fits.gz', required=False,
-                    help = 'name of cf exp file')
+parser.add_argument('--corr-exp-filename', type = str, default = 'cf_exp.fits.gz', required=False,
+                    help = 'name of exported correlation file')
 
 parser.add_argument('--nside', type = int, default = 16, required=False,
                     help = 'HEALPix nside for output files (must be 2^n)')
@@ -147,12 +147,18 @@ for rmin in args.rmin_values:
                 config_text += 'tracer2 = LYA\n'
                 config_text += 'tracer1-type = continuous\n'
                 config_text += 'tracer2-type = continuous\n'
-            elif args.corr_type =='xcf':
+            elif args.corr_type == 'xcf':
                 config_text += 'name = LYA(LYA)xQSO\n'
                 config_text += 'tracer1 = QSO\n'
                 config_text += 'tracer2 = LYA\n'
                 config_text += 'tracer1-type = discrete\n'
                 config_text += 'tracer2-type = continuous\n'
+            elif args.corr_type == 'co':
+                config_text += 'name = QSOxQSO\n'
+                config_text += 'tracer1 = QSO\n'
+                config_text += 'tracer2 = QSO\n'
+                config_text += 'tracer1-type = discrete\n'
+                config_text += 'tracer2-type = discrete\n'
             config_text += 'filename = {}\n'.format(args.base_dir+args.cf_exp_filename)
             config_text += 'ell-max = 6\n\n'
             config_text += '[cuts]\n'
@@ -168,21 +174,30 @@ for rmin in args.rmin_values:
             elif args.corr_type == 'xcf':
                 config_text += 'mu-min = -1.\n'
                 config_text += 'mu-max = +1.\n\n'
+            elif args.corr_type == 'co':
+                config_text += 'mu-min = -1.\n'
+                config_text += 'mu-max = +1.\n\n'
             config_text += '[model]\n'
             config_text += 'model-pk = pk_kaiser\n'
             if args.corr_type == 'cf':
                 config_text += 'model-xi = xi\n'
+                config_text += 'z evol LYA = bias_vs_z_std\n'
             elif args.corr_type == 'xcf':
                 config_text += 'model-xi = xi_drp\n'
+                config_text += 'z evol LYA = bias_vs_z_std\n'
                 config_text += 'z evol QSO = bias_vs_z_std\n'
                 config_text += 'velocity dispersion = pk_velo_lorentz\n'
-            config_text += 'z evol LYA = bias_vs_z_std\n'
+            elif args.corr_type == 'co':
+                config_text += 'z evol QSO = bias_vs_z_std\n'
+                config_text += 'velocity dispersion = pk_velo_lorentz\n'
             config_text += 'growth function = growth_factor_de\n'
             config_text += 'pk-gauss-smoothing = pk_gauss_smoothing\n\n'
             config_text += '[parameters]\n\n'
             if args.corr_type == 'cf':
                 config_text += 'drp_QSO                = 0. 0.1   None None fixed\n'
             elif args.corr_type == 'xcf':
+                config_text += 'drp_QSO                = 0. 0.1   None None free\n'
+            elif args.corr_type == 'co':
                 config_text += 'drp_QSO                = 0. 0.1   None None free\n'
             if args.corr_type == 'xcf':
                 config_text += 'sigma_velo_lorentz_QSO = 2. 0.1    None None free\n\n'
@@ -203,12 +218,19 @@ for rmin in args.rmin_values:
                 config_text += 'bias_eta_QSO  = 1. 0. None None fixed\n'
                 config_text += 'beta_QSO      = {} 0.1 None None fixed\n'.format(beta_QSO)
                 config_text += 'alpha_QSO = 1.44     0. None None fixed\n\n'
+            if args.corr_type == 'co':
+                config_text += 'bias_eta_QSO  = 1. 0. None None free\n'
+                config_text += 'beta_QSO      = {} 0.1 None None free\n'.format(beta_QSO)
+                config_text += 'alpha_QSO = 1.44     0. None None fixed\n\n'
             if args.corr_type == 'cf':
                 config_text += 'par binsize LYA(LYA)xLYA(LYA) = 4 0. None None fixed\n'
                 config_text += 'per binsize LYA(LYA)xLYA(LYA) = 4 0. None None fixed\n\n'
             elif args.corr_type == 'xcf':
                 config_text += 'par binsize LYA(LYA)xQSO = 4 0. None None fixed\n'
                 config_text += 'per binsize LYA(LYA)xQSO = 4 0. None None fixed\n\n'
+            elif args.corr_type == 'co':
+                config_text += 'par binsize QSOxQSO = 4 0. None None fixed\n'
+                config_text += 'per binsize QSOxQSO = 4 0. None None fixed\n\n'
             config_text += 'par_sigma_smooth = 1.42 0.4 None None fixed\n'
             config_text += 'per_sigma_smooth = 3.78 0.4 None None fixed\n'
             file = open(config_filename,'w')
