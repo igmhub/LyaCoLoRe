@@ -1,5 +1,5 @@
 # path to LyaCoLoRe
-LYACOLORE_PATH="/Users/jfarr//Projects/LyaCoLoRe/"
+LYACOLORE_PATH="/Users/James//Projects/LyaCoLoRe/"
 
 # specify number of cores to use
 NCORES=1
@@ -14,8 +14,9 @@ LAMBDA_MIN=3550.0
 MIN_CAT_Z=1.8
 LYACOLORE_SEED=123
 DLA_BIAS=2.0
-DLA_BIAS_METHOD='b_const'
-DOWNSAMPLING=0.5
+DLA_BIAS_EVOL='b_const'
+DLA_BIAS_METHOD='global'
+DOWNSAMPLING=1.0
 FOOTPRINT='full_sky'
 
 # specify transmission file wavelength grid
@@ -25,7 +26,7 @@ TRANS_DL=0.2
 
 # specify process flags
 MM_FLAGS="--overwrite --pixels 0"
-MT_FLAGS="--add-DLAs --add-RSDs --add-QSO-RSDs --add-small-scale-fluctuations --overwrite --compress"
+MT_FLAGS="--add-DLAs --add-RSDs --add-small-scale-fluctuations --overwrite --compress"
 
 # specify details of colore output
 COLORE_NGRID=4096
@@ -80,7 +81,7 @@ done
 PIXELS=${PIXELS[@]:0:$NPIXELS}
 
 echo "looking at pixels: ${NODE_PIXELS}"
-command="${PROCESS_PATH}/make_transmission.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} ${MT_FLAGS} --pixels ${PIXELS} --tuning-file ${TUNING_PATH} --nside ${NSIDE} --nproc ${NCORES} --IVAR-cut ${IVAR_CUT} --cell-size ${CELL_SIZE} --lambda-min ${LAMBDA_MIN} --seed ${LYACOLORE_SEED} --DLA-bias ${DLA_BIAS} --DLA-bias-method ${DLA_BIAS_METHOD} --transmission-lambda-min ${TRANS_LMIN} --transmission-lambda-max ${TRANS_LMAX} --transmission-delta-lambda ${TRANS_DL}"
+command="${PROCESS_PATH}/make_transmission.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} ${MT_FLAGS} --pixels ${PIXELS} --tuning-file ${TUNING_PATH} --nside ${NSIDE} --nproc ${NCORES} --IVAR-cut ${IVAR_CUT} --cell-size ${CELL_SIZE} --lambda-min ${LAMBDA_MIN} --seed ${LYACOLORE_SEED} --DLA-bias ${DLA_BIAS} --DLA-bias-evol ${DLA_BIAS_EVOL} --DLA-bias-method ${DLA_BIAS_METHOD} --transmission-lambda-min ${TRANS_LMIN} --transmission-lambda-max ${TRANS_LMAX} --transmission-delta-lambda ${TRANS_DL}"
 $command
 
 echo "producing analysis pixels"

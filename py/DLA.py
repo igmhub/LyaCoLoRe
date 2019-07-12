@@ -39,21 +39,16 @@ def get_bias_z(fname,dla_bias):
     bias = dla_bias/D*y(2.25)
     return z, bias, D
 
-def get_sigma_g(object,mode='SG'):
-    if mode=='SG':
-        #Get sG from the object. This is the average across all skewers in the
-        #realisation, rather than just the pixel.
+def get_sigma_g(object,mode='global'):
+    if mode=='global':
+        #Use the 'global' sigma_G - that which is not biased by cells close to
+        #the QSOs. This is constant with redshift.
         return object.SIGMA_G
-    if mode=='SKW':
-        #Measure sG from the object's skewers with redshift, including cells close to QSOs.
-        skewers = object.GAUSSIAN_DELTA_rows
-        weights = utils.make_IVAR_rows(utils.lya_rest,object.Z_QSO,object.LOGLAM_MAP)
-        weights += (10**-10)
-        mean = np.average(skewers,weights=weights,axis=0)
-        mean2 = np.average(skewers**2,weights=weights,axis=0)
-        sG = np.sqrt(mean2 - mean**2)
-        # TODO: Could smooth the final result as there won't be a huge number of skewers.
-        return sG
+    if mode=='sample':
+        #Use the average sigma_G with redshift, including cells near to QSOs.
+        return object.sample_SIGMA_G
+    else:
+        raise ValueError('DLA bias method not recognised.')
 
 def flag_DLA(z_qso,z_cells,deltas,nu_arr,sigma_g):
     """ Flag the pixels in a skewer where DLAs are possible"""
@@ -142,7 +137,7 @@ def get_NHI(z, NHI_min=17.2, NHI_max=22.5, NHI_nsamp=100):
 
     return log_NHI_values
 
-def get_DLA_table(object,dla_bias=2.0,dla_bias_z=2.25,extrapolate_z_down=None,NHI_min=17.2,NHI_max=22.5,seed=123,method='b_const'):
+def get_DLA_table(object,dla_bias=2.0,dla_bias_z=2.25,extrapolate_z_down=None,NHI_min=17.2,NHI_max=22.5,seed=123,evol='b_const',method='global'):
 
     #Hopefully this sets the seed for all random generators used
     np.random.seed(seed)
@@ -161,13 +156,13 @@ def get_DLA_table(object,dla_bias=2.0,dla_bias_z=2.25,extrapolate_z_down=None,NH
 
     #Setup bias as a function of redshift: either b constant with z, or b*D constant with z.
     y = interp1d(z_cell,D_cell)
-    sigma_g = get_sigma_g(object,mode='SG')
-    if method == "b_const":
+    sigma_g = get_sigma_g(object,mode=method)
+    if evol == "b_const":
         b_D_sigma0 = dla_bias*D_cell*sigma_g
-    elif method == "bD_const":
+    elif evol == "bD_const":
         b_D_sigma0 = dla_bias*y(dla_bias_z)*sigma_g*np.ones(z.shape)
     else:
-        raise ValueError('DLA bias method not recognised.')
+        raise ValueError('DLA bias evol not recognised.')
 
     #Figure out cells that could host a DLA, based on Gaussian fluctuation
     nu_arr = nu_of_bDs(b_D_sigma0)
@@ -178,7 +173,9 @@ def get_DLA_table(object,dla_bias=2.0,dla_bias_z=2.25,extrapolate_z_down=None,NH
     #the proportion of expected flagged cells.
     mean_N_per_cell = z_width * dndz(z_cell,NHI_min=NHI_min,NHI_max=NHI_max)
     p_nu_z = 1.0-norm.cdf(nu_arr)
-    mu = mean_N_per_cell/p_nu_z
+    w = p_nu_z>0
+    mu = np.zeros(p_nu_z.shape)
+    mu[w] = mean_N_per_cell[w]/p_nu_z[w]
 
     #Draw number of DLAs per cell from a Poisson distribution, place them only
     #in flagged cells.

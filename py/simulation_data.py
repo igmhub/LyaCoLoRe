@@ -304,6 +304,8 @@ class SimulationData:
         self.LOGLAM_MAP = self.LOGLAM_MAP[first_relevant_cell:last_relevant_cell + 1]
         if not isinstance(self.SIGMA_G,float):
             self.SIGMA_G = self.SIGMA_G[first_relevant_cell:last_relevant_cell + 1]
+        if hasattr(self,'sample_SIGMA_G'):
+            self.sample_SIGMA_G = self.sample_SIGMA_G[first_relevant_cell:last_relevant_cell + 1]
 
         #Modify the RSD weights to remove QSOs and cut off cells simultaneously
         if self.RSD_weights:
@@ -1140,7 +1142,7 @@ class SimulationData:
         return statistics
 
     #Function to add DLAs to a set of skewers.
-    def add_DLA_table(self,seed,dla_bias=2.0,method='b_const'):
+    def add_DLA_table(self,seed,dla_bias=2.0,evol='b_const',method='global'):
 
         #If extrapolate_z_down is set to a value below the skewer, then we extrapolate down to that value.
         #Otherwise, we start placing DLAs at the start of the skewer.

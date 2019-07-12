@@ -12,7 +12,8 @@ LAMBDA_MIN=3470.0
 MIN_CAT_Z=1.8
 LYACOLORE_SEED=123
 DLA_BIAS=2.0
-DLA_BIAS_METHOD='b_const'
+DLA_BIAS_EVOL='b_const'
+DLA_BIAS_METHOD='global'
 DOWNSAMPLING=1.0
 FOOTPRINT='full_sky'
 PIXELS=`echo {0..3071}`
@@ -119,7 +120,7 @@ for NODE in \`seq $NNODES\` ; do
 
     echo "looking at pixels: \${NODE_PIXELS}"
 
-    command="srun -N 1 -n 1 -c ${NCORES} ${PROCESS_PATH}/make_transmission.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} ${MT_FLAGS} --pixels \${NODE_PIXELS} --tuning-file ${TUNING_PATH} --nside ${NSIDE} --nproc ${NCORES} --IVAR-cut ${IVAR_CUT} --cell-size ${CELL_SIZE} --lambda-min ${LAMBDA_MIN} --seed ${LYACOLORE_SEED} --DLA-bias ${DLA_BIAS} --DLA-bias-method ${DLA_BIAS_METHOD} --transmission-lambda-min ${TRANS_LMIN} --transmission-lambda-max ${TRANS_LMAX} --transmission-delta-lambda ${TRANS_DL} --transmission-format ${TRANSMISSION_FORMAT}"
+    command="srun -N 1 -n 1 -c ${NCORES} ${PROCESS_PATH}/make_transmission.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} ${MT_FLAGS} --pixels \${NODE_PIXELS} --tuning-file ${TUNING_PATH} --nside ${NSIDE} --nproc ${NCORES} --IVAR-cut ${IVAR_CUT} --cell-size ${CELL_SIZE} --lambda-min ${LAMBDA_MIN} --seed ${LYACOLORE_SEED} --DLA-bias ${DLA_BIAS} --DLA-bias-evol ${DLA_BIAS_EVOL} --DLA-bias-method ${DLA_BIAS_METHOD} --transmission-lambda-min ${TRANS_LMIN} --transmission-lambda-max ${TRANS_LMAX} --transmission-delta-lambda ${TRANS_DL} --transmission-format ${TRANSMISSION_FORMAT}"
 
     echo \$command
     \$command >& ${OUTPUT_PATH}/logs/node-\${NODE}.log &

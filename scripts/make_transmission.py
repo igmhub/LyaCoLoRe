@@ -5,6 +5,7 @@ from astropy.io import fits
 import matplotlib.pyplot as plt
 from multiprocessing import Pool
 import multiprocessing
+from scipy.interpolate import interp1d
 import sys
 import time
 import os
@@ -75,8 +76,13 @@ parser.add_argument('--add-DLAs', action="store_true", default = False, required
 parser.add_argument('--DLA-bias', type = float, default = 2., required=False,
                     help = 'bias of DLAs')
 
-parser.add_argument('--DLA-bias-method', type = str, default = 'b_const', required=False,
-                    help = 'either \"b_const\" or \"bD_const\"')
+parser.add_argument('--DLA-bias-evol', type = str, default = 'b_const', required=False,
+                    choices=['b_const','bD_const'],
+                    help = 'choose DLA bias evolution with redshift')
+
+parser.add_argument('--DLA-bias-method', type = str, default = 'SG', required=False,
+                    choices=['global','sample'],
+                    help = 'choose whether the DLA bias is determined by the global or sample value of sigma_G')
 
 parser.add_argument('--add-RSDs', action="store_true", default = False, required=False,
                     help = 'add linear RSDs to the transmission file')
@@ -153,6 +159,7 @@ parameter_filename = args.param_file
 add_ssf = args.add_small_scale_fluctuations
 add_DLAs = args.add_DLAs
 dla_bias = args.DLA_bias
+dla_bias_evol = args.DLA_bias_evol
 dla_bias_method = args.DLA_bias_method
 add_RSDs = args.add_RSDs
 add_Lyb = args.add_Lyb
@@ -184,6 +191,7 @@ colore_base_filename = base_in_dir+'/out_srcs_s1_'
 #Calculate the minimum value of z that we are interested in.
 #i.e. the z value for which lambda_min cooresponds to the lya wavelength.
 z_min = lambda_min/lya - 1
+small = 10**-10
 
 #Get the simulation parameters from the parameter file.
 simulation_parameters = utils.get_simulation_parameters(base_in_dir,parameter_filename)
@@ -272,13 +280,22 @@ def pixelise_gaussian_skewers(pixel,colore_base_filename,z_min,base_out_dir,N_si
     filename = utils.get_file_name(location,'gaussian-colore',N_side,pixel)
     pixel_object.save_as_colore('gaussian',filename,header,overwrite=overwrite,compress=compress)
 
-    #Calculate the means of the pixel's gaussian skewers.
+    #Calculate the means of the pixel's gaussian skewers away from the QSOs.
     N = np.sum(pixel_object.IVAR_rows,axis=0)
     mean_DG = np.average(pixel_object.get_mean_quantity('gaussian',power=1),weights=N)
     mean_DGS = np.average(pixel_object.get_mean_quantity('gaussian',power=2),weights=N)
     N = np.sum(N)
 
-    return (N,mean_DG,mean_DGS)
+    #Calculate the cell-by-cell mean of the gaussian skewers up to the QSO cell.
+    R_edges = utils.get_edges(pixel_object.R)
+    Z_uedges = interp1d(pixel_object.R,pixel_object.Z,fill_value='extrapolate')(R_edges[1:])
+    LOGLAM_uedges = np.log10(lya*(1+Z_uedges))
+    mean_DG_sample_weights = utils.make_IVAR_rows(lya,pixel_object.Z_QSO,LOGLAM_uedges)
+    N_sample = np.sum(mean_DG_sample_weights,axis=0)
+    mean_DG_sample = np.average(pixel_object.GAUSSIAN_DELTA_rows*mean_DG_sample_weights,axis=0)
+    mean_DGS_sample = np.average((pixel_object.GAUSSIAN_DELTA_rows**2)*mean_DG_sample_weights,axis=0)
+
+    return (N,mean_DG,mean_DGS,N_sample,mean_DG_sample,mean_DGS_sample)
 
 #Set up the multiprocessing pool parameters and make a list of tasks.
 #what's the sharing doing here?
@@ -304,15 +321,33 @@ print('\nTime to make Gaussian pixel files: {:4.0f}s.\n'.format(time.time()-star
 
 """
 To correctly calculate the physical fields, we must measure sigma from the Gaussian skewers.
+We do so in two ways:
+ - away from the QSOs, for use in the lognormal transformation
+ - right up to the QSOs (as a vector), for use in DLA generation
 """
 
-#Calculate the mean and variance of the Gaussian skewers from the measurements.
-means_data_array = np.array(results)
-gaussian_mean = np.average(means_data_array[:,1],weights=means_data_array[:,0])
-gaussian_variance = np.average(means_data_array[:,2],weights=means_data_array[:,0]) - gaussian_mean**2
-measured_SIGMA_G = np.sqrt(gaussian_variance)
+#Split the output from section 1 according to the two purposes.
+global_results = []
+sample_results = []
+for result in results:
+    global_results += [result[:3]]
+    sample_results += [result[3:]]
 
-print('\nGaussian skewers have mean {:2.4f}, variance {:2.4f}.'.format(gaussian_mean,measured_SIGMA_G))
+#Calculate the mean and variance of the Gaussian skewers away from the QSOs.
+global_means_data_array = np.array(global_results)
+global_gaussian_mean = np.average(global_means_data_array[:,1],weights=global_means_data_array[:,0]+small)
+global_gaussian_squared_mean = np.average(global_means_data_array[:,2],weights=global_means_data_array[:,0]+small,axis=0)
+global_gaussian_variance = global_gaussian_squared_mean - global_gaussian_mean**2
+global_measured_SIGMA_G = np.sqrt(global_gaussian_variance)
+
+#Calculate the variance of the Gaussian skewers as a vector, up to the QSOs.
+sample_means_data_array = np.array(sample_results)
+sample_gaussian_mean = np.average(sample_means_data_array[:,1,:],weights=sample_means_data_array[:,0,:]+small,axis=0)
+sample_gaussian_squared_mean = np.average(sample_means_data_array[:,2,:],weights=sample_means_data_array[:,0,:]+small,axis=0)
+sample_gaussian_variance = sample_gaussian_squared_mean - sample_gaussian_mean**2
+sample_measured_SIGMA_G = np.sqrt(sample_gaussian_variance)
+
+print('\nGaussian skewers have mean {:2.4f}, variance {:2.4f}.'.format(global_gaussian_mean,global_measured_SIGMA_G))
 print('\nModifying header showing sigma_G in Gaussian CoLoRe files...')
 
 def modify_header(pixel):
@@ -320,7 +355,7 @@ def modify_header(pixel):
     filename = utils.get_file_name(location,'gaussian-colore',N_side,pixel,compressed=compress)
     h = fits.open(filename)
     for HDU in h[1:]:
-        HDU.header['SIGMA_G'] = measured_SIGMA_G
+        HDU.header['SIGMA_G'] = global_measured_SIGMA_G
     h.writeto(filename,overwrite=True)
     h.close()
     return
@@ -382,7 +417,7 @@ Deltas are normalised using the global mean in 'make_summaries'
 print('\nWorking on per-HEALPix pixel final skewer files...')
 start_time = time.time()
 
-def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,measured_SIGMA_G,n,k1):
+def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,global_measured_SIGMA_G,sample_measured_SIGMA_G,n,k1):
 
     t = time.time()
 
@@ -395,11 +430,12 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
 
     #Make a pixel object from it.
     file_number = None
-    pixel_object = simulation_data.SimulationData.get_gaussian_skewers_object(gaussian_filename,file_number,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
+    pixel_object = simulation_data.SimulationData.get_gaussian_skewers_object(gaussian_filename,file_number,input_format,SIGMA_G=global_measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
 
-    #Add the transformation object, and use the velocity multiplier.
+    #Add additional data to the object.
     pixel_object.transformation = transformation
     pixel_object.VEL_rows *= vel_mult
+    pixel_object.sample_SIGMA_G = sample_measured_SIGMA_G
     #print('{:3.2f} checkpoint object'.format(time.time()-t)); t = time.time()
 
     #Add Lyb and metal absorbers if needed.
@@ -414,7 +450,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
     header['HPXPIXEL'] = pixel
     header['HPXNEST'] = True
     header['LYA'] = lya
-    header['SIGMA_G'] = measured_SIGMA_G
+    header['SIGMA_G'] = global_measured_SIGMA_G
 
     #Save CoLoRe format files.
     if transmission_only == False:
@@ -446,7 +482,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
     #That means we need to store skewers all the way down to z=0.
     #May need to adjust how many nodes are used when running.
     if add_DLAs:
-        pixel_object.add_DLA_table(seed,dla_bias=dla_bias,method=dla_bias_method)
+        pixel_object.add_DLA_table(seed,dla_bias=dla_bias,evol=dla_bias_evol,method=dla_bias_method)
 
     #print('{:3.2f} checkpoint DLAs'.format(time.time()-t)); t = time.time()
 
@@ -530,7 +566,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,m
     return new_cosmology
 
 #define the tasks
-tasks = [(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,measured_SIGMA_G,n,k1) for pixel in pixel_list]
+tasks = [(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,global_measured_SIGMA_G,sample_measured_SIGMA_G,n,k1) for pixel in pixel_list]
 
 #Run the multiprocessing pool
 if __name__ == '__main__':
