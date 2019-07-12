@@ -82,6 +82,18 @@ R = np.sqrt(h[1].data['RP']**2 + h[1].data['RT']**2)
 cells = (R > 80.) * (R < 120.)
 zeff = np.average(h[1].data['Z'][cells],weights=h[1].data['NB'][cells])
 
+#Calculate f. Assume Or=0 for now.
+# TODO: include the input Om and Or from picca.
+Om_z0=0.3147
+Om = Om_z0 * ((1+zeff)**3) / (Om_z0 * ((1+zeff)**3) + 1 - Om_z0)
+Ol = 1 - Om
+f = (Om**0.6) + (Ol/70.)*(1 + Om/2.)
+
+#Calculate beta_QSO by interpolating the input bias.
+b_of_z = np.loadtxt('/global/homes/j/jfarr/Projects/LyaCoLoRe/input_files/Bz_qso_G18.txt')
+b_QSO = np.interp(zeff,b_of_z[:,0],b_of_z[:,1])
+beta_QSO = f/b_QSO
+
 #Write parameter file.
 parameter_file_text = ''
 parameter_file_text += 'correl_type = {}\n'.format(args.corr_type)
@@ -151,7 +163,7 @@ for rmin in args.rmin_values:
             config_text += 'r-min = {}\n'.format(rmin)
             config_text += 'r-max = {}\n\n'.format(rmax)
             if args.corr_type == 'cf':
-                config_text += 'mu-min = -1.\n'
+                config_text += 'mu-min = 0.\n'
                 config_text += 'mu-max = +1.\n\n'
             elif args.corr_type == 'xcf':
                 config_text += 'mu-min = -1.\n'
@@ -168,16 +180,18 @@ for rmin in args.rmin_values:
             config_text += 'growth function = growth_factor_de\n'
             config_text += 'pk-gauss-smoothing = pk_gauss_smoothing\n\n'
             config_text += '[parameters]\n\n'
-            config_text += 'croom_par0             = 0.53  0. None None fixed\n'
-            config_text += 'croom_par1             = 0.289 0. None None fixed\n'
-            config_text += 'drp_QSO                = 0. 0.1   None None fixed\n'
-            config_text += 'sigma_velo_lorentz_QSO = 0. 0.    None None fixed\n\n'
+            if args.corr_type == 'cf':
+                config_text += 'drp_QSO                = 0. 0.1   None None fixed\n'
+            elif args.corr_type == 'xcf':
+                config_text += 'drp_QSO                = 0. 0.1   None None free\n'
+            if args.corr_type == 'xcf':
+                config_text += 'sigma_velo_lorentz_QSO = 2. 0.1    None None free\n\n'
             config_text += 'ap = 1. 0.1 0.5 1.5 {}\n'.format(afix)
             config_text += 'at = 1. 0.1 0.5 1.5 {}\n'.format(afix)
             config_text += 'bao_amp = 1. 0. None None fixed\n\n'
-            config_text += 'sigmaNL_per = 3.24     0. None None fixed\n'
-            config_text += 'sigmaNL_par = 6.36984 0.1 None None fixed\n'
-            config_text += 'growth_rate = 0.962524 0. None None fixed\n\n'
+            config_text += 'sigmaNL_per = 0.     0. None None fixed\n'
+            config_text += 'sigmaNL_par = 0.     0.1 None None fixed\n'
+            config_text += 'growth_rate = {} 0. None None fixed\n\n'.format(f)
             if args.corr_type == 'cf':
                 config_text += 'bias_eta_LYA  = -0.0003512  1. None None free\n'
                 config_text += 'beta_LYA  = 0.5    0.1 None None free\n'
@@ -187,7 +201,7 @@ for rmin in args.rmin_values:
                 config_text += 'beta_LYA  = 1.4    0.1 None None free\n'
                 config_text += 'alpha_LYA = 2.9     0. None None fixed\n'
                 config_text += 'bias_eta_QSO  = 1. 0. None None fixed\n'
-                config_text += 'beta_QSO      = 0.271 0.1 None None fixed\n'
+                config_text += 'beta_QSO      = {} 0.1 None None fixed\n'.format(beta_QSO)
                 config_text += 'alpha_QSO = 1.44     0. None None fixed\n\n'
             if args.corr_type == 'cf':
                 config_text += 'par binsize LYA(LYA)xLYA(LYA) = 4 0. None None fixed\n'
@@ -195,8 +209,8 @@ for rmin in args.rmin_values:
             elif args.corr_type == 'xcf':
                 config_text += 'par binsize LYA(LYA)xQSO = 4 0. None None fixed\n'
                 config_text += 'per binsize LYA(LYA)xQSO = 4 0. None None fixed\n\n'
-            config_text += 'par_sigma_smooth = 2 0. None None free\n'
-            config_text += 'per_sigma_smooth = 2 0. None None free\n'
+            config_text += 'par_sigma_smooth = 1.42 0.4 None None fixed\n'
+            config_text += 'per_sigma_smooth = 3.78 0.4 None None fixed\n'
             file = open(config_filename,'w')
             file.write(config_text)
             file.close()
