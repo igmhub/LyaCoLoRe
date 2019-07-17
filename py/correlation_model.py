@@ -126,7 +126,7 @@ def get_growth_factor_scaling(z,quantity,location=None):
 
     if location == None:
         location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v6/v6.0.0/'
-    if quantity == 'G':
+    if quantity in ['G']:
         D_at_z0 = 1
         D_at_zval = 1
     elif quantity in ['D','F','T','q']:

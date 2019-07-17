@@ -279,32 +279,35 @@ class picca_correlation:
         xi_model = np.average(xi_model_grid,weights=weights_grid,axis=0)
         ax.plot(rt_model,xi_model*(r_model**r_power),c=colour)
 
-        return
 
-    def plot_rt_bin_vs_rp(self,ax,rpbin,plot_label,colour,r_power=2,nr=40,rmax=160.,rmax_plot=200.):
+    def plot_rt_bin_vs_rp(self,ax,rtbin,plot_label,colour,r_power=2,nr=40,rmax=160.,rmax_plot=200.):
 
         rtmin = rtbin[0]
         rtmax = rtbin[1]
 
         #Get the weights of how to group the bins in rt.
-        rt_edges = np.linspace(self.rtmin,self.rtmax,self.np+1)
+        rt_edges = np.linspace(self.rtmin,self.rtmax,self.nt+1)
         rt_bin_widths = rt_edges[1:] - rt_edges[:-1]
         weights = np.maximum(0.,np.minimum(rt_bin_widths,np.minimum(rtmax-rt_edges[:-1],rt_edges[1:]-rtmin))) / rt_bin_widths
-        weights_grid = np.outer(weights,np.ones(self.nt))
+        weights_grid = np.outer(np.ones(self.np),weights)
 
-        rt = np.average(self.rt_grid,weights=weights_grid,axis=0)
-        rp = np.average(self.rp_grid,weights=weights_grid,axis=0)
-        xi = np.average(self.xi_grid,weights=weights_grid,axis=0)
+        rt = np.average(self.rt_grid,weights=weights_grid,axis=1)
+        rp = np.average(self.rp_grid,weights=weights_grid,axis=1)
+        xi = np.average(self.xi_grid,weights=weights_grid,axis=1)
         err_grid = np.sqrt(np.diag(self.cov_grid)).reshape((self.np,self.nt))
 
-        # TODO: Not sure about this...
-        xi_err = 1 / np.sqrt(np.sum(1 / (err_grid[weights_grid>0] * weights_grid)**2 ))
+        # TODO: Not sure about this. Need to use Nb for when the number of bins is greater than 1.
+        N_non_empty_rt_bins = np.sum(np.sum(weights_grid,axis=0)>0)
+        if N_non_empty_rt_bins == 1:
+            xi_err = 1 / np.sqrt(np.sum(1/((err_grid[weights_grid>0]*weights_grid[weights_grid>0])**2)))
+        elif N_non_empty_rt_bins > 1:
+            xi_err = 1 / np.sqrt(np.sum(1/((err_grid[weights_grid>0]*weights_grid[weights_grid>0])**2).reshape((self.np,N_non_empty_rt_bins)),axis=1))
 
         #Define the variables to plot, and plot them.
         r = np.sqrt(rp**2 + rt**2)
         xi_err_plot = xi_err*(r**r_power)
         xi_plot = xi*(r**r_power)
-        ax.errorbar(rp,xi_plot,yerr=xi_err_plot,label=r'${:3.1f}<r_t<{:3.1f}$'.format(rpmin,rpmax),fmt='o',color=colour)
+        ax.errorbar(rp,xi_plot,yerr=xi_err_plot,label=r'${:3.1f}<r_\perp<{:3.1f}$'.format(rtmin,rtmax),fmt='o',color=colour)
 
         return
 
@@ -316,7 +319,7 @@ class picca_correlation:
 
         #Set up a finer rp-rt grid to plot our model with.
         model = 'Slosar11'
-        N_mult_res = 10
+        N_mult_res = 1
         np_model = self.np * N_mult_res
         nt_model = self.nt * N_mult_res
         rp_model_edges = np.linspace(self.rpmin,self.rpmax,np_model+1)
@@ -329,14 +332,13 @@ class picca_correlation:
 
         #Calculate the weights on this finer grid.
         rt_bin_widths = rt_model_edges[1:] - rt_model_edges[:-1]
-        weights = np.maximum(0.,np.minimum(rt_bin_widths,np.minimum(self.rtmax-rt_model_edges[:-1],rt_model_edges[1:]-self.rtmin))) / rt_bin_widths
-        weights_grid = np.outer(weights,np.ones(nt_model))
+        weights = np.maximum(0.,np.minimum(rt_bin_widths,np.minimum(rtmax-rt_model_edges[:-1],rt_model_edges[1:]-rtmin))) / rt_bin_widths
+        weights_grid = np.outer(np.ones(np_model),weights)
 
-        print(r_model_grid.shape,xi_model_grid.shape)
         #Plot the model.
-        r_model = np.average(r_model_grid,weights=weights_grid,axis=0)
-        xi_model = np.average(xi_model_grid,weights=weights_grid,axis=0)
-        ax.plot(rt_model,xi_model*(r_model**r_power),c=colour)
+        r_model = np.average(r_model_grid,weights=weights_grid,axis=1)
+        xi_model = np.average(xi_model_grid,weights=weights_grid,axis=1)
+        ax.plot(rp_model,xi_model*(r_model**r_power),c=colour)
 
         return
 
