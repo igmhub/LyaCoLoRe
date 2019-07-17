@@ -238,14 +238,41 @@ class picca_correlation:
         xi = np.average(self.xi_grid,weights=weights_grid,axis=0)
         err_grid = np.sqrt(np.diag(self.cov_grid)).reshape((self.np,self.nt))
 
-        # TODO: Not sure about this...
-        xi_err = 1 / np.sqrt(np.sum(1 / (err_grid[weights_grid>0] * weights_grid)**2 ))
+        # TODO: Not sure about this. Need to use Nb for when the number of bins is greater than 1.
+        N_non_empty_rp_bins = np.sum(np.sum(weights_grid,axis=1)>0)
+        if N_non_empty_rp_bins == 1:
+            xi_err = err_grid[weights_grid]
+        elif N_non_empty_rp_bins > 1:
+            xi_err = 1 / np.sqrt(np.sum(1/((err_grid[weights_grid>0]*weights_grid[weights_grid>0])**2).reshape((N_non_empty_rp_bins,self.nt)),axis=0))
 
         #Define the variables to plot, and plot them.
         r = np.sqrt(rp**2 + rt**2)
         xi_err_plot = xi_err*(r**r_power)
         xi_plot = xi*(r**r_power)
         ax.errorbar(rt,xi_plot,yerr=xi_err_plot,label=r'${:3.1f}<r_p<{:3.1f}$'.format(rpmin,rpmax),fmt='o',color=colour)
+
+        return
+
+    def plot_rp_bin_vs_rt_fit(self,ax,rtbin,plot_label,colour,r_power=2,nr=40,rmax_plot=200.,rmin_fit=None,rmax_fit=None):
+
+        #Using data in picca fit
+        rtmin = rtbin[0]
+        rtmax = rtbin[1]
+
+        #Get the weights of how to group the bins in rp.
+        rp_edges = np.linspace(self.rpmin,self.rpmax,self.np+1)
+        rp_bin_widths = rp_edges[1:] - rp_edges[:-1]
+        weights = np.maximum(0.,np.minimum(rp_bin_widths,np.minimum(rpmax-rp_edges[:-1],rp_edges[1:]-rpmin))) / rp_bin_widths
+        weights_grid = np.outer(weights,np.ones(self.nt))
+
+        rt = np.average(self.rt_grid,weights=weights_grid,axis=0)
+        rp = np.average(self.rp_grid,weights=weights_grid,axis=0)
+        xi_model = np.average(self.fit_xi_grid,weights=weights_grid,axis=0)
+
+        #Plot the model.
+        r = np.sqrt(rp**2 + rt**2)
+        xi_plot = xi_model*(r**r_power)
+        ax.plot(rp_model,xi_plot,c=colour)
 
         return
 
@@ -279,6 +306,7 @@ class picca_correlation:
         xi_model = np.average(xi_model_grid,weights=weights_grid,axis=0)
         ax.plot(rt_model,xi_model*(r_model**r_power),c=colour)
 
+        return
 
     def plot_rt_bin_vs_rp(self,ax,rtbin,plot_label,colour,r_power=2,nr=40,rmax=160.,rmax_plot=200.):
 
@@ -299,7 +327,7 @@ class picca_correlation:
         # TODO: Not sure about this. Need to use Nb for when the number of bins is greater than 1.
         N_non_empty_rt_bins = np.sum(np.sum(weights_grid,axis=0)>0)
         if N_non_empty_rt_bins == 1:
-            xi_err = 1 / np.sqrt(np.sum(1/((err_grid[weights_grid>0]*weights_grid[weights_grid>0])**2)))
+            xi_err = err_grid[weights_grid]
         elif N_non_empty_rt_bins > 1:
             xi_err = 1 / np.sqrt(np.sum(1/((err_grid[weights_grid>0]*weights_grid[weights_grid>0])**2).reshape((self.np,N_non_empty_rt_bins)),axis=1))
 
@@ -308,6 +336,28 @@ class picca_correlation:
         xi_err_plot = xi_err*(r**r_power)
         xi_plot = xi*(r**r_power)
         ax.errorbar(rp,xi_plot,yerr=xi_err_plot,label=r'${:3.1f}<r_\perp<{:3.1f}$'.format(rtmin,rtmax),fmt='o',color=colour)
+
+        return
+
+    def plot_rt_bin_vs_rp_fit(self,ax,rtbin,plot_label,colour,r_power=2,nr=40,rmax_plot=200.,rmin_fit=None,rmax_fit=None):
+
+        rtmin = rtbin[0]
+        rtmax = rtbin[1]
+
+        #Get the weights of how to group the bins in rt.
+        rt_edges = np.linspace(self.rtmin,self.rtmax,self.nt+1)
+        rt_bin_widths = rt_edges[1:] - rt_edges[:-1]
+        weights = np.maximum(0.,np.minimum(rt_bin_widths,np.minimum(rtmax-rt_edges[:-1],rt_edges[1:]-rtmin))) / rt_bin_widths
+        weights_grid = np.outer(np.ones(self.np),weights)
+
+        rt = np.average(self.rt_grid,weights=weights_grid,axis=1)
+        rp = np.average(self.rp_grid,weights=weights_grid,axis=1)
+        xi = np.average(self.xi_grid,weights=weights_grid,axis=1)
+
+        #Define the variables to plot, and plot them.
+        r = np.sqrt(rp**2 + rt**2)
+        xi_plot = xi*(r**r_power)
+        ax.plot(rp,xi_plot,c=colour)
 
         return
 
@@ -508,6 +558,12 @@ def make_colour_plots(ax,plot_info,vmax=10**-4):
 
     return
 
+def bins_from_boundaries(boundaries):
+
+    bins = list(zip(boundaries[:-1],boundaries[1:]))
+
+    return bins
+
 def plot_wedges(ax,plot_info):
 
     #Unpack the plot_info dictionary.
@@ -545,12 +601,6 @@ def plot_wedges(ax,plot_info):
 
     return
 
-def bins_from_boundaries(boundaries):
-
-    bins = list(zip(boundaries[:-1],boundaries[1:]))
-
-    return bins
-
 def plot_rp_bins_vs_rt(ax,plot_info):
 
     #Unpack the plot_info dictionary.
@@ -564,7 +614,6 @@ def plot_rp_bins_vs_rt(ax,plot_info):
 
         #Add a model or fit.
         if plot_info['plot_picca_fit']:
-            # TODO: ideally want to read rmin and max from the config file.
             corr_obj.plot_rp_bin_vs_rt_fit(ax,mubin,'',colour,**plot_info['plot_data'])
         if plot_info['plot_manual_fit']:
             b1,b2,beta1,beta2 = plot_info['manual_fit_data'].values()
@@ -600,7 +649,6 @@ def plot_rt_bins_vs_rp(ax,plot_info):
 
         #Add a model or fit.
         if plot_info['plot_picca_fit']:
-            # TODO: ideally want to read rmin and max from the config file.
             corr_obj.plot_rt_bin_vs_rp_fit(ax,mubin,'',colour,**plot_info['plot_data'])
         if plot_info['plot_manual_fit']:
             b1,b2,beta1,beta2 = plot_info['manual_fit_data'].values()
