@@ -90,7 +90,7 @@ class picca_correlation:
                 self.bias_QSO = self.bias_QSO_eta * self.growth_rate / self.beta_QSO
                 self.bias_QSO_err = abs(self.bias_QSO * np.sqrt((self.bias_QSO_eta_err/self.bias_QSO_eta)**2 + (self.beta_QSO_err/self.beta_QSO)**2 + (self.growth_rate_err/self.growth_rate)**2))
 
-            self.ap = f['ap']['value'] 
+            self.ap = f['ap']['value']
             self.ap_err = f['ap']['error']
             self.at = f['at']['value']
             self.at_err = f['at']['error']
@@ -144,7 +144,7 @@ class picca_correlation:
 
         return cls(location,parameters,correlation_data,fit_parameters)
 
-    def plot_wedge(self,ax,mubin,plot_label,colour,r_power=2,nr=40,rmax_plot=160.):
+    def plot_wedge(self,ax,mubin,plot_label,colour,r_power=2,nr=40,rmax_plot=200.):
 
         mumin = mubin[0]
         mumax = mubin[1]
@@ -202,7 +202,7 @@ class picca_correlation:
 
         return
 
-    def plot_wedge_manual_model(self,ax,b1,b2,beta1,beta2,mubin,plot_label,colour,r_power=2,nr=40,rmax_plot=160.):
+    def plot_wedge_manual_model(self,ax,b1,b2,beta1,beta2,mubin,plot_label,colour,r_power=2,nr=40,rmax_plot=200.):
 
         #Using data in picca fit
         mumin = mubin[0]
@@ -222,7 +222,7 @@ class picca_correlation:
 
         return
 
-    def plot_rp_bin_vs_rt(self,ax,rpbin,plot_label,colour,r_power=2,nr=40,rmax=160.):
+    def plot_rp_bin_vs_rt(self,ax,rpbin,plot_label,colour,r_power=2,nr=40,rmax_plot=200.):
 
         rpmin = rpbin[0]
         rpmax = rpbin[1]
@@ -238,8 +238,6 @@ class picca_correlation:
         xi = np.average(self.xi_grid,weights=weights_grid,axis=0)
         err_grid = np.sqrt(np.diag(self.cov_grid)).reshape((self.np,self.nt))
 
-        print('rt',rt)
-        print('rp',rp)
         # TODO: Not sure about this...
         xi_err = 1 / np.sqrt(np.sum(1 / (err_grid[weights_grid>0] * weights_grid)**2 ))
 
@@ -251,7 +249,7 @@ class picca_correlation:
 
         return
 
-    def plot_rp_bin_vs_rt_manual_model(self,ax,b1,b2,beta1,beta2,rpbin,plot_label,colour,r_power=2,nr=40,rmax=160.):
+    def plot_rp_bin_vs_rt_manual_model(self,ax,b1,b2,beta1,beta2,rpbin,plot_label,colour,r_power=2,nr=40,rmax_plot=200.):
 
         #Using data in picca fit
         rpmin = rpbin[0]
@@ -283,8 +281,67 @@ class picca_correlation:
 
         return
 
-    #def plot_grid(self,plot_label,r_power,vmax=10**-4,xlabel='',ylabel='',label_fontsize=12,show_grid=True):
+    def plot_rt_bin_vs_rp(self,ax,rpbin,plot_label,colour,r_power=2,nr=40,rmax=160.,rmax_plot=200.):
+
+        rtmin = rtbin[0]
+        rtmax = rtbin[1]
+
+        #Get the weights of how to group the bins in rt.
+        rt_edges = np.linspace(self.rtmin,self.rtmax,self.np+1)
+        rt_bin_widths = rt_edges[1:] - rt_edges[:-1]
+        weights = np.maximum(0.,np.minimum(rt_bin_widths,np.minimum(rtmax-rt_edges[:-1],rt_edges[1:]-rtmin))) / rt_bin_widths
+        weights_grid = np.outer(weights,np.ones(self.nt))
+
+        rt = np.average(self.rt_grid,weights=weights_grid,axis=0)
+        rp = np.average(self.rp_grid,weights=weights_grid,axis=0)
+        xi = np.average(self.xi_grid,weights=weights_grid,axis=0)
+        err_grid = np.sqrt(np.diag(self.cov_grid)).reshape((self.np,self.nt))
+
+        # TODO: Not sure about this...
+        xi_err = 1 / np.sqrt(np.sum(1 / (err_grid[weights_grid>0] * weights_grid)**2 ))
+
+        #Define the variables to plot, and plot them.
+        r = np.sqrt(rp**2 + rt**2)
+        xi_err_plot = xi_err*(r**r_power)
+        xi_plot = xi*(r**r_power)
+        ax.errorbar(rp,xi_plot,yerr=xi_err_plot,label=r'${:3.1f}<r_t<{:3.1f}$'.format(rpmin,rpmax),fmt='o',color=colour)
+
+        return
+
+    def plot_rt_bin_vs_rp_manual_model(self,ax,b1,b2,beta1,beta2,rtbin,plot_label,colour,r_power=2,nr=40,rmax_plot=200.):
+
+        #Using data in picca fit
+        rtmin = rtbin[0]
+        rtmax = rtbin[1]
+
+        #Set up a finer rp-rt grid to plot our model with.
+        model = 'Slosar11'
+        N_mult_res = 10
+        np_model = self.np * N_mult_res
+        nt_model = self.nt * N_mult_res
+        rp_model_edges = np.linspace(self.rpmin,self.rpmax,np_model+1)
+        rt_model_edges = np.linspace(self.rtmin,self.rtmax,nt_model+1)
+        rp_model = utils.get_centres(rp_model_edges)
+        rt_model = utils.get_centres(rt_model_edges)
+        rp_model_grid = np.outer(rp_model,np.ones(nt_model))
+        rt_model_grid = np.outer(np.ones(np_model),rt_model)
+        r_model_grid,xi_model_grid = correlation_model.get_model_xi_grid(model,self.quantity_1,self.quantity_2,b1,b2,beta1,beta2,self.zeff,rp_model_grid,rt_model_grid,sr=0.0)
+
+        #Calculate the weights on this finer grid.
+        rt_bin_widths = rt_model_edges[1:] - rt_model_edges[:-1]
+        weights = np.maximum(0.,np.minimum(rt_bin_widths,np.minimum(self.rtmax-rt_model_edges[:-1],rt_model_edges[1:]-self.rtmin))) / rt_bin_widths
+        weights_grid = np.outer(weights,np.ones(nt_model))
+
+        print(r_model_grid.shape,xi_model_grid.shape)
+        #Plot the model.
+        r_model = np.average(r_model_grid,weights=weights_grid,axis=0)
+        xi_model = np.average(xi_model_grid,weights=weights_grid,axis=0)
+        ax.plot(rt_model,xi_model*(r_model**r_power),c=colour)
+
+        return
+
     def plot_grid(self,ax,mubin,plot_label,colour,r_power=2,nr=40,rmax_plot=160.):
+    #def plot_grid(self,plot_label,r_power,vmax=10**-4,xlabel='',ylabel='',label_fontsize=12,show_grid=True):
 
         im_grid = ImageGrid(fig, 111,          # as in plt.subplot(111)
                  nrows_ncols=(1,2),
@@ -514,6 +571,42 @@ def plot_rp_bins_vs_rt(ax,plot_info):
     #Add axis labels.
     if plot_info['format']['xlabel']:
         ax.set_xlabel(r'$r_\perp\ [\mathrm{{Mpc}}/h]$')
+    if plot_info['format']['ylabel']:
+        if plot_info['plot_data']['r_power'] > 1:
+            ax.set_ylabel(r'$r^{:d}\ \xi (r)\ [(\mathrm{{Mpc}}\ h^{{-1}})^{{{:d}}}]$'.format(int(plot_info['plot_data']['r_power']),int(plot_info['plot_data']['r_power'])))
+        elif plot_info['plot_data']['r_power'] == 1:
+            ax.set_ylabel(r'$r\ \xi (r)\ [\mathrm{{Mpc}}\ h^{{-1}}]$')
+        elif plot_info['plot_data']['r_power'] == 0:
+            ax.set_ylabel(r'$\xi (r)$')
+
+    #Add a legend if desired.
+    if plot_info['format']['legend']:
+        ax.legend()
+
+    return
+
+def plot_rt_bins_vs_rp(ax,plot_info):
+
+    #Unpack the plot_info dictionary.
+    corr_obj = plot_info['corr_object']
+
+    for i,rtbin in enumerate(plot_info['rt_bins']):
+        #Plot the data.
+        plot_label = r'${}<r_\parallel<{}$'.format(rtbin[0],rtbin[1])
+        colour = plot_info['rt_bin_colours'][i]
+        corr_obj.plot_rt_bin_vs_rp(ax,rtbin,plot_label,colour,**plot_info['plot_data'])
+
+        #Add a model or fit.
+        if plot_info['plot_picca_fit']:
+            # TODO: ideally want to read rmin and max from the config file.
+            corr_obj.plot_rt_bin_vs_rp_fit(ax,mubin,'',colour,**plot_info['plot_data'])
+        if plot_info['plot_manual_fit']:
+            b1,b2,beta1,beta2 = plot_info['manual_fit_data'].values()
+            corr_obj.plot_rt_bin_vs_rp_manual_model(ax,b1,b2,beta1,beta2,rtbin,'',colour,**plot_info['plot_data'])
+
+    #Add axis labels.
+    if plot_info['format']['xlabel']:
+        ax.set_xlabel(r'$r_\parallel\ [\mathrm{{Mpc}}/h]$')
     if plot_info['format']['ylabel']:
         if plot_info['plot_data']['r_power'] > 1:
             ax.set_ylabel(r'$r^{:d}\ \xi (r)\ [(\mathrm{{Mpc}}\ h^{{-1}})^{{{:d}}}]$'.format(int(plot_info['plot_data']['r_power']),int(plot_info['plot_data']['r_power'])))
