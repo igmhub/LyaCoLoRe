@@ -88,7 +88,7 @@ class picca_correlation:
                 self.bias_QSO_eta_err = f['bias_eta_QSO']['error']
 
                 self.bias_QSO = self.bias_QSO_eta * self.growth_rate / self.beta_QSO
-                self.bias_QSO_err = abs(self.bias_LYA * np.sqrt((self.bias_QSO_eta_err/self.bias_QSO_eta)**2 + (self.beta_QSO_err/self.beta_QSO)**2 + (self.growth_rate_err/self.growth_rate)**2))
+                self.bias_QSO_err = abs(self.bias_QSO * np.sqrt((self.bias_QSO_eta_err/self.bias_QSO_eta)**2 + (self.beta_QSO_err/self.beta_QSO)**2 + (self.growth_rate_err/self.growth_rate)**2))
 
             self.ap = f['ap']['value'] 
             self.ap_err = f['ap']['error']
@@ -238,6 +238,8 @@ class picca_correlation:
         xi = np.average(self.xi_grid,weights=weights_grid,axis=0)
         err_grid = np.sqrt(np.diag(self.cov_grid)).reshape((self.np,self.nt))
 
+        print('rt',rt)
+        print('rp',rp)
         # TODO: Not sure about this...
         xi_err = 1 / np.sqrt(np.sum(1 / (err_grid[weights_grid>0] * weights_grid)**2 ))
 
@@ -281,9 +283,8 @@ class picca_correlation:
 
         return
 
-    def plot_grid(self,plot_label,r_power,vmax=10**-4,xlabel='',ylabel='',label_fontsize=12,show_grid=True):
-
-        fig = plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
+    #def plot_grid(self,plot_label,r_power,vmax=10**-4,xlabel='',ylabel='',label_fontsize=12,show_grid=True):
+    def plot_grid(self,ax,mubin,plot_label,colour,r_power=2,nr=40,rmax_plot=160.):
 
         im_grid = ImageGrid(fig, 111,          # as in plt.subplot(111)
                  nrows_ncols=(1,2),
@@ -388,6 +389,8 @@ def get_fit_from_result(location,result_name,corr_type):
         fit['xi_grid'] = ff['LYA(LYA)xLYA(LYA)/fit'][...]
     elif corr_type == 'xcf':
         fit['xi_grid'] = ff['LYA(LYA)xQSO/fit'][...]
+    elif corr_type == 'co':
+        fit['xi_grid'] = ff['QSOxQSO/fit'][...]
 
     ff.close()
 
@@ -433,19 +436,16 @@ def get_correlation_object(plot_info):
 
     return corr_object
 
-def make_colour_plots(corr_objects,r_power=0.,vmax=10**-4,save_plots=True,show_plots=True,suffix=''):
+def make_colour_plots(ax,plot_info,vmax=10**-4):
+
+    #Unpack the plot_info dictionary.
+    corr_obj = plot_info['corr_object']
 
     for i,corr_object in enumerate(corr_objects):
         xlabel = r'$r_t\ /\ Mpc/h$'
         ylabel = r'$r_p\ /\ Mpc/h$'
 
         corr_object.plot_grid('',r_power,vmax=vmax,xlabel=xlabel,ylabel=ylabel)
-
-        if save_plots:
-            plt.savefig(corr_object.location+'/cf_colour'+suffix+'.pdf')
-
-        if show_plots:
-            plt.show()
 
     return
 
@@ -499,7 +499,7 @@ def plot_rp_bins_vs_rt(ax,plot_info):
 
     for i,rpbin in enumerate(plot_info['rp_bins']):
         #Plot the data.
-        plot_label = r'${}<r_\perp<{}$'.format(rpbin[0],rpbin[1])
+        plot_label = r'${}<r_\parallel<{}$'.format(rpbin[0],rpbin[1])
         colour = plot_info['rp_bin_colours'][i]
         corr_obj.plot_rp_bin_vs_rt(ax,rpbin,plot_label,colour,**plot_info['plot_data'])
 
@@ -513,7 +513,7 @@ def plot_rp_bins_vs_rt(ax,plot_info):
 
     #Add axis labels.
     if plot_info['format']['xlabel']:
-        ax.set_xlabel(r'$r_\parallel\ [\mathrm{{Mpc}}/h]$')
+        ax.set_xlabel(r'$r_\perp\ [\mathrm{{Mpc}}/h]$')
     if plot_info['format']['ylabel']:
         if plot_info['plot_data']['r_power'] > 1:
             ax.set_ylabel(r'$r^{:d}\ \xi (r)\ [(\mathrm{{Mpc}}\ h^{{-1}})^{{{:d}}}]$'.format(int(plot_info['plot_data']['r_power']),int(plot_info['plot_data']['r_power'])))

@@ -19,6 +19,22 @@ filename = 'corr_plot_systematics.pdf'
 #Create a dictionary with all information about the subplots:
 
 #Main method correlations plot:
+filename = 'berkeley_cross_0.2_DLA_vs_rt.pdf'
+figsize=(12,8)
+subplots = {}
+subplots[(0,0)] =  {'location':         '/global/homes/j/jfarr/Programs/picca/picca_analysis_045/picca_00240/',
+                    'filename':         'xcf_exp_0.2_randoms.fits.gz',
+                    'rp_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0),(12.0,16.0)],
+                    'rp_bin_colours':   ['C0','C1','C2','C3'],
+                    'mu_bin_colours':   ['C0','C1','C2','C3'],
+                    'plot_data':        {'r_power': 2, 'nr': 40},
+                    'plot_picca_fit':   False,
+                    'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
+                    'plot_manual_fit':  True,
+                    'manual_fit_data':  {'b1': -0.119, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True},
+                    }
+
 """
 filename = 'corr_plot_vs_rt.pdf'
 subplots = {}
@@ -74,6 +90,7 @@ subplots[(0,1)] =  {'location':         '/global/homes/j/jfarr/Programs/picca/pi
                     'format':           {'legend': False, 'xlabel': True, 'ylabel': True},
                     }
 """
+"""
 
 #HCDs test plot:
 filename = 'corr_plot_HCDs_vs_rt.pdf'
@@ -100,7 +117,7 @@ subplots[(0,1)] =  {'location':         '/global/homes/j/jfarr/Programs/picca/pi
                     'manual_fit_data':  {'b1': -0.1049, 'b2': 2.0, 'beta1': 1.3783, 'beta2': 0.79},
                     'format':           {'legend': False, 'xlabel': True, 'ylabel': True},
                     }
-
+"""
 
 ################################################################################
 
