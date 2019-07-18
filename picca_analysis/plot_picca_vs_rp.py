@@ -19,6 +19,7 @@ filename = 'corr_plot_systematics.pdf'
 #Create a dictionary with all information about the subplots:
 
 #Main method correlations plot:
+"""
 filename = 'berkeley_cross_0.2_QSO_vs_rt.pdf'
 figsize=(12,8)
 subplots = {}
@@ -33,9 +34,36 @@ subplots[(0,0)] =  {'location':         '/global/homes/j/jfarr/Programs/picca/pi
                     'manual_fit_data':  {'b1': -0.119, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
                     'format':           {'legend': True, 'xlabel': True, 'ylabel': True},
                     }
+"""
+filename = 'compare_xcf.pdf'
+figsize=(15,6)
+subplots = {}
+subplots[(0,0)] =  {'location':         '/global/homes/j/jfarr/Programs/picca/picca_analysis_044/picca_00238/',
+                    'filename':         'xcf_exp_0.2_randoms.fits.gz',
+                    'rt_bins':          [(0.0,4.0),(4.0,8.0)],
+                    'rt_bin_colours':   ['C0','C1','C2','C3'],
+                    'plot_data':        {'r_power': 0, 'nr': 40},
+                    'plot_picca_fit':   True,
+                    'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
+                    'plot_manual_fit':  False,
+                    'manual_fit_data':  {'b1': -0.119, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True},
+                    }
+
+subplots[(0,1)] =  {'location':         '/global/homes/j/jfarr/Programs/picca/picca_analysis_044/picca_00238_helion/',
+                    'filename':         'xcf_z_0_10-exp.fits',
+                    'rt_bins':          [(0.0,4.0),(4.0,8.0)],
+                    'rt_bin_colours':   ['C0','C1','C2','C3'],
+                    'plot_data':        {'r_power': 0, 'nr': 40},
+                    'plot_picca_fit':   True,
+                    'result_name':      'xcf_z_0_10-exp.h5',
+                    'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
+                    'plot_manual_fit':  False,
+                    'manual_fit_data':  {'b1': -0.119, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True},
 
 """
-filename = 'berkeley_cross_0.2_DLA_vs_rt.pdf'
+filename = 'Lya_DLA_cross_contributions.pdf'
 figsize=(15,6)
 subplots = {}
 subplots[(0,0)] =  {'location':         '/global/homes/j/jfarr/Programs/picca/picca_analysis_045/picca_00240/',

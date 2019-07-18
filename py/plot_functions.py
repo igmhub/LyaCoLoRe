@@ -538,7 +538,10 @@ def get_correlation_object(plot_info):
     location = plot_info['location']
     filename = plot_info['filename']
     if plot_info['plot_picca_fit']:
-        res_name = 'result_{}r_a{}.h5'.format(str(int(plot_info['picca_fit_data']['rmin'])),plot_info['picca_fit_data']['afix'])
+        try:
+            res_name = plot_info['result_name']
+        except KeyError:
+            res_name = 'result_{}r_a{}.h5'.format(str(int(plot_info['picca_fit_data']['rmin'])),plot_info['picca_fit_data']['afix'])
     else:
         res_name = None
     corr_object = picca_correlation.make_correlation_object(location,filename,res_name=res_name)
