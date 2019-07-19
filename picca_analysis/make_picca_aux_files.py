@@ -77,10 +77,11 @@ args = parser.parse_args()
 
 
 #Calculate the effective redshift.
-h = fits.open(args.base_dir+'/'+args.cf_exp_filename)
+h = fits.open(args.base_dir+'/'+args.corr_exp_filename)
 R = np.sqrt(h[1].data['RP']**2 + h[1].data['RT']**2)
 cells = (R > 80.) * (R < 120.)
 zeff = np.average(h[1].data['Z'][cells],weights=h[1].data['NB'][cells])
+h.close()
 
 #Calculate f. Assume Or=0 for now.
 # TODO: include the input Om and Or from picca.
@@ -92,6 +93,7 @@ f = (Om**0.6) + (Ol/70.)*(1 + Om/2.)
 #Calculate beta_QSO by interpolating the input bias.
 b_of_z = np.loadtxt('/global/homes/j/jfarr/Projects/LyaCoLoRe/input_files/Bz_qso_G18.txt')
 b_QSO = np.interp(zeff,b_of_z[:,0],b_of_z[:,1])
+b_QSO = 2.
 beta_QSO = f/b_QSO
 
 #Write parameter file.
@@ -159,7 +161,7 @@ for rmin in args.rmin_values:
                 config_text += 'tracer2 = QSO\n'
                 config_text += 'tracer1-type = discrete\n'
                 config_text += 'tracer2-type = discrete\n'
-            config_text += 'filename = {}\n'.format(args.base_dir+args.cf_exp_filename)
+            config_text += 'filename = {}\n'.format(args.base_dir+args.corr_exp_filename)
             config_text += 'ell-max = 6\n\n'
             config_text += '[cuts]\n'
             config_text += 'rp-min = {}\n'.format(args.rpmin)
@@ -188,6 +190,7 @@ for rmin in args.rmin_values:
                 config_text += 'z evol QSO = bias_vs_z_std\n'
                 config_text += 'velocity dispersion = pk_velo_lorentz\n'
             elif args.corr_type == 'co':
+                config_text += 'model-xi = xi_drp\n'
                 config_text += 'z evol QSO = bias_vs_z_std\n'
                 config_text += 'velocity dispersion = pk_velo_lorentz\n'
             config_text += 'growth function = growth_factor_de\n'
@@ -198,8 +201,8 @@ for rmin in args.rmin_values:
             elif args.corr_type == 'xcf':
                 config_text += 'drp_QSO                = 0. 0.1   None None free\n'
             elif args.corr_type == 'co':
-                config_text += 'drp_QSO                = 0. 0.1   None None free\n'
-            if args.corr_type == 'xcf':
+                config_text += 'drp_QSO                = 0. 0.1   None None fixed\n'
+            if args.corr_type == 'xcf' or args.corr_type == 'co':
                 config_text += 'sigma_velo_lorentz_QSO = 2. 0.1    None None free\n\n'
             config_text += 'ap = 1. 0.1 0.5 1.5 {}\n'.format(afix)
             config_text += 'at = 1. 0.1 0.5 1.5 {}\n'.format(afix)
@@ -209,18 +212,18 @@ for rmin in args.rmin_values:
             config_text += 'growth_rate = {} 0. None None fixed\n\n'.format(f)
             if args.corr_type == 'cf':
                 config_text += 'bias_eta_LYA  = -0.0003512  1. None None free\n'
-                config_text += 'beta_LYA  = 0.5    0.1 None None free\n'
+                config_text += 'beta_LYA  = 0.5    1. None None free\n'
                 config_text += 'alpha_LYA = 2.9     0. None None fixed\n\n'
             if args.corr_type == 'xcf':
                 config_text += 'bias_eta_LYA  = -0.0003512  1. None None free\n'
-                config_text += 'beta_LYA  = 1.4    0.1 None None free\n'
+                config_text += 'beta_LYA  = 1.4    1. None None free\n'
                 config_text += 'alpha_LYA = 2.9     0. None None fixed\n'
                 config_text += 'bias_eta_QSO  = 1. 0. None None fixed\n'
                 config_text += 'beta_QSO      = {} 0.1 None None fixed\n'.format(beta_QSO)
                 config_text += 'alpha_QSO = 1.44     0. None None fixed\n\n'
             if args.corr_type == 'co':
-                config_text += 'bias_eta_QSO  = 1. 0. None None free\n'
-                config_text += 'beta_QSO      = {} 0.1 None None free\n'.format(beta_QSO)
+                config_text += 'bias_eta_QSO  = 1. 1. None None fixed\n'
+                config_text += 'beta_QSO      = {} 1. None None free\n'.format(beta_QSO)
                 config_text += 'alpha_QSO = 1.44     0. None None fixed\n\n'
             if args.corr_type == 'cf':
                 config_text += 'par binsize LYA(LYA)xLYA(LYA) = 4 0. None None fixed\n'

@@ -99,7 +99,8 @@ class picca_correlation:
             self.ndata = f['ndata']
             self.npar = f['npar']
 
-            self.fit_xi_grid = f['xi_grid'].reshape((self.np,self.nt))
+            self.fit_xi = f['xi_grid']
+            self.fit_xi_grid = self.fit_xi.reshape((self.np,self.nt))
 
         return
 
@@ -186,7 +187,7 @@ class picca_correlation:
                     self.cov_grid[i,j]=0
         """
 
-        r, fit_xi_wed, _ = b.wedge(self.fit_xi_grid,self.cov)
+        r, fit_xi_wed, _ = b.wedge(self.fit_xi,self.cov)
 
         if rmin_fit == None:
             rmin_fit = 0.
@@ -494,12 +495,11 @@ def get_fit_from_result(location,result_name,corr_type):
 
 
     # TODO: This won't work if it's not the lya auto correlation
-    if corr_type == 'cf':
-        fit['xi_grid'] = ff['LYA(LYA)xLYA(LYA)/fit'][...]
-    elif corr_type == 'xcf':
-        fit['xi_grid'] = ff['LYA(LYA)xQSO/fit'][...]
-    elif corr_type == 'co':
-        fit['xi_grid'] = ff['QSOxQSO/fit'][...]
+    name = list(ff.keys())[0]
+    if name == 'best fit':
+        name = list(ff.keys())[1]
+    print(name)
+    fit['xi_grid'] = ff[name+'/fit'][...]
 
     ff.close()
 
@@ -637,6 +637,10 @@ def plot_rp_bins_vs_rt(ax,plot_info):
     if plot_info['format']['legend']:
         ax.legend()
 
+    #Add a title if desired.
+    if plot_info['format']['title'] is not None:
+        ax.set_title(plot_info['format']['title'])
+
     return
 
 def plot_rt_bins_vs_rp(ax,plot_info):
@@ -671,6 +675,10 @@ def plot_rt_bins_vs_rp(ax,plot_info):
     #Add a legend if desired.
     if plot_info['format']['legend']:
         ax.legend()
+
+    #Add a title if desired.
+    if plot_info['format']['title'] is not None:
+        ax.set_title(plot_info['format']['title'])
 
     return
 

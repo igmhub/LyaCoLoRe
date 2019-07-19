@@ -35,16 +35,17 @@ subplots[(0,0)] =  {'location':         '/global/homes/j/jfarr/Programs/picca/pi
                     'format':           {'legend': True, 'xlabel': True, 'ylabel': True},
                     }
 """
+"""
 filename = 'compare_xcf.pdf'
-figsize=(15,6)
+figsize=(12,6)
 subplots = {}
 subplots[(0,0)] =  {'location':         '/global/homes/j/jfarr/Programs/picca/picca_analysis_044/picca_00238/',
-                    'filename':         'xcf_exp_0.2_randoms.fits.gz',
+                    'filename':         'xcf_exp_0.2_shuffle.fits.gz',
                     'rt_bins':          [(0.0,4.0),(4.0,8.0)],
                     'rt_bin_colours':   ['C0','C1','C2','C3'],
                     'plot_data':        {'r_power': 0, 'nr': 40},
                     'plot_picca_fit':   True,
-                    'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
+                    'picca_fit_data':   {'rmin': 10., 'rmax': 160., 'afix': 'free'},
                     'plot_manual_fit':  False,
                     'manual_fit_data':  {'b1': -0.119, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
                     'format':           {'legend': True, 'xlabel': True, 'ylabel': True},
@@ -61,47 +62,58 @@ subplots[(0,1)] =  {'location':         '/global/homes/j/jfarr/Programs/picca/pi
                     'plot_manual_fit':  False,
                     'manual_fit_data':  {'b1': -0.119, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
                     'format':           {'legend': True, 'xlabel': True, 'ylabel': True},
-
+                    }
 """
+
 filename = 'Lya_DLA_cross_contributions.pdf'
-figsize=(15,6)
+figsize=(20,6)
 subplots = {}
 subplots[(0,0)] =  {'location':         '/global/homes/j/jfarr/Programs/picca/picca_analysis_045/picca_00240/',
                     'filename':         'xcf_exp_0.2_randoms.fits.gz',
-                    'rt_bins':          [(0.0,4.0),(48.0,52.0),(96.0,104.0),(196.0,200.0)],
-                    'rt_bin_colours':   ['C0','C1','C2','C3'],
+                    'rt_bins':          [(28.0,32.0),(32.0,36.0),(36.0,40.0),(40.0,44.0),(44.0,48.0)],
+                    'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
                     'plot_data':        {'r_power': 0, 'nr': 40},
                     'plot_picca_fit':   False,
                     'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
                     'plot_manual_fit':  True,
                     'manual_fit_data':  {'b1': -0.119, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
-                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': 'standard randoms removal'},
                     }
 
 subplots[(0,1)] =  {'location':         '/global/homes/j/jfarr/Programs/picca/picca_analysis_045/picca_00240/',
                     'filename':         'xcf_exp_0.2_norandoms.fits.gz',
-                    'rt_bins':          [(0.0,4.0),(48.0,52.0),(96.0,104.0),(196.0,200.0)],
-                    'rt_bin_colours':   ['C0','C1','C2','C3'],
+                    'rt_bins':          [(28.0,32.0),(32.0,36.0),(36.0,40.0),(40.0,44.0),(44.0,48.0)],
+                    'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
                     'plot_data':        {'r_power': 0, 'nr': 40},
                     'plot_picca_fit':   False,
                     'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
                     'plot_manual_fit':  True,
                     'manual_fit_data':  {'b1': -0.119, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
-                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': 'data only'},
                     }
 subplots[(0,2)] =  {'location':         '/global/homes/j/jfarr/Programs/picca/picca_analysis_045/picca_00240/',
                     'filename':         'xcf_exp_0.2_randoms_only.fits.gz',
-                    'rt_bins':          [(0.0,4.0),(48.0,52.0),(96.0,104.0),(196.0,200.0)],
-                    'rt_bin_colours':   ['C0','C1','C2','C3'],
+                    'rt_bins':          [(28.0,32.0),(32.0,36.0),(36.0,40.0),(40.0,44.0),(44.0,48.0)],
+                    'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
                     'plot_data':        {'r_power': 0, 'nr': 40},
                     'plot_picca_fit':   False,
                     'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
                     'plot_manual_fit':  True,
                     'manual_fit_data':  {'b1': -0.119, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
-                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': 'randoms only'},
+                    }
+subplots[(0,3)] =  {'location':         '/global/homes/j/jfarr/Programs/picca/picca_analysis_045/picca_00240/',
+                    'filename':         'xcf_exp_0.2_randoms_subbin.fits.gz',
+                    'rt_bins':          [(28.0,32.0),(32.0,36.0),(36.0,40.0),(40.0,44.0),(44.0,48.0)],
+                    'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
+                    'plot_data':        {'r_power': 0, 'nr': 40},
+                    'plot_picca_fit':   False,
+                    'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
+                    'plot_manual_fit':  True,
+                    'manual_fit_data':  {'b1': -0.119, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': 'new randoms removal'},
                     }
 
-"""
 """
 filename = 'corr_plot_vs_rt.pdf'
 subplots = {}
