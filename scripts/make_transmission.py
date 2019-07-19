@@ -288,12 +288,15 @@ def pixelise_gaussian_skewers(pixel,colore_base_filename,z_min,base_out_dir,N_si
 
     #Calculate the cell-by-cell mean of the gaussian skewers up to the QSO cell.
     R_edges = utils.get_edges(pixel_object.R)
-    Z_uedges = interp1d(pixel_object.R,pixel_object.Z,fill_value='extrapolate')(R_edges[1:])
-    LOGLAM_uedges = np.log10(lya*(1+Z_uedges))
-    mean_DG_sample_weights = utils.make_IVAR_rows(lya,pixel_object.Z_QSO,LOGLAM_uedges)
+    Z_ledges = interp1d(pixel_object.R,pixel_object.Z,fill_value='extrapolate')(R_edges[:-1])
+    LOGLAM_ledges = np.log10(lya*(1+Z_ledges))
+    mean_DG_sample_weights = utils.make_IVAR_rows(lya,pixel_object.Z_QSO,LOGLAM_ledges)
     N_sample = np.sum(mean_DG_sample_weights,axis=0)
-    mean_DG_sample = np.average(pixel_object.GAUSSIAN_DELTA_rows*mean_DG_sample_weights,axis=0)
-    mean_DGS_sample = np.average((pixel_object.GAUSSIAN_DELTA_rows**2)*mean_DG_sample_weights,axis=0)
+    Npos = (N_sample > 0)
+    mean_DG_sample = np.zeros(N_sample.shape)
+    mean_DGS_sample = np.zeros(N_sample.shape)
+    mean_DG_sample[Npos] = np.average(pixel_object.GAUSSIAN_DELTA_rows[:,Npos],weights=mean_DG_sample_weights[:,Npos],axis=0)
+    mean_DGS_sample[Npos] = np.average((pixel_object.GAUSSIAN_DELTA_rows**2)[:,Npos],weights=mean_DG_sample_weights[:,Npos],axis=0)
 
     return (N,mean_DG,mean_DGS,N_sample,mean_DG_sample,mean_DGS_sample)
 
