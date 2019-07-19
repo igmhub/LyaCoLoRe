@@ -80,9 +80,8 @@ NFILES=`echo $INPUT_FILES | wc -w`
 
 ##############################################################################
 ## Specify the settings for LyaCoLoRe.
-OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v${V_CODE_MAJ}/test.${V_REALISATION}/"
-#OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v${V_CODE_MAJ}/v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}_full/"
-#OUTPUT_PATH="/project/projectdirs/desi/mocks/lya_forest/develop/london/v${V_CODE_MAJ}.${V_CODE_MIN}/v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}/"
+#OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v${V_CODE_MAJ}/v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}/"
+OUTPUT_PATH="/project/projectdirs/desi/mocks/lya_forest/develop/london/v${V_CODE_MAJ}.${V_CODE_MIN}/v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}/"
 RUN_FILE="${OUTPUT_PATH}/run_lyacolore_v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}.sh"
 PARAM_FILE="${OUTPUT_PATH}/input.param"
 
