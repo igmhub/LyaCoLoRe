@@ -3,7 +3,7 @@
 ## If you would only like 1 realisation, then set min and max to the same value.
 COLORE_SEED_START=1003
 LYACOLORE_SEED_START=123
-N_REALISATIONS=1
+N_REALISATIONS=2
 
 ################################################################################
 ## Specify the queue to use for this set of realisations.
@@ -54,8 +54,22 @@ PROCESS_PATH="/global/homes/j/jfarr/Projects/LyaCoLoRe/scripts/"
 TUNING_PATH="/global/homes/j/jfarr/Projects/LyaCoLoRe/input_files/tuning_data_with_bias_vel1.3_b1.65_lr1200.fits"
 
 ################################################################################
+## Detail the seeds that will be used.
+echo " "
+echo "################################################################################"
+echo " "
+echo "Generating ${N_REALISATIONS} realisations..."
+echo " -> CoLoRe seed will start at $COLORE_SEED_START and be incremented by 1 each time"
+echo " -> LyaCoLoRe seed will start at $LYACOLORE_SEED_START and be incremented by 1 each time"
+
+################################################################################
 ## Cycle through each realisation that we want.
 for V_REALISATION in $(seq 0 $(( $N_REALISATIONS - 1 ))); do
+
+##############################################################################
+## Set the seeds.
+COLORE_SEED=$(( $COLORE_SEED_START + $V_REALISATION ))
+LYACOLORE_SEED=$(( $LYACOLORE_SEED_START + $V_REALISATION ))
 
 ################################################################################
 ## Specify the paths to the input data.
@@ -65,13 +79,8 @@ INPUT_FILES=`ls -1 ${INPUT_PATH}/out_srcs_*.fits`
 NFILES=`echo $INPUT_FILES | wc -w`
 
 ##############################################################################
-## Set the seeds.
-COLORE_SEED=$(( $COLORE_SEED_START + $V_REALISATION ))
-LYACOLORE_SEED=$(( $LYACOLORE_SEED_START + $V_REALISATION ))
-
-##############################################################################
 ## Specify the settings for LyaCoLoRe.
-OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v${V_CODE_MAJ}/test/"
+OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v${V_CODE_MAJ}/test.${V_REALISATION}/"
 #OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v${V_CODE_MAJ}/v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}_full/"
 #OUTPUT_PATH="/project/projectdirs/desi/mocks/lya_forest/develop/london/v${V_CODE_MAJ}.${V_CODE_MIN}/v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}/"
 RUN_FILE="${OUTPUT_PATH}/run_lyacolore_v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}.sh"
@@ -79,6 +88,9 @@ PARAM_FILE="${OUTPUT_PATH}/input.param"
 
 ##############################################################################
 ## Echo the settings and outputs chosen for each realisation.
+echo " "
+echo "################################################################################"
+echo " "
 echo "Using CoLoRe seed $COLORE_SEED and LyaCoLoRe seed $LYACOLORE_SEED"
 echo "CoLoRe input will be taken from "$INPUT_PATH
 echo " -> ${NFILES} input files have been found"
@@ -91,18 +103,16 @@ echo " -> Output logs will be saved to "$OUTPUT_PATH"/logs"
 if [ ! -d $OUTPUT_PATH/logs ] ; then
     mkdir -p $OUTPUT_PATH/logs
 fi
-echo "Run file will be written to "$RUN_FILE
 
 ##############################################################################
 ## Make the master file, and the new file structure.
-date
-echo "making master file"
+echo " "
 ${PROCESS_PATH}/make_master.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} --nside ${NSIDE} --nproc ${NCORES} --min-cat-z ${MIN_CAT_Z} ${MM_FLAGS} --downsampling ${DOWNSAMPLING} --footprint ${FOOTPRINT} --pixels ${PIXELS}
-wait
-date
 
 ##############################################################################
-## Make the run script.
+## Generate the run files.
+echo " "
+echo "Run file will be written to "$RUN_FILE
 cat > $RUN_FILE <<EOF
 #!/bin/bash -l
 
@@ -164,8 +174,8 @@ date
 
 EOF
 
-##############################################################################
-## Make the parameter file.
+# make the parameter file.
+echo "Parameter file will be written to "$PARAM_FILE
 cat > $PARAM_FILE <<EOF
 #LyaCoLoRe paths
 PROCESS_PATH=${PROCESS_PATH}
@@ -200,8 +210,13 @@ cat ${COLORE_PARAM_PATH} >> ${PARAM_FILE}
 ##############################################################################
 ## Send the job to the queue.
 sbatch $RUN_FILE
-echo ' '
-
 done
+
+################################################################################
+## Concluding message.
+echo "$N_REALISATIONS jobs sent to the queue. Enjoy!"
+echo " "
+echo "################################################################################"
+echo " "
 
 ################################################################################
