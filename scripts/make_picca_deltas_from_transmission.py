@@ -18,10 +18,11 @@ from lyacolore import utils
 make_zcat = True
 
 #Locations of data
-#infiles ?
 infiles = None
 indir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v9/v9.0.0_full/'
 outdir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v9/v9.0.0_full/'
+#indir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test_DLA_sample/'
+#outdir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test_DLA_sample/'
 
 #Processing quantities.
 downsampling = 0.2
@@ -29,11 +30,11 @@ ds_seed = 42
 ds_randoms = True
 ds_DLA_randoms = True
 nproc = 32
-DLA_z_buffer = 0.
+DLA_z_buffer = 0.05
 
 #Processing options.
-add_Lyb = True
-add_metals = True
+add_Lyb = False
+add_metals = False
 
 # Wavelength grid for output.
 lObs_min = 3600.
@@ -118,7 +119,6 @@ def create_cat(indir,outdir,downsampling,seed=0,DLA_z_buffer=0.,ds_randoms=False
     data['Z'] = h[1]['Z_DLA_RSD'][:]
     # Remove DLAs too close to the QSO
     data['Z_QSO'] = h[1]['Z_QSO_RSD'][:]
-    DLA_z_buffer = 0.05
     w = abs(data['Z'] - data['Z_QSO'])>DLA_z_buffer
     for k in data.keys():
         data[k] = data[k][w]
@@ -133,9 +133,12 @@ def create_cat(indir,outdir,downsampling,seed=0,DLA_z_buffer=0.,ds_randoms=False
     data['PIX'] = pix
     print('INFO: {} DLA in mocks data'.format(data['RA'].size))
 
+    ### Get reduced data numbers
+    original_nbData = data['RA'].shape[0]
+    nbData = round(original_nbData * downsampling)
+
     ### Save DLA data
-    assert nbData<=data['RA'].size
-    w_DLA = sp.in1d(data['THING_ID'],w_thid)
+    w_DLA = sp.isin(data['THING_ID'],w_thid)
     print('INFO: downsampling leaves {} DLAs in catalog'.format(sp.sum(w_DLA)))
     out = fitsio.FITS(outdir+'/zcat_DLA_{}.fits'.format(downsampling),'rw',clobber=True)
     cols = [ v[w_DLA] for k,v in data.items() if k not in ['PIX','Z_QSO'] ]
@@ -201,8 +204,7 @@ def create_cat(indir,outdir,downsampling,seed=0,DLA_z_buffer=0.,ds_randoms=False
         print('INFO: {} DLA in randoms'.format(data['RA'].size))
 
         ### Save DLA data
-        assert nbData<=data['RA'].size
-        w_DLA = sp.in1d(data['THING_ID'],w_thid)
+        w_DLA = sp.isin(data['THING_ID'],w_thid)
         print('INFO: downsampling leaves {} DLAs in randoms catalog'.format(sp.sum(w_DLA)))
         out = fitsio.FITS(outdir+'/zcat_DLA_{}_randoms.fits'.format(downsampling),'rw',clobber=True)
         cols = [ v[w_DLA] for k,v in data.items() if k not in ['PIX','Z_QSO'] ]
