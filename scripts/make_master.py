@@ -148,7 +148,7 @@ Join the outputs from the many processes together.
 Save the master file, and a similarly structured file containing QSOs with 'bad coordinates'.
 """
 
-print('\nWorking on master data...')
+print('Working on master data...')
 start = time.time()
 
 #Choose the QSO filtering we want.
@@ -184,24 +184,21 @@ master_data, bad_coordinates_data, cosmology_data, file_pixel_map, MOCKID_lookup
 #Write master and bad coordinates files.
 master_filename = new_base_file_location + '/master.fits'
 catalog.write_ID(master_filename,N_side,master_data,cosmology_data,overwrite=overwrite)
-print('\nMaster file contains {} objects.'.format(master_data.shape[0]))
+print(' -> Master file contains {} objects.'.format(master_data.shape[0]))
 
 if bad_coordinates_data.shape[0] > 0:
     bad_coordinates_filename = new_base_file_location + '/bad_coordinates.fits'
     catalog.write_ID(bad_coordinates_filename,N_side,bad_coordinates_data,cosmology_data,overwrite=overwrite)
-    print('"bad coordinates" file contains {} objects.'.format(bad_coordinates_data.shape[0]))
+    print(' -> "Bad coordinates" file contains {} objects.'.format(bad_coordinates_data.shape[0]))
 
 #If desired, write the DRQ files for picca xcf to deal with.
 if add_picca_drqs:
-    print('\nMaster file contains {} objects.'.format(master_data.shape[0]))
     for RSD_option in ['RSD','NO_RSD']:
         DRQ_filename = new_base_file_location + '/master_picca_{}.fits'.format(RSD_option)
         catalog.write_DRQ(DRQ_filename,RSD_option,master_data,N_side,overwrite=overwrite)
-
-print('Time to make master files: {:4.0f}s.'.format(time.time()-start))
 
 print('\nCreating the output file structure...')
 #Make the new file structure
 pixel_list = list(sorted(set(master_data['PIXNUM'])))
 utils.make_file_structure(new_base_file_location,pixel_list)
-print('Done!')
+print(' -> Done!')
