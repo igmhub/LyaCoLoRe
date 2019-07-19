@@ -57,150 +57,150 @@ TUNING_PATH="/global/homes/j/jfarr/Projects/LyaCoLoRe/input_files/tuning_data_wi
 ## Cycle through each realisation that we want.
 for V_REALISATION in $(seq 0 $(( $N_REALISATIONS - 1 ))); do
 
-  ################################################################################
-  ## Specify the paths to the input data.
-  INPUT_PATH="/project/projectdirs/desi/mocks/lya_forest/develop/london/colore_raw/v5_seed${COLORE_SEED}/"
-  COLORE_PARAM_PATH="${INPUT_PATH}/param_v5_seed${COLORE_SEED}.cfg"
-  INPUT_FILES=`ls -1 ${INPUT_PATH}/out_srcs_*.fits`
-  NFILES=`echo $INPUT_FILES | wc -w`
+################################################################################
+## Specify the paths to the input data.
+INPUT_PATH="/project/projectdirs/desi/mocks/lya_forest/develop/london/colore_raw/v5_seed${COLORE_SEED}/"
+COLORE_PARAM_PATH="${INPUT_PATH}/param_v5_seed${COLORE_SEED}.cfg"
+INPUT_FILES=`ls -1 ${INPUT_PATH}/out_srcs_*.fits`
+NFILES=`echo $INPUT_FILES | wc -w`
 
-  ##############################################################################
-  ## Set the seeds.
-  COLORE_SEED=$(( $COLORE_SEED_START + $V_REALISATION ))
-  LYACOLORE_SEED=$(( $LYACOLORE_SEED_START + $V_REALISATION ))
+##############################################################################
+## Set the seeds.
+COLORE_SEED=$(( $COLORE_SEED_START + $V_REALISATION ))
+LYACOLORE_SEED=$(( $LYACOLORE_SEED_START + $V_REALISATION ))
 
-  ##############################################################################
-  ## Specify the settings for LyaCoLoRe.
-  OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v${V_CODE_MAJ}/test/"
-  #OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v${V_CODE_MAJ}/v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}_full/"
-  #OUTPUT_PATH="/project/projectdirs/desi/mocks/lya_forest/develop/london/v${V_CODE_MAJ}.${V_CODE_MIN}/v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}/"
-  RUN_FILE="${OUTPUT_PATH}/run_lyacolore_v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}.sh"
-  PARAM_FILE="${OUTPUT_PATH}/input.param"
+##############################################################################
+## Specify the settings for LyaCoLoRe.
+OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v${V_CODE_MAJ}/test/"
+#OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v${V_CODE_MAJ}/v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}_full/"
+#OUTPUT_PATH="/project/projectdirs/desi/mocks/lya_forest/develop/london/v${V_CODE_MAJ}.${V_CODE_MIN}/v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}/"
+RUN_FILE="${OUTPUT_PATH}/run_lyacolore_v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}.sh"
+PARAM_FILE="${OUTPUT_PATH}/input.param"
 
-  ##############################################################################
-  ## Echo the settings and outputs chosen for each realisation.
-  echo "Using CoLoRe seed $COLORE_SEED and LyaCoLoRe seed $LYACOLORE_SEED"
-  echo "CoLoRe input will be taken from "$INPUT_PATH
-  echo " -> ${NFILES} input files have been found"
-  echo "Tuning input will be taken from "$TUNING_PATH
-  echo "Output will written to "$OUTPUT_PATH
-  if [ ! -d $OUTPUT_PATH ] ; then
-      mkdir -p $OUTPUT_PATH
-  fi
-  echo " -> Output logs will be saved to "$OUTPUT_PATH"/logs"
-  if [ ! -d $OUTPUT_PATH/logs ] ; then
-      mkdir -p $OUTPUT_PATH/logs
-  fi
-  echo "Run file will be written to "$RUN_FILE
+##############################################################################
+## Echo the settings and outputs chosen for each realisation.
+echo "Using CoLoRe seed $COLORE_SEED and LyaCoLoRe seed $LYACOLORE_SEED"
+echo "CoLoRe input will be taken from "$INPUT_PATH
+echo " -> ${NFILES} input files have been found"
+echo "Tuning input will be taken from "$TUNING_PATH
+echo "Output will written to "$OUTPUT_PATH
+if [ ! -d $OUTPUT_PATH ] ; then
+    mkdir -p $OUTPUT_PATH
+fi
+echo " -> Output logs will be saved to "$OUTPUT_PATH"/logs"
+if [ ! -d $OUTPUT_PATH/logs ] ; then
+    mkdir -p $OUTPUT_PATH/logs
+fi
+echo "Run file will be written to "$RUN_FILE
 
-  ##############################################################################
-  ## Make the master file, and the new file structure.
-  date
-  echo "making master file"
-  ${PROCESS_PATH}/make_master.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} --nside ${NSIDE} --nproc ${NCORES} --min-cat-z ${MIN_CAT_Z} ${MM_FLAGS} --downsampling ${DOWNSAMPLING} --footprint ${FOOTPRINT} --pixels ${PIXELS}
-  wait
-  date
+##############################################################################
+## Make the master file, and the new file structure.
+date
+echo "making master file"
+${PROCESS_PATH}/make_master.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} --nside ${NSIDE} --nproc ${NCORES} --min-cat-z ${MIN_CAT_Z} ${MM_FLAGS} --downsampling ${DOWNSAMPLING} --footprint ${FOOTPRINT} --pixels ${PIXELS}
+wait
+date
 
-  ##############################################################################
-  ## Make the run script.
-  cat > $RUN_FILE <<EOF
-  #!/bin/bash -l
+##############################################################################
+## Make the run script.
+cat > $RUN_FILE <<EOF
+#!/bin/bash -l
 
-  #SBATCH --partition ${QUEUE}
-  #SBATCH --nodes ${NNODES}
-  #SBATCH --time ${TIME}
-  #SBATCH --job-name process_colore
-  #SBATCH --error "${OUTPUT_PATH}/process-colore-%j.err"
-  #SBATCH --output "${OUTPUT_PATH}/process-colore-%j.out"
-  #SBATCH -C haswell
-  #SBATCH -A desi
+#SBATCH --partition ${QUEUE}
+#SBATCH --nodes ${NNODES}
+#SBATCH --time ${TIME}
+#SBATCH --job-name process_colore
+#SBATCH --error "${OUTPUT_PATH}/process-colore-%j.err"
+#SBATCH --output "${OUTPUT_PATH}/process-colore-%j.out"
+#SBATCH -C haswell
+#SBATCH -A desi
 
-  umask 0002
-  export OMP_NUM_THREADS=64
+umask 0002
+export OMP_NUM_THREADS=64
 
-  PIXDIRS=\`\ls -tr1d ${OUTPUT_PATH}/[0-9]*/*\`
-  NPIXELS=\`echo \$PIXDIRS | wc -w\`
-  PIXDIRS_list=(\$PIXDIRS)
+PIXDIRS=\`\ls -tr1d ${OUTPUT_PATH}/[0-9]*/*\`
+NPIXELS=\`echo \$PIXDIRS | wc -w\`
+PIXDIRS_list=(\$PIXDIRS)
 
-  PIXELS=()
-  for PIXDIR in \$PIXDIRS ; do
-      PIX=\${PIXDIR##*/}
-      PIXELS=("\${PIXELS[@]}" \$PIX)
-  done
+PIXELS=()
+for PIXDIR in \$PIXDIRS ; do
+    PIX=\${PIXDIR##*/}
+    PIXELS=("\${PIXELS[@]}" \$PIX)
+done
 
-  NPIXELS_PER_NODE=\$(( (\$NPIXELS + $NNODES - 1)/$NNODES ))
-  START_INDEX=0
-  STOP_INDEX=\$(( \$NPIXELS_PER_NODE - 1 ))
-  FINAL_NODE=0
+NPIXELS_PER_NODE=\$(( (\$NPIXELS + $NNODES - 1)/$NNODES ))
+START_INDEX=0
+STOP_INDEX=\$(( \$NPIXELS_PER_NODE - 1 ))
+FINAL_NODE=0
 
-  for NODE in \`seq $NNODES\` ; do
-      echo "starting node \$NODE"
+for NODE in \`seq $NNODES\` ; do
+    echo "starting node \$NODE"
 
-      NODE_PIXELS=\${PIXELS[@]:\$START_INDEX:\$NPIXELS_PER_NODE}
+    NODE_PIXELS=\${PIXELS[@]:\$START_INDEX:\$NPIXELS_PER_NODE}
 
-      echo "looking at pixels: \${NODE_PIXELS}"
+    echo "looking at pixels: \${NODE_PIXELS}"
 
-      command="srun -N 1 -n 1 -c ${NCORES} ${PROCESS_PATH}/make_transmission.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} ${MT_FLAGS} --pixels \${NODE_PIXELS} --tuning-file ${TUNING_PATH} --nside ${NSIDE} --nproc ${NCORES} --IVAR-cut ${IVAR_CUT} --cell-size ${CELL_SIZE} --lambda-min ${LAMBDA_MIN} --seed ${LYACOLORE_SEED} --DLA-bias ${DLA_BIAS} --DLA-bias-evol ${DLA_BIAS_EVOL} --DLA-bias-method ${DLA_BIAS_METHOD} --transmission-lambda-min ${TRANS_LMIN} --transmission-lambda-max ${TRANS_LMAX} --transmission-delta-lambda ${TRANS_DL} --transmission-format ${TRANSMISSION_FORMAT}"
+    command="srun -N 1 -n 1 -c ${NCORES} ${PROCESS_PATH}/make_transmission.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} ${MT_FLAGS} --pixels \${NODE_PIXELS} --tuning-file ${TUNING_PATH} --nside ${NSIDE} --nproc ${NCORES} --IVAR-cut ${IVAR_CUT} --cell-size ${CELL_SIZE} --lambda-min ${LAMBDA_MIN} --seed ${LYACOLORE_SEED} --DLA-bias ${DLA_BIAS} --DLA-bias-evol ${DLA_BIAS_EVOL} --DLA-bias-method ${DLA_BIAS_METHOD} --transmission-lambda-min ${TRANS_LMIN} --transmission-lambda-max ${TRANS_LMAX} --transmission-delta-lambda ${TRANS_DL} --transmission-format ${TRANSMISSION_FORMAT}"
 
-      echo \$command
-      \$command >& ${OUTPUT_PATH}/logs/node-\${NODE}.log &
+    echo \$command
+    \$command >& ${OUTPUT_PATH}/logs/node-\${NODE}.log &
 
-      if (( \$FINAL_NODE == 1)) ; then
-          echo "all pixels allocated, no more nodes needed"
-          break
-      fi
+    if (( \$FINAL_NODE == 1)) ; then
+        echo "all pixels allocated, no more nodes needed"
+        break
+    fi
 
-      START_INDEX=\$(( \$STOP_INDEX + 1 ))
-      STOP_INDEX=\$(( \$START_INDEX + \$NPIXELS_PER_NODE - 1))
+    START_INDEX=\$(( \$STOP_INDEX + 1 ))
+    STOP_INDEX=\$(( \$START_INDEX + \$NPIXELS_PER_NODE - 1))
 
-      if (( \$STOP_INDEX >= (\$NPIXELS - 1) )) ; then
-          STOP_INDEX=\$NPIXELS-1
-          FINAL_NODE=1
-      fi
+    if (( \$STOP_INDEX >= (\$NPIXELS - 1) )) ; then
+        STOP_INDEX=\$NPIXELS-1
+        FINAL_NODE=1
+    fi
 
-  done
-  wait
-  date
+done
+wait
+date
 
 EOF
 
 ##############################################################################
 ## Make the parameter file.
 cat > $PARAM_FILE <<EOF
-  #LyaCoLoRe paths
-  PROCESS_PATH=${PROCESS_PATH}
-  INPUT_PATH=${INPUT_PATH}
-  TUNING_PATH=${TUNING_PATH}
-  OUTPUT_PATH=${OUTPUT_PATH}
+#LyaCoLoRe paths
+PROCESS_PATH=${PROCESS_PATH}
+INPUT_PATH=${INPUT_PATH}
+TUNING_PATH=${TUNING_PATH}
+OUTPUT_PATH=${OUTPUT_PATH}
 
-  #LyaCoLoRe params
-  NSIDE=${NSIDE}
-  IVAR_CUT=${IVAR_CUT}
-  CELL_SIZE=${CELL_SIZE}
-  LAMBDA_MIN=${LAMBDA_MIN}
-  MIN_CAT_Z=${MIN_CAT_Z}
-  LYACOLORE_SEED=${LYACOLORE_SEED}
-  DLA_BIAS=${DLA_BIAS}
-  DLA_BIAS_METHOD=${DLA_BIAS_METHOD}
-  DOWNSAMPLING=${DOWNSAMPLING}
-  VEL_BOOST=${VEL_BOOST}
-  TRANS_LMIN=${TRANS_LMIN}
-  TRANS_LMAX=${TRANS_LMAX}
-  TRANS_DL=${TRANS_DL}
+#LyaCoLoRe params
+NSIDE=${NSIDE}
+IVAR_CUT=${IVAR_CUT}
+CELL_SIZE=${CELL_SIZE}
+LAMBDA_MIN=${LAMBDA_MIN}
+MIN_CAT_Z=${MIN_CAT_Z}
+LYACOLORE_SEED=${LYACOLORE_SEED}
+DLA_BIAS=${DLA_BIAS}
+DLA_BIAS_METHOD=${DLA_BIAS_METHOD}
+DOWNSAMPLING=${DOWNSAMPLING}
+VEL_BOOST=${VEL_BOOST}
+TRANS_LMIN=${TRANS_LMIN}
+TRANS_LMAX=${TRANS_LMAX}
+TRANS_DL=${TRANS_DL}
 
-  #LyaCoLoRe flags
-  MM_FLAGS=${MM_FLAGS}
-  MT_FLAGS=${MT_FLAGS}
+#LyaCoLoRe flags
+MM_FLAGS=${MM_FLAGS}
+MT_FLAGS=${MT_FLAGS}
 
-  #CoLoRe params
-  COLORE_PARAM_PATH=${COLORE_PARAM_PATH}
-  EOF
-  cat ${COLORE_PARAM_PATH} >> ${PARAM_FILE}
+#CoLoRe params
+COLORE_PARAM_PATH=${COLORE_PARAM_PATH}
+EOF
+cat ${COLORE_PARAM_PATH} >> ${PARAM_FILE}
 
-  ##############################################################################
-  ## Send the job to the queue.
-  sbatch $RUN_FILE
-  echo ' '
+##############################################################################
+## Send the job to the queue.
+sbatch $RUN_FILE
+echo ' '
 
 done
 
