@@ -3,7 +3,7 @@
 ## If you would only like 1 realisation, then set min and max to the same value.
 COLORE_SEED_START=1003
 LYACOLORE_SEED_START=123
-N_REALISATIONS=100
+N_REALISATIONS=1
 
 ################################################################################
 ## Specify the queue to use for this set of realisations.
@@ -49,20 +49,20 @@ COLORE_NODES=32
 R_SMOOTH=2.0
 
 ################################################################################
-## Full path to the LyaCoLoRe scripts.
+## Full path to the LyaCoLoRe scripts and the tuning file.
 PROCESS_PATH="/global/homes/j/jfarr/Projects/LyaCoLoRe/scripts/"
-
-################################################################################
-## Specify the paths to the input data.
-INPUT_PATH="/project/projectdirs/desi/mocks/lya_forest/develop/london/colore_raw/v5_seed${COLORE_SEED}/"
-COLORE_PARAM_PATH="${INPUT_PATH}/param_v5_seed${COLORE_SEED}.cfg"
-INPUT_FILES=`ls -1 ${INPUT_PATH}/out_srcs_*.fits`
-NFILES=`echo $INPUT_FILES | wc -w`
 TUNING_PATH="/global/homes/j/jfarr/Projects/LyaCoLoRe/input_files/tuning_data_with_bias_vel1.3_b1.65_lr1200.fits"
 
 ################################################################################
 ## Cycle through each realisation that we want.
 for V_REALISATION in $(seq 0 $(( $N_REALISATIONS - 1 ))); do
+
+  ################################################################################
+  ## Specify the paths to the input data.
+  INPUT_PATH="/project/projectdirs/desi/mocks/lya_forest/develop/london/colore_raw/v5_seed${COLORE_SEED}/"
+  COLORE_PARAM_PATH="${INPUT_PATH}/param_v5_seed${COLORE_SEED}.cfg"
+  INPUT_FILES=`ls -1 ${INPUT_PATH}/out_srcs_*.fits`
+  NFILES=`echo $INPUT_FILES | wc -w`
 
   ##############################################################################
   ## Set the seeds.
@@ -71,9 +71,9 @@ for V_REALISATION in $(seq 0 $(( $N_REALISATIONS - 1 ))); do
 
   ##############################################################################
   ## Specify the settings for LyaCoLoRe.
-  #OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v${V_CODE_MAJ}/v7_test_picca_all_absorbers/"
+  OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v${V_CODE_MAJ}/test/"
   #OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v${V_CODE_MAJ}/v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}_full/"
-  OUTPUT_PATH="/project/projectdirs/desi/mocks/lya_forest/develop/london/v${V_CODE_MAJ}.${V_CODE_MIN}/v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}/"
+  #OUTPUT_PATH="/project/projectdirs/desi/mocks/lya_forest/develop/london/v${V_CODE_MAJ}.${V_CODE_MIN}/v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}/"
   RUN_FILE="${OUTPUT_PATH}/run_lyacolore_v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}.sh"
   PARAM_FILE="${OUTPUT_PATH}/input.param"
 
@@ -162,11 +162,11 @@ for V_REALISATION in $(seq 0 $(( $N_REALISATIONS - 1 ))); do
   wait
   date
 
-  EOF
+EOF
 
-  ##############################################################################
-  ## Make the parameter file.
-  cat > $PARAM_FILE <<EOF
+##############################################################################
+## Make the parameter file.
+cat > $PARAM_FILE <<EOF
   #LyaCoLoRe paths
   PROCESS_PATH=${PROCESS_PATH}
   INPUT_PATH=${INPUT_PATH}
@@ -200,6 +200,7 @@ for V_REALISATION in $(seq 0 $(( $N_REALISATIONS - 1 ))); do
   ##############################################################################
   ## Send the job to the queue.
   sbatch $RUN_FILE
+  echo ' '
 
 done
 
