@@ -9,39 +9,74 @@ import iminuit
 from multiprocessing import Pool
 import multiprocessing
 import time
+import argparse
 
 from picca.data import delta
 from lyacolore import utils
 
 ################################################################################
-#Options
-make_zcat = True
+parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-#Locations of data
-infiles = None
-indir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v9/v9.0.0_full/'
-outdir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v9/v9.0.0_full/'
-#indir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test_DLA_sample/'
-#outdir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test_DLA_sample/'
+parser.add_argument('--in-dir', type = str, default = None, required=True,
+                    help = 'directory of LyaCoLoRe output files')
 
-#Processing quantities.
-downsampling = 0.2
-ds_seed = 42
-ds_randoms = True
-ds_DLA_randoms = True
-nproc = 32
-DLA_z_buffer = 0.05
+parser.add_argument('--out-dir', type = str, default = None, required=True,
+                    help = 'directory of output')
 
-#Processing options.
-add_Lyb = False
-add_metals = False
+parser.add_argument('--in-files', type = str, default = None, required=False,
+                    help = 'input files', nargs='*')
+
+parser.add_argument('--nproc', type = int, default = 1, required=False,
+                    help = 'number of processes to use')
+
+parser.add_argument('--downsampling', type = float, default = 1.0, required=False,
+                    help = 'proportion by which to downsample')
+
+parser.add_argument('--downsampling-seed', type = int, default = 0, required=False,
+                    help = 'seed for the random downsampling')
+
+parser.add_argument('--downsample-randoms', action="store_true", default = False, required=False,
+                    help = 'whether to downsample the random catalogs or not')
+
+parser.add_argument('--randoms-dir', type = str, default = None, required=False,
+                    help = 'directory of randoms')
+
+parser.add_argument('--DLA-z-buffer', type = float, default = 0., required=False,
+                    help = 'buffer interval to leave redward of QSOs when making DLA catalogs')
+
+parser.add_argument('--add-Lyb', action="store_true", default = False, required=False,
+                    help = 'whether to add Lyb absorption or not')
+
+parser.add_argument('--add-metals', action="store_true", default = False, required=False,
+                    help = 'whether to add metal absorption or not')
+
+parser.add_argument('--transmission-lambda-min', type = float, default = 3600., required=False,
+                    help = 'minimum wavelength stored in the transmission files')
+
+parser.add_argument('--transmission-lambda-max', type = float, default = 5500., required=False,
+                    help = 'maximum wavelength stored in the transmission files')
+
+parser.add_argument('--transmission-lambda-rest-min', type = float, default = 1040., required=False,
+                    help = 'minimum wavelength in the rest frame stored in the transmission files')
+
+parser.add_argument('--transmission-lambda-rest-max', type = float, default = 1200., required=False,
+                    help = 'maximum wavelength in the rest frame stored in the transmission files')
+
+parser.add_argument('--transmission-delta-lambda', type = float, default = 0.0003, required=False,
+                    help = 'pixel size of transmission files wavelength grid')
+
+parser.add_argument('--single-DLA-per-skw', action="store_true", default = False, required=False,
+                    help = 'whether to allow at most 1 DLA per skewer or not')
+
+args = parser.parse_args()
+
 
 # Wavelength grid for output.
-lObs_min = 3600.
-lObs_max = 5500.
-lRF_min = 1040.
-lRF_max = 1200.
-dll = 3.e-4
+lObs_min = args.transmission_lambda_min
+lObs_max = args.transmission_lambda_max
+lRF_min = args.transmission_lambda_rest_min
+lRF_max = args.transmission_lambda_rest_max
+dll = args.transmission_delta_lambda
 
 ################################################################################
 
@@ -139,6 +174,27 @@ def create_cat(indir,outdir,downsampling,seed=0,DLA_z_buffer=0.,ds_randoms=False
 
     ### Save DLA data
     w_DLA = sp.isin(data['THING_ID'],w_thid)
+
+    if args.single_DLA_per_skw:
+        reduced_THING_ID = data['THING_ID'][w_DLA]
+        n_id = 1
+        current_m = reduced_THING_ID[0]
+        ind = 0
+        inds = []
+        for i,m in enumerate(reduced_THING_ID[1:]):
+          i += 1
+          if m == current_m:
+            n_id += 1
+            p = state.uniform()
+            if p > 1/n_id:
+              ind = i
+          else:
+            current_m = m
+            inds += [ind]
+            ind = i
+            n_id = 1
+        w_DLA = np.array(inds)
+
     print('INFO: downsampling leaves {} DLAs in catalog'.format(sp.sum(w_DLA)))
     out = fitsio.FITS(outdir+'/zcat_DLA_{}.fits'.format(downsampling),'rw',clobber=True)
     cols = [ v[w_DLA] for k,v in data.items() if k not in ['PIX','Z_QSO'] ]
@@ -179,7 +235,6 @@ def create_cat(indir,outdir,downsampling,seed=0,DLA_z_buffer=0.,ds_randoms=False
         out.write(cols,names=names)
         out.close()
 
-    if ds_DLA_randoms:
         h = fitsio.FITS(indir+'/master_DLA_randoms.fits')
         data = {}
         for k in ['RA','DEC']:
@@ -205,6 +260,27 @@ def create_cat(indir,outdir,downsampling,seed=0,DLA_z_buffer=0.,ds_randoms=False
 
         ### Save DLA data
         w_DLA = sp.isin(data['THING_ID'],w_thid)
+
+        if args.single_DLA_per_skw:
+            reduced_THING_ID = data['THING_ID'][w_DLA]
+            n_id = 1
+            current_m = reduced_THING_ID[0]
+            ind = 0
+            inds = []
+            for i,m in enumerate(reduced_THING_ID[1:]):
+              i += 1
+              if m == current_m:
+                n_id += 1
+                p = state.uniform()
+                if p > 1/n_id:
+                  ind = i
+              else:
+                current_m = m
+                inds += [ind]
+                ind = i
+                n_id = 1
+            w_DLA = np.array(inds)
+
         print('INFO: downsampling leaves {} DLAs in randoms catalog'.format(sp.sum(w_DLA)))
         out = fitsio.FITS(outdir+'/zcat_DLA_{}_randoms.fits'.format(downsampling),'rw',clobber=True)
         cols = [ v[w_DLA] for k,v in data.items() if k not in ['PIX','Z_QSO'] ]
@@ -214,8 +290,7 @@ def create_cat(indir,outdir,downsampling,seed=0,DLA_z_buffer=0.,ds_randoms=False
 
     return
 
-if make_zcat:
-    create_cat(indir,outdir,downsampling,seed=ds_seed,ds_randoms=ds_randoms,ds_DLA_randoms=ds_DLA_randoms)
+create_cat(args.in_dir,args.out_dir,args.downsampling,seed=args.downsampling_seed,DLA_z_buffer=args.DLA_z_buffer,ds_randoms=args.downsample_randoms,ds_DLA_randoms=args.downsample_randoms)
 
 ################################################################################
 #Make the delta files.
@@ -237,17 +312,17 @@ Returns:
     None
 """
 
-zcat = outdir+'/zcat_{}.fits'.format(downsampling)
-if add_Lyb*add_metals:
-    outdir = outdir+'/deltas_{}_Lyb_metals/'.format(downsampling)
-elif add_Lyb:
-    outdir = outdir+'/deltas_{}_Lyb/'.format(downsampling)
-elif add_metals:
-    outdir = outdir+'/deltas_{}_metals/'.format(downsampling)
+zcat = args.out_dir+'/zcat_{}.fits'.format(downsampling)
+if args.add_Lyb * args.add_metals:
+    args.out_dir = args.out_dir+'/deltas_{}_Lyb_metals/'.format(downsampling)
+elif args.add_Lyb:
+    args.out_dir = args.out_dir+'/deltas_{}_Lyb/'.format(downsampling)
+elif args.add_metals:
+    args.out_dir = args.out_dir+'/deltas_{}_metals/'.format(downsampling)
 else:
-    outdir = outdir+'/deltas_{}/'.format(downsampling)
-if not os.path.isdir(outdir):
-    os.mkdir(outdir)
+    args.out_dir = args.out_dir+'/deltas_{}/'.format(downsampling)
+if not os.path.isdir(args.out_dir):
+    os.mkdir(args.out_dir)
 
 ### Catalog of objects
 h = fitsio.FITS(zcat)
@@ -265,18 +340,18 @@ h.close()
 print('INFO: Found {} quasars'.format(zcat_ra.size))
 
 ### List of transmission files
-if (indir is None and infiles is None) or (indir is not None and infiles is not None):
+if (args.in_dir is None and infiles is None) or (args.in_dir is not None and infiles is not None):
     print("ERROR: No transmisson input files or both 'indir' and 'infiles' given")
     sys.exit()
-elif indir is not None:
-    fi = glob.glob(indir+'/*/*/transmission*.fits*')
+elif args.in_dir is not None:
+    fi = glob.glob(args.in_dir+'/*/*/transmission*.fits*')
     fi = sp.sort(sp.array(fi))
     h = fitsio.FITS(fi[0])
     in_nside = h['METADATA'].read_header()['HPXNSIDE']
     nest = h['METADATA'].read_header()['HPXNEST']
     h.close()
     in_pixs = healpy.ang2pix(in_nside, sp.pi/2.-zcat_dec, zcat_ra, nest=nest)
-    fi = sp.sort(sp.array(['{}/{}/{}/transmission-{}-{}.fits.gz'.format(indir,int(f//100),f,in_nside,f) for f in sp.unique(in_pixs)]))
+    fi = sp.sort(sp.array(['{}/{}/{}/transmission-{}-{}.fits.gz'.format(args.in_dir,int(f//100),f,in_nside,f) for f in sp.unique(in_pixs)]))
 else:
     fi = sp.sort(sp.array(infiles))
 print('INFO: Found {} files'.format(fi.size))
@@ -312,18 +387,18 @@ def get_stack_data(f):
                 trans = h['TRANSMISSION'].read()
             except KeyError:
                 raise KeyError('Transmission not found; check file format.')
-    if add_Lyb:
+    if args.add_Lyb:
         try:
             trans_Lyb = h['F_LYB'].read()
             trans *= trans_Lyb
         except KeyError:
             raise KeyError('Lyb transmission not found; only \'final\' format supported currently.')
-    if add_metals:
+    if args.add_metals:
         try:
             trans_metals = h['F_METALS'].read()
             trans *= trans_metals
         except KeyError:
-            raise KeyError('Metals transmission not found; only \'final\' format supported currently.')    
+            raise KeyError('Metals transmission not found; only \'final\' format supported currently.')
     nObj = z.size
     pixnum = f.split('-')[-1].split('.')[0]
 
@@ -399,7 +474,7 @@ T_stack[w] /= n_stack[w]
 def normalise_deltas(p):
     if len(deltas[p])==0:
         print('No data in {}'.format(p))
-    out = fitsio.FITS(outdir+'/delta-{}'.format(p)+'.fits.gz','rw',clobber=True)
+    out = fitsio.FITS(args.out_dir+'/delta-{}'.format(p)+'.fits.gz','rw',clobber=True)
     for d in deltas[p]:
         bins = sp.floor((d.ll-lmin)/dll+0.5).astype(int)
         d.de = d.de/T_stack[bins] - 1.
