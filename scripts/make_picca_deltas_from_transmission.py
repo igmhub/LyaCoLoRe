@@ -53,6 +53,9 @@ parser.add_argument('--randoms-downsampling-seed', type = int, default = None, r
 parser.add_argument('--randoms-dir', type = str, default = None, required=False,
                     help = 'directory of randoms')
 
+parser.add_argument('--min-cat-z', type = float, default = 1.7, required=False,
+                    help = 'minimum z of objects in catalog')
+
 parser.add_argument('--DLAs-in-transmission-rest-range', action="store_true", default = False, required=False,
                     help = 'flag to only include DLAs within the transmission range of rest frame wavelengths')
 
@@ -219,11 +222,11 @@ def create_cat(args):
     out.write(cols,names=names)
     out.close()
 
-    if make_randoms_zcats:
+    if args.make_randoms_zcats:
         r_state = sp.random.RandomState(args.randoms_downsampling_seed)
 
         ### Data
-        h = fitsio.FITS(randomsdir+'/master_randoms.fits')
+        h = fitsio.FITS(args.randoms_dir+'/master_randoms.fits')
         data = {}
         mr_data = sp.sort(h[1].read(),order=['MOCKID','Z'])
         for k in ['RA','DEC']:
