@@ -29,6 +29,9 @@ parser.add_argument('--in-files', type = str, default = None, required=False,
 parser.add_argument('--nproc', type = int, default = 1, required=False,
                     help = 'number of processes to use')
 
+parser.add_argument('--nside', type = int, default = 16, required=False,
+                    help = 'HEALPix nside for output files (must be 2^n)')
+
 parser.add_argument('--make-zcats', action="store_true", default = False, required=False,
                     help = 'whether to make new catalogs or not')
 
@@ -79,7 +82,6 @@ parser.add_argument('--single-DLA-per-skw', action="store_true", default = False
 
 args = parser.parse_args()
 
-
 # Wavelength grid for output.
 lObs_min = args.transmission_lambda_min
 lObs_max = args.transmission_lambda_max
@@ -95,7 +97,7 @@ if args.make_randoms_zcats:
         args.randoms_downsampling = args.downsampling
     if args.randoms_downsampling_seed is None:
         args.args.randoms_downsampling_seed = args.args.downsampling_seed
-    
+
 ################################################################################
 
 """
@@ -118,18 +120,13 @@ def log_error(retval):
 ################################################################################
 #Make the zcat.
 
-def create_cat(indir,outdir,downsampling,seed=0,ds_randoms=False,ds_DLA_randoms=False,randomsdir=None):
-
-    ###
-    zmin = 1.70
-    nside = 16
-    zint = ['0:10']
+def create_cat(args):
 
     ### Make random generator
-    state = sp.random.RandomState(seed)
+    state = sp.random.RandomState(args.downsampling_seed)
 
     ### Data
-    h = fitsio.FITS(indir+'/master.fits')
+    h = fitsio.FITS(args.in_dir+'/master.fits')
     m_data = sp.sort(h[1].read(),order=['MOCKID','Z_QSO_RSD'])
     data = {}
     for k in ['RA','DEC']:
@@ -138,33 +135,33 @@ def create_cat(indir,outdir,downsampling,seed=0,ds_randoms=False,ds_DLA_randoms=
         data[k] = m_data['MOCKID'][:]
     data['Z'] = m_data['Z_QSO_RSD'][:]
     print(data['Z'].min())
-    w = data['Z']>zmin
+    w = data['Z']>args.min_cat_z
     for k in data.keys():
         data[k] = data[k][w]
     h.close()
     phi = data['RA']*sp.pi/180.
     th = sp.pi/2.-data['DEC']*sp.pi/180.
-    pix = healpy.ang2pix(nside,th,phi)
+    pix = healpy.ang2pix(args.nside,th,phi)
     data['PIX'] = pix
     print('INFO: {} QSO in mocks data'.format(data['RA'].size))
 
     ### Get reduced data numbers
     original_nbData = data['RA'].shape[0]
-    nbData = round(original_nbData * downsampling)
+    nbData = round(original_nbData * args.downsampling)
 
     ### Save data
     assert nbData<=data['RA'].size
     w = state.choice(sp.arange(data['RA'].size), size=nbData, replace=False)
     w_thid = data['THING_ID'][w]
     print('INFO: downsampling to {} QSOs in catalog'.format(nbData))
-    out = fitsio.FITS(outdir+'/zcat_{}.fits'.format(downsampling),'rw',clobber=True)
+    out = fitsio.FITS(args.out_dir+'/zcat_{}.fits'.format(args.downsampling),'rw',clobber=True)
     cols = [ v[w] for k,v in data.items() if k not in ['PIX'] ]
     names = [ k for k in data.keys() if k not in ['PIX'] ]
     out.write(cols,names=names)
     out.close()
 
     ### DLA data
-    h = fitsio.FITS(indir+'/master_DLA.fits')
+    h = fitsio.FITS(args.in_dir+'/master_DLA.fits')
     md_data = sp.sort(h[1].read(),order=['MOCKID','Z_QSO_RSD'])
     data = {}
     for k in ['RA','DEC']:
@@ -181,20 +178,15 @@ def create_cat(indir,outdir,downsampling,seed=0,ds_randoms=False,ds_DLA_randoms=
         w = sp.ones(data['Z_QSO'].shape).astype('bool')
     for k in data.keys():
         data[k] = data[k][w]
+    w *= data['Z']>args.min_cat_z
     h.close()
     phi = data['RA']*sp.pi/180.
     th = sp.pi/2.-data['DEC']*sp.pi/180.
-    pix = healpy.ang2pix(nside,th,phi)
+    pix = healpy.ang2pix(args.nside,th,phi)
     data['PIX'] = pix
     print('INFO: {} DLA in mocks data'.format(data['RA'].size))
 
-    ### Get reduced data numbers
-    original_nbData = data['RA'].shape[0]
-    nbData = round(original_nbData * downsampling)
-
     ### Save DLA data
-    w_DLA = sp.isin(data['THING_ID'],w_thid)
-
     if args.single_DLA_per_skw:
         reduced_THING_ID = data['THING_ID'][w_DLA]
         n_id = 1
@@ -214,19 +206,21 @@ def create_cat(indir,outdir,downsampling,seed=0,ds_randoms=False,ds_DLA_randoms=
             ind = i
             n_id = 1
         w_DLA = sp.isin(range(len(data['THING_ID'])),inds)
+    else:
+        w_DLA = sp.isin(data['THING_ID'],w_thid)
 
     print('INFO: downsampling leaves {} DLAs in catalog'.format(sp.sum(w_DLA)))
     if args.single_DLA_per_skw:
-        out = fitsio.FITS(outdir+'/zcat_DLA_{}_single.fits'.format(downsampling),'rw',clobber=True)
+        out = fitsio.FITS(args.out_dir+'/zcat_DLA_{}_single.fits'.format(args.downsampling),'rw',clobber=True)
     else:
-        out = fitsio.FITS(outdir+'/zcat_DLA_{}.fits'.format(downsampling),'rw',clobber=True)
+        out = fitsio.FITS(args.out_dir+'/zcat_DLA_{}.fits'.format(args.downsampling),'rw',clobber=True)
     cols = [ v[w_DLA] for k,v in data.items() if k not in ['PIX','Z_QSO'] ]
     names = [ k for k in data.keys() if k not in ['PIX','Z_QSO'] ]
     out.write(cols,names=names)
     out.close()
 
     if make_randoms_zcats:
-        r_state = sp.random.RandomState(r_seed)
+        r_state = sp.random.RandomState(args.randoms_downsampling_seed)
 
         ### Data
         h = fitsio.FITS(randomsdir+'/master_randoms.fits')
@@ -237,31 +231,32 @@ def create_cat(indir,outdir,downsampling,seed=0,ds_randoms=False,ds_DLA_randoms=
         for k in ['THING_ID','PLATE','MJD','FIBERID']:
             data[k] = mr_data['MOCKID'][:]
         data['Z'] = mr_data['Z'][:]
-        w = data['Z']>zmin
+        w = data['Z']>args.min_cat_z
         for k in data.keys():
             data[k] = data[k][w]
         h.close()
         phi = data['RA']*sp.pi/180.
         th = sp.pi/2.-data['DEC']*sp.pi/180.
-        pix = healpy.ang2pix(nside,th,phi)
+        pix = healpy.ang2pix(args.nside,th,phi)
         data['PIX'] = pix
         print('INFO: {} QSO in randoms'.format(data['RA'].size))
 
         ### Get reduced data numbers
         original_nbData = data['RA'].shape[0]
-        nbData = round(original_nbData * r_downsampling)
+        nbData = round(original_nbData * args.randoms_downsampling)
 
         ### Save data
         assert nbData<=data['RA'].size
         w = state.choice(sp.arange(data['RA'].size), size=nbData, replace=False)
         print('INFO: downsampling to {} QSOs in randoms catalog'.format(nbData))
-        out = fitsio.FITS(outdir+'/zcat_{}_randoms.fits'.format(r_downsampling),'rw',clobber=True)
+        out = fitsio.FITS(args.out_dir+'/zcat_{}_randoms.fits'.format(args.randoms_downsampling),'rw',clobber=True)
         cols = [ v[w] for k,v in data.items() if k not in ['PIX'] ]
         names = [ k for k in data.keys() if k not in ['PIX'] ]
         out.write(cols,names=names)
         out.close()
 
-        h = fitsio.FITS(randomsdir+'/master_DLA_randoms.fits')
+        ### DLA randoms
+        h = fitsio.FITS(args.randoms_dir+'/master_DLA_randoms.fits')
         mdr_data = sp.sort(h[1].read(),order=['MOCKID','Z_QSO_RSD'])
         data = {}
         for k in ['RA','DEC']:
@@ -276,18 +271,17 @@ def create_cat(indir,outdir,downsampling,seed=0,ds_randoms=False,ds_DLA_randoms=
             w = (lr_DLA < lRF_max) * (lr_DLA > lRF_min)
         else:
             w = sp.ones(data['Z_QSO'].shape).astype('bool')
+        w *= data['Z']>args.min_cat_z
         for k in data.keys():
             data[k] = data[k][w]
         h.close()
         phi = data['RA']*sp.pi/180.
         th = sp.pi/2.-data['DEC']*sp.pi/180.
-        pix = healpy.ang2pix(nside,th,phi)
+        pix = healpy.ang2pix(args.nside,th,phi)
         data['PIX'] = pix
         print('INFO: {} DLA in randoms'.format(data['RA'].size))
 
         ### Save DLA data
-        w_DLA = sp.isin(data['THING_ID'],w_thid)
-
         if args.single_DLA_per_skw:
             reduced_THING_ID = data['THING_ID'][w_DLA]
             n_id = 1
@@ -307,13 +301,14 @@ def create_cat(indir,outdir,downsampling,seed=0,ds_randoms=False,ds_DLA_randoms=
                 ind = i
                 n_id = 1
             w_DLA = sp.isin(range(len(data['THING_ID'])),inds)
-
+        else:
+            w_DLA = sp.isin(data['THING_ID'],w_thid)
 
         print('INFO: downsampling leaves {} DLAs in randoms catalog'.format(sp.sum(w_DLA)))
         if args.single_DLA_per_skw:
-            out = fitsio.FITS(outdir+'/zcat_DLA_{}_randoms_single.fits'.format(r_downsampling),'rw',clobber=True)
+            out = fitsio.FITS(args.out_dir+'/zcat_DLA_{}_randoms_single.fits'.format(args.randoms_downsampling),'rw',clobber=True)
         else:
-            out = fitsio.FITS(outdir+'/zcat_DLA_{}_randoms.fits'.format(r_downsampling),'rw',clobber=True)
+            out = fitsio.FITS(args.out_dir+'/zcat_DLA_{}_randoms.fits'.format(args.randoms_downsampling),'rw',clobber=True)
         cols = [ v[w_DLA] for k,v in data.items() if k not in ['PIX','Z_QSO'] ]
         names = [ k for k in data.keys() if k not in ['PIX','Z_QSO'] ]
         out.write(cols,names=names)
@@ -322,7 +317,7 @@ def create_cat(indir,outdir,downsampling,seed=0,ds_randoms=False,ds_DLA_randoms=
     return
 
 if args.make_zcats:
-    create_cat(args.in_dir,args.out_dir,args.downsampling,seed=args.downsampling_seed,ds_randoms=args.downsample_randoms,ds_DLA_randoms=args.downsample_randoms,randomsdir=args.randoms_dir,r_downsampling=args.randoms_downsampling,r_seed=args.randoms_downsampling_seed)
+    create_cat(args)
 
 ################################################################################
 #Make the delta files.
