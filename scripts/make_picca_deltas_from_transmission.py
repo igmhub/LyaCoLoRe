@@ -29,20 +29,29 @@ parser.add_argument('--in-files', type = str, default = None, required=False,
 parser.add_argument('--nproc', type = int, default = 1, required=False,
                     help = 'number of processes to use')
 
+parser.add_argument('--make-zcats', action="store_true", default = False, required=False,
+                    help = 'whether to make new catalogs or not')
+
 parser.add_argument('--downsampling', type = float, default = 1.0, required=False,
                     help = 'proportion by which to downsample')
 
 parser.add_argument('--downsampling-seed', type = int, default = 0, required=False,
-                    help = 'seed for the random downsampling')
+                    help = 'seed for the downsampling')
 
-parser.add_argument('--downsample-randoms', action="store_true", default = False, required=False,
-                    help = 'whether to downsample the random catalogs or not')
+parser.add_argument('--make-randoms-zcats', action="store_true", default = False, required=False,
+                    help = 'whether to make randoms catalogs or not')
+
+parser.add_argument('--randoms-downsampling', type = float, default = None, required=False,
+                    help = 'proportion by which to downsample the randoms')
+
+parser.add_argument('--randoms-downsampling-seed', type = int, default = None, required=False,
+                    help = 'seed for the downsampling of randoms')
 
 parser.add_argument('--randoms-dir', type = str, default = None, required=False,
                     help = 'directory of randoms')
 
-parser.add_argument('--DLA-z-buffer', type = float, default = 0., required=False,
-                    help = 'buffer interval to leave redward of QSOs when making DLA catalogs')
+parser.add_argument('--DLAs-in-transmission-rest-range', action="store_true", default = False, required=False,
+                    help = 'flag to only include DLAs within the transmission range of rest frame wavelengths')
 
 parser.add_argument('--add-Lyb', action="store_true", default = False, required=False,
                     help = 'whether to add Lyb absorption or not')
@@ -78,6 +87,15 @@ lRF_min = args.transmission_lambda_rest_min
 lRF_max = args.transmission_lambda_rest_max
 dll = args.transmission_delta_lambda
 
+if not os.path.isdir(args.out_dir):
+    os.mkdir(args.out_dir)
+
+if args.make_randoms_zcats:
+    if args.randoms_downsampling is None:
+        args.randoms_downsampling = args.downsampling
+    if args.randoms_downsampling_seed is None:
+        args.args.randoms_downsampling_seed = args.args.downsampling_seed
+    
 ################################################################################
 
 """
@@ -100,7 +118,7 @@ def log_error(retval):
 ################################################################################
 #Make the zcat.
 
-def create_cat(indir,outdir,downsampling,seed=0,DLA_z_buffer=0.,ds_randoms=False,ds_DLA_randoms=False):
+def create_cat(indir,outdir,downsampling,seed=0,ds_randoms=False,ds_DLA_randoms=False,randomsdir=None):
 
     ###
     zmin = 1.70
@@ -112,12 +130,13 @@ def create_cat(indir,outdir,downsampling,seed=0,DLA_z_buffer=0.,ds_randoms=False
 
     ### Data
     h = fitsio.FITS(indir+'/master.fits')
+    m_data = sp.sort(h[1].read(),order=['MOCKID','Z_QSO_RSD'])
     data = {}
     for k in ['RA','DEC']:
-        data[k] = h[1][k][:]
+        data[k] = m_data[k][:]
     for k in ['THING_ID','PLATE','MJD','FIBERID']:
-        data[k] = h[1]['MOCKID'][:]
-    data['Z'] = h[1]['Z_QSO_RSD'][:]
+        data[k] = m_data['MOCKID'][:]
+    data['Z'] = m_data['Z_QSO_RSD'][:]
     print(data['Z'].min())
     w = data['Z']>zmin
     for k in data.keys():
@@ -146,19 +165,20 @@ def create_cat(indir,outdir,downsampling,seed=0,DLA_z_buffer=0.,ds_randoms=False
 
     ### DLA data
     h = fitsio.FITS(indir+'/master_DLA.fits')
+    md_data = sp.sort(h[1].read(),order=['MOCKID','Z_QSO_RSD'])
     data = {}
     for k in ['RA','DEC']:
-        data[k] = h[1][k][:]
+        data[k] = md_data[k][:]
     for k in ['THING_ID','PLATE','MJD','FIBERID']:
-        data[k] = h[1]['MOCKID'][:]
-    data['Z'] = h[1]['Z_DLA_RSD'][:]
-    # Remove DLAs too close to the QSO
-    data['Z_QSO'] = h[1]['Z_QSO_RSD'][:]
-    w = abs(data['Z'] - data['Z_QSO'])>DLA_z_buffer
-    for k in data.keys():
-        data[k] = data[k][w]
-    # Remove DLAs below zmin
-    w = data['Z']>zmin
+        data[k] = md_data['MOCKID'][:]
+    data['Z'] = md_data['Z_DLA_RSD'][:]
+    # Ensure that DLAs are in the rest frame wavelength range if required
+    data['Z_QSO'] = md_data['Z_QSO_RSD'][:]
+    if args.DLAs_in_transmission_rest_range:
+        lr_DLA = lya*(1+data['Z'])/(1+data['Z_QSO'])
+        w = (lr_DLA < lRF_max) * (lr_DLA > lRF_min)
+    else:
+        w = sp.ones(data['Z_QSO'].shape).astype('bool')
     for k in data.keys():
         data[k] = data[k][w]
     h.close()
@@ -193,24 +213,30 @@ def create_cat(indir,outdir,downsampling,seed=0,DLA_z_buffer=0.,ds_randoms=False
             inds += [ind]
             ind = i
             n_id = 1
-        w_DLA = np.array(inds)
+        w_DLA = sp.isin(range(len(data['THING_ID'])),inds)
 
     print('INFO: downsampling leaves {} DLAs in catalog'.format(sp.sum(w_DLA)))
-    out = fitsio.FITS(outdir+'/zcat_DLA_{}.fits'.format(downsampling),'rw',clobber=True)
+    if args.single_DLA_per_skw:
+        out = fitsio.FITS(outdir+'/zcat_DLA_{}_single.fits'.format(downsampling),'rw',clobber=True)
+    else:
+        out = fitsio.FITS(outdir+'/zcat_DLA_{}.fits'.format(downsampling),'rw',clobber=True)
     cols = [ v[w_DLA] for k,v in data.items() if k not in ['PIX','Z_QSO'] ]
     names = [ k for k in data.keys() if k not in ['PIX','Z_QSO'] ]
     out.write(cols,names=names)
     out.close()
 
-    if ds_randoms:
+    if make_randoms_zcats:
+        r_state = sp.random.RandomState(r_seed)
+
         ### Data
-        h = fitsio.FITS(indir+'/master_randoms.fits')
+        h = fitsio.FITS(randomsdir+'/master_randoms.fits')
         data = {}
+        mr_data = sp.sort(h[1].read(),order=['MOCKID','Z'])
         for k in ['RA','DEC']:
-            data[k] = h[1][k][:]
+            data[k] = mr_data[k][:]
         for k in ['THING_ID','PLATE','MJD','FIBERID']:
-            data[k] = h[1]['MOCKID'][:]
-        data['Z'] = h[1]['Z'][:]
+            data[k] = mr_data['MOCKID'][:]
+        data['Z'] = mr_data['Z'][:]
         w = data['Z']>zmin
         for k in data.keys():
             data[k] = data[k][w]
@@ -223,32 +249,33 @@ def create_cat(indir,outdir,downsampling,seed=0,DLA_z_buffer=0.,ds_randoms=False
 
         ### Get reduced data numbers
         original_nbData = data['RA'].shape[0]
-        nbData = round(original_nbData * downsampling)
+        nbData = round(original_nbData * r_downsampling)
 
         ### Save data
         assert nbData<=data['RA'].size
         w = state.choice(sp.arange(data['RA'].size), size=nbData, replace=False)
         print('INFO: downsampling to {} QSOs in randoms catalog'.format(nbData))
-        out = fitsio.FITS(outdir+'/zcat_{}_randoms.fits'.format(downsampling),'rw',clobber=True)
+        out = fitsio.FITS(outdir+'/zcat_{}_randoms.fits'.format(r_downsampling),'rw',clobber=True)
         cols = [ v[w] for k,v in data.items() if k not in ['PIX'] ]
         names = [ k for k in data.keys() if k not in ['PIX'] ]
         out.write(cols,names=names)
         out.close()
 
-        h = fitsio.FITS(indir+'/master_DLA_randoms.fits')
+        h = fitsio.FITS(randomsdir+'/master_DLA_randoms.fits')
+        mdr_data = sp.sort(h[1].read(),order=['MOCKID','Z_QSO_RSD'])
         data = {}
         for k in ['RA','DEC']:
-            data[k] = h[1][k][:]
+            data[k] = mdr_data[k][:]
         for k in ['THING_ID','PLATE','MJD','FIBERID']:
-            data[k] = h[1]['MOCKID'][:]
-        data['Z'] = h[1]['Z_DLA'][:]
-        # Remove DLAs too close to the QSO
-        data['Z_QSO'] = h[1]['Z_QSO_RSD'][:]
-        w = abs(data['Z'] - data['Z_QSO'])>DLA_z_buffer
-        for k in data.keys():
-            data[k] = data[k][w]
-        # Remove DLAs below zmin
-        w = data['Z']>zmin
+            data[k] = mdr_data['MOCKID'][:]
+        data['Z'] = mdr_data['Z_DLA'][:]
+        data['Z_QSO'] = mdr_data['Z_QSO_RSD'][:]
+        # Ensure that DLAs are in the rest frame wavelength range if required
+        if args.DLAs_in_transmission_rest_range:
+            lr_DLA = lya*(1+data['Z'])/(1+data['Z_QSO'])
+            w = (lr_DLA < lRF_max) * (lr_DLA > lRF_min)
+        else:
+            w = sp.ones(data['Z_QSO'].shape).astype('bool')
         for k in data.keys():
             data[k] = data[k][w]
         h.close()
@@ -279,10 +306,14 @@ def create_cat(indir,outdir,downsampling,seed=0,DLA_z_buffer=0.,ds_randoms=False
                 inds += [ind]
                 ind = i
                 n_id = 1
-            w_DLA = np.array(inds)
+            w_DLA = sp.isin(range(len(data['THING_ID'])),inds)
+
 
         print('INFO: downsampling leaves {} DLAs in randoms catalog'.format(sp.sum(w_DLA)))
-        out = fitsio.FITS(outdir+'/zcat_DLA_{}_randoms.fits'.format(downsampling),'rw',clobber=True)
+        if args.single_DLA_per_skw:
+            out = fitsio.FITS(outdir+'/zcat_DLA_{}_randoms_single.fits'.format(r_downsampling),'rw',clobber=True)
+        else:
+            out = fitsio.FITS(outdir+'/zcat_DLA_{}_randoms.fits'.format(r_downsampling),'rw',clobber=True)
         cols = [ v[w_DLA] for k,v in data.items() if k not in ['PIX','Z_QSO'] ]
         names = [ k for k in data.keys() if k not in ['PIX','Z_QSO'] ]
         out.write(cols,names=names)
@@ -290,7 +321,8 @@ def create_cat(indir,outdir,downsampling,seed=0,DLA_z_buffer=0.,ds_randoms=False
 
     return
 
-create_cat(args.in_dir,args.out_dir,args.downsampling,seed=args.downsampling_seed,DLA_z_buffer=args.DLA_z_buffer,ds_randoms=args.downsample_randoms,ds_DLA_randoms=args.downsample_randoms)
+if args.make_zcats:
+    create_cat(args.in_dir,args.out_dir,args.downsampling,seed=args.downsampling_seed,ds_randoms=args.downsample_randoms,ds_DLA_randoms=args.downsample_randoms,randomsdir=args.randoms_dir,r_downsampling=args.randoms_downsampling,r_seed=args.randoms_downsampling_seed)
 
 ################################################################################
 #Make the delta files.
@@ -312,15 +344,15 @@ Returns:
     None
 """
 
-zcat = args.out_dir+'/zcat_{}.fits'.format(downsampling)
+zcat = args.out_dir+'/zcat_{}.fits'.format(args.downsampling)
 if args.add_Lyb * args.add_metals:
-    args.out_dir = args.out_dir+'/deltas_{}_Lyb_metals/'.format(downsampling)
+    args.out_dir = args.out_dir+'/deltas_{}_Lyb_metals/'.format(args.downsampling)
 elif args.add_Lyb:
-    args.out_dir = args.out_dir+'/deltas_{}_Lyb/'.format(downsampling)
+    args.out_dir = args.out_dir+'/deltas_{}_Lyb/'.format(args.downsampling)
 elif args.add_metals:
-    args.out_dir = args.out_dir+'/deltas_{}_metals/'.format(downsampling)
+    args.out_dir = args.out_dir+'/deltas_{}_metals/'.format(args.downsampling)
 else:
-    args.out_dir = args.out_dir+'/deltas_{}/'.format(downsampling)
+    args.out_dir = args.out_dir+'/deltas_{}/'.format(args.downsampling)
 if not os.path.isdir(args.out_dir):
     os.mkdir(args.out_dir)
 
@@ -340,7 +372,7 @@ h.close()
 print('INFO: Found {} quasars'.format(zcat_ra.size))
 
 ### List of transmission files
-if (args.in_dir is None and infiles is None) or (args.in_dir is not None and infiles is not None):
+if (args.in_dir is None and args.in_files is None) or (args.in_dir is not None and args.in_files is not None):
     print("ERROR: No transmisson input files or both 'indir' and 'infiles' given")
     sys.exit()
 elif args.in_dir is not None:
@@ -353,7 +385,7 @@ elif args.in_dir is not None:
     in_pixs = healpy.ang2pix(in_nside, sp.pi/2.-zcat_dec, zcat_ra, nest=nest)
     fi = sp.sort(sp.array(['{}/{}/{}/transmission-{}-{}.fits.gz'.format(args.in_dir,int(f//100),f,in_nside,f) for f in sp.unique(in_pixs)]))
 else:
-    fi = sp.sort(sp.array(infiles))
+    fi = sp.sort(sp.array(args.in_files))
 print('INFO: Found {} files'.format(fi.size))
 
 ### Stack the transmission
@@ -451,7 +483,7 @@ tasks = [(f,) for f in fi]
 
 #Run the multiprocessing pool
 if __name__ == '__main__':
-    pool = Pool(processes = nproc)
+    pool = Pool(processes = args.nproc)
     results = []
     start_time = time.time()
     for task in tasks:
@@ -501,7 +533,7 @@ tasks = [(p,) for p in deltas.keys()]
 
 #Run the multiprocessing pool
 if __name__ == '__main__':
-    pool = Pool(processes = nproc)
+    pool = Pool(processes = args.nproc)
     results = []
     start_time = time.time()
     for task in tasks:
