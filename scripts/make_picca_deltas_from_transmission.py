@@ -130,7 +130,7 @@ def create_cat(args):
 
     ### Data
     h = fitsio.FITS(args.in_dir+'/master.fits')
-    m_data = sp.sort(h[1].read(),order=['MOCKID','Z_QSO_RSD'])
+    #m_data = sp.sort(h[1].read(),order=['MOCKID','Z_QSO_RSD'])
     data = {}
     for k in ['RA','DEC']:
         data[k] = m_data[k][:]
@@ -212,7 +212,8 @@ def create_cat(args):
     else:
         w_DLA = sp.isin(data['THING_ID'],w_thid)
 
-    print('INFO: downsampling leaves {} DLAs in catalog'.format(sp.sum(w_DLA)))
+    N_DLA = sp.sum(w_DLA))
+    print('INFO: downsampling leaves {} DLAs in catalog'.format(N_DLA))
     if args.single_DLA_per_skw:
         out = fitsio.FITS(args.out_dir+'/zcat_DLA_{}_single.fits'.format(args.downsampling),'rw',clobber=True)
     else:
@@ -221,6 +222,7 @@ def create_cat(args):
     names = [ k for k in data.keys() if k not in ['PIX','Z_QSO'] ]
     out.write(cols,names=names)
     out.close()
+
 
     if args.make_randoms_zcats:
         r_state = sp.random.RandomState(args.randoms_downsampling_seed)
@@ -250,7 +252,7 @@ def create_cat(args):
 
         ### Save data
         assert nbData<=data['RA'].size
-        w = state.choice(sp.arange(data['RA'].size), size=nbData, replace=False)
+        w = r_state.choice(sp.arange(data['RA'].size), size=nbData, replace=False)
         print('INFO: downsampling to {} QSOs in randoms catalog'.format(nbData))
         out = fitsio.FITS(args.out_dir+'/zcat_{}_randoms.fits'.format(args.randoms_downsampling),'rw',clobber=True)
         cols = [ v[w] for k,v in data.items() if k not in ['PIX'] ]
@@ -261,6 +263,8 @@ def create_cat(args):
         ### DLA randoms
         h = fitsio.FITS(args.randoms_dir+'/master_DLA_randoms.fits')
         mdr_data = sp.sort(h[1].read(),order=['MOCKID','Z_QSO_RSD'])
+        N_DLA_rand = mdr_data.shape[0]
+
         data = {}
         for k in ['RA','DEC']:
             data[k] = mdr_data[k][:]
@@ -306,6 +310,10 @@ def create_cat(args):
             w_DLA = sp.isin(range(len(data['THING_ID'])),inds)
         else:
             w_DLA = sp.isin(data['THING_ID'],w_thid)
+
+        #Then downsample using a modified ratio to take into account the removal of QSOs.
+        mod_r_ds = args.randoms_downsampling/args.downsampling
+        w_DLA *= r_state.choice([0,1],size=data['THING_ID'].shape[0],replace=True,p=[1-mod_r_ds,mod_r_ds])
 
         print('INFO: downsampling leaves {} DLAs in randoms catalog'.format(sp.sum(w_DLA)))
         if args.single_DLA_per_skw:
