@@ -130,7 +130,7 @@ def create_cat(args):
 
     ### Data
     h = fitsio.FITS(args.in_dir+'/master.fits')
-    #m_data = sp.sort(h[1].read(),order=['MOCKID','Z_QSO_RSD'])
+    m_data = sp.sort(h[1].read(),order=['MOCKID','Z_QSO_RSD'])
     data = {}
     for k in ['RA','DEC']:
         data[k] = m_data[k][:]
@@ -212,7 +212,7 @@ def create_cat(args):
     else:
         w_DLA = sp.isin(data['THING_ID'],w_thid)
 
-    N_DLA = sp.sum(w_DLA))
+    N_DLA = sp.sum(w_DLA)
     print('INFO: downsampling leaves {} DLAs in catalog'.format(N_DLA))
     if args.single_DLA_per_skw:
         out = fitsio.FITS(args.out_dir+'/zcat_DLA_{}_single.fits'.format(args.downsampling),'rw',clobber=True)
@@ -313,7 +313,7 @@ def create_cat(args):
 
         #Then downsample using a modified ratio to take into account the removal of QSOs.
         mod_r_ds = args.randoms_downsampling/args.downsampling
-        w_DLA *= r_state.choice([0,1],size=data['THING_ID'].shape[0],replace=True,p=[1-mod_r_ds,mod_r_ds])
+        w_DLA *= r_state.choice([0,1],size=data['THING_ID'].shape[0],replace=True,p=[1-mod_r_ds,mod_r_ds]).astype('bool')
 
         print('INFO: downsampling leaves {} DLAs in randoms catalog'.format(sp.sum(w_DLA)))
         if args.single_DLA_per_skw:

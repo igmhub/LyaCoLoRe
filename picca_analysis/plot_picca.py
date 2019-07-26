@@ -33,7 +33,6 @@ subplots[(0,0)] =  {'location':         '/global/homes/j/jfarr/Programs/picca/pi
                     'manual_fit_data':  {'b1': 3.7, 'b2': 3.7, 'beta1': 0.26, 'beta2': 0.26},
                     'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': None},
                     }
-
 """
 """
 filename = 'berkeley_auto_0.2.pdf'
@@ -66,6 +65,32 @@ subplots[(0,0)] =  {'location':         '/global/homes/j/jfarr/Programs/picca/pi
                     'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': None},
                     }
 """
+filename = 'lya_qso_cross_0.2.pdf'
+figsize=(15,6)
+subplots = {}
+subplots[(0,0)] =  {'location':         '/global/homes/j/jfarr/Programs/picca/picca_analysis_043/picca_00230/',
+                    'filename':         'xcf_exp_0.2_shuffle.fits.gz',
+                    'mu_bins':          [(0.0,0.5),(0.5,0.8),(0.8,0.95),(0.95,1.0)],
+                    'mu_bin_colours':   ['C0','C1','C2','C3'],
+                    'plot_data':        {'r_power': 2, 'nr': 40, 'rmax_plot': 200.0},
+                    'plot_picca_fit':   True,
+                    'picca_fit_data':   {'rmin': 20., 'rmax': 160., 'afix': 'fixed'},
+                    'plot_manual_fit':  False,
+                    'manual_fit_data':  {'b1': -0.119, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': 'Lya x QSO'},
+                    }
+subplots[(0,1)] =  {'location':         '/global/homes/j/jfarr/Programs/picca/picca_analysis_043/picca_00230/',
+                    'filename':         'xcf_exp_0.2_shuffle.fits.gz',
+                    'mu_bins':          [(-0.5,0.0),(-0.8,-0.5),(-0.95,-0.8),(-1.0,-0.95)],
+                    'mu_bin_colours':   ['C0','C1','C2','C3'],
+                    'plot_data':        {'r_power': 2, 'nr': 40, 'rmax_plot': 200.0},
+                    'plot_picca_fit':   True,
+                    'picca_fit_data':   {'rmin': 20., 'rmax': 160., 'afix': 'fixed'},
+                    'plot_manual_fit':  False,
+                    'manual_fit_data':  {'b1': -0.119, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': 'Lya x QSO'},
+                    }
+
 """
 filename = 'berkeley_cross_0.2_DLA.pdf'
 figsize=(15,6)
@@ -93,6 +118,7 @@ subplots[(0,1)] =  {'location':         '/global/homes/j/jfarr/Programs/picca/pi
                     'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': 'Lya x DLA'},
                     }
 
+"""
 """
 
 filename = 'berkeley_cross_0.2_DLA_subbin.pdf'
@@ -120,8 +146,9 @@ subplots[(0,1)] =  {'location':         '/global/homes/j/jfarr/Programs/picca/pi
                     'manual_fit_data':  {'b1': -0.119, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
                     'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': 'Lya x DLA'},
                     }
-
 """
+"""
+
 filename = 'berkeley_cross_0.2_DLA.pdf'
 figsize=(12,8)
 subplots = {}
@@ -139,28 +166,28 @@ subplots[(0,0)] =  {'location':         '/global/homes/j/jfarr/Programs/picca/pi
                     }
 
 """
-
 """
+
 filename = 'corr_plot.pdf'
 subplots = {}
-subplots[(0,0)] =  {'location':         '/global/homes/j/jfarr/Programs/picca/picca_analysis_037/combined/',
-                    'filename':         'cf_exp.fits.gz',
+subplots[(0,0)] =  {'location':         '/global/homes/j/jfarr/Programs/picca/picca_analysis_043/picca_00229/',
+                    'filename':         'cf_exp_0.2.fits.gz',
                     'mu_bins':          [(0.0,0.5),(0.5,0.8),(0.8,0.95),(0.95,1.0)],
                     'mu_bin_colours':   ['C0','C1','C2','C3'],
-                    'plot_data':        {'r_power': 2, 'nr': 40, 'rmax': 160.0},
+                    'plot_data':        {'r_power': 2, 'nr': 40, 'rmax_plot': 200.0},
                     'plot_picca_fit':   True,
-                    'picca_fit_data':   {'rmin': 40., 'afix': 'free'},
+                    'picca_fit_data':   {'rmin': 40., 'rmax':160., 'afix': 'free'},
                     'plot_manual_fit':  False,
                     'manual_fit_data':  {'b1': -0.1049, 'b2': -0.1049, 'beta1': 1.3783, 'beta2': 1.3783},
                     'format':           {'legend': True, 'xlabel': True, 'ylabel': True},
                     }
-subplots[(0,1)] =  {'location':         '/global/homes/j/jfarr/Programs/picca/picca_analysis_041/picca_00223/',
-                    'filename':         'xcf_exp_2400k_shuffle.fits.gz',
+subplots[(0,1)] =  {'location':         '/global/homes/j/jfarr/Programs/picca/picca_analysis_043/picca_00230/',
+                    'filename':         'xcf_exp_0.2_shuffle.fits.gz',
                     'mu_bins':          [(0.0,0.5),(0.5,0.8),(0.8,0.95),(0.95,1.0)],
                     'mu_bin_colours':   ['C0','C1','C2','C3'],
-                    'plot_data':        {'r_power': 2, 'nr': 40, 'rmax': 160.0},
+                    'plot_data':        {'r_power': 2, 'nr': 40, 'rmax_plot': 200.0},
                     'plot_picca_fit':   True,
-                    'picca_fit_data':   {'rmin': 40., 'afix': 'free'},
+                    'picca_fit_data':   {'rmin': 40., 'rmax':160., 'afix': 'free'},
                     'plot_manual_fit':  False,
                     'manual_fit_data':  {'b1': -0.133, 'b2': 2.0, 'beta1': 1.4, 'beta2': 0.79},
                     'format':           {'legend': False, 'xlabel': True, 'ylabel': True},
@@ -182,13 +209,13 @@ subplots[(0,0)] =  {'location':         '/global/homes/j/jfarr/Programs/picca/pi
                     'format':           {'legend': True, 'xlabel': True, 'ylabel': True},
                     }
 subplots[(0,1)] =  {'location':         '/global/homes/j/jfarr/Programs/picca/picca_analysis_045/picca_00240/',
-                    'filename':         'xcf_exp_0.2_randoms.fits.gz',
+                    'filename':         'xcf_exp_0.2_randoms_subbin.fits.gz',
                     'mu_bins':          [(0.0,0.5),(0.5,0.8),(0.8,0.95),(0.95,1.0)],
                     'mu_bin_colours':   ['C0','C1','C2','C3'],
                     'plot_data':        {'r_power': 2, 'nr': 40, 'rmax_plot': 160.0},
-                    'plot_picca_fit':   False,
+                    'plot_picca_fit':   True,
                     'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
-                    'plot_manual_fit':  True,
+                    'plot_manual_fit':  False,
                     'manual_fit_data':  {'b1': -0.1049, 'b2': 2.0, 'beta1': 1.4, 'beta2': 0.79},
                     'format':           {'legend': False, 'xlabel': True, 'ylabel': True},
                     }

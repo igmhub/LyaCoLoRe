@@ -13,9 +13,9 @@ fN_cosmo = fN_default.cosmo
 use_pyigm = True
 
 include_RSDs = True
-basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v7/v7.3.0/'
-#basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v7/v7.0.0/'
-qso_z_buffer=0.05
+basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test_DLA_sample/'
+#basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v9/v9.0.0_full/'
+qso_z_buffer=0.00
 
 #Open a DLA master file and extract the relevant data.
 h = fits.open(basedir+'/master_DLA.fits')

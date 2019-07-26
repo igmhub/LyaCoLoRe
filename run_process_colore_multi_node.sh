@@ -3,14 +3,15 @@
 ## If you would only like 1 realisation, then set min and max to the same value.
 COLORE_SEED_START=1003
 LYACOLORE_SEED_START=123
-N_REALISATIONS=2
+N_REALISATIONS=5
+V_REALISATION_START=62
 
 ################################################################################
 ## Specify the queue to use for this set of realisations.
-QUEUE='regular'
+QUEUE='debug'
 NNODES=32
 NCORES=32
-TIME="00:30:00" #hh:mm:ss
+TIME="00:10:00" #hh:mm:ss
 
 ################################################################################
 ## Specify the LyaCoLoRe code version.
@@ -31,7 +32,7 @@ DLA_BIAS_METHOD='global'
 DOWNSAMPLING=1.0
 FOOTPRINT='desi_pixel_plus'
 PIXELS=`echo {0..3071}`
-TRANSMISSION_FORMAT='develop'
+TRANSMISSION_FORMAT='final'
 
 # transmission file wavelength grid
 TRANS_LMIN=3470.0
@@ -64,7 +65,7 @@ echo " -> LyaCoLoRe seed will start at $LYACOLORE_SEED_START and be incremented 
 
 ################################################################################
 ## Cycle through each realisation that we want.
-for V_REALISATION in $(seq 0 $(( $N_REALISATIONS - 1 ))); do
+for V_REALISATION in $(seq $V_REALISATION_START $(( $V_REALISATION_START + $N_REALISATIONS - 1 ))); do
 
 ##############################################################################
 ## Set the seeds.
@@ -73,7 +74,8 @@ LYACOLORE_SEED=$(( $LYACOLORE_SEED_START + $V_REALISATION ))
 
 ################################################################################
 ## Specify the paths to the input data.
-INPUT_PATH="/project/projectdirs/desi/mocks/lya_forest/develop/london/colore_raw/v5_seed${COLORE_SEED}/"
+#INPUT_PATH="/project/projectdirs/desi/mocks/lya_forest/develop/london/colore_raw/v5_seed${COLORE_SEED}/"
+INPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/cr_transfer/v5_seed${COLORE_SEED}/"
 COLORE_PARAM_PATH="${INPUT_PATH}/param_v5_seed${COLORE_SEED}.cfg"
 INPUT_FILES=`ls -1 ${INPUT_PATH}/out_srcs_*.fits`
 NFILES=`echo $INPUT_FILES | wc -w`
@@ -213,6 +215,9 @@ done
 
 ################################################################################
 ## Concluding message.
+echo " "
+echo "################################################################################"
+echo " "
 echo "$N_REALISATIONS jobs sent to the queue. Enjoy!"
 echo " "
 echo "################################################################################"

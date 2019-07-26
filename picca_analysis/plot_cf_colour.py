@@ -17,21 +17,29 @@ plot_system = 'plot_per_file' #per bin or per file
 model = 'Slosar11'
 fit_type = 'manual'
 fit_data = {'b1': 1., 'b2': 1., 'beta1': 0., 'beta2': 0.}
-r_power = 0
 vmax = 10**-4
 show_plots = True
 save_plots = True
 
-afix = 'fixed'
-rmin = 40.
-#Stuff we don't need for now.
-rmin_label = str(rmin)
-rmin_label = rmin_label[:rmin_label.find('.')]
-suffix = '_{}r_a{}'.format(rmin_label,afix)
-res_name = '/result'+suffix+'.h5'
+filename = 'berkeley_cross_0.2_DLA.pdf'
+figsize=(12,8)
+subplots = {}
+subplots[(0,0)] =  {'location':         '/global/homes/j/jfarr/Programs/picca/picca_analysis_045/picca_00240/',
+                    'filename':         'xcf_exp_0.2_randoms.fits.gz',
+                    #'mu_bins':          [(0.0,0.5),(0.5,0.8),(0.8,0.95),(0.95,1.0)],
+                    'mu_bins':          [(0.0,0.5),(0.5,0.8),(0.8,0.95),(0.95,1.0)],
+                    'mu_bin_colours':   ['C0','C1','C2','C3'],
+                    'plot_data':        {'r_power': 2, 'nr': 40, 'rmax_plot': 200.0},
+                    'plot_picca_fit':   False,
+                    'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
+                    'plot_manual_fit':  True,
+                    'manual_fit_data':  {'b1': -0.1049, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
+                    'format':           {'legend': False, 'xlabel': True, 'ylabel': True},
+                    }
+
 
 #Get the correlation objects
-corr_objects = plot_functions.get_correlation_objects(locations,res_name=res_name)
+corr_object = plot_functions.get_correlation_object(subplots[(0,0)])
 
 #Make plots of the objects
-plot_functions.make_colour_plots(corr_objects,r_power=r_power,vmax=vmax,save_plots=True,show_plots=True,suffix=suffix)
+plot_functions.make_colour_plots(corr_object,vmax=vmax,save_plots=True,show_plots=True,suffix=suffix)
