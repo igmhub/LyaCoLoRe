@@ -81,16 +81,24 @@ def make_header(queue='regular',nnodes=1,time='00:01:00',job_name='run_script',e
 #For each realisation, for each correlation desired, create a job script and
 #send it to the queue.
 njobs = 0
+zbins = [(0.0,2.2),(2.2,2.6),(2.6,3.0),(3.0,10.0)]
 for v_rea in args.v_realisations:
 
     ver = 'v{}.{}.{}'.format(args.v_maj,args.v_min,v_rea)
     print('\nRunning analysis for version {}:'.format(ver))
     avc_dir = a_dir+'/correlation_functions/'+ver+'/measurements/'
 
+    #Define the location variables.
+    lya_deltas_loc = '{}/data/picca_input/{}/deltas_0.5/ '.format(args.base_dir,ver)
+    lya_aa_deltas_loc = '{}/data/picca_input/{}/deltas_0.5_Lyb_metals/ '.format(args.base_dir,ver)
+    zcat_qso_loc = '{}/data/picca_input/{}/zcat_0.5.fits/ '.format(args.base_dir,ver)
+    zcat_dla_loc = '{}/data/picca_input/{}/zcat_DLA_0.5.fits/ '.format(args.base_dir,ver)
+    zcat_qso_rand_loc = '{}/data/picca_input/{}/zcat_0.1_randoms.fits/ '.format(args.base_dir,ver)
+    zcat_dla_rand_loc = '{}/data/picca_input/{}/zcat_DLA_0.1_randoms.fits/ '.format(args.base_dir,ver)
+
     if args.run_lya_auto:
 
         print(' -> setting up the lya auto correlation...')
-        zbins = [(0.0,2.2),(2.2,2.6),(2.6,3.0),(3.0,10.0)]
 
         for zbin in zbins:
             zmin = zbin[0]
@@ -126,7 +134,7 @@ for v_rea in args.v_realisations:
             #Make the command.
             command = ''
             command += 'command="picca_cf.py '
-            command += '--in-dir {}/data/picca_input/{}/deltas_0.5/ '.format(args.base_dir,ver)
+            command += '--in-dir {} '.format(lya_deltas_loc)
             command += '--out {}/correlations/{} '.format(lya_auto_dir,lya_auto_file)
             command += '--fid-Om {} '.format(args.fid_Om)
             command += '--fid-Or {} '.format(args.fid_Or)
@@ -164,7 +172,6 @@ for v_rea in args.v_realisations:
             zmax = zbin[1]
 
             qso_auto_dir = avc_dir+'/qso_auto/'
-            qso_auto_file = 'co_qso_auto_{}_{}.fits.gz'.format(zmin,zmax)
             try:
                 os.mkdir(qso_auto_dir)
             except FileExistsError:
@@ -182,46 +189,59 @@ for v_rea in args.v_realisations:
             except FileExistsError:
                 pass
 
-            #Make the header.
-            queue = 'regular'
-            time = '00:04:00'
-            job_name = 'run_qso_auto_{}_{}_{}'.format(ver,zmin,zmax)
-            err_file = qso_auto_dir+'/run_files/qso_auto_{}_{}_{}_%j.err'.format(ver,zmin,zmax)
-            out_file = qso_auto_dir+'/run_files/qso_auto_{}_{}_{}_%j.out'.format(ver,zmin,zmax)
-            header = make_header(queue=queue,time='00:12:00',job_name=job_name,err_file=err_file,out_file=out_file)
+            for corr_type in ['DD','DR','RD','RR']:
 
-            #Make the command.
-            command = ''
-            command += 'command="picca_co.py '
-            command += '--drq {}/data/picca_input/{}/zcat_0.5.fits/ '.format(args.base_dir,ver)
-            command += '--out {}/correlations/{} '.format(qso_auto_dir,qso_auto_file)
-            command += '--fid-Om {} '.format(args.fid_Om)
-            command += '--fid-Or {} '.format(args.fid_Or)
-            command += '--no-project '
-            command += '--nside {} '.format(args.nside)
-            command += '--nproc {} '.format(args.nproc)
-            command += '--z-cut-min {} '.format(zmin)
-            command += '--z-cut-max {} '.format(zmax)
-            command += '--z-evol-obj 1.44 '
-            command += '--type-corr DD '
-            command += '"'
-            command += '\n'
-            command += 'srun -N 1 -n 1 -c {} $command'.format(args.nproc)
-            command += '\n'
+                qso_auto_file = 'co_qso_auto_{}_{}_{}.fits.gz'.format(corr_type,zmin,zmax)
 
-            #Make the run script.
-            run_script_text = header + command
-            run_script_path = '{}/scripts/run_qso_auto_{}_{}.sh'.format(qso_auto_dir,zmin,zmax)
-            run_script = open(run_script_path,'w+')
-            run_script.write(run_script_text)
-            run_script.close()
-            print(' -> -> job script written to:{}'.format(run_script_path))
+                #Make the header.
+                queue = 'regular'
+                time = '00:04:00'
+                job_name = 'run_qso_auto_{}_{}_{}_{}'.format(ver,corr_type,zmin,zmax)
+                err_file = qso_auto_dir+'/run_files/qso_auto_{}_{}_{}_{}_%j.err'.format(ver,corr_type,zmin,zmax)
+                out_file = qso_auto_dir+'/run_files/qso_auto_{}_{}_{}_{}_%j.out'.format(ver,corr_type,zmin,zmax)
+                header = make_header(queue=queue,time='00:12:00',job_name=job_name,err_file=err_file,out_file=out_file)
 
-            #Send the run script.
-            print(' -> -> sending job to queue...')
-            retcode = call('sbatch {}'.format(run_script_path),shell=True)
-            njobs += 1
-            print(' ')
+                #Make the command.
+                command = ''
+                command += 'command="picca_co.py '
+                if corr_type in ['DD','DR']:
+                    command += '--drq {} '.format(zcat_qso_loc)
+                if corr_type in ['RR']:
+                    command += '--drq {} '.format(zcat_qso_rand_loc)
+                if corr_type in ['RD']:
+                    command += '--drq2 {} '.format(zcat_qso_loc)
+                if corr_type in ['DR','RR']:
+                    command += '--drq2 {} '.format(zcat_qso_rand_loc)
+                command += '--out {}/correlations/{} '.format(qso_auto_dir,qso_auto_file)
+                command += '--fid-Om {} '.format(args.fid_Om)
+                command += '--fid-Or {} '.format(args.fid_Or)
+                command += '--no-project '
+                command += '--nside {} '.format(args.nside)
+                command += '--nproc {} '.format(args.nproc)
+                command += '--z-cut-min {} '.format(zmin)
+                command += '--z-cut-max {} '.format(zmax)
+                command += '--z-evol-obj 1.44 '
+                if corr_type in ['DR','RR']:
+                    command += '--z-evol-obj2 1.44 '
+                command += '--type-corr {} '.format(corr_type)
+                command += '"'
+                command += '\n'
+                command += 'srun -N 1 -n 1 -c {} $command'.format(args.nproc)
+                command += '\n'
+
+                #Make the run script.
+                run_script_text = header + command
+                run_script_path = '{}/scripts/run_qso_auto_{}_{}.sh'.format(qso_auto_dir,zmin,zmax)
+                run_script = open(run_script_path,'w+')
+                run_script.write(run_script_text)
+                run_script.close()
+                print(' -> -> job script written to:{}'.format(run_script_path))
+
+                #Send the run script.
+                print(' -> -> sending job to queue...')
+                retcode = call('sbatch {}'.format(run_script_path),shell=True)
+                njobs += 1
+                print(' ')
 
     if args.run_lya_aa_auto:
 
