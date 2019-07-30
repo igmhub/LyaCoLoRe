@@ -215,7 +215,6 @@ for v_rea in args.v_realisations:
                 command += '--out {}/correlations/{} '.format(qso_auto_dir,qso_auto_file)
                 command += '--fid-Om {} '.format(args.fid_Om)
                 command += '--fid-Or {} '.format(args.fid_Or)
-                command += '--no-project '
                 command += '--nside {} '.format(args.nside)
                 command += '--nproc {} '.format(args.nproc)
                 command += '--z-cut-min {} '.format(zmin)
