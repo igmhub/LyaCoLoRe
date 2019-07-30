@@ -9,7 +9,6 @@ FLAGS="--compressed-input --compress --transmission-only"
 
 ## For each realisation, run make_summaries.py
 for r in $V_REALISATIONS; do
-DIRNAME="$BASEDIR/v${V_CODE_MAJOR}.${V_CODE_MINOR}.${r}/data/LyaCoLoRe_output/
+DIRNAME="$BASEDIR/data/v${V_CODE_MAJOR}.${V_CODE_MINOR}.${r}/LyaCoLoRe_output/
 python $LYACOLORE_PATH/scripts/make_summaries.py --base-dir $DIRNAME --nproc $NPROC --nside $NSIDE $FLAGS
 done
-

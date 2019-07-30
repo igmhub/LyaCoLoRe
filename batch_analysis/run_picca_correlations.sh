@@ -5,7 +5,7 @@ V_CODE_MINOR=0
 V_REALISATIONS=`echo {0..9}`
 NPROC=32
 NSIDE=16
-FLAGS="--make-zcat --compressed-input --compress --add-Lyb --add-metals --downsample-randoms --downsample-DLA-randoms"
+FLAGS=""
 
 #Bins in redshift
 
@@ -54,4 +54,3 @@ date
 EOF
 
 done
-
