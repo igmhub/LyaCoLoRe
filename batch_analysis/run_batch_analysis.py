@@ -116,8 +116,8 @@ for v_rea in args.v_realisations:
                 pass
 
             #Make the header.
-            queue = 'debug'
-            time = '00:00:30'
+            queue = 'regular'
+            time = '00:12:00'
             job_name = 'run_lya_auto_{}_{}_{}'.format(ver,zmin,zmax)
             err_file = lya_auto_dir+'/run_files/lya_auto_{}_{}_{}_%j.err'.format(ver,zmin,zmax)
             out_file = lya_auto_dir+'/run_files/lya_auto_{}_{}_{}_%j.out'.format(ver,zmin,zmax)
@@ -143,6 +143,142 @@ for v_rea in args.v_realisations:
             #Make the run script.
             run_script_text = header + command
             run_script_path = '{}/scripts/run_lya_auto_{}_{}.sh'.format(lya_auto_dir,zmin,zmax)
+            run_script = open(run_script_path,'w+')
+            run_script.write(run_script_text)
+            run_script.close()
+            print(' -> -> job script written to:{}'.format(run_script_path))
+
+            #Send the run script.
+            print(' -> -> sending job to queue...')
+            retcode = call('sbatch {}'.format(run_script_path),shell=True)
+            njobs += 1
+            print(' ')
+
+    if args.run_qso_auto:
+
+        print(' -> setting up the qso auto correlation...')
+        zbins = [(0.0,2.2),(2.2,2.6),(2.6,3.0),(3.0,10.0)]
+
+        for zbin in zbins:
+            zmin = zbin[0]
+            zmax = zbin[1]
+
+            qso_auto_dir = avc_dir+'/qso_auto/'
+            qso_auto_file = 'co_qso_auto_{}_{}.fits.gz'.format(zmin,zmax)
+            try:
+                os.mkdir(qso_auto_dir)
+            except FileExistsError:
+                pass
+            try:
+                os.mkdir(qso_auto_dir+'/scripts/')
+            except FileExistsError:
+                pass
+            try:
+                os.mkdir(qso_auto_dir+'/correlations/')
+            except FileExistsError:
+                pass
+            try:
+                os.mkdir(qso_auto_dir+'/run_files/')
+            except FileExistsError:
+                pass
+
+            #Make the header.
+            queue = 'regular'
+            time = '00:04:00'
+            job_name = 'run_qso_auto_{}_{}_{}'.format(ver,zmin,zmax)
+            err_file = qso_auto_dir+'/run_files/qso_auto_{}_{}_{}_%j.err'.format(ver,zmin,zmax)
+            out_file = qso_auto_dir+'/run_files/qso_auto_{}_{}_{}_%j.out'.format(ver,zmin,zmax)
+            header = make_header(queue=queue,time='00:12:00',job_name=job_name,err_file=err_file,out_file=out_file)
+
+            #Make the command.
+            command = ''
+            command += 'command="picca_co.py '
+            command += '--drq {}/data/picca_input/{}/zcat_0.5.fits/ '.format(args.base_dir,ver)
+            command += '--out {}/correlations/{} '.format(qso_auto_dir,qso_auto_file)
+            command += '--fid-Om {} '.format(args.fid_Om)
+            command += '--fid-Or {} '.format(args.fid_Or)
+            command += '--no-project '
+            command += '--nside {} '.format(args.nside)
+            command += '--nproc {} '.format(args.nproc)
+            command += '--z-cut-min {} '.format(zmin)
+            command += '--z-cut-max {} '.format(zmax)
+            command += '--z-evol-obj 1.44 '
+            command += '--type-corr DD '
+            command += '"'
+            command += '\n'
+            command += 'srun -N 1 -n 1 -c {} $command'.format(args.nproc)
+            command += '\n'
+
+            #Make the run script.
+            run_script_text = header + command
+            run_script_path = '{}/scripts/run_qso_auto_{}_{}.sh'.format(qso_auto_dir,zmin,zmax)
+            run_script = open(run_script_path,'w+')
+            run_script.write(run_script_text)
+            run_script.close()
+            print(' -> -> job script written to:{}'.format(run_script_path))
+
+            #Send the run script.
+            print(' -> -> sending job to queue...')
+            retcode = call('sbatch {}'.format(run_script_path),shell=True)
+            njobs += 1
+            print(' ')
+
+    if args.run_lya_aa_auto:
+
+        print(' -> setting up the lya_aa auto correlation...')
+        zbins = [(0.0,2.2),(2.2,2.6),(2.6,3.0),(3.0,10.0)]
+
+        for zbin in zbins:
+            zmin = zbin[0]
+            zmax = zbin[1]
+
+            lya_aa_auto_dir = avc_dir+'/lya_aa_auto/'
+            lya_aa_auto_file = 'cf_lya_aa_auto_{}_{}.fits.gz'.format(zmin,zmax)
+            try:
+                os.mkdir(lya_aa_auto_dir)
+            except FileExistsError:
+                pass
+            try:
+                os.mkdir(lya_aa_auto_dir+'/scripts/')
+            except FileExistsError:
+                pass
+            try:
+                os.mkdir(lya_aa_auto_dir+'/correlations/')
+            except FileExistsError:
+                pass
+            try:
+                os.mkdir(lya_aa_auto_dir+'/run_files/')
+            except FileExistsError:
+                pass
+
+            #Make the header.
+            queue = 'regular'
+            time = '00:12:00'
+            job_name = 'run_lya_aa_auto_{}_{}_{}'.format(ver,zmin,zmax)
+            err_file = lya_aa_auto_dir+'/run_files/lya_aa_auto_{}_{}_{}_%j.err'.format(ver,zmin,zmax)
+            out_file = lya_aa_auto_dir+'/run_files/lya_aa_auto_{}_{}_{}_%j.out'.format(ver,zmin,zmax)
+            header = make_header(queue=queue,time='00:12:00',job_name=job_name,err_file=err_file,out_file=out_file)
+
+            #Make the command.
+            command = ''
+            command += 'command="picca_cf.py '
+            command += '--in-dir {}/data/picca_input/{}/deltas_0.5_Lyb_metals/ '.format(args.base_dir,ver)
+            command += '--out {}/correlations/{} '.format(lya_aa_auto_dir,lya_aa_auto_file)
+            command += '--fid-Om {} '.format(args.fid_Om)
+            command += '--fid-Or {} '.format(args.fid_Or)
+            command += '--no-project '
+            command += '--nside {} '.format(args.nside)
+            command += '--nproc {} '.format(args.nproc)
+            command += '--z-cut-min {} '.format(zmin)
+            command += '--z-cut-max {} '.format(zmax)
+            command += '"'
+            command += '\n'
+            command += 'srun -N 1 -n 1 -c {} $command'.format(args.nproc)
+            command += '\n'
+
+            #Make the run script.
+            run_script_text = header + command
+            run_script_path = '{}/scripts/run_lya_aa_auto_{}_{}.sh'.format(lya_aa_auto_dir,zmin,zmax)
             run_script = open(run_script_path,'w+')
             run_script.write(run_script_text)
             run_script.close()
