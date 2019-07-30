@@ -126,7 +126,7 @@ for v_rea in args.v_realisations:
             #Make the command.
             command = ''
             command += 'command="picca_cf.py '
-            command += '--in-dir {}/data/picca_input/{}/deltas/ '.format(args.base_dir,ver)
+            command += '--in-dir {}/data/picca_input/{}/deltas_0.5/ '.format(args.base_dir,ver)
             command += '--out {}/correlations/{} '.format(lya_auto_dir,lya_auto_file)
             command += '--fid-Om {} '.format(args.fid_Om)
             command += '--fid-Or {} '.format(args.fid_Or)
