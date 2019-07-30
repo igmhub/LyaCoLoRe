@@ -145,14 +145,15 @@ class picca_correlation:
 
         return cls(location,parameters,correlation_data,fit_parameters)
 
-    def plot_wedge(self,ax,mubin,plot_label,colour,r_power=2,nr=40,rmax_plot=200.):
+    def plot_wedge(self,ax,mubin,plot_label,colour,r_power=2,nr=40,rmax_plot=200.,abs_mu=False):
 
         mumin = mubin[0]
         mumax = mubin[1]
 
         #Create the wedge, and wedgise the correlation.
         b = wedgize.wedge(mumin=mumin,mumax=mumax,rtmax=self.rtmax,nrt=self.nt,
-            rpmin=self.rpmin,rpmax=self.rpmax,nrp=self.np,nr=nr,rmax=rmax_plot)
+            rpmin=self.rpmin,rpmax=self.rpmax,nrp=self.np,nr=nr,rmax=rmax_plot,
+            absoluteMu=abs_mu)
         r, xi_wed, cov_wed = b.wedge(self.xi,self.cov)
 
         #Get the errors.
@@ -166,18 +167,19 @@ class picca_correlation:
         r = r[cut]
         xi_wed = xi_wed[cut]
         err_wed = err_wed[cut]
-        ax.errorbar(r,(r**r_power) * xi_wed,yerr=(r**r_power) * err_wed,fmt='o',label=plot_label)
+        ar = ax.errorbar(r,(r**r_power) * xi_wed,yerr=(r**r_power) * err_wed,fmt='o',label=plot_label)
 
-        return
+        return ar, plot_label
 
-    def plot_wedge_fit(self,ax,mubin,plot_label,colour,r_power=2,nr=40,rmax_plot=200.,rmin_fit=None,rmax_fit=None):
+    def plot_wedge_fit(self,ax,mubin,plot_label,colour,r_power=2,nr=40,rmax_plot=200.,rmin_fit=None,rmax_fit=None,abs_mu=False):
 
         #Using data in picca fit
         mumin = mubin[0]
         mumax = mubin[1]
 
         b = wedgize.wedge(mumin=mumin,mumax=mumax,rtmax=self.rtmax,nrt=self.nt,
-            rpmin=self.rpmin,rpmax=self.rpmax,nrp=self.np,nr=nr,rmax=rmax_plot)
+            rpmin=self.rpmin,rpmax=self.rpmax,nrp=self.np,nr=nr,rmax=rmax_plot,
+            absoluteMu=abs_mu)
 
         """
         #REMOVE NON_DIAGONALS FROM COV MATRIX
@@ -203,14 +205,15 @@ class picca_correlation:
 
         return
 
-    def plot_wedge_manual_model(self,ax,b1,b2,beta1,beta2,mubin,plot_label,colour,r_power=2,nr=40,rmax_plot=200.):
+    def plot_wedge_manual_model(self,ax,b1,b2,beta1,beta2,mubin,plot_label,colour,r_power=2,nr=40,rmax_plot=200.,abs_mu=False):
 
         #Using data in picca fit
         mumin = mubin[0]
         mumax = mubin[1]
 
         b = wedgize.wedge(mumin=mumin,mumax=mumax,rtmax=self.rtmax,nrt=self.nt,
-            rpmin=self.rpmin,rpmax=self.rpmax,nrp=self.np,nr=nr,rmax=rmax_plot)
+            rpmin=self.rpmin,rpmax=self.rpmax,nrp=self.np,nr=nr,rmax=rmax_plot,
+            absoluteMu=abs_mu)
 
         #Using our model
         model = 'Slosar11'
@@ -567,22 +570,30 @@ def bins_from_boundaries(boundaries):
 
     return bins
 
-def plot_wedges(ax,plot_info):
+def plot_wedges(fig,ax,plot_info):
 
     #Unpack the plot_info dictionary.
     corr_obj = plot_info['corr_object']
+    artists = []
+    labels = []
 
     for i,mubin in enumerate(plot_info['mu_bins']):
         #Plot the data.
         plot_label = r'${}<\mu<{}$'.format(mubin[0],mubin[1])
         colour = plot_info['mu_bin_colours'][i]
-        corr_obj.plot_wedge(ax,mubin,plot_label,colour,**plot_info['plot_data'])
+        try:
+            abs_mu = plot_info['abs_mu']
+        except:
+            abs_mu = False
+        ar,lab = corr_obj.plot_wedge(ax,mubin,plot_label,colour,**plot_info['plot_data'],abs_mu=abs_mu)
+        artists += [ar]
+        labels += [lab]
 
         #Add a model or fit.
         if plot_info['plot_picca_fit']:
             rmin_fit = plot_info['picca_fit_data']['rmin']
             rmax_fit = plot_info['picca_fit_data']['rmax']
-            corr_obj.plot_wedge_fit(ax,mubin,'',colour,**plot_info['plot_data'],rmin_fit=rmin_fit,rmax_fit=rmax_fit)
+            corr_obj.plot_wedge_fit(ax,mubin,'',colour,**plot_info['plot_data'],rmin_fit=rmin_fit,rmax_fit=rmax_fit,abs_mu=abs_mu)
         if plot_info['plot_manual_fit']:
             b1,b2,beta1,beta2 = plot_info['manual_fit_data'].values()
             corr_obj.plot_wedge_manual_model(ax,b1,b2,beta1,beta2,mubin,'',colour,**plot_info['plot_data'])
@@ -600,7 +611,14 @@ def plot_wedges(ax,plot_info):
 
     #Add a legend if desired.
     if plot_info['format']['legend']:
-        ax.legend()
+        try:
+            leg_loc = plot_info['format']['leg_loc']
+        except:
+            leg_loc = 0
+        if leg_loc == 'shared':
+            fig.legend(artists,labels,loc='lower center',borderaxespad=0,bbox_to_anchor=(0.5,0.05),ncol=len(plot_info['mu_bins']))
+        else:
+            ax.legend(loc=leg_loc)
 
     return
 
