@@ -91,10 +91,10 @@ for v_rea in args.v_realisations:
     #Define the location variables.
     lya_deltas_loc = '{}/data/picca_input/{}/deltas_0.5/ '.format(args.base_dir,ver)
     lya_aa_deltas_loc = '{}/data/picca_input/{}/deltas_0.5_Lyb_metals/ '.format(args.base_dir,ver)
-    zcat_qso_loc = '{}/data/picca_input/{}/zcat_0.5.fits/ '.format(args.base_dir,ver)
-    zcat_dla_loc = '{}/data/picca_input/{}/zcat_DLA_0.5.fits/ '.format(args.base_dir,ver)
-    zcat_qso_rand_loc = '{}/data/picca_input/{}/zcat_0.1_randoms.fits/ '.format(args.base_dir,ver)
-    zcat_dla_rand_loc = '{}/data/picca_input/{}/zcat_DLA_0.1_randoms.fits/ '.format(args.base_dir,ver)
+    zcat_qso_loc = '{}/data/picca_input/{}/zcat_0.5.fits '.format(args.base_dir,ver)
+    zcat_dla_loc = '{}/data/picca_input/{}/zcat_DLA_0.5.fits '.format(args.base_dir,ver)
+    zcat_qso_rand_loc = '{}/data/picca_input/{}/zcat_0.1_randoms.fits '.format(args.base_dir,ver)
+    zcat_dla_rand_loc = '{}/data/picca_input/{}/zcat_DLA_0.1_randoms.fits '.format(args.base_dir,ver)
 
     if args.run_lya_auto:
 
@@ -125,7 +125,7 @@ for v_rea in args.v_realisations:
 
             #Make the header.
             queue = 'regular'
-            time = '00:12:00'
+            time = '12:00:00'
             job_name = 'run_lya_auto_{}_{}_{}'.format(ver,zmin,zmax)
             err_file = lya_auto_dir+'/run_files/lya_auto_{}_{}_{}_%j.err'.format(ver,zmin,zmax)
             out_file = lya_auto_dir+'/run_files/lya_auto_{}_{}_{}_%j.out'.format(ver,zmin,zmax)
@@ -195,7 +195,7 @@ for v_rea in args.v_realisations:
 
                 #Make the header.
                 queue = 'debug'
-                time = '00:00:30'
+                time = '00:02:00'
                 job_name = 'run_qso_auto_{}_{}_{}_{}'.format(ver,corr_type,zmin,zmax)
                 err_file = qso_auto_dir+'/run_files/qso_auto_{}_{}_{}_{}_%j.err'.format(ver,corr_type,zmin,zmax)
                 out_file = qso_auto_dir+'/run_files/qso_auto_{}_{}_{}_{}_%j.out'.format(ver,corr_type,zmin,zmax)
