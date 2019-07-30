@@ -1,6 +1,7 @@
 import numpy as np
 from subprocess import call
 import argparse
+import os
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
@@ -47,6 +48,9 @@ args = parser.parse_args()
 
 ################################################################################
 
+a_dir = args.base_dir+'/analysis/'
+
+################################################################################
 #Function to make the header at the top of each run script.
 def make_header(queue='regular',nnodes=1,time='00:01:00',job_name='run_script',err_file='run-%j.err',out_file='run-%j.err'):
 
@@ -75,9 +79,14 @@ for v_rea in args.v_realisations:
 
     ver = 'v{}.{}.{}'.format(args.v_maj,args.v_min,v_rea)
     print('\nRunning analysis for version {}:'.format(ver))
+    avc_dir = a_dir+'/'ver+'/'+'correlation_functions/measurements/'
 
     if args.run_lya_auto:
+
         print(' -> setting up the lya auto correlation...')
+        lya_auto_dir = avc_dir+'/lya_auto/'
+        lya_auto_file = 'cf_lya_auto.fits.gz'
+        os.mkdir(lya_auto_dir)
 
         #Make the header.
         time = '00:12:00'
@@ -89,8 +98,8 @@ for v_rea in args.v_realisations:
         #Make the command.
         command = ''
         command += 'command = picca_cf.py '
-        command += '--in-dir {}/data/{}/picca_input/deltas_lya/ '.format(args.base_dir,ver)
-        command += '--out {}/analysis/{}/correlation_functions/measurements/lya_auto/correlations/cf_lya_auto.fits.gz '.format(args.base_dir,ver)
+        command += '--in-dir {}/data/{}/picca_input/deltas/ '.format(args.base_dir,ver)
+        command += '--out {}/correlations/{} '.format(lya_auto_dir,lya_auto_file)
         command += '--fid-Om {} '.format(args.fid_Om)
         command += '--fid-Or {} '.format(args.fid_Or)
         command += '--no-project '
@@ -102,7 +111,7 @@ for v_rea in args.v_realisations:
 
         #Make the run script.
         run_script_text = header + command
-        run_script_path = '{}/analysis/{}/correlation_functions/measurements/lya_auto/scripts/run_lya_auto.sh'
+        run_script_path = '{}/scripts/run_lya_auto.sh'.format(lya_auto_dir)
         run_script = open(run_script_path,'w')
         run_script.write(run_script_text)
         run_script.close()
