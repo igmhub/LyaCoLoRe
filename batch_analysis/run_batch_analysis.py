@@ -44,6 +44,12 @@ parser.add_argument('--run-lya-dla-cross', action="store_true", default = False,
 parser.add_argument('--run-qso-dla-cross', action="store_true", default = False, required=False,
                     help = 'run the qso-dla cross correlation')
 
+parser.add_argument('--fid-Om', type=float, default=0.315, required=False,
+                    help='Omega_matter(z=0) of fiducial LambdaCDM cosmology')
+
+parser.add_argument('--fid-Or', type=float, default=0., required=False,
+                    help='Omega_radiation(z=0) of fiducial LambdaCDM cosmology')
+
 args = parser.parse_args()
 
 ################################################################################
@@ -79,7 +85,7 @@ for v_rea in args.v_realisations:
 
     ver = 'v{}.{}.{}'.format(args.v_maj,args.v_min,v_rea)
     print('\nRunning analysis for version {}:'.format(ver))
-    avc_dir = a_dir+'/'ver+'/'+'correlation_functions/measurements/'
+    avc_dir = a_dir+'/correlation_functions/'+ver+'/measurements/'
 
     if args.run_lya_auto:
 
@@ -92,7 +98,10 @@ for v_rea in args.v_realisations:
 
             lya_auto_dir = avc_dir+'/lya_auto/'
             lya_auto_file = 'cf_lya_auto_{}_{}.fits.gz'.format(zmin,zmax)
-            os.mkdir(lya_auto_dir)
+            try:
+                os.mkdir(lya_auto_dir)
+            except FileExistsError:
+                print(lya_auto_dir,'already exists!')
 
             #Make the header.
             time = '00:12:00'
@@ -104,7 +113,7 @@ for v_rea in args.v_realisations:
             #Make the command.
             command = ''
             command += 'command = picca_cf.py '
-            command += '--in-dir {}/data/{}/picca_input/deltas/ '.format(args.base_dir,ver)
+            command += '--in-dir {}/data/picca_input/{}/deltas/ '.format(args.base_dir,ver)
             command += '--out {}/correlations/{} '.format(lya_auto_dir,lya_auto_file)
             command += '--fid-Om {} '.format(args.fid_Om)
             command += '--fid-Or {} '.format(args.fid_Or)
