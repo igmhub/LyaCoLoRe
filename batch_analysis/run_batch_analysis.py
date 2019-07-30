@@ -101,19 +101,19 @@ for v_rea in args.v_realisations:
             try:
                 os.mkdir(lya_auto_dir)
             except FileExistsError:
-                continue
+                pass
             try:
                 os.mkdir(lya_auto_dir+'/scripts/')
             except FileExistsError:
-                continue
+                pass
             try:
                 os.mkdir(lya_auto_dir+'/correlations/')
             except FileExistsError:
-                continue
+                pass
             try:
                 os.mkdir(lya_auto_dir+'/run_files/')
             except FileExistsError:
-                continue
+                pass
 
             #Make the header.
             queue = 'debug'
