@@ -78,6 +78,8 @@ def make_header(queue='regular',nnodes=1,time='00:01:00',job_name='run_script',e
 
     return header
 
+#Function to make sure that the directories inside the correlation directory
+#are set up properly.
 def check_corr_dir(corr_dir):
 
     try:
@@ -98,6 +100,8 @@ def check_corr_dir(corr_dir):
         pass
 
     return
+
+################################################################################
 
 #For each realisation, for each correlation desired, create a job script and
 #send it to the queue.
@@ -407,7 +411,11 @@ for v_rea in args.v_realisations:
                 njobs += 1
                 print(' ')
 
+    if args.run_lya_dla_coss:
+        print('Not set up yet!')
 
+    if args.run_qso_dla_coss:
+        print('Not set up yet!')
 
 print('\nAll analyses for all realisations sent to the queue (total {} jobs).'.format(njobs))
 
