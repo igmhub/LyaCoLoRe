@@ -194,8 +194,8 @@ for v_rea in args.v_realisations:
                 qso_auto_file = 'co_qso_auto_{}_{}_{}.fits.gz'.format(corr_type,zmin,zmax)
 
                 #Make the header.
-                queue = 'regular'
-                time = '00:04:00'
+                queue = 'debug'
+                time = '00:00:30'
                 job_name = 'run_qso_auto_{}_{}_{}_{}'.format(ver,corr_type,zmin,zmax)
                 err_file = qso_auto_dir+'/run_files/qso_auto_{}_{}_{}_{}_%j.err'.format(ver,corr_type,zmin,zmax)
                 out_file = qso_auto_dir+'/run_files/qso_auto_{}_{}_{}_{}_%j.out'.format(ver,corr_type,zmin,zmax)
@@ -231,7 +231,7 @@ for v_rea in args.v_realisations:
 
                 #Make the run script.
                 run_script_text = header + command
-                run_script_path = '{}/scripts/run_qso_auto_{}_{}.sh'.format(qso_auto_dir,zmin,zmax)
+                run_script_path = '{}/scripts/run_qso_auto_{}_{}_{}.sh'.format(qso_auto_dir,corr_type,zmin,zmax)
                 run_script = open(run_script_path,'w+')
                 run_script.write(run_script_text)
                 run_script.close()
