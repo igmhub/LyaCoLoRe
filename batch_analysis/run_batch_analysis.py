@@ -84,44 +84,52 @@ for v_rea in args.v_realisations:
     if args.run_lya_auto:
 
         print(' -> setting up the lya auto correlation...')
-        lya_auto_dir = avc_dir+'/lya_auto/'
-        lya_auto_file = 'cf_lya_auto.fits.gz'
-        os.mkdir(lya_auto_dir)
+        zbins = [(0.0,2.2),(2.2,2.6),(2.6,3.0),(3.0,10.0)]
 
-        #Make the header.
-        time = '00:12:00'
-        job_name = 'run_lya_auto_{}'.format(ver)
-        err_file = 'lya_auto_{}_%j.err'.format(ver)
-        out_file = 'lya_auto_{}_%j.out'.format(ver)
-        header = make_header(time='00:12:00',job_name=job_name,err_file=err_file,out_file=out_file)
+        for zbin in zbins:
+            zmin = zbin[0]
+            zmax = zbin[1]
 
-        #Make the command.
-        command = ''
-        command += 'command = picca_cf.py '
-        command += '--in-dir {}/data/{}/picca_input/deltas/ '.format(args.base_dir,ver)
-        command += '--out {}/correlations/{} '.format(lya_auto_dir,lya_auto_file)
-        command += '--fid-Om {} '.format(args.fid_Om)
-        command += '--fid-Or {} '.format(args.fid_Or)
-        command += '--no-project '
-        command += '--nside {} '.format(args.nside)
-        command += '--nproc {} '.format(args.nproc)
-        command += '\n'
-        command += 'srun $command'
-        command += '\n'
+            lya_auto_dir = avc_dir+'/lya_auto/'
+            lya_auto_file = 'cf_lya_auto_{}_{}.fits.gz'.format(zmin,zmax)
+            os.mkdir(lya_auto_dir)
 
-        #Make the run script.
-        run_script_text = header + command
-        run_script_path = '{}/scripts/run_lya_auto.sh'.format(lya_auto_dir)
-        run_script = open(run_script_path,'w')
-        run_script.write(run_script_text)
-        run_script.close()
-        print(' -> -> job script written to:{}'.format(run_script_path))
+            #Make the header.
+            time = '00:12:00'
+            job_name = 'run_lya_auto_{}_{}_{}'.format(ver,zmin,zmax)
+            err_file = 'lya_auto_{}_{}_{}_%j.err'.format(ver,zmin,zmax)
+            out_file = 'lya_auto_{}_{}_{}_%j.out'.format(ver,zmin,zmax)
+            header = make_header(time='00:12:00',job_name=job_name,err_file=err_file,out_file=out_file)
 
-        #Send the run script.
-        print(' -> -> sending job to queue...')
-        retcode = call('sbatch {}'.format(run_script_path))
-        njobs += 1
-        print(' ')
+            #Make the command.
+            command = ''
+            command += 'command = picca_cf.py '
+            command += '--in-dir {}/data/{}/picca_input/deltas/ '.format(args.base_dir,ver)
+            command += '--out {}/correlations/{} '.format(lya_auto_dir,lya_auto_file)
+            command += '--fid-Om {} '.format(args.fid_Om)
+            command += '--fid-Or {} '.format(args.fid_Or)
+            command += '--no-project '
+            command += '--nside {} '.format(args.nside)
+            command += '--nproc {} '.format(args.nproc)
+            command += '--z-cut-min {} '.format(zmin)
+            command += '--z-cut-max {} '.format(zmax)
+            command += '\n'
+            command += 'srun $command'
+            command += '\n'
+
+            #Make the run script.
+            run_script_text = header + command
+            run_script_path = '{}/scripts/run_lya_auto_{}_{}.sh'.format(lya_auto_dir,zmin,zmax)
+            run_script = open(run_script_path,'w')
+            run_script.write(run_script_text)
+            run_script.close()
+            print(' -> -> job script written to:{}'.format(run_script_path))
+
+            #Send the run script.
+            print(' -> -> sending job to queue...')
+            retcode = call('sbatch {}'.format(run_script_path))
+            njobs += 1
+            print(' ')
 
 print('\nAll analyses for all realisations sent to the queue (total {} jobs).'.format(njobs))
 
