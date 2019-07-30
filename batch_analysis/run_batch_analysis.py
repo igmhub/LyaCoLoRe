@@ -129,7 +129,7 @@ for v_rea in args.v_realisations:
             job_name = 'run_lya_auto_{}_{}_{}'.format(ver,zmin,zmax)
             err_file = lya_auto_dir+'/run_files/lya_auto_{}_{}_{}_%j.err'.format(ver,zmin,zmax)
             out_file = lya_auto_dir+'/run_files/lya_auto_{}_{}_{}_%j.out'.format(ver,zmin,zmax)
-            header = make_header(queue=queue,time='00:12:00',job_name=job_name,err_file=err_file,out_file=out_file)
+            header = make_header(queue=queue,time=time,job_name=job_name,err_file=err_file,out_file=out_file)
 
             #Make the command.
             command = ''
@@ -199,7 +199,7 @@ for v_rea in args.v_realisations:
                 job_name = 'run_qso_auto_{}_{}_{}_{}'.format(ver,corr_type,zmin,zmax)
                 err_file = qso_auto_dir+'/run_files/qso_auto_{}_{}_{}_{}_%j.err'.format(ver,corr_type,zmin,zmax)
                 out_file = qso_auto_dir+'/run_files/qso_auto_{}_{}_{}_{}_%j.out'.format(ver,corr_type,zmin,zmax)
-                header = make_header(queue=queue,time='00:12:00',job_name=job_name,err_file=err_file,out_file=out_file)
+                header = make_header(queue=queue,time=time,job_name=job_name,err_file=err_file,out_file=out_file)
 
                 #Make the command.
                 command = ''
