@@ -102,6 +102,14 @@ for v_rea in args.v_realisations:
                 os.mkdir(lya_auto_dir)
             except FileExistsError:
                 print(lya_auto_dir,'already exists!')
+            try:
+                os.mkdir(lya_auto_dir+'/scripts/')
+            except FileExistsError:
+                print(lya_auto_dir+'/scripts/','already exists!')
+            try:
+                os.mkdir(lya_auto_dir+'/correlations/')
+            except FileExistsError:
+                print(lya_auto_dir+'/correlations/','already exists!')
 
             #Make the header.
             time = '00:12:00'
@@ -129,14 +137,14 @@ for v_rea in args.v_realisations:
             #Make the run script.
             run_script_text = header + command
             run_script_path = '{}/scripts/run_lya_auto_{}_{}.sh'.format(lya_auto_dir,zmin,zmax)
-            run_script = open(run_script_path,'w')
+            run_script = open(run_script_path,'w+')
             run_script.write(run_script_text)
             run_script.close()
             print(' -> -> job script written to:{}'.format(run_script_path))
 
             #Send the run script.
             print(' -> -> sending job to queue...')
-            retcode = call('sbatch {}'.format(run_script_path))
+            retcode = call('sbatch {}'.format(run_script_path),shell=True)
             njobs += 1
             print(' ')
 
