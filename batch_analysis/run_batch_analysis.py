@@ -78,6 +78,27 @@ def make_header(queue='regular',nnodes=1,time='00:01:00',job_name='run_script',e
 
     return header
 
+def check_corr_dir(corr_dir):
+
+    try:
+        os.mkdir(corr_dir)
+    except FileExistsError:
+        pass
+    try:
+        os.mkdir(corr_dir+'/scripts/')
+    except FileExistsError:
+        pass
+    try:
+        os.mkdir(corr_dir+'/correlations/')
+    except FileExistsError:
+        pass
+    try:
+        os.mkdir(corr_dir+'/run_files/')
+    except FileExistsError:
+        pass
+
+    return
+
 #For each realisation, for each correlation desired, create a job script and
 #send it to the queue.
 njobs = 0
@@ -105,23 +126,8 @@ for v_rea in args.v_realisations:
             zmax = zbin[1]
 
             lya_auto_dir = avc_dir+'/lya_auto/'
+            check_corr_dir(lya_auto_dir)
             lya_auto_file = 'cf_lya_auto_{}_{}.fits.gz'.format(zmin,zmax)
-            try:
-                os.mkdir(lya_auto_dir)
-            except FileExistsError:
-                pass
-            try:
-                os.mkdir(lya_auto_dir+'/scripts/')
-            except FileExistsError:
-                pass
-            try:
-                os.mkdir(lya_auto_dir+'/correlations/')
-            except FileExistsError:
-                pass
-            try:
-                os.mkdir(lya_auto_dir+'/run_files/')
-            except FileExistsError:
-                pass
 
             #Make the header.
             queue = 'regular'
@@ -171,22 +177,7 @@ for v_rea in args.v_realisations:
             zmax = zbin[1]
 
             qso_auto_dir = avc_dir+'/qso_auto/'
-            try:
-                os.mkdir(qso_auto_dir)
-            except FileExistsError:
-                pass
-            try:
-                os.mkdir(qso_auto_dir+'/scripts/')
-            except FileExistsError:
-                pass
-            try:
-                os.mkdir(qso_auto_dir+'/correlations/')
-            except FileExistsError:
-                pass
-            try:
-                os.mkdir(qso_auto_dir+'/run_files/')
-            except FileExistsError:
-                pass
+            check_corr_dir(qso_auto_dir)
 
             for corr_type in ['DD','DR','RD','RR']:
 
@@ -250,22 +241,7 @@ for v_rea in args.v_realisations:
             zmax = zbin[1]
 
             dla_auto_dir = avc_dir+'/dla_auto/'
-            try:
-                os.mkdir(dla_auto_dir)
-            except FileExistsError:
-                pass
-            try:
-                os.mkdir(dla_auto_dir+'/scripts/')
-            except FileExistsError:
-                pass
-            try:
-                os.mkdir(dla_auto_dir+'/correlations/')
-            except FileExistsError:
-                pass
-            try:
-                os.mkdir(dla_auto_dir+'/run_files/')
-            except FileExistsError:
-                pass
+            check_corr_dir(dla_auto_dir)
 
             for corr_type in ['DD','DR','RD','RR']:
 
@@ -330,22 +306,7 @@ for v_rea in args.v_realisations:
 
             lya_aa_auto_dir = avc_dir+'/lya_aa_auto/'
             lya_aa_auto_file = 'cf_lya_aa_auto_{}_{}.fits.gz'.format(zmin,zmax)
-            try:
-                os.mkdir(lya_aa_auto_dir)
-            except FileExistsError:
-                pass
-            try:
-                os.mkdir(lya_aa_auto_dir+'/scripts/')
-            except FileExistsError:
-                pass
-            try:
-                os.mkdir(lya_aa_auto_dir+'/correlations/')
-            except FileExistsError:
-                pass
-            try:
-                os.mkdir(lya_aa_auto_dir+'/run_files/')
-            except FileExistsError:
-                pass
+            check_corr_dir(lya_aa_auto_dir)
 
             #Make the header.
             queue = 'regular'
@@ -395,39 +356,28 @@ for v_rea in args.v_realisations:
             zmax = zbin[1]
 
             lya_qso_cross_dir = avc_dir+'/lya_qso_cross/'
-            try:
-                os.mkdir(lya_qso_cross_dir)
-            except FileExistsError:
-                pass
-            try:
-                os.mkdir(lya_qso_cross_dir+'/scripts/')
-            except FileExistsError:
-                pass
-            try:
-                os.mkdir(lya_qso_cross_dir+'/correlations/')
-            except FileExistsError:
-                pass
-            try:
-                os.mkdir(lya_qso_cross_dir+'/run_files/')
-            except FileExistsError:
-                pass
+            check_corr_dir(lya_qso_cross_dir)
 
             for obj_type in ['D','R']:
+
                 lya_qso_cross_file = 'xcf_lya_qso_cross_{}_{}_{}.fits.gz'.format(obj_type,zmin,zmax)
 
                 #Make the header.
                 queue = 'regular'
                 time = '4:00:00'
                 job_name = 'run_lya_qso_cross_{}_{}_{}'.format(ver,zmin,zmax)
-                err_file = lya_qso_cross_dir+'/run_files/lya_qso_cross_{}_{}_{}_%j.err'.format(ver,zmin,zmax)
-                out_file = lya_qso_cross_dir+'/run_files/lya_qso_cross_{}_{}_{}_%j.out'.format(ver,zmin,zmax)
+                err_file = lya_qso_cross_dir+'/run_files/lya_qso_cross_{}_{}_{}_{}_%j.err'.format(ver,obj_type,zmin,zmax)
+                out_file = lya_qso_cross_dir+'/run_files/lya_qso_cross_{}_{}_{}_{}_%j.out'.format(ver,obj_type,zmin,zmax)
                 header = make_header(queue=queue,time=time,job_name=job_name,err_file=err_file,out_file=out_file)
 
                 #Make the command.
                 command = ''
                 command += 'command="picca_xcf.py '
                 command += '--in-dir {} '.format(lya_deltas_loc)
-                command += '--drq {} '.format(zcat_qso_loc)
+                if obj_type == 'D':
+                    command += '--drq {} '.format(zcat_qso_loc)
+                elif obj_type == 'R':
+                    command += '--drq {} '.format(zcat_qso_rand_loc)
                 command += '--out {}/correlations/{} '.format(lya_qso_cross_dir,lya_qso_cross_file)
                 command += '--fid-Om {} '.format(args.fid_Om)
                 command += '--fid-Or {} '.format(args.fid_Or)
