@@ -112,15 +112,16 @@ for v_rea in args.v_realisations:
                 print(lya_auto_dir+'/correlations/','already exists!')
 
             #Make the header.
-            time = '00:12:00'
+            queue = 'debug'
+            time = '00:00:30'
             job_name = 'run_lya_auto_{}_{}_{}'.format(ver,zmin,zmax)
             err_file = 'lya_auto_{}_{}_{}_%j.err'.format(ver,zmin,zmax)
             out_file = 'lya_auto_{}_{}_{}_%j.out'.format(ver,zmin,zmax)
-            header = make_header(time='00:12:00',job_name=job_name,err_file=err_file,out_file=out_file)
+            header = make_header(queue=queue,time='00:12:00',job_name=job_name,err_file=err_file,out_file=out_file)
 
             #Make the command.
             command = ''
-            command += 'command = picca_cf.py '
+            command += 'command = "picca_cf.py '
             command += '--in-dir {}/data/picca_input/{}/deltas/ '.format(args.base_dir,ver)
             command += '--out {}/correlations/{} '.format(lya_auto_dir,lya_auto_file)
             command += '--fid-Om {} '.format(args.fid_Om)
@@ -130,6 +131,7 @@ for v_rea in args.v_realisations:
             command += '--nproc {} '.format(args.nproc)
             command += '--z-cut-min {} '.format(zmin)
             command += '--z-cut-max {} '.format(zmax)
+            command += '"'
             command += '\n'
             command += 'srun $command'
             command += '\n'
