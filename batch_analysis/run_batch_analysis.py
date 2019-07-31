@@ -142,7 +142,9 @@ def run_picca_job(job_info,global_options):
 
     return
 
-def make_lya_auto_job_info(meas_dir,ver,zmin,zmax):
+
+#Functions to construct the job info dictionaries.
+def make_lya_auto_job_info(meas_dir,ver,zmin,zmax,deltas_dir):
 
     dir = meas_dir + '/lya_auto/'
     check_dir(dir)
@@ -154,9 +156,11 @@ def make_lya_auto_job_info(meas_dir,ver,zmin,zmax):
                    'out_file': 'lya_auto_{}_{}_{}_%j.out'.format(ver,zmin,zmax),
                    }
 
-    options = {'in-dir':        '{}/{}/deltas_0.5/'.format(picca_data_dir,ver),
+    options = {'in-dir':        deltas_dir,
                'out':           'cf_lya_auto_{}_{}.fits.gz'.format(zmin,zmax),
                'no-project':    '',
+               'z-cut-min':     zmin,
+               'z-cut-max':     zmax,
                }
 
     lya_auto_job_info = {'dir':             dir,
@@ -168,6 +172,131 @@ def make_lya_auto_job_info(meas_dir,ver,zmin,zmax):
 
     return lya_auto_job_info
 
+def make_qso_auto_job_info(meas_dir,ver,zmin,zmax,zcat,zcat_rand,corr_type='DD'):
+
+    dir = meas_dir + '/qso_auto/'
+    check_dir(dir)
+
+    header_info = {'queue':    'regular',
+                   'time':     '4:00:00',
+                   'job_name': 'run_qso_auto_{}_{}_{}_{}'.format(corr_type,ver,zmin,zmax),
+                   'err_file': 'qso_auto_{}_{}_{}_{}_%j.err'.format(corr_type,ver,zmin,zmax),
+                   'out_file': 'qso_auto_{}_{}_{}_{}_%j.out'.format(corr_type,ver,zmin,zmax),
+                   }
+
+    if corr_type == 'DD':
+        options = {'drq':           zcat,
+                   'out':           'co_qso_auto_{}_{}_{}.fits.gz'.format(corr_type,zmin,zmax),
+                   'type-corr':     corr_type,
+                   'z-evol-obj':    1.44,
+                   }
+    elif corr_type == 'DR':
+        options = {'drq':           zcat,
+                   'drq2':          zcat_rand,
+                   'out':           'co_qso_auto_{}_{}_{}.fits.gz'.format(corr_type,zmin,zmax),
+                   'type-corr':     corr_type,
+                   'z-evol-obj':    1.44,
+                   'z-evol-obj2':   1.44,
+                   }
+    elif corr_type == 'RD':
+        options = {'drq':           zcat_rand,
+                   'drq2':          zcat,
+                   'out':           'co_qso_auto_{}_{}_{}.fits.gz'.format(corr_type,zmin,zmax),
+                   'type-corr':     corr_type,
+                   'z-evol-obj':    1.44,
+                   'z-evol-obj2':   1.44,
+                   }
+    elif corr_type == 'RR':
+        options = {'drq':           zcat_rand,
+                   'out':           'co_qso_auto_{}_{}_{}.fits.gz'.format(corr_type,zmin,zmax),
+                   'type-corr':     corr_type,
+                   'z-evol-obj':    1.44,
+                   }
+
+    options = {**options,
+               'z-cut-min':     zmin,
+               'z-cut-max':     zmax,
+               }
+
+    qso_auto_job_info = {'dir':             dir,
+                         'header_info':     header_info,
+                         'picca_script':    'picca_co.py',
+                         'options':         options,
+                         'run_script':      'run_qso_auto_{}_{}_{}.sh'.format(corr_type,zmin,zmax),
+                         }
+
+    return qso_auto_job_info
+
+def make_lya_aa_auto_job_info(meas_dir,ver,zmin,zmax,deltas_dir):
+
+    dir = meas_dir + '/lya_aa_auto/'
+    check_dir(dir)
+
+    header_info = {'queue':    'regular',
+                   'time':     '12:00:00',
+                   'job_name': 'run_lya_aa_auto_{}_{}_{}'.format(ver,zmin,zmax),
+                   'err_file': 'lya_aa_auto_{}_{}_{}_%j.err'.format(ver,zmin,zmax),
+                   'out_file': 'lya_aa_auto_{}_{}_{}_%j.out'.format(ver,zmin,zmax),
+                   }
+
+    options = {'in-dir':        deltas_dir,
+               'out':           'cf_lya_aa_auto_{}_{}.fits.gz'.format(zmin,zmax),
+               'no-project':    '',
+               'z-cut-min':     zmin,
+               'z-cut-max':     zmax,
+               }
+
+    lya_aa_auto_job_info = {'dir':             dir,
+                         'header_info':     header_info,
+                         'picca_script':    'picca_cf.py',
+                         'options':         options,
+                         'run_script':      'run_lya_aa_auto_{}_{}.sh'.format(zmin,zmax),
+                         }
+
+    return lya_aa_auto_job_info
+
+def make_lya_qso_cross_job_info(meas_dir,ver,zmin,zmax,zcat,zcat_rand,cat_type='D'):
+
+    dir = meas_dir + '/lya_qso_cross/'
+    check_dir(dir)
+
+    header_info = {'queue':    'regular',
+                   'time':     '08:00:00',
+                   'job_name': 'run_lya_qso_cross_{}_{}_{}_{}'.format(cat_type,ver,zmin,zmax),
+                   'err_file': 'lya_qso_cross_{}_{}_{}_{}_%j.err'.format(cat_type,ver,zmin,zmax),
+                   'out_file': 'lya_qso_cross_{}_{}_{}_{}_%j.out'.format(cat_type,ver,zmin,zmax),
+                   }
+
+    if cat_type == 'D':
+        options = {'drq':           zcat,
+                   'out':           'xcf_lya_qso_cross_{}_{}_{}.fits.gz'.format(cat_type,zmin,zmax),
+                   'type-corr':     corr_type,
+                   'z-evol-obj':    1.44,
+                   }
+    elif cat_type == 'R':
+        options = {'drq':           zcat_rand,
+                   'out':           'xcf_lya_qso_cross_{}_{}_{}.fits.gz'.format(cat_type,zmin,zmax),
+                   'type-corr':     corr_type,
+                   'z-evol-obj':    1.44,
+                   }
+
+    options = {**options,
+               'z-cut-min':                 zmin,
+               'z-cut-max':                 zmax,
+               'no-project':                ''
+               'no-remove-mean-lambda-obs': '',
+               }
+
+    lya_qso_cross_job_info = {'dir':            dir,
+                              'header_info':    header_info,
+                              'picca_script':   'picca_xcf.py',
+                              'options':        options,
+                              'run_script':     'run_lya_qso_cross_{}_{}_{}.sh'.format(cat_type,zmin,zmax),
+                              }
+
+    return lya_qso_cross_job_info
+
+
 ################################################################################
 
 global_job_info = {'zbins': [(0.0,2.2),(2.2,2.6),(2.6,3.0),(3.0,10.0)],
@@ -178,16 +307,27 @@ global_job_info = {'zbins': [(0.0,2.2),(2.2,2.6),(2.6,3.0),(3.0,10.0)],
                                },
                    }
 
+njobs = 0
 for v_rea in args.v_realisations:
 
     ver = 'v{}.{}.{}'.format(args.v_maj,args.v_min,v_rea)
     print('\nRunning analysis for version {}:'.format(ver))
+
+    #Check that the directories are constructed properly.
     ac_dir = a_dir+'/correlation_functions/'
     check_dir(ac_dir)
     acv_dir = ac_dir+'/'+ver+'/'
     check_dir(acv_dir)
     acvm_dir = acv_dir+'/measurements/'
     check_dir(acvm_dir)
+
+    #Define the location variables for this version.
+    lya_deltas_loc = '{}/data/picca_input/{}/deltas_0.5/ '.format(args.base_dir,ver)
+    lya_aa_deltas_loc = '{}/data/picca_input/{}/deltas_0.5_Lyb_metals/ '.format(args.base_dir,ver)
+    zcat_qso_loc = '{}/data/picca_input/{}/zcat_0.5.fits '.format(args.base_dir,ver)
+    zcat_dla_loc = '{}/data/picca_input/{}/zcat_DLA_0.5.fits '.format(args.base_dir,ver)
+    zcat_qso_rand_loc = '{}/data/picca_input/{}/zcat_0.1_randoms.fits '.format(args.base_dir,ver)
+    zcat_dla_rand_loc = '{}/data/picca_input/{}/zcat_DLA_0.1_randoms.fits '.format(args.base_dir,ver)
 
     for zbin in global_job_info['zbins']:
 
@@ -196,9 +336,23 @@ for v_rea in args.v_realisations:
 
         if args.run_lya_auto:
 
-            lya_auto_job_info = make_lya_auto_job_info(acvm_dir,ver,zmin,zmax)
+            lya_auto_job_info = make_lya_auto_job_info(acvm_dir,ver,zmin,zmax,lya_deltas_loc)
             run_picca_job(lya_auto_job_info,global_job_info['options'])
+            njobs += 1
 
+        if args.run_qso_auto:
+
+            for corr_type in ['DD','RD','DR','RR']:
+                qso_auto_job_info = make_qso_auto_job_info(acvm_dir,ver,zmin,zmax,zcat_qso_loc,zcat_qso_rand_loc,corr_type=corr_type)
+                run_picca_job(qso_auto_job_info,global_job_info['options'])
+                njobs += 1
+
+        if args.run_lya_qso_cross:
+
+            for cat_type in ['D','R']:
+                lya_qso_cross_job_info = make_lya_auto_job_info(acvm_dir,ver,zmin,zmax,zcat_qso_loc,zcat_qso_rand_loc,cat_type=cat_type)
+                run_picca_job(lya_qso_cross_job_info,global_job_info['options'])
+                njobs += 1
 
 
 
@@ -469,7 +623,6 @@ for v_rea in args.v_realisations:
     if args.run_qso_dla_cross:
         print('Not set up yet!')
 """
-
 print('\nAll analyses for all realisations sent to the queue (total {} jobs).'.format(njobs))
 
 ################################################################################
