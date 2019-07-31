@@ -118,8 +118,8 @@ def run_picca_job(job_info,global_options):
                          )
 
     command = 'command='
-    command = add_to_command(command,job_info.picca_script)
-    for key in job_info.options:
+    command = add_to_command(command,job_info['picca_script'])
+    for key in job_info['options']:
         command = add_to_command(command,'--{} {}'.format(key,job_info[key]))
     for key in global_options:
         command = add_to_command(command,'--{} {}'.format(key,job_info[key]))
@@ -144,7 +144,7 @@ def make_lya_auto_job_info(meas_dir,ver,zmin,zmax):
 
     dir = meas_dir + '/lya_auto/'
     check_dir(dir)
-    
+
     header_info = {'queue':    'debug',
                    'time':     '00:05:00',
                    'job_name': 'run_lya_auto_{}_{}_{}'.format(ver,zmin,zmax),
