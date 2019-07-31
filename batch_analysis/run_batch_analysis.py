@@ -54,7 +54,8 @@ args = parser.parse_args()
 
 ################################################################################
 
-a_dir = args.base_dir+'/analysis/'
+a_dir = args.base_dir + '/analysis/'
+picca_data_dir = args.base_dir + '/data/picca_input'
 
 ################################################################################
 #Function to make the header at the top of each run script.
@@ -101,8 +102,102 @@ def check_corr_dir(corr_dir):
 
     return
 
+def add_to_command(command,extra):
+    return command + ' ' + extra
+
+def run_picca_job(job_info,global_options):
+
+    #Check the directory is set up.
+    dir = job_info['dir']
+    check_corr_dir(dir)
+
+    #Make the header.
+    header_info = job_info['header_info']
+    header = make_header(queue=header_info['queue'],
+                         time=header_info['time'],
+                         job_name=header_info['job_name'],
+                         err_file=dir+'/run_files/'+header_info['err_file'],
+                         out_file=dir+'/run_files/'+header_info['out_file']
+                         )
+
+    command = 'command='
+    command = add_to_command(command,job_info.picca_script)
+    for key in job_info.options:
+        command = add_to_command(command,'--{} {}'.format(key,job_info[key]))
+    for key in global_options:
+        command = add_to_command(command,'--{} {}'.format(key,job_info[key]))
+
+    #Make the run script.
+    run_script_text = header + command
+    run_script_path = dir+'/scripts/'+job_info['run_script']
+    run_script = open(run_script_path,'w+')
+    run_script.write(run_script_text)
+    run_script.close()
+    print(' -> -> job script written to:{}'.format(run_script_path))
+
+    #Send the run script.
+    print(' -> -> sending job to queue...')
+    retcode = call('sbatch {}'.format(run_script_path),shell=True)
+    njobs += 1
+    print(' ')
+
+    return
+
+def make_lya_auto_job_info(avc_dir,ver,zmin,zmax):
+
+    dir = avc_dir + '/lya_auto/'
+
+    header_info = {'queue':    'debug',
+                   'time':     '00:05:00',
+                   'job_name': 'run_lya_auto_{}_{}_{}'.format(ver,zmin,zmax),
+                   'err_file': 'lya_auto_{}_{}_{}_%j.err'.format(ver,zmin,zmax),
+                   'out_file': 'lya_auto_{}_{}_{}_%j.out'.format(ver,zmin,zmax),
+                   }
+
+    options = {'in-dir':        '{}/{}/deltas_0.5/ '.format(picca_data_dir,ver),
+               'out':           'cf_lya_auto_{}_{}.fits.gz'.format(zmin,zmax),
+               'no-project':    '',
+               }
+
+    lya_auto_job_info = {'dir':             dir,
+                         'header_info':     header_info,
+                         'picca_script':    'picca_cf.py',
+                         'options':         options,
+                         'run_script':      'run_lya_auto_{}_{}.sh'.format(zmin,zmax),
+                         }
+
+    return lya_auto_job_info
+
 ################################################################################
 
+global_job_info = {'zbins': [(0.0,2.2),(2.2,2.6),(2.6,3.0),(3.0,10.0)],
+                   'options': {'fid-Om':    args.fid_Om,
+                               'fid-Or':    args.fid_Or,
+                               'nside':     args.nside,
+                               'nproc':     args.nproc,
+                               },
+                   }
+
+for v_rea in args.v_realisations:
+
+    ver = 'v{}.{}.{}'.format(args.v_maj,args.v_min,v_rea)
+    print('\nRunning analysis for version {}:'.format(ver))
+    avc_dir = a_dir+'/correlation_functions/'+ver+'/measurements/'
+
+    for zbin in global_job_info['zbins']:
+
+        zmin = zbin[0]
+        zmax = zbin[1]
+
+        if run_lya_auto:
+
+            lya_auto_job_info = make_lya_auto_job_info(avc_dir,ver,zmin,zmax)
+            run_picca_job(lya_auto_job_info,global_job_info['options'])
+
+
+
+
+"""
 #For each realisation, for each correlation desired, create a job script and
 #send it to the queue.
 njobs = 0
@@ -368,6 +463,7 @@ for v_rea in args.v_realisations:
 
     if args.run_qso_dla_cross:
         print('Not set up yet!')
+"""
 
 print('\nAll analyses for all realisations sent to the queue (total {} jobs).'.format(njobs))
 
