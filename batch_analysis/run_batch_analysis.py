@@ -140,10 +140,10 @@ def run_picca_job(job_info,global_options):
     run_script = open(run_script_path,'w+')
     run_script.write(run_script_text)
     run_script.close()
-    print(' -> -> job script written to:{}'.format(run_script_path))
+    print(' -> -> -> job script written: {}'.format(job_info['run_script']))
 
     #Send the run script.
-    print(' -> -> sending job to queue...')
+    print(' -> -> -> sending job to queue...')
     retcode = call('sbatch {}'.format(run_script_path),shell=True)
     print(' ')
 
@@ -527,49 +527,61 @@ for v_rea in args.v_realisations:
 
         if args.run_lya_auto:
 
+            print(' -> setting up lya auto correlation:')
             lya_auto_job_info = make_lya_auto_job_info(acvm_dir,ver,zmin,zmax,lya_deltas_loc)
             run_picca_job(lya_auto_job_info,global_job_info['options'])
             njobs += 1
 
         if args.run_qso_auto:
 
+            print(' -> setting up qso auto correlation:')
             for corr_type in ['DD','RD','DR','RR']:
+                print(' -> -> configuring {} run'.format(corr_type))
                 qso_auto_job_info = make_qso_auto_job_info(acvm_dir,ver,zmin,zmax,zcat_qso_loc,zcat_qso_rand_loc,corr_type=corr_type)
                 run_picca_job(qso_auto_job_info,global_job_info['options'])
                 njobs += 1
 
         if args.run_dla_auto:
 
+            print(' -> setting up dla auto correlation:')
             for corr_type in ['DD','RD','DR','RR']:
+                print(' -> -> configuring {} run'.format(corr_type))
                 dla_auto_job_info = make_dla_auto_job_info(acvm_dir,ver,zmin,zmax,zcat_dla_loc,zcat_dla_rand_loc,corr_type=corr_type)
                 run_picca_job(dla_auto_job_info,global_job_info['options'])
                 njobs += 1
 
         if args.run_lya_aa_auto:
 
+            print(' -> setting up lya + all absorbers auto correlation:')
             lya_aa_auto_job_info = make_lya_aa_auto_job_info(acvm_dir,ver,zmin,zmax,lya_aa_deltas_loc)
             run_picca_job(lya_aa_auto_job_info,global_job_info['options'])
             njobs += 1
 
         if args.run_lya_qso_cross:
 
+            print(' -> setting up lya qso cross correlation:')
             for cat_type in ['D','R']:
+                print(' -> -> configuring run using {} catalog'.format(cat_type))
                 lya_qso_cross_job_info = make_lya_qso_cross_job_info(acvm_dir,ver,zmin,zmax,lya_deltas_loc,zcat_qso_loc,zcat_qso_rand_loc,cat_type=cat_type)
                 run_picca_job(lya_qso_cross_job_info,global_job_info['options'])
                 njobs += 1
 
         if args.run_lya_dla_cross:
 
+            print(' -> setting up lya dla cross correlation:')
             for cat_type in ['D','R']:
+                print(' -> -> configuring run using {} catalog'.format(cat_type))
                 lya_dla_cross_job_info = make_lya_dla_cross_job_info(acvm_dir,ver,zmin,zmax,lya_deltas_loc,zcat_dla_loc,zcat_dla_rand_loc,cat_type=cat_type)
                 run_picca_job(lya_dla_cross_job_info,global_job_info['options'])
                 njobs += 1
 
         if args.run_qso_dla_cross:
 
+            print(' -> setting up qso dla cross correlation:')
             for corr_type in ['DD','RD','DR','RR']:
+                print(' -> -> configuring {} run'.format(corr_type))
                 qso_dla_cross_job_info = make_qso_dla_cross_job_info(acvm_dir,ver,zmin,zmax,zcat_qso_loc,zcat_qso_rand_loc,zcat_dla_loc,zcat_dla_rand_loc,corr_type=corr_type)
-                run_picca_job(make_qso_dla_cross_job_info,global_job_info['options'])
+                run_picca_job(qso_dla_cross_job_info,global_job_info['options'])
                 njobs += 1
 
 ################################################################################
