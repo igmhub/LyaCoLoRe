@@ -189,7 +189,7 @@ for v_rea in args.v_realisations:
         zmin = zbin[0]
         zmax = zbin[1]
 
-        if run_lya_auto:
+        if args.run_lya_auto:
 
             lya_auto_job_info = make_lya_auto_job_info(avc_dir,ver,zmin,zmax)
             run_picca_job(lya_auto_job_info,global_job_info['options'])
