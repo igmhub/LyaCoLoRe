@@ -117,13 +117,15 @@ def run_picca_job(job_info,global_options):
                          out_file=dir+'/run_files/'+header_info['out_file']
                          )
 
-    command = 'command='
+    command = 'command="'
     command = add_to_command(command,job_info['picca_script'])
     options = job_info['options']
     for key in options:
         command = add_to_command(command,'--{} {}'.format(key,options[key]))
     for key in global_options:
         command = add_to_command(command,'--{} {}'.format(key,global_options[key]))
+    command = add_to_command(command,'"')
+    command = add_to_command(command,'\nsrun -N 1 -n 1 -c {} $command\n'.format(args.nproc))
 
     #Make the run script.
     run_script_text = header + command
@@ -145,14 +147,14 @@ def make_lya_auto_job_info(meas_dir,ver,zmin,zmax):
     dir = meas_dir + '/lya_auto/'
     check_dir(dir)
 
-    header_info = {'queue':    'debug',
-                   'time':     '00:05:00',
+    header_info = {'queue':    'regular',
+                   'time':     '12:00:00',
                    'job_name': 'run_lya_auto_{}_{}_{}'.format(ver,zmin,zmax),
                    'err_file': 'lya_auto_{}_{}_{}_%j.err'.format(ver,zmin,zmax),
                    'out_file': 'lya_auto_{}_{}_{}_%j.out'.format(ver,zmin,zmax),
                    }
 
-    options = {'in-dir':        '{}/{}/deltas_0.5/ '.format(picca_data_dir,ver),
+    options = {'in-dir':        '{}/{}/deltas_0.5/'.format(picca_data_dir,ver),
                'out':           'cf_lya_auto_{}_{}.fits.gz'.format(zmin,zmax),
                'no-project':    '',
                }
