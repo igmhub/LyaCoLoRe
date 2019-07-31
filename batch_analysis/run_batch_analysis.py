@@ -119,10 +119,11 @@ def run_picca_job(job_info,global_options):
 
     command = 'command='
     command = add_to_command(command,job_info['picca_script'])
-    for key in job_info['options']:
-        command = add_to_command(command,'--{} {}'.format(key,job_info[key]))
+    options = job_info['options']
+    for key in options:
+        command = add_to_command(command,'--{} {}'.format(key,options[key]))
     for key in global_options:
-        command = add_to_command(command,'--{} {}'.format(key,job_info[key]))
+        command = add_to_command(command,'--{} {}'.format(key,global_options[key]))
 
     #Make the run script.
     run_script_text = header + command
