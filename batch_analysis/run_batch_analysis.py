@@ -136,7 +136,6 @@ def run_picca_job(job_info,global_options):
     #Send the run script.
     print(' -> -> sending job to queue...')
     retcode = call('sbatch {}'.format(run_script_path),shell=True)
-    njobs += 1
     print(' ')
 
     return
