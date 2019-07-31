@@ -79,26 +79,23 @@ def make_header(queue='regular',nnodes=1,time='00:01:00',job_name='run_script',e
 
     return header
 
+def check_dir(dir):
+
+    try:
+        os.mkdir(dir)
+    except FileExistsError:
+        pass
+
+    return
+
 #Function to make sure that the directories inside the correlation directory
 #are set up properly.
 def check_corr_dir(corr_dir):
 
-    try:
-        os.mkdir(corr_dir)
-    except FileExistsError:
-        pass
-    try:
-        os.mkdir(corr_dir+'/scripts/')
-    except FileExistsError:
-        pass
-    try:
-        os.mkdir(corr_dir+'/correlations/')
-    except FileExistsError:
-        pass
-    try:
-        os.mkdir(corr_dir+'/run_files/')
-    except FileExistsError:
-        pass
+    check_dir(corr_dir)
+    check_dir(corr_dir+'/scripts/')
+    check_dir(corr_dir+'/correlations/')
+    check_dir(corr_dir+'/run_files/')
 
     return
 
@@ -143,10 +140,11 @@ def run_picca_job(job_info,global_options):
 
     return
 
-def make_lya_auto_job_info(avc_dir,ver,zmin,zmax):
+def make_lya_auto_job_info(meas_dir,ver,zmin,zmax):
 
-    dir = avc_dir + '/lya_auto/'
-
+    dir = meas_dir + '/lya_auto/'
+    check_dir(dir)
+    
     header_info = {'queue':    'debug',
                    'time':     '00:05:00',
                    'job_name': 'run_lya_auto_{}_{}_{}'.format(ver,zmin,zmax),
@@ -182,7 +180,12 @@ for v_rea in args.v_realisations:
 
     ver = 'v{}.{}.{}'.format(args.v_maj,args.v_min,v_rea)
     print('\nRunning analysis for version {}:'.format(ver))
-    avc_dir = a_dir+'/correlation_functions/'+ver+'/measurements/'
+    ac_dir = a_dir+'/correlation_functions/'
+    check_dir(ac_dir)
+    acv_dir = ac_dir+'/'+ver+'/'
+    check_dir(acv_dir)
+    acvm_dir = acv_dir+'/measurements/'
+    check_dir(acvm_dir)
 
     for zbin in global_job_info['zbins']:
 
@@ -191,7 +194,7 @@ for v_rea in args.v_realisations:
 
         if args.run_lya_auto:
 
-            lya_auto_job_info = make_lya_auto_job_info(avc_dir,ver,zmin,zmax)
+            lya_auto_job_info = make_lya_auto_job_info(acvm_dir,ver,zmin,zmax)
             run_picca_job(lya_auto_job_info,global_job_info['options'])
 
 
