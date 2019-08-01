@@ -153,6 +153,7 @@ def run_picca_job(job_info,global_options):
 def make_lya_auto_job_info(meas_dir,ver,zmin,zmax,deltas_dir):
 
     dir = meas_dir + '/lya_auto/'
+    out_dir = dir + '/correlations/'
     check_dir(dir)
 
     header_info = {'queue':    'regular',
@@ -163,7 +164,7 @@ def make_lya_auto_job_info(meas_dir,ver,zmin,zmax,deltas_dir):
                    }
 
     options = {'in-dir':        deltas_dir,
-               'out':           'cf_lya_auto_{}_{}.fits.gz'.format(zmin,zmax),
+               'out':           out_dir+'/cf_lya_auto_{}_{}.fits.gz'.format(zmin,zmax),
                'no-project':    '',
                'z-cut-min':     zmin,
                'z-cut-max':     zmax,
@@ -181,6 +182,7 @@ def make_lya_auto_job_info(meas_dir,ver,zmin,zmax,deltas_dir):
 def make_qso_auto_job_info(meas_dir,ver,zmin,zmax,zcat,zcat_rand,corr_type='DD'):
 
     dir = meas_dir + '/qso_auto/'
+    out_dir = dir + '/correlations/'
     check_dir(dir)
 
     if corr_type == 'DD':
@@ -199,34 +201,28 @@ def make_qso_auto_job_info(meas_dir,ver,zmin,zmax,zcat,zcat_rand,corr_type='DD')
 
     if corr_type == 'DD':
         options = {'drq':           zcat,
-                   'out':           'co_qso_auto_{}_{}_{}.fits.gz'.format(corr_type,zmin,zmax),
-                   'type-corr':     corr_type,
                    'z-evol-obj':    1.44,
                    }
     elif corr_type == 'DR':
         options = {'drq':           zcat,
                    'drq2':          zcat_rand,
-                   'out':           'co_qso_auto_{}_{}_{}.fits.gz'.format(corr_type,zmin,zmax),
-                   'type-corr':     corr_type,
                    'z-evol-obj':    1.44,
                    'z-evol-obj2':   1.44,
                    }
     elif corr_type == 'RD':
         options = {'drq':           zcat_rand,
                    'drq2':          zcat,
-                   'out':           'co_qso_auto_{}_{}_{}.fits.gz'.format(corr_type,zmin,zmax),
-                   'type-corr':     corr_type,
                    'z-evol-obj':    1.44,
                    'z-evol-obj2':   1.44,
                    }
     elif corr_type == 'RR':
         options = {'drq':           zcat_rand,
-                   'out':           'co_qso_auto_{}_{}_{}.fits.gz'.format(corr_type,zmin,zmax),
-                   'type-corr':     corr_type,
                    'z-evol-obj':    1.44,
                    }
 
     options = {**options,
+               'out':           out_dir+'co_qso_auto_{}_{}_{}.fits.gz'.format(corr_type,zmin,zmax),
+               'type-corr':     corr_type,
                'z-cut-min':     zmin,
                'z-cut-max':     zmax,
                }
@@ -243,6 +239,7 @@ def make_qso_auto_job_info(meas_dir,ver,zmin,zmax,zcat,zcat_rand,corr_type='DD')
 def make_dla_auto_job_info(meas_dir,ver,zmin,zmax,zcat,zcat_rand,corr_type='DD'):
 
     dir = meas_dir + '/dla_auto/'
+    out_dir = dir + '/correlations/'
     check_dir(dir)
 
     if corr_type == 'DD':
@@ -261,34 +258,28 @@ def make_dla_auto_job_info(meas_dir,ver,zmin,zmax,zcat,zcat_rand,corr_type='DD')
 
     if corr_type == 'DD':
         options = {'drq':           zcat,
-                   'out':           'co_dla_auto_{}_{}_{}.fits.gz'.format(corr_type,zmin,zmax),
-                   'type-corr':     corr_type,
                    'z-evol-obj':    0.0,
                    }
     elif corr_type == 'DR':
         options = {'drq':           zcat,
                    'drq2':          zcat_rand,
-                   'out':           'co_dla_auto_{}_{}_{}.fits.gz'.format(corr_type,zmin,zmax),
-                   'type-corr':     corr_type,
                    'z-evol-obj':    0.0,
                    'z-evol-obj2':   0.0,
                    }
     elif corr_type == 'RD':
         options = {'drq':           zcat_rand,
                    'drq2':          zcat,
-                   'out':           'co_dla_auto_{}_{}_{}.fits.gz'.format(corr_type,zmin,zmax),
-                   'type-corr':     corr_type,
                    'z-evol-obj':    0.0,
                    'z-evol-obj2':   0.0,
                    }
     elif corr_type == 'RR':
         options = {'drq':           zcat_rand,
-                   'out':           'co_dla_auto_{}_{}_{}.fits.gz'.format(corr_type,zmin,zmax),
-                   'type-corr':     corr_type,
                    'z-evol-obj':    0.0,
                    }
 
     options = {**options,
+               'out':           out_dir+'/co_dla_auto_{}_{}_{}.fits.gz'.format(corr_type,zmin,zmax),
+               'type-corr':     corr_type,
                'z-cut-min':     zmin,
                'z-cut-max':     zmax,
                }
@@ -305,6 +296,7 @@ def make_dla_auto_job_info(meas_dir,ver,zmin,zmax,zcat,zcat_rand,corr_type='DD')
 def make_lya_aa_auto_job_info(meas_dir,ver,zmin,zmax,deltas_dir):
 
     dir = meas_dir + '/lya_aa_auto/'
+    out_dir = dir + '/correlations/'
     check_dir(dir)
 
     header_info = {'queue':    'regular',
@@ -315,7 +307,7 @@ def make_lya_aa_auto_job_info(meas_dir,ver,zmin,zmax,deltas_dir):
                    }
 
     options = {'in-dir':        deltas_dir,
-               'out':           'cf_lya_aa_auto_{}_{}.fits.gz'.format(zmin,zmax),
+               'out':           out_dir+'cf_lya_aa_auto_{}_{}.fits.gz'.format(zmin,zmax),
                'no-project':    '',
                'z-cut-min':     zmin,
                'z-cut-max':     zmax,
@@ -333,6 +325,7 @@ def make_lya_aa_auto_job_info(meas_dir,ver,zmin,zmax,deltas_dir):
 def make_lya_qso_cross_job_info(meas_dir,ver,zmin,zmax,deltas_dir,zcat,zcat_rand,cat_type='D'):
 
     dir = meas_dir + '/lya_qso_cross/'
+    out_dir = dir + '/correlations/'
     check_dir(dir)
 
     if cat_type == 'D':
@@ -348,19 +341,16 @@ def make_lya_qso_cross_job_info(meas_dir,ver,zmin,zmax,deltas_dir,zcat,zcat_rand
                    }
 
     if cat_type == 'D':
-        options = {'in-dir':        deltas_dir,
-                   'drq':           zcat,
-                   'out':           'xcf_lya_qso_cross_{}_{}_{}.fits.gz'.format(cat_type,zmin,zmax),
-                   'z-evol-obj':    1.44,
+        options = {'drq':           zcat,
                    }
     elif cat_type == 'R':
-        options = {'in-dir':        deltas_dir,
-                   'drq':           zcat_rand,
-                   'out':           'xcf_lya_qso_cross_{}_{}_{}.fits.gz'.format(cat_type,zmin,zmax),
-                   'z-evol-obj':    1.44,
+        options = {'drq':           zcat_rand,
                    }
 
     options = {**options,
+               'in-dir':                    deltas_dir,
+               'out':                       out_dir+'xcf_lya_qso_cross_{}_{}_{}.fits.gz'.format(cat_type,zmin,zmax),
+               'z-evol-obj':                1.44,
                'z-cut-min':                 zmin,
                'z-cut-max':                 zmax,
                'no-project':                '',
@@ -379,6 +369,7 @@ def make_lya_qso_cross_job_info(meas_dir,ver,zmin,zmax,deltas_dir,zcat,zcat_rand
 def make_lya_dla_cross_job_info(meas_dir,ver,zmin,zmax,deltas_dir,zcat,zcat_rand,cat_type='D'):
 
     dir = meas_dir + '/lya_dla_cross/'
+    out_dir = dir + '/correlations/'
     check_dir(dir)
 
     if cat_type == 'D':
@@ -394,19 +385,16 @@ def make_lya_dla_cross_job_info(meas_dir,ver,zmin,zmax,deltas_dir,zcat,zcat_rand
                    }
 
     if cat_type == 'D':
-        options = {'in-dir':        deltas_dir,
-                   'drq':           zcat,
-                   'out':           'xcf_lya_dla_cross_{}_{}_{}.fits.gz'.format(cat_type,zmin,zmax),
-                   'z-evol-obj':    0.0,
+        options = {'drq':   zcat,
                    }
     elif cat_type == 'R':
-        options = {'in-dir':        deltas_dir,
-                   'drq':           zcat_rand,
-                   'out':           'xcf_lya_dla_cross_{}_{}_{}.fits.gz'.format(cat_type,zmin,zmax),
-                   'z-evol-obj':    0.0,
+        options = {'drq':   zcat_rand,
                    }
 
     options = {**options,
+               'in-dir':                    deltas_dir,
+               'out':                       out_dir+'xcf_lya_dla_cross_{}_{}_{}.fits.gz'.format(cat_type,zmin,zmax),
+               'z-evol-obj':                0.0,
                'z-cut-min':                 zmin,
                'z-cut-max':                 zmax,
                'no-project':                '',
@@ -425,6 +413,7 @@ def make_lya_dla_cross_job_info(meas_dir,ver,zmin,zmax,deltas_dir,zcat,zcat_rand
 def make_qso_dla_cross_job_info(meas_dir,ver,zmin,zmax,zcat_qso,zcat_qso_rand,zcat_dla,zcat_dla_rand,corr_type='DD'):
 
     dir = meas_dir + '/qso_dla_cross/'
+    out_dir = dir + '/correlations/'
     check_dir(dir)
 
     if corr_type == 'DD':
@@ -444,37 +433,31 @@ def make_qso_dla_cross_job_info(meas_dir,ver,zmin,zmax,zcat_qso,zcat_qso_rand,zc
     if corr_type == 'DD':
         options = {'drq':           zcat_qso,
                    'drq2':          zcat_dla,
-                   'out':           'co_qso_dla_cross_{}_{}_{}.fits.gz'.format(corr_type,zmin,zmax),
-                   'type-corr':     corr_type,
                    'z-evol-obj':    1.44,
                    'z-evol-obj2':   0.0,
                    }
     elif corr_type == 'DR':
         options = {'drq':           zcat_qso,
                    'drq2':          zcat_dla_rand,
-                   'out':           'co_qso_dla_cross_{}_{}_{}.fits.gz'.format(corr_type,zmin,zmax),
-                   'type-corr':     corr_type,
                    'z-evol-obj':    1.44,
                    'z-evol-obj2':   0.0,
                    }
     elif corr_type == 'RD':
         options = {'drq':           zcat_qso_rand,
                    'drq2':          zcat_dla,
-                   'out':           'co_qso_dla_cross_{}_{}_{}.fits.gz'.format(corr_type,zmin,zmax),
-                   'type-corr':     corr_type,
                    'z-evol-obj':    1.44,
                    'z-evol-obj2':   0.0,
                    }
     elif corr_type == 'RR':
         options = {'drq':           zcat_qso_rand,
                    'drq2':          zcat_dla_rand,
-                   'out':           'co_qso_dla_cross_{}_{}_{}.fits.gz'.format(corr_type,zmin,zmax),
-                   'type-corr':     corr_type,
                    'z-evol-obj':    1.44,
                    'z-evol-obj2':   0.0,
                    }
 
     options = {**options,
+               'out':           out_dir+'co_qso_dla_cross_{}_{}_{}.fits.gz'.format(corr_type,zmin,zmax),
+               'type-corr':     corr_type,
                'z-cut-min':     zmin,
                'z-cut-max':     zmax,
                }
