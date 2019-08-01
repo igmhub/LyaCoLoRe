@@ -96,10 +96,10 @@ for v_rea in args.v_realisations:
     acvm_dir = acv_dir+'/measurements/'
     #check_dir(acvm_dir)
 
-    if export_lya_auto:
+    if args.export_lya_auto:
         coadd_lya_auto(acvm_dir)
 
-    if export_dla_auto:
+    if args.export_dla_auto:
         coadd_dla_auto(acvm_dir)
 
 ################################################################################
