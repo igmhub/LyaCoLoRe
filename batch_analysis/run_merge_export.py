@@ -82,7 +82,6 @@ def coadd_dla_auto(meas_dir):
 
 ################################################################################
 #Merge the z bins together.
-picca_export_coadd_zint.py --data {cf_z_...fits files} --out {export filename} --no-dmat
 
 for v_rea in args.v_realisations:
 
@@ -91,11 +90,11 @@ for v_rea in args.v_realisations:
 
     #Check that the directories are constructed properly.
     ac_dir = a_dir+'/correlation_functions/'
-    check_dir(ac_dir)
+    #check_dir(ac_dir)
     acv_dir = ac_dir+'/'+ver+'/'
-    check_dir(acv_dir)
+    #check_dir(acv_dir)
     acvm_dir = acv_dir+'/measurements/'
-    check_dir(acvm_dir)
+    #check_dir(acvm_dir)
 
     if export_lya_auto:
         coadd_lya_auto(acvm_dir)
@@ -105,7 +104,7 @@ for v_rea in args.v_realisations:
 
 ################################################################################
 #Export everything.
-
+"""
 cf:
 picca_export.py --data cf_0.5_200.fits.gz --out cf_exp_0.5_200.fits.gz
 
@@ -114,3 +113,4 @@ picca_export_co.py --DD-file co_0.5_DD.fits.gz --RD-file co_0.5_RD.fits.gz --DR-
 
 xcf:
 picca_export.py --data xcf_0.5_200.fits.gz --out xcf_exp_0.5_200_shuffle.fits.gz --remove-shuffled-correlation xcf_0.5_200_shuffle.fits.gz
+"""
