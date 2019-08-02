@@ -1,13 +1,13 @@
 ################################################################################
 BASEDIR="/project/projectdirs/desi/users/jfarr/LyaCoLoRe_paper/"
-LYACOLORE_PATH="/global/homes/j/jfarr/Projects/LyaCoLore/"
+LYACOLORE_PATH="/global/homes/j/jfarr/Projects/LyaCoLoRe/"
 RANDDIR="${BASEDIR}/data/additional_data/"
 V_CODE_MAJOR=9
 V_CODE_MINOR=0
-V_REALISATIONS=`echo {0..9}`
+V_REALISATIONS=`echo {4..9}`
 NPROC=64
 NSIDE=16
-FLAGS="--make-zcats --make-random-zcats"
+FLAGS=""
 #--DLAs-in-transmission-rest-range --single-DLA-per-skw --add-Lyb --add-metals
 
 #Processing quantities.
@@ -37,7 +37,7 @@ fi
 
 ################################################################################
 RUN_FILE="$OUTDIRNAME/run_make_deltas_v${V_CODE_MAJOR}.${V_CODE_MINOR}.${r}.sh"
-echo "Run file for making picca deltas (lya only) will be written to "$RUN_FILE
+echo "Run file for making picca deltas will be written to "$RUN_FILE
 cat > $RUN_FILE <<EOF
 #!/bin/bash -l
 
@@ -53,7 +53,9 @@ cat > $RUN_FILE <<EOF
 umask 0002
 export OMP_NUM_THREADS=64
 
-python $LYACOLORE_PATH/scripts/make_picca_deltas_from_transmission.py --in-dir $INDIRNAME --out-dir $OUTDIRNAME --randoms-dir $RANDDIR --nproc $NPROC --downsampling $DS --downsampling-seed $r --randoms-downsamping $DS_RAND --randoms-downsampling-seed $(( $r + 1000 )) --min-cat-z $MIN_CAT_Z --lambda-obs-min $lObs_min --lambda-obs-max $lObs_max --lamdba-RF-min $lRF_min --lambda-RF-max $lRF_max $FLAGS
+python $LYACOLORE_PATH/scripts/make_picca_deltas_from_transmission.py --in-dir $INDIRNAME --out-dir $OUTDIRNAME --randoms-dir $RANDDIR --nproc $NPROC --downsampling $DS --downsampling-seed $r --randoms-downsampling $DS_RAND --randoms-downsampling-seed $(( $r + 1000 )) --min-cat-z $MIN_CAT_Z --transmission-lambda-min $lObs_min --transmission-lambda-max $lObs_max --transmission-lambda-rest-min $lRF_min --transmission-lambda-rest-max $lRF_max --make-zcats --make-randoms-zcats $FLAGS
+
+python $LYACOLORE_PATH/scripts/make_picca_deltas_from_transmission.py --in-dir $INDIRNAME --out-dir $OUTDIRNAME --randoms-dir $RANDDIR --nproc $NPROC --downsampling $DS --downsampling-seed $r --randoms-downsampling $DS_RAND --randoms-downsampling-seed $(( $r + 1000 )) --min-cat-z $MIN_CAT_Z --transmission-lambda-min $lObs_min --transmission-lambda-max $lObs_max --transmission-lambda-rest-min $lRF_min --transmission-lambda-rest-max $lRF_max $FLAGS --add-Lyb --add-metals
 
 wait
 date
@@ -61,39 +63,9 @@ date
 EOF
 
 ################################################################################
-## Send the job to the queue.
+
 sbatch $RUN_FILE
 
 ################################################################################
-
-RUN_FILE="$OUTDIRNAME/run_make_deltas_v${V_CODE_MAJOR}.${V_CODE_MINOR}.${r}_all_absorbers.sh"
-echo "Run file for making picca deltas (all absorbers) will be written to "$RUN_FILE
-cat > $RUN_FILE <<EOF
-#!/bin/bash -l
-
-#SBATCH --partition debug
-#SBATCH --nodes 1
-#SBATCH --time 00:30:00
-#SBATCH --job-name run_make_deltas_v${V_CODE_MAJOR}.${V_CODE_MINOR}
-#SBATCH --error "${OUTDIRNAME}/run-make-deltas-%j.err"
-#SBATCH --output "${OUTDIRNAME}/run-make-deltas-%j.out"
-#SBATCH -C haswell
-#SBATCH -A desi
-
-umask 0002
-export OMP_NUM_THREADS=64
-
-python $LYACOLORE_PATH/scripts/make_picca_deltas_from_transmission.py --in-dir $INDIRNAME --out-dir $OUTDIRNAME --randoms-dir $RANDDIR --nproc $NPROC --downsampling $DS --downsampling-seed $r --randoms-downsamping $DS_RAND --randoms-downsampling-seed $(( $r + 1000 )) --min-cat-z $MIN_CAT_Z --lambda-obs-min $lObs_min --lambda-obs-max $lObs_max --lamdba-RF-min $lRF_min --lambda-RF-max $lRF_max $FLAGS --add-Lyb --add-metals
-
-wait
-date
-
-EOF
 
 done
-
-################################################################################
-## Send the job to the queue.
-sbatch $RUN_FILE
-
-################################################################################
