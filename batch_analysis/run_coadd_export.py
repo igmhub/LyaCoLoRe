@@ -58,13 +58,27 @@ if args.export_all:
     args.export_lya_dla_cross = True
     args.export_qso_dla_cross = True
 
+################################################################################
+
 def coadd_lya_auto(meas_dir):
 
     dir = meas_dir + '/lya_auto/'
-    in_files = dir + '/correlations/cf_lya_auto_*_.fits.gz'
+    in_files = dir + '/correlations/cf_lya_auto_*_*.fits.gz'
     out_file = dir + '/correlations/cf_lya_auto.fits.gz'
     command='picca_export_coadd_zint.py --data {} --out {} --no-dmat'.format(in_files,out_file)
     retcode = call(command,shell=True)
+
+    return
+
+def coadd_qso_auto(meas_dir):
+
+    dir = meas_dir + '/qso_auto/'
+
+    for corr_type in ['DD','RD','DR','RR']:
+        in_files = dir + '/correlations/co_qso_auto_{}_*_*.fits.gz'.format(corr_type)
+        out_file = dir + '/correlations/co_qso_auto_{}.fits.gz'.format(corr_type)
+        command='picca_export_coadd_zint.py --data {} --out {} --no-dmat'.format(in_files,out_file)
+        retcode = call(command,shell=True)
 
     return
 
@@ -73,10 +87,50 @@ def coadd_dla_auto(meas_dir):
     dir = meas_dir + '/dla_auto/'
 
     for corr_type in ['DD','RD','DR','RR']:
-        in_files = dir + '/correlations/co_dla_auto_{}_*_.fits.gz'.format(corr_type)
+        in_files = dir + '/correlations/co_dla_auto_{}_*_*.fits.gz'.format(corr_type)
         out_file = dir + '/correlations/co_dla_auto_{}.fits.gz'.format(corr_type)
         command='picca_export_coadd_zint.py --data {} --out {} --no-dmat'.format(in_files,out_file)
         retcode = call(command,shell=True)
+
+    return
+
+def coadd_lya_aa_auto(meas_dir):
+
+    dir = meas_dir + '/lya_aa_auto/'
+    in_files = dir + '/correlations/cf_lya_aa_auto_*_*.fits.gz'
+    out_file = dir + '/correlations/cf_lya_aa_auto.fits.gz'
+    command='picca_export_coadd_zint.py --data {} --out {} --no-dmat'.format(in_files,out_file)
+    retcode = call(command,shell=True)
+
+    return
+
+def coadd_lya_qso_cross(meas_dir):
+
+    dir = meas_dir + '/lya_qso_cross/'
+    in_files = dir + '/correlations/cf_lya_qso_cross_*_*.fits.gz'
+    out_file = dir + '/correlations/cf_lya_qso_cross.fits.gz'
+    command='picca_export_coadd_zint.py --data {} --out {} --no-dmat'.format(in_files,out_file)
+    retcode = call(command,shell=True)
+
+    return
+
+def coadd_lya_dla_cross(meas_dir):
+
+    dir = meas_dir + '/lya_dla_cross/'
+    in_files = dir + '/correlations/cf_lya_dla_cross_*_*.fits.gz'
+    out_file = dir + '/correlations/cf_lya_dla_cross.fits.gz'
+    command='picca_export_coadd_zint.py --data {} --out {} --no-dmat'.format(in_files,out_file)
+    retcode = call(command,shell=True)
+
+    return
+
+def coadd_qso_dla_cross(meas_dir):
+
+    dir = meas_dir + '/qso_dla_cross/'
+    in_files = dir + '/correlations/cf_qso_dla_cross_*_*.fits.gz'
+    out_file = dir + '/correlations/cf_qso_dla_cross.fits.gz'
+    command='picca_export_coadd_zint.py --data {} --out {} --no-dmat'.format(in_files,out_file)
+    retcode = call(command,shell=True)
 
     return
 
@@ -101,6 +155,21 @@ for v_rea in args.v_realisations:
 
     if args.export_dla_auto:
         coadd_dla_auto(acvm_dir)
+
+    if args.export_qso_auto:
+        coadd_qso_auto(acvm_dir)
+
+    if args.export_lya_aa_auto:
+        coadd_lya_aa_auto(acvm_dir)
+
+    if args.export_lya_qso_cross:
+        coadd_lya_qso_cross(acvm_dir)
+
+    if args.export_lya_dla_cross:
+        coadd_lya_dla_cross(acvm_dir)
+
+    if args.export_qso_dla_cross:
+        coadd_qso_dla_cross(acvm_dir)
 
 ################################################################################
 #Export everything.
