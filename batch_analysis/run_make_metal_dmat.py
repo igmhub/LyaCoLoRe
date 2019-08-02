@@ -7,6 +7,8 @@ from lyacolore import submit_utils
 
 ################################################################################
 
+parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
 parser.add_argument('--base-dir', type = str, default = None, required=False,
                     help = 'directory containing the master file')
 
