@@ -37,7 +37,7 @@ args = parser.parse_args()
 
 ################################################################################
 
-data_dir = base_dir + '/data/'
+data_dir = args.base_dir + '/data/'
 add_data_dir = data_dir + '/additional_data/'
 submit_utils.check_dir(add_data_dir)
 zbins = [(0.,10.)]
