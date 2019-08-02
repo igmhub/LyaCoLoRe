@@ -208,7 +208,7 @@ COLORE_PARAM_PATH=${COLORE_PARAM_PATH}
 EOF
 cat ${COLORE_PARAM_PATH} >> ${PARAM_FILE}
 
-##############################################################################
+################################################################################
 ## Send the job to the queue.
 sbatch $RUN_FILE
 done

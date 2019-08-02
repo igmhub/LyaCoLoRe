@@ -3,6 +3,8 @@ from subprocess import call
 import argparse
 import os
 
+from lyacolore import submit_utils
+
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 parser.add_argument('--base-dir', type = str, default = None, required=False,
@@ -69,101 +71,13 @@ if args.run_all:
     args.run_qso_dla_cross = True
 
 ################################################################################
-#Function to make the header at the top of each run script.
-def make_header(queue='regular',nnodes=1,time='00:01:00',job_name='run_script',err_file='run-%j.err',out_file='run-%j.err'):
-
-    header = ''
-
-    header += '#!/bin/bash -l\n\n'
-
-    header += '#SBATCH --partition {}\n'.format(queue)
-    header += '#SBATCH --nodes {}\n'.format(nnodes)
-    header += '#SBATCH --time {}\n'.format(time)
-    header += '#SBATCH --job-name {}\n'.format(job_name)
-    header += '#SBATCH --error {}\n'.format(err_file)
-    header += '#SBATCH --output {}\n'.format(out_file)
-    header += '#SBATCH -C haswell\n'
-    header += '#SBATCH -A desi\n\n'
-
-    header += 'umask 0002\n'
-    header += 'export OMP_NUM_THREADS=64\n\n'
-
-    return header
-
-#Function to check that a directory exists.
-def check_dir(dir):
-
-    try:
-        os.mkdir(dir)
-    except FileExistsError:
-        pass
-
-    return
-
-#Function to make sure that the directories inside the correlation directory
-#are set up properly.
-def check_corr_dir(corr_dir):
-
-    check_dir(corr_dir)
-    check_dir(corr_dir+'/scripts/')
-    check_dir(corr_dir+'/correlations/')
-    check_dir(corr_dir+'/run_files/')
-
-    return
-
-#Function to add an option to a command.
-def add_to_command(command,extra,ns=False):
-    if ns:
-        return command + extra
-    else:
-        return command + ' ' + extra
-
-#Function to interpret the job information and global options, and submit a job
-#suitably to the queue.
-def run_picca_job(job_info,global_options):
-
-    #Check the directory is set up.
-    dir = job_info['dir']
-    check_corr_dir(dir)
-
-    #Make the header.
-    header_info = job_info['header_info']
-    header = make_header(queue=header_info['queue'],
-                         time=header_info['time'],
-                         job_name=header_info['job_name'],
-                         err_file=dir+'/run_files/'+header_info['err_file'],
-                         out_file=dir+'/run_files/'+header_info['out_file']
-                         )
-
-    command = 'command="'
-    command = add_to_command(command,job_info['picca_script'],ns=True)
-    options = job_info['options']
-    for key in options:
-        command = add_to_command(command,'--{} {}'.format(key,options[key]))
-    for key in global_options:
-        command = add_to_command(command,'--{} {}'.format(key,global_options[key]))
-    command = add_to_command(command,'"')
-    command = add_to_command(command,'\nsrun -N 1 -n 1 -c {} $command\n'.format(args.nproc))
-
-    #Make the run script.
-    run_script_text = header + command
-    run_script_path = dir+'/scripts/'+job_info['run_script']
-    run_script = open(run_script_path,'w+')
-    run_script.write(run_script_text)
-    run_script.close()
-    print(' -> -> job script written: {}'.format(job_info['run_script']))
-
-    #Send the run script.
-    retcode = call('sbatch {}'.format(run_script_path),shell=True)
-
-    return
 
 #Functions to construct the job info dictionaries.
 def make_lya_auto_job_info(meas_dir,ver,zmin,zmax,deltas_dir,time=None):
 
     dir = meas_dir + '/lya_auto/'
     out_dir = dir + '/correlations/'
-    check_dir(dir)
+    submit_utils.check_corr_dir(dir)
     if time is None:
         time = 24
 
@@ -194,7 +108,7 @@ def make_qso_auto_job_info(meas_dir,ver,zmin,zmax,zcat,zcat_rand,corr_type='DD',
 
     dir = meas_dir + '/qso_auto/'
     out_dir = dir + '/correlations/'
-    check_dir(dir)
+    submit_utils.check_corr_dir(dir)
     if time is None:
         time = 24
 
@@ -246,7 +160,7 @@ def make_dla_auto_job_info(meas_dir,ver,zmin,zmax,zcat,zcat_rand,corr_type='DD',
 
     dir = meas_dir + '/dla_auto/'
     out_dir = dir + '/correlations/'
-    check_dir(dir)
+    submit_utils.check_corr_dir(dir)
     if time is None:
         time = 24
 
@@ -298,7 +212,7 @@ def make_lya_aa_auto_job_info(meas_dir,ver,zmin,zmax,deltas_dir,time=None):
 
     dir = meas_dir + '/lya_aa_auto/'
     out_dir = dir + '/correlations/'
-    check_dir(dir)
+    submit_utils.check_corr_dir(dir)
     if time is None:
         time = 24
 
@@ -329,7 +243,7 @@ def make_lya_qso_cross_job_info(meas_dir,ver,zmin,zmax,deltas_dir,zcat,zcat_rand
 
     dir = meas_dir + '/lya_qso_cross/'
     out_dir = dir + '/correlations/'
-    check_dir(dir)
+    submit_utils.check_corr_dir(dir)
     if time is None:
         time = 24
 
@@ -370,7 +284,7 @@ def make_lya_dla_cross_job_info(meas_dir,ver,zmin,zmax,deltas_dir,zcat,zcat_rand
 
     dir = meas_dir + '/lya_dla_cross/'
     out_dir = dir + '/correlations/'
-    check_dir(dir)
+    submit_utils.check_corr_dir(dir)
     if time is None:
         time = 24
 
@@ -411,7 +325,7 @@ def make_qso_dla_cross_job_info(meas_dir,ver,zmin,zmax,zcat_qso,zcat_qso_rand,zc
 
     dir = meas_dir + '/qso_dla_cross/'
     out_dir = dir + '/correlations/'
-    check_dir(dir)
+    submit_utils.check_corr_dir(dir)
     if time is None:
         time = 24
 
@@ -497,11 +411,11 @@ for v_rea in args.v_realisations:
 
     #Check that the directories are constructed properly.
     ac_dir = a_dir+'/correlation_functions/'
-    check_dir(ac_dir)
+    submit_utils.check_dir(ac_dir)
     acv_dir = ac_dir+'/'+ver+'/'
-    check_dir(acv_dir)
+    submit_utils.check_dir(acv_dir)
     acvm_dir = acv_dir+'/measurements/'
-    check_dir(acvm_dir)
+    submit_utils.check_dir(acvm_dir)
 
     #Define the location variables for this version.
     lya_deltas_loc = '{}/data/picca_input/{}/deltas_0.5/'.format(args.base_dir,ver)
@@ -521,7 +435,7 @@ for v_rea in args.v_realisations:
 
             time = job_time_dict['lya_auto'][zbin]
             lya_auto_job_info = make_lya_auto_job_info(acvm_dir,ver,zmin,zmax,lya_deltas_loc,time=time)
-            run_picca_job(lya_auto_job_info,global_job_info['options'])
+            submit_utils.run_picca_job(lya_auto_job_info,global_job_info['options'])
             njobs += 1
 
         if args.run_qso_auto:
@@ -533,7 +447,7 @@ for v_rea in args.v_realisations:
                 elif corr_type == 'RR':
                     time *= co_randrand_factor
                 qso_auto_job_info = make_qso_auto_job_info(acvm_dir,ver,zmin,zmax,zcat_qso_loc,zcat_qso_rand_loc,corr_type=corr_type,time=time)
-                run_picca_job(qso_auto_job_info,global_job_info['options'])
+                submit_utils.run_picca_job(qso_auto_job_info,global_job_info['options'])
                 njobs += 1
 
         if args.run_dla_auto:
@@ -545,14 +459,14 @@ for v_rea in args.v_realisations:
                 elif corr_type == 'RR':
                     time *= co_randrand_factor
                 dla_auto_job_info = make_dla_auto_job_info(acvm_dir,ver,zmin,zmax,zcat_dla_loc,zcat_dla_rand_loc,corr_type=corr_type,time=time)
-                run_picca_job(dla_auto_job_info,global_job_info['options'])
+                submit_utils.run_picca_job(dla_auto_job_info,global_job_info['options'])
                 njobs += 1
 
         if args.run_lya_aa_auto:
 
             time = job_time_dict['lya_aa_auto'][zbin]
             lya_aa_auto_job_info = make_lya_aa_auto_job_info(acvm_dir,ver,zmin,zmax,lya_aa_deltas_loc,time=time)
-            run_picca_job(lya_aa_auto_job_info,global_job_info['options'])
+            submit_utils.run_picca_job(lya_aa_auto_job_info,global_job_info['options'])
             njobs += 1
 
         if args.run_lya_qso_cross:
@@ -562,7 +476,7 @@ for v_rea in args.v_realisations:
                 if cat_type == 'R':
                     time *= xcf_rand_factor
                 lya_qso_cross_job_info = make_lya_qso_cross_job_info(acvm_dir,ver,zmin,zmax,lya_deltas_loc,zcat_qso_loc,zcat_qso_rand_loc,cat_type=cat_type,time=time)
-                run_picca_job(lya_qso_cross_job_info,global_job_info['options'])
+                submit_utils.run_picca_job(lya_qso_cross_job_info,global_job_info['options'])
                 njobs += 1
 
         if args.run_lya_dla_cross:
@@ -572,7 +486,7 @@ for v_rea in args.v_realisations:
                 if cat_type == 'R':
                     time *= xcf_rand_factor
                 lya_dla_cross_job_info = make_lya_dla_cross_job_info(acvm_dir,ver,zmin,zmax,lya_deltas_loc,zcat_dla_loc,zcat_dla_rand_loc,cat_type=cat_type,time=time)
-                run_picca_job(lya_dla_cross_job_info,global_job_info['options'])
+                submit_utils.run_picca_job(lya_dla_cross_job_info,global_job_info['options'])
                 njobs += 1
 
         if args.run_qso_dla_cross:
@@ -584,7 +498,7 @@ for v_rea in args.v_realisations:
                 elif corr_type == 'RR':
                     time *= co_randrand_factor
                 qso_dla_cross_job_info = make_qso_dla_cross_job_info(acvm_dir,ver,zmin,zmax,zcat_qso_loc,zcat_qso_rand_loc,zcat_dla_loc,zcat_dla_rand_loc,corr_type=corr_type,time=time)
-                run_picca_job(qso_dla_cross_job_info,global_job_info['options'])
+                submit_utils.run_picca_job(qso_dla_cross_job_info,global_job_info['options'])
                 njobs += 1
 
 ################################################################################

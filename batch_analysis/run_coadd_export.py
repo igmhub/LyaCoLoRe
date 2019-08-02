@@ -140,7 +140,7 @@ def coadd_qso_dla_cross(meas_dir):
 for v_rea in args.v_realisations:
 
     ver = 'v{}.{}.{}'.format(args.v_maj,args.v_min,v_rea)
-    print('\nRunning analysis for version {}:'.format(ver))
+    print('\nCoadding and exporting correlations for version {}:'.format(ver))
 
     #Check that the directories are constructed properly.
     ac_dir = a_dir+'/correlation_functions/'
