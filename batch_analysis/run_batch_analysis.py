@@ -161,14 +161,16 @@ def run_picca_job(job_info,global_options):
     return
 
 #Functions to construct the job info dictionaries.
-def make_lya_auto_job_info(meas_dir,ver,zmin,zmax,deltas_dir):
+def make_lya_auto_job_info(meas_dir,ver,zmin,zmax,deltas_dir,time=None):
 
     dir = meas_dir + '/lya_auto/'
     out_dir = dir + '/correlations/'
     check_dir(dir)
+    if time is None:
+        time = 24
 
     header_info = {'queue':    'regular',
-                   'time':     '12:00:00',
+                   'time':     '{}:00:00'.format(int(time)),
                    'job_name': 'run_lya_auto_{}_{}_{}'.format(ver,zmin,zmax),
                    'err_file': 'lya_auto_{}_{}_{}_%j.err'.format(ver,zmin,zmax),
                    'out_file': 'lya_auto_{}_{}_{}_%j.out'.format(ver,zmin,zmax),
@@ -190,21 +192,16 @@ def make_lya_auto_job_info(meas_dir,ver,zmin,zmax,deltas_dir):
 
     return lya_auto_job_info
 
-def make_qso_auto_job_info(meas_dir,ver,zmin,zmax,zcat,zcat_rand,corr_type='DD'):
+def make_qso_auto_job_info(meas_dir,ver,zmin,zmax,zcat,zcat_rand,corr_type='DD',time=None):
 
     dir = meas_dir + '/qso_auto/'
     out_dir = dir + '/correlations/'
     check_dir(dir)
-
-    if corr_type == 'DD':
-        time = '01:30:00'
-    elif corr_type == 'DR' or corr_type == 'RD':
-        time = '03:00:00'
-    elif corr_type == 'RR':
-        time = '06:00:00'
+    if time is None:
+        time = 24
 
     header_info = {'queue':    'regular',
-                   'time':     time,
+                   'time':     '{}:00:00'.format(int(time)),
                    'job_name': 'run_qso_auto_{}_{}_{}_{}'.format(corr_type,ver,zmin,zmax),
                    'err_file': 'qso_auto_{}_{}_{}_{}_%j.err'.format(corr_type,ver,zmin,zmax),
                    'out_file': 'qso_auto_{}_{}_{}_{}_%j.out'.format(corr_type,ver,zmin,zmax),
@@ -247,21 +244,16 @@ def make_qso_auto_job_info(meas_dir,ver,zmin,zmax,zcat,zcat_rand,corr_type='DD')
 
     return qso_auto_job_info
 
-def make_dla_auto_job_info(meas_dir,ver,zmin,zmax,zcat,zcat_rand,corr_type='DD'):
+def make_dla_auto_job_info(meas_dir,ver,zmin,zmax,zcat,zcat_rand,corr_type='DD',time=None):
 
     dir = meas_dir + '/dla_auto/'
     out_dir = dir + '/correlations/'
     check_dir(dir)
-
-    if corr_type == 'DD':
-        time = '01:00:00'
-    elif corr_type == 'DR' or corr_type == 'RD':
-        time = '01:30:00'
-    elif corr_type == 'RR':
-        time = '02:30:00'
+    if time is None:
+        time = 24
 
     header_info = {'queue':    'regular',
-                   'time':     time,
+                   'time':     '{}:00:00'.format(int(time)),
                    'job_name': 'run_dla_auto_{}_{}_{}_{}'.format(corr_type,ver,zmin,zmax),
                    'err_file': 'dla_auto_{}_{}_{}_{}_%j.err'.format(corr_type,ver,zmin,zmax),
                    'out_file': 'dla_auto_{}_{}_{}_{}_%j.out'.format(corr_type,ver,zmin,zmax),
@@ -304,14 +296,16 @@ def make_dla_auto_job_info(meas_dir,ver,zmin,zmax,zcat,zcat_rand,corr_type='DD')
 
     return dla_auto_job_info
 
-def make_lya_aa_auto_job_info(meas_dir,ver,zmin,zmax,deltas_dir):
+def make_lya_aa_auto_job_info(meas_dir,ver,zmin,zmax,deltas_dir,time=None):
 
     dir = meas_dir + '/lya_aa_auto/'
     out_dir = dir + '/correlations/'
     check_dir(dir)
+    if time is None:
+        time = 24
 
     header_info = {'queue':    'regular',
-                   'time':     '12:00:00',
+                   'time':     '{}:00:00'.format(int(time)),
                    'job_name': 'run_lya_aa_auto_{}_{}_{}'.format(ver,zmin,zmax),
                    'err_file': 'lya_aa_auto_{}_{}_{}_%j.err'.format(ver,zmin,zmax),
                    'out_file': 'lya_aa_auto_{}_{}_{}_%j.out'.format(ver,zmin,zmax),
@@ -333,19 +327,16 @@ def make_lya_aa_auto_job_info(meas_dir,ver,zmin,zmax,deltas_dir):
 
     return lya_aa_auto_job_info
 
-def make_lya_qso_cross_job_info(meas_dir,ver,zmin,zmax,deltas_dir,zcat,zcat_rand,cat_type='D'):
+def make_lya_qso_cross_job_info(meas_dir,ver,zmin,zmax,deltas_dir,zcat,zcat_rand,cat_type='D',time=None):
 
     dir = meas_dir + '/lya_qso_cross/'
     out_dir = dir + '/correlations/'
     check_dir(dir)
-
-    if cat_type == 'D':
-        time = '04:00:00'
-    elif cat_type == 'R':
-        time = '08:00:00'
+    if time is None:
+        time = 24
 
     header_info = {'queue':    'regular',
-                   'time':     time,
+                   'time':     '{}:00:00'.format(int(time)),
                    'job_name': 'run_lya_qso_cross_{}_{}_{}_{}'.format(cat_type,ver,zmin,zmax),
                    'err_file': 'lya_qso_cross_{}_{}_{}_{}_%j.err'.format(cat_type,ver,zmin,zmax),
                    'out_file': 'lya_qso_cross_{}_{}_{}_{}_%j.out'.format(cat_type,ver,zmin,zmax),
@@ -377,19 +368,16 @@ def make_lya_qso_cross_job_info(meas_dir,ver,zmin,zmax,deltas_dir,zcat,zcat_rand
 
     return lya_qso_cross_job_info
 
-def make_lya_dla_cross_job_info(meas_dir,ver,zmin,zmax,deltas_dir,zcat,zcat_rand,cat_type='D'):
+def make_lya_dla_cross_job_info(meas_dir,ver,zmin,zmax,deltas_dir,zcat,zcat_rand,cat_type='D',time=None):
 
     dir = meas_dir + '/lya_dla_cross/'
     out_dir = dir + '/correlations/'
     check_dir(dir)
-
-    if cat_type == 'D':
-        time = '04:00:00'
-    elif cat_type == 'R':
-        time = '08:00:00'
+    if time is None:
+        time = 24
 
     header_info = {'queue':    'regular',
-                   'time':     time,
+                   'time':     '{}:00:00'.format(int(time)),
                    'job_name': 'run_lya_dla_cross_{}_{}_{}_{}'.format(cat_type,ver,zmin,zmax),
                    'err_file': 'lya_dla_cross_{}_{}_{}_{}_%j.err'.format(cat_type,ver,zmin,zmax),
                    'out_file': 'lya_dla_cross_{}_{}_{}_{}_%j.out'.format(cat_type,ver,zmin,zmax),
@@ -421,21 +409,16 @@ def make_lya_dla_cross_job_info(meas_dir,ver,zmin,zmax,deltas_dir,zcat,zcat_rand
 
     return lya_dla_cross_job_info
 
-def make_qso_dla_cross_job_info(meas_dir,ver,zmin,zmax,zcat_qso,zcat_qso_rand,zcat_dla,zcat_dla_rand,corr_type='DD'):
+def make_qso_dla_cross_job_info(meas_dir,ver,zmin,zmax,zcat_qso,zcat_qso_rand,zcat_dla,zcat_dla_rand,corr_type='DD',time=None):
 
     dir = meas_dir + '/qso_dla_cross/'
     out_dir = dir + '/correlations/'
     check_dir(dir)
-
-    if corr_type == 'DD':
-        time = '01:30:00'
-    elif corr_type == 'DR' or corr_type == 'RD':
-        time = '03:00:00'
-    elif corr_type == 'RR':
-        time = '06:00:00'
+    if time is None:
+        time = 24
 
     header_info = {'queue':    'regular',
-                   'time':     time,
+                   'time':     '{}:00:00'.format(int(time)),
                    'job_name': 'run_qso_dla_cross_{}_{}_{}_{}'.format(corr_type,ver,zmin,zmax),
                    'err_file': 'qso_dla_cross_{}_{}_{}_{}_%j.err'.format(corr_type,ver,zmin,zmax),
                    'out_file': 'qso_dla_cross_{}_{}_{}_{}_%j.out'.format(corr_type,ver,zmin,zmax),
@@ -484,13 +467,29 @@ def make_qso_dla_cross_job_info(meas_dir,ver,zmin,zmax,zcat_qso,zcat_qso_rand,zc
 
 ################################################################################
 
-global_job_info = {'zbins': [(0.0,2.2),(2.2,2.6),(2.6,3.0),(3.0,10.0)],
-                   'options': {'fid-Om':    args.fid_Om,
-                               'fid-Or':    args.fid_Or,
-                               'nside':     args.nside,
-                               'nproc':     args.nproc,
-                               },
+zbins = [(0.0,2.2),(2.2,2.6),(2.6,3.0),(3.0,10.0)]
+global_job_info = {'zbins':     zbins,
+                   'options':   {'fid-Om':    args.fid_Om,
+                                 'fid-Or':    args.fid_Or,
+                                 'nside':     args.nside,
+                                 'nproc':     args.nproc,
+                                 },
                    }
+
+job_time_dict = {'lya_auto':        {zbins[0]: 4., zbins[1]: 21., zbins[2]: 13., zbins[3]: 5.},
+                 'qso_auto':        {zbins[0]: 2., zbins[1]: 10., zbins[2]: 6.,  zbins[3]: 3.},
+                 'dla_auto':        {zbins[0]: 1., zbins[1]: 5.,  zbins[2]: 3.,  zbins[3]: 2.},
+                 'lya_aa_auto':     {zbins[0]: 4., zbins[1]: 21., zbins[2]: 13., zbins[3]: 5.},
+                 'lya_qso_cross':   {zbins[0]: 4., zbins[1]: 21., zbins[2]: 13., zbins[3]: 5.},
+                 'lya_dla_cross':   {zbins[0]: 3., zbins[1]: 15., zbins[2]: 9.,  zbins[3]: 4.},
+                 'qso_dla_cross':   {zbins[0]: 2., zbins[1]: 10., zbins[2]: 6.,  zbins[3]: 3.},
+                 }
+
+xcf_rand_factor = 1.25
+co_datrand_factor = 2.
+co_randrand_factor = 3.
+
+################################################################################
 
 njobs = 0
 for v_rea in args.v_realisations:
@@ -522,7 +521,8 @@ for v_rea in args.v_realisations:
         if args.run_lya_auto:
 
             print(' -> setting up lya auto correlation:')
-            lya_auto_job_info = make_lya_auto_job_info(acvm_dir,ver,zmin,zmax,lya_deltas_loc)
+            time = job_time_dict['lya_auto'][zbin]
+            lya_auto_job_info = make_lya_auto_job_info(acvm_dir,ver,zmin,zmax,lya_deltas_loc,time=time)
             run_picca_job(lya_auto_job_info,global_job_info['options'])
             njobs += 1
 
@@ -531,7 +531,13 @@ for v_rea in args.v_realisations:
             print(' -> setting up qso auto correlation:')
             for corr_type in ['DD','RD','DR','RR']:
                 print(' -> -> configuring {} run'.format(corr_type))
-                qso_auto_job_info = make_qso_auto_job_info(acvm_dir,ver,zmin,zmax,zcat_qso_loc,zcat_qso_rand_loc,corr_type=corr_type)
+                time = job_time_dict['qso_auto'][zbin]
+                if corr_type in ['RD','DR']:
+                    time *= co_datrand_factor
+                elif corr_type == 'RR':
+                    time *= co_randrand_factor
+                print(' -> -> configuring {} run'.format(corr_type))
+                qso_auto_job_info = make_qso_auto_job_info(acvm_dir,ver,zmin,zmax,zcat_qso_loc,zcat_qso_rand_loc,corr_type=corr_type,time=time)
                 run_picca_job(qso_auto_job_info,global_job_info['options'])
                 njobs += 1
 
@@ -540,14 +546,20 @@ for v_rea in args.v_realisations:
             print(' -> setting up dla auto correlation:')
             for corr_type in ['DD','RD','DR','RR']:
                 print(' -> -> configuring {} run'.format(corr_type))
-                dla_auto_job_info = make_dla_auto_job_info(acvm_dir,ver,zmin,zmax,zcat_dla_loc,zcat_dla_rand_loc,corr_type=corr_type)
+                time = job_time_dict['dla_auto'][zbin]
+                if corr_type in ['RD','DR']:
+                    time *= co_datrand_factor
+                elif corr_type == 'RR':
+                    time *= co_randrand_factor
+                dla_auto_job_info = make_dla_auto_job_info(acvm_dir,ver,zmin,zmax,zcat_dla_loc,zcat_dla_rand_loc,corr_type=corr_type,time=time)
                 run_picca_job(dla_auto_job_info,global_job_info['options'])
                 njobs += 1
 
         if args.run_lya_aa_auto:
 
             print(' -> setting up lya + all absorbers auto correlation:')
-            lya_aa_auto_job_info = make_lya_aa_auto_job_info(acvm_dir,ver,zmin,zmax,lya_aa_deltas_loc)
+            time = job_time_dict['lya_aa_auto'][zbin]
+            lya_aa_auto_job_info = make_lya_aa_auto_job_info(acvm_dir,ver,zmin,zmax,lya_aa_deltas_loc,time=time)
             run_picca_job(lya_aa_auto_job_info,global_job_info['options'])
             njobs += 1
 
@@ -556,7 +568,10 @@ for v_rea in args.v_realisations:
             print(' -> setting up lya qso cross correlation:')
             for cat_type in ['D','R']:
                 print(' -> -> configuring run using {} catalog'.format(cat_type))
-                lya_qso_cross_job_info = make_lya_qso_cross_job_info(acvm_dir,ver,zmin,zmax,lya_deltas_loc,zcat_qso_loc,zcat_qso_rand_loc,cat_type=cat_type)
+                time = job_time_dict['lya_qso_cross'][zbin]
+                if cat_type == 'R':
+                    time *= xcf_rand_factor
+                lya_qso_cross_job_info = make_lya_qso_cross_job_info(acvm_dir,ver,zmin,zmax,lya_deltas_loc,zcat_qso_loc,zcat_qso_rand_loc,cat_type=cat_type,time=time)
                 run_picca_job(lya_qso_cross_job_info,global_job_info['options'])
                 njobs += 1
 
@@ -565,7 +580,10 @@ for v_rea in args.v_realisations:
             print(' -> setting up lya dla cross correlation:')
             for cat_type in ['D','R']:
                 print(' -> -> configuring run using {} catalog'.format(cat_type))
-                lya_dla_cross_job_info = make_lya_dla_cross_job_info(acvm_dir,ver,zmin,zmax,lya_deltas_loc,zcat_dla_loc,zcat_dla_rand_loc,cat_type=cat_type)
+                time = job_time_dict['lya_dla_cross'][zbin]
+                if cat_type == 'R':
+                    time *= xcf_rand_factor
+                lya_dla_cross_job_info = make_lya_dla_cross_job_info(acvm_dir,ver,zmin,zmax,lya_deltas_loc,zcat_dla_loc,zcat_dla_rand_loc,cat_type=cat_type,time=time)
                 run_picca_job(lya_dla_cross_job_info,global_job_info['options'])
                 njobs += 1
 
@@ -574,7 +592,12 @@ for v_rea in args.v_realisations:
             print(' -> setting up qso dla cross correlation:')
             for corr_type in ['DD','RD','DR','RR']:
                 print(' -> -> configuring {} run'.format(corr_type))
-                qso_dla_cross_job_info = make_qso_dla_cross_job_info(acvm_dir,ver,zmin,zmax,zcat_qso_loc,zcat_qso_rand_loc,zcat_dla_loc,zcat_dla_rand_loc,corr_type=corr_type)
+                time = job_time_dict['qso_dla_cross'][zbin]
+                if corr_type in ['RD','DR']:
+                    time *= co_datrand_factor
+                elif corr_type == 'RR':
+                    time *= co_randrand_factor
+                qso_dla_cross_job_info = make_qso_dla_cross_job_info(acvm_dir,ver,zmin,zmax,zcat_qso_loc,zcat_qso_rand_loc,zcat_dla_loc,zcat_dla_rand_loc,corr_type=corr_type,time=time)
                 run_picca_job(qso_dla_cross_job_info,global_job_info['options'])
                 njobs += 1
 
