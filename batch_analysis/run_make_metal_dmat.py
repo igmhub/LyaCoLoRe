@@ -78,8 +78,7 @@ for v_rea in args.v_realisations:
                        'out_file': out_file,
                        }
 
-        options = {**options,
-                   'in-dir':    deltas_dir,
+        options = {'in-dir':    deltas_dir,
                    'out':       add_data_dir+'/metal_dmat_{}_{}_{}.fits.gz'.format(ver,zmin,zmax),
                    'rej':       0.999,
                    'abs-igm':   'SiII\(1260\) SiIII\(1207\) SiII\(1193\) SiII\(1190\)',
