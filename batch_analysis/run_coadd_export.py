@@ -3,6 +3,8 @@ from subprocess import call
 import argparse
 import os
 
+################################################################################
+
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 parser.add_argument('--base-dir', type = str, default = None, required=False,
@@ -60,17 +62,19 @@ if args.export_all:
 
 ################################################################################
 
-def coadd_lya_auto(meas_dir):
+def coadd_export_lya_auto(meas_dir,zbins):
 
     dir = meas_dir + '/lya_auto/'
-    in_files = dir + '/correlations/cf_lya_auto_*_*.fits.gz'
-    out_file = dir + '/correlations/cf_lya_auto.fits.gz'
+    in_files = ''
+    for zbin in zbins:
+        in_files += dir + '/correlations/cf_lya_auto_{}_{}.fits.gz'.format{zbin[0],zbin[1]} + ' '
+    out_file = dir + '/correlations/cf_exp_lya_auto.fits.gz'
     command='picca_export_coadd_zint.py --data {} --out {} --no-dmat'.format(in_files,out_file)
     retcode = call(command,shell=True)
 
     return
 
-def coadd_qso_auto(meas_dir):
+def export_qso_auto(meas_dir,zbins):
 
     dir = meas_dir + '/qso_auto/'
 
@@ -82,7 +86,7 @@ def coadd_qso_auto(meas_dir):
 
     return
 
-def coadd_dla_auto(meas_dir):
+def export_dla_auto(meas_dir,zbins):
 
     dir = meas_dir + '/dla_auto/'
 
@@ -94,27 +98,32 @@ def coadd_dla_auto(meas_dir):
 
     return
 
-def coadd_lya_aa_auto(meas_dir):
+def coadd_export_lya_aa_auto(meas_dir,zbins):
 
     dir = meas_dir + '/lya_aa_auto/'
-    in_files = dir + '/correlations/cf_lya_aa_auto_*_*.fits.gz'
+    in_files = ''
+    for zbin in zbins:
+        in_files += dir + '/correlations/cf_lya_auto_{}_{}.fits.gz'.format{zbin[0],zbin[1]} + ' '
     out_file = dir + '/correlations/cf_lya_aa_auto.fits.gz'
     command='picca_export_coadd_zint.py --data {} --out {} --no-dmat'.format(in_files,out_file)
     retcode = call(command,shell=True)
 
     return
 
-def coadd_lya_qso_cross(meas_dir):
+def coadd_export_lya_qso_cross(meas_dir,zbins):
 
     dir = meas_dir + '/lya_qso_cross/'
-    in_files = dir + '/correlations/cf_lya_qso_cross_*_*.fits.gz'
-    out_file = dir + '/correlations/cf_lya_qso_cross.fits.gz'
+    for cat_type in ['D','R']:
+        in_files = ''
+        for zbin in zbins:
+            in_files += dir + '/correlations/xcf_lya_qso_cross_{}_{}_{}.fits.gz'.format{cat_type,zbin[0],zbin[1]} + ' '
+        out_file = dir + '/correlations/xcf_exp_lya_qso_cross.fits.gz'
     command='picca_export_coadd_zint.py --data {} --out {} --no-dmat'.format(in_files,out_file)
     retcode = call(command,shell=True)
 
     return
 
-def coadd_lya_dla_cross(meas_dir):
+def coadd_export_lya_dla_cross(meas_dir,zbins):
 
     dir = meas_dir + '/lya_dla_cross/'
     in_files = dir + '/correlations/cf_lya_dla_cross_*_*.fits.gz'
@@ -124,7 +133,7 @@ def coadd_lya_dla_cross(meas_dir):
 
     return
 
-def coadd_qso_dla_cross(meas_dir):
+def export_qso_dla_cross(meas_dir,zbins):
 
     dir = meas_dir + '/qso_dla_cross/'
     in_files = dir + '/correlations/cf_qso_dla_cross_*_*.fits.gz'
@@ -136,6 +145,10 @@ def coadd_qso_dla_cross(meas_dir):
 
 ################################################################################
 #Merge the z bins together.
+
+cf_zbins = [(0.0,2.2),(2.2,2.6),(2.6,3.0),(3.0,10.0)]
+xcf_zbins = cf_zbins
+co_zbins = [(0.0,10.0)]
 
 for v_rea in args.v_realisations:
 
@@ -151,25 +164,28 @@ for v_rea in args.v_realisations:
     #check_dir(acvm_dir)
 
     if args.export_lya_auto:
-        coadd_lya_auto(acvm_dir)
+        coadd_export_lya_auto(acvm_dir,cf_zbins)
 
     if args.export_dla_auto:
-        coadd_dla_auto(acvm_dir)
+        print('Cannot currently coadd co correlations: exporting each zbin separately.')
+        export_dla_auto(acvm_dir,co_zbins)
 
     if args.export_qso_auto:
-        coadd_qso_auto(acvm_dir)
+        print('Cannot currently coadd co correlations: exporting each zbin separately.')
+        export_qso_auto(acvm_dir,co_zbins)
 
     if args.export_lya_aa_auto:
-        coadd_lya_aa_auto(acvm_dir)
+        coadd_export_lya_aa_auto(acvm_dir,cf_zbins)
 
     if args.export_lya_qso_cross:
-        coadd_lya_qso_cross(acvm_dir)
+        coadd_export_lya_qso_cross(acvm_dir,xcf_zbins)
 
     if args.export_lya_dla_cross:
-        coadd_lya_dla_cross(acvm_dir)
+        coadd_export_lya_dla_cross(acvm_dir,xcf_zbins)
 
     if args.export_qso_dla_cross:
-        coadd_qso_dla_cross(acvm_dir)
+        print('Cannot currently coadd co correlations: exporting each zbin separately.')
+        export_qso_dla_cross(acvm_dir,co_zbins)
 
 ################################################################################
 #Export everything.
