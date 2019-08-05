@@ -67,7 +67,7 @@ def coadd_export_lya_auto(meas_dir,zbins):
     dir = meas_dir + '/lya_auto/'
     in_files = ''
     for zbin in zbins:
-        in_files += dir + '/correlations/cf_lya_auto_{}_{}.fits.gz'.format{zbin[0],zbin[1]} + ' '
+        in_files += dir + '/correlations/cf_lya_auto_{}_{}.fits.gz'.format(zbin[0],zbin[1]) + ' '
     out_file = dir + '/correlations/cf_exp_lya_auto.fits.gz'
     command='picca_export_coadd_zint.py --data {} --out {} --no-dmat'.format(in_files,out_file)
     retcode = call(command,shell=True)
@@ -103,7 +103,7 @@ def coadd_export_lya_aa_auto(meas_dir,zbins):
     dir = meas_dir + '/lya_aa_auto/'
     in_files = ''
     for zbin in zbins:
-        in_files += dir + '/correlations/cf_lya_auto_{}_{}.fits.gz'.format{zbin[0],zbin[1]} + ' '
+        in_files += dir + '/correlations/cf_lya_auto_{}_{}.fits.gz'.format(zbin[0],zbin[1]) + ' '
     out_file = dir + '/correlations/cf_lya_aa_auto.fits.gz'
     command='picca_export_coadd_zint.py --data {} --out {} --no-dmat'.format(in_files,out_file)
     retcode = call(command,shell=True)
@@ -116,7 +116,7 @@ def coadd_export_lya_qso_cross(meas_dir,zbins):
     for cat_type in ['D','R']:
         in_files = ''
         for zbin in zbins:
-            in_files += dir + '/correlations/xcf_lya_qso_cross_{}_{}_{}.fits.gz'.format{cat_type,zbin[0],zbin[1]} + ' '
+            in_files += dir + '/correlations/xcf_lya_qso_cross_{}_{}_{}.fits.gz'.format(cat_type,zbin[0],zbin[1]) + ' '
         out_file = dir + '/correlations/xcf_exp_lya_qso_cross.fits.gz'
     command='picca_export_coadd_zint.py --data {} --out {} --no-dmat'.format(in_files,out_file)
     retcode = call(command,shell=True)
