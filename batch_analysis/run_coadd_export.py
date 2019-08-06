@@ -132,7 +132,7 @@ def coadd_export_lya_dla_cross(meas_dir,zbins):
         data_files += dir + '/correlations/xcf_lya_dla_cross_D_{}_{}.fits.gz'.format(zbin[0],zbin[1]) + ' '
         rand_files += dir + '/correlations/xcf_lya_dla_cross_R_{}_{}.fits.gz'.format(zbin[0],zbin[1]) + ' '
     out_file = dir + '/correlations/xcf_exp_lya_dla_cross.fits.gz'
-    command='picca_export_coadd_zint.py --data {} --out {} --no-dmat --remove-shuffled-correlation'.format(in_files,out_file)
+    command='picca_export_coadd_zint.py --data {} --out {} --no-dmat --remove-shuffled-correlation {}'.format(data_files,out_file,rand_files)
     retcode = call(command,shell=True)
 
     return
