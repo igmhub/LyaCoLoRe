@@ -104,7 +104,7 @@ def coadd_export_lya_aa_auto(meas_dir,zbins):
     in_files = ''
     for zbin in zbins:
         in_files += dir + '/correlations/cf_lya_aa_auto_{}_{}.fits.gz'.format(zbin[0],zbin[1]) + ' '
-    out_file = dir + '/correlations/cf_lya_aa_auto.fits.gz'
+    out_file = dir + '/correlations/cf_exp_lya_aa_auto.fits.gz'
     command='picca_export_coadd_zint.py --data {} --out {} --no-dmat'.format(in_files,out_file)
     retcode = call(command,shell=True)
 
@@ -149,7 +149,8 @@ def export_qso_dla_cross(meas_dir,zbins):
 ################################################################################
 #Merge the z bins together.
 
-cf_zbins = [(0.0,2.2),(2.2,2.6),(2.6,3.0),(3.0,10.0)]
+#cf_zbins = [(0.0,2.2),(2.2,2.6),(2.6,3.0),(3.0,10.0)]
+cf_zbins = [(2.6,3.0),(3.0,10.0)]
 xcf_zbins = cf_zbins
 co_zbins = [(0.0,10.0)]
 
