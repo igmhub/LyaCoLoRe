@@ -379,27 +379,77 @@ def make_qso_dla_cross_job_info(meas_dir,ver,zmin,zmax,zcat_qso,zcat_qso_rand,zc
 
 ################################################################################
 
-zbins = [(0.0,2.2),(2.2,2.6),(2.6,3.0),(3.0,10.0)]
-global_job_info = {'zbins':     zbins,
-                   'options':   {'fid-Om':    args.fid_Om,
+cf_zbins = [(0.0,2.0),(2.0,2.2),(2.2,2.4),(2.4,2.6),(2.6,2.8),(2.8,3.0),(3.0,3.4),(3.4,10.0)]
+xcf_zbins = cf_zbins
+co_zbins = xcf_zbins
+global_job_info = {'options':   {'fid-Om':    args.fid_Om,
                                  'fid-Or':    args.fid_Or,
                                  'nside':     args.nside,
                                  'nproc':     args.nproc,
                                  },
                    }
 
-job_time_dict = {'lya_auto':        {zbins[0]: 4., zbins[1]: 21., zbins[2]: 13., zbins[3]: 5.},
-                 'qso_auto':        {zbins[0]: 2., zbins[1]: 10., zbins[2]: 6.,  zbins[3]: 3.},
-                 'dla_auto':        {zbins[0]: 1., zbins[1]: 5.,  zbins[2]: 3.,  zbins[3]: 2.},
-                 'lya_aa_auto':     {zbins[0]: 4., zbins[1]: 21., zbins[2]: 13., zbins[3]: 5.},
-                 'lya_qso_cross':   {zbins[0]: 4., zbins[1]: 21., zbins[2]: 13., zbins[3]: 5.},
-                 'lya_dla_cross':   {zbins[0]: 3., zbins[1]: 15., zbins[2]: 9.,  zbins[3]: 4.},
-                 'qso_dla_cross':   {zbins[0]: 2., zbins[1]: 10., zbins[2]: 6.,  zbins[3]: 3.},
+job_time_dict = {'lya_auto':        {cf_zbins[0]: 3.,   cf_zbins[1]: 3.,   cf_zbins[2]: 15.,  cf_zbins[3]: 15.,
+                                     cf_zbins[4]: 10.,  cf_zbins[5]: 10.,  cf_zbins[6]: 3.,  cf_zbins[7]: 3.
+                                     },
+                 'qso_auto':        {'DD':   {co_zbins[0]: 2., co_zbins[1]: 2., co_zbins[2]: 2., co_zbins[3]: 2.
+                                              co_zbins[4]: 2., co_zbins[5]: 2., co_zbins[6]: 2., co_zbins[7]: 2.,
+                                              },
+                                     'RD':   {co_zbins[0]: 3., co_zbins[1]: 3., co_zbins[2]: 3., co_zbins[3]: 3.
+                                              co_zbins[4]: 3., co_zbins[5]: 3., co_zbins[6]: 3., co_zbins[7]: 3.,
+                                              },
+                                     'DR':   {co_zbins[0]: 3., co_zbins[1]: 3., co_zbins[2]: 3., co_zbins[3]: 3.
+                                              co_zbins[4]: 3., co_zbins[5]: 3., co_zbins[6]: 3., co_zbins[7]: 3.,
+                                              },
+                                     'RR':   {co_zbins[0]: 4., co_zbins[1]: 4., co_zbins[2]: 4., co_zbins[3]: 4.
+                                              co_zbins[4]: 4., co_zbins[5]: 4., co_zbins[6]: 4., co_zbins[7]: 4.,
+                                              },
+                                     },
+                 'dla_auto':        {'DD':   {co_zbins[0]: 2., co_zbins[1]: 2., co_zbins[2]: 2., co_zbins[3]: 2.
+                                              co_zbins[4]: 2., co_zbins[5]: 2., co_zbins[6]: 2., co_zbins[7]: 2.,
+                                              },
+                                     'RD':   {co_zbins[0]: 3., co_zbins[1]: 3., co_zbins[2]: 3., co_zbins[3]: 3.
+                                              co_zbins[4]: 3., co_zbins[5]: 3., co_zbins[6]: 3., co_zbins[7]: 3.,
+                                              },
+                                     'DR':   {co_zbins[0]: 3., co_zbins[1]: 3., co_zbins[2]: 3., co_zbins[3]: 3.
+                                              co_zbins[4]: 3., co_zbins[5]: 3., co_zbins[6]: 3., co_zbins[7]: 3.,
+                                              },
+                                     'RR':   {co_zbins[0]: 4., co_zbins[1]: 4., co_zbins[2]: 4., co_zbins[3]: 4.
+                                              co_zbins[4]: 4., co_zbins[5]: 4., co_zbins[6]: 4., co_zbins[7]: 4.,
+                                              },
+                                     },
+                 'lya_aa_auto':     {cf_zbins[0]: 3.,   cf_zbins[1]: 3.,   cf_zbins[2]: 15.,  cf_zbins[3]: 15.,
+                                     cf_zbins[4]: 10.,  cf_zbins[5]: 10.,  cf_zbins[6]: 3.,  cf_zbins[7]: 3.
+                                     },
+                 'lya_qso_cross':   {'D':   {xcf_zbins[0]: 3., xcf_zbins[1]: 3., xcf_zbins[2]: 3., xcf_zbins[3]: 3.,
+                                             xcf_zbins[4]: 3., xcf_zbins[5]: 3., xcf_zbins[6]: 3., xcf_zbins[7]: 3.
+                                             },
+                                     'R':   {xcf_zbins[0]: 5., xcf_zbins[1]: 5., xcf_zbins[2]: 5., xcf_zbins[3]: 5.,
+                                             xcf_zbins[4]: 5., xcf_zbins[5]: 5., xcf_zbins[6]: 5., xcf_zbins[7]: 5.
+                                             },
+                                     },
+                 'lya_dla_cross':   {'D':   {xcf_zbins[0]: 3., xcf_zbins[1]: 3., xcf_zbins[2]: 5., xcf_zbins[3]: 5.,
+                                             xcf_zbins[4]: 3., xcf_zbins[5]: 3., xcf_zbins[6]: 3., xcf_zbins[7]: 3.
+                                             },
+                                     'R':   {xcf_zbins[0]: 5., xcf_zbins[1]: 5., xcf_zbins[2]: 8., xcf_zbins[3]: 8.,
+                                             xcf_zbins[4]: 5., xcf_zbins[5]: 5., xcf_zbins[6]: 3., xcf_zbins[7]: 3.
+                                             },
+                                     },
+                 'qso_dla_cross':   {'DD':   {co_zbins[0]: 2., co_zbins[1]: 2., co_zbins[2]: 2., co_zbins[3]: 2.
+                                              co_zbins[4]: 2., co_zbins[5]: 2., co_zbins[6]: 2., co_zbins[7]: 2.,
+                                              },
+                                     'RD':   {co_zbins[0]: 3., co_zbins[1]: 3., co_zbins[2]: 3., co_zbins[3]: 3.
+                                              co_zbins[4]: 3., co_zbins[5]: 3., co_zbins[6]: 3., co_zbins[7]: 3.,
+                                              },
+                                     'DR':   {co_zbins[0]: 3., co_zbins[1]: 3., co_zbins[2]: 3., co_zbins[3]: 3.
+                                              co_zbins[4]: 3., co_zbins[5]: 3., co_zbins[6]: 3., co_zbins[7]: 3.,
+                                              },
+                                     'RR':   {co_zbins[0]: 4., co_zbins[1]: 4., co_zbins[2]: 4., co_zbins[3]: 4.
+                                              co_zbins[4]: 4., co_zbins[5]: 4., co_zbins[6]: 4., co_zbins[7]: 4.,
+                                              },
+                                     },
                  }
 
-xcf_rand_factor = 1.25
-co_datrand_factor = 2.
-co_randrand_factor = 3.
 
 ################################################################################
 
@@ -425,7 +475,7 @@ for v_rea in args.v_realisations:
     zcat_qso_rand_loc = '{}/data/picca_input/{}/zcat_0.1_randoms.fits'.format(args.base_dir,ver)
     zcat_dla_rand_loc = '{}/data/picca_input/{}/zcat_DLA_0.1_randoms.fits'.format(args.base_dir,ver)
 
-    for zbin in global_job_info['zbins']:
+    for zbin in cf_zbins:
 
         print(' -> looking at zbin {}'.format(zbin))
         zmin = zbin[0]
@@ -438,30 +488,6 @@ for v_rea in args.v_realisations:
             submit_utils.run_picca_job(lya_auto_job_info,global_job_info['options'])
             njobs += 1
 
-        if args.run_qso_auto:
-
-            for corr_type in ['DD','RD','DR','RR']:
-                time = job_time_dict['qso_auto'][zbin]
-                if corr_type in ['RD','DR']:
-                    time *= co_datrand_factor
-                elif corr_type == 'RR':
-                    time *= co_randrand_factor
-                qso_auto_job_info = make_qso_auto_job_info(acvm_dir,ver,zmin,zmax,zcat_qso_loc,zcat_qso_rand_loc,corr_type=corr_type,time=time)
-                submit_utils.run_picca_job(qso_auto_job_info,global_job_info['options'])
-                njobs += 1
-
-        if args.run_dla_auto:
-
-            for corr_type in ['DD','RD','DR','RR']:
-                time = job_time_dict['dla_auto'][zbin]
-                if corr_type in ['RD','DR']:
-                    time *= co_datrand_factor
-                elif corr_type == 'RR':
-                    time *= co_randrand_factor
-                dla_auto_job_info = make_dla_auto_job_info(acvm_dir,ver,zmin,zmax,zcat_dla_loc,zcat_dla_rand_loc,corr_type=corr_type,time=time)
-                submit_utils.run_picca_job(dla_auto_job_info,global_job_info['options'])
-                njobs += 1
-
         if args.run_lya_aa_auto:
 
             time = job_time_dict['lya_aa_auto'][zbin]
@@ -469,12 +495,16 @@ for v_rea in args.v_realisations:
             submit_utils.run_picca_job(lya_aa_auto_job_info,global_job_info['options'])
             njobs += 1
 
+    for zbin in xcf_zbins:
+
+        print(' -> looking at zbin {}'.format(zbin))
+        zmin = zbin[0]
+        zmax = zbin[1]
+
         if args.run_lya_qso_cross:
 
             for cat_type in ['D','R']:
-                time = job_time_dict['lya_qso_cross'][zbin]
-                if cat_type == 'R':
-                    time *= xcf_rand_factor
+                time = job_time_dict['lya_qso_cross'][cat_type][zbin]
                 lya_qso_cross_job_info = make_lya_qso_cross_job_info(acvm_dir,ver,zmin,zmax,lya_deltas_loc,zcat_qso_loc,zcat_qso_rand_loc,cat_type=cat_type,time=time)
                 submit_utils.run_picca_job(lya_qso_cross_job_info,global_job_info['options'])
                 njobs += 1
@@ -482,21 +512,37 @@ for v_rea in args.v_realisations:
         if args.run_lya_dla_cross:
 
             for cat_type in ['D','R']:
-                time = job_time_dict['lya_dla_cross'][zbin]
-                if cat_type == 'R':
-                    time *= xcf_rand_factor
+                time = job_time_dict['lya_dla_cross'][cat_type][zbin]
                 lya_dla_cross_job_info = make_lya_dla_cross_job_info(acvm_dir,ver,zmin,zmax,lya_deltas_loc,zcat_dla_loc,zcat_dla_rand_loc,cat_type=cat_type,time=time)
                 submit_utils.run_picca_job(lya_dla_cross_job_info,global_job_info['options'])
+                njobs += 1
+
+    for zbin in co_zbins:
+
+        print(' -> looking at zbin {}'.format(zbin))
+        zmin = zbin[0]
+        zmax = zbin[1]
+
+        if args.run_qso_auto:
+
+            for corr_type in ['DD','RD','DR','RR']:
+                time = job_time_dict['qso_auto'][corr_type][zbin]
+                qso_auto_job_info = make_qso_auto_job_info(acvm_dir,ver,zmin,zmax,zcat_qso_loc,zcat_qso_rand_loc,corr_type=corr_type,time=time)
+                submit_utils.run_picca_job(qso_auto_job_info,global_job_info['options'])
+                njobs += 1
+
+        if args.run_dla_auto:
+
+            for corr_type in ['DD','RD','DR','RR']:
+                time = job_time_dict['dla_auto'][corr_type][zbin]
+                dla_auto_job_info = make_dla_auto_job_info(acvm_dir,ver,zmin,zmax,zcat_dla_loc,zcat_dla_rand_loc,corr_type=corr_type,time=time)
+                submit_utils.run_picca_job(dla_auto_job_info,global_job_info['options'])
                 njobs += 1
 
         if args.run_qso_dla_cross:
 
             for corr_type in ['DD','RD','DR','RR']:
-                time = job_time_dict['qso_dla_cross'][zbin]
-                if corr_type in ['RD','DR']:
-                    time *= co_datrand_factor
-                elif corr_type == 'RR':
-                    time *= co_randrand_factor
+                time = job_time_dict['qso_dla_cross'][corr_type][zbin]
                 qso_dla_cross_job_info = make_qso_dla_cross_job_info(acvm_dir,ver,zmin,zmax,zcat_qso_loc,zcat_qso_rand_loc,zcat_dla_loc,zcat_dla_rand_loc,corr_type=corr_type,time=time)
                 submit_utils.run_picca_job(qso_dla_cross_job_info,global_job_info['options'])
                 njobs += 1
