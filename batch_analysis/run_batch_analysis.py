@@ -390,61 +390,61 @@ global_job_info = {'options':   {'fid-Om':    args.fid_Om,
                    }
 
 job_time_dict = {'lya_auto':        {cf_zbins[0]: 3.,   cf_zbins[1]: 3.,   cf_zbins[2]: 15.,  cf_zbins[3]: 15.,
-                                     cf_zbins[4]: 10.,  cf_zbins[5]: 10.,  cf_zbins[6]: 3.,  cf_zbins[7]: 3.
+                                     cf_zbins[4]: 10.,  cf_zbins[5]: 10.,  cf_zbins[6]: 3.,   cf_zbins[7]: 3.,
                                      },
-                 'qso_auto':        {'DD':   {co_zbins[0]: 2., co_zbins[1]: 2., co_zbins[2]: 2., co_zbins[3]: 2.
+                 'qso_auto':        {'DD':   {co_zbins[0]: 2., co_zbins[1]: 2., co_zbins[2]: 2., co_zbins[3]: 2.,
                                               co_zbins[4]: 2., co_zbins[5]: 2., co_zbins[6]: 2., co_zbins[7]: 2.,
                                               },
-                                     'RD':   {co_zbins[0]: 3., co_zbins[1]: 3., co_zbins[2]: 3., co_zbins[3]: 3.
+                                     'RD':   {co_zbins[0]: 3., co_zbins[1]: 3., co_zbins[2]: 3., co_zbins[3]: 3.,
                                               co_zbins[4]: 3., co_zbins[5]: 3., co_zbins[6]: 3., co_zbins[7]: 3.,
                                               },
-                                     'DR':   {co_zbins[0]: 3., co_zbins[1]: 3., co_zbins[2]: 3., co_zbins[3]: 3.
+                                     'DR':   {co_zbins[0]: 3., co_zbins[1]: 3., co_zbins[2]: 3., co_zbins[3]: 3.,
                                               co_zbins[4]: 3., co_zbins[5]: 3., co_zbins[6]: 3., co_zbins[7]: 3.,
                                               },
-                                     'RR':   {co_zbins[0]: 4., co_zbins[1]: 4., co_zbins[2]: 4., co_zbins[3]: 4.
+                                     'RR':   {co_zbins[0]: 4., co_zbins[1]: 4., co_zbins[2]: 4., co_zbins[3]: 4.,
                                               co_zbins[4]: 4., co_zbins[5]: 4., co_zbins[6]: 4., co_zbins[7]: 4.,
                                               },
                                      },
-                 'dla_auto':        {'DD':   {co_zbins[0]: 2., co_zbins[1]: 2., co_zbins[2]: 2., co_zbins[3]: 2.
+                 'dla_auto':        {'DD':   {co_zbins[0]: 2., co_zbins[1]: 2., co_zbins[2]: 2., co_zbins[3]: 2.,
                                               co_zbins[4]: 2., co_zbins[5]: 2., co_zbins[6]: 2., co_zbins[7]: 2.,
                                               },
-                                     'RD':   {co_zbins[0]: 3., co_zbins[1]: 3., co_zbins[2]: 3., co_zbins[3]: 3.
+                                     'RD':   {co_zbins[0]: 3., co_zbins[1]: 3., co_zbins[2]: 3., co_zbins[3]: 3.,
                                               co_zbins[4]: 3., co_zbins[5]: 3., co_zbins[6]: 3., co_zbins[7]: 3.,
                                               },
-                                     'DR':   {co_zbins[0]: 3., co_zbins[1]: 3., co_zbins[2]: 3., co_zbins[3]: 3.
+                                     'DR':   {co_zbins[0]: 3., co_zbins[1]: 3., co_zbins[2]: 3., co_zbins[3]: 3.,
                                               co_zbins[4]: 3., co_zbins[5]: 3., co_zbins[6]: 3., co_zbins[7]: 3.,
                                               },
-                                     'RR':   {co_zbins[0]: 4., co_zbins[1]: 4., co_zbins[2]: 4., co_zbins[3]: 4.
+                                     'RR':   {co_zbins[0]: 4., co_zbins[1]: 4., co_zbins[2]: 4., co_zbins[3]: 4.,
                                               co_zbins[4]: 4., co_zbins[5]: 4., co_zbins[6]: 4., co_zbins[7]: 4.,
                                               },
                                      },
                  'lya_aa_auto':     {cf_zbins[0]: 3.,   cf_zbins[1]: 3.,   cf_zbins[2]: 15.,  cf_zbins[3]: 15.,
-                                     cf_zbins[4]: 10.,  cf_zbins[5]: 10.,  cf_zbins[6]: 3.,  cf_zbins[7]: 3.
+                                     cf_zbins[4]: 10.,  cf_zbins[5]: 10.,  cf_zbins[6]: 3.,   cf_zbins[7]: 3.,
                                      },
                  'lya_qso_cross':   {'D':   {xcf_zbins[0]: 3., xcf_zbins[1]: 3., xcf_zbins[2]: 3., xcf_zbins[3]: 3.,
-                                             xcf_zbins[4]: 3., xcf_zbins[5]: 3., xcf_zbins[6]: 3., xcf_zbins[7]: 3.
+                                             xcf_zbins[4]: 3., xcf_zbins[5]: 3., xcf_zbins[6]: 3., xcf_zbins[7]: 3.,
                                              },
                                      'R':   {xcf_zbins[0]: 5., xcf_zbins[1]: 5., xcf_zbins[2]: 5., xcf_zbins[3]: 5.,
-                                             xcf_zbins[4]: 5., xcf_zbins[5]: 5., xcf_zbins[6]: 5., xcf_zbins[7]: 5.
+                                             xcf_zbins[4]: 5., xcf_zbins[5]: 5., xcf_zbins[6]: 5., xcf_zbins[7]: 5.,
                                              },
                                      },
                  'lya_dla_cross':   {'D':   {xcf_zbins[0]: 3., xcf_zbins[1]: 3., xcf_zbins[2]: 5., xcf_zbins[3]: 5.,
-                                             xcf_zbins[4]: 3., xcf_zbins[5]: 3., xcf_zbins[6]: 3., xcf_zbins[7]: 3.
+                                             xcf_zbins[4]: 3., xcf_zbins[5]: 3., xcf_zbins[6]: 3., xcf_zbins[7]: 3.,
                                              },
                                      'R':   {xcf_zbins[0]: 5., xcf_zbins[1]: 5., xcf_zbins[2]: 8., xcf_zbins[3]: 8.,
-                                             xcf_zbins[4]: 5., xcf_zbins[5]: 5., xcf_zbins[6]: 3., xcf_zbins[7]: 3.
+                                             xcf_zbins[4]: 5., xcf_zbins[5]: 5., xcf_zbins[6]: 3., xcf_zbins[7]: 3.,
                                              },
                                      },
-                 'qso_dla_cross':   {'DD':   {co_zbins[0]: 2., co_zbins[1]: 2., co_zbins[2]: 2., co_zbins[3]: 2.
+                 'qso_dla_cross':   {'DD':   {co_zbins[0]: 2., co_zbins[1]: 2., co_zbins[2]: 2., co_zbins[3]: 2.,
                                               co_zbins[4]: 2., co_zbins[5]: 2., co_zbins[6]: 2., co_zbins[7]: 2.,
                                               },
-                                     'RD':   {co_zbins[0]: 3., co_zbins[1]: 3., co_zbins[2]: 3., co_zbins[3]: 3.
+                                     'RD':   {co_zbins[0]: 3., co_zbins[1]: 3., co_zbins[2]: 3., co_zbins[3]: 3.,
                                               co_zbins[4]: 3., co_zbins[5]: 3., co_zbins[6]: 3., co_zbins[7]: 3.,
                                               },
-                                     'DR':   {co_zbins[0]: 3., co_zbins[1]: 3., co_zbins[2]: 3., co_zbins[3]: 3.
+                                     'DR':   {co_zbins[0]: 3., co_zbins[1]: 3., co_zbins[2]: 3., co_zbins[3]: 3.,
                                               co_zbins[4]: 3., co_zbins[5]: 3., co_zbins[6]: 3., co_zbins[7]: 3.,
                                               },
-                                     'RR':   {co_zbins[0]: 4., co_zbins[1]: 4., co_zbins[2]: 4., co_zbins[3]: 4.
+                                     'RR':   {co_zbins[0]: 4., co_zbins[1]: 4., co_zbins[2]: 4., co_zbins[3]: 4.,
                                               co_zbins[4]: 4., co_zbins[5]: 4., co_zbins[6]: 4., co_zbins[7]: 4.,
                                               },
                                      },
