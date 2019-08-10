@@ -1772,15 +1772,8 @@ exp_filepaths = {'lya_auto':        acvm_dir + '/lya_auto/cf_lya_auto_exp.fits.g
                  }
 
 #For each correlation, make the parameter file
-
-#Calculate beta_DLA by interpolating the input bias.
-# TODO: Want to read b_dla from the input ideally.
-b_dla = 2.
-beta_dla = f/b_qso
-
-#Write parameter file.
-make_parameter_file(args.base_dir+args.parameter_filename,args)
-
+#for name,exp_filepath in exp_filepaths.items():
+#    make_parameter_file(acvm_dir+'/'+name+'/parameters.txt',args)
 
 for v_rea in args.v_realisations:
 
