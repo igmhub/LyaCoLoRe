@@ -78,12 +78,72 @@ parser.add_argument('--rmax-values', type = float, default = [160.], required=Tr
 parser.add_argument('--afix-values', type = str, default = None, required=True,
                     help = 'maximum separation', nargs='*')
 
+#Correlations to fit
+
+parser.add_argument('--fit-lya-auto', action="store_true", default = False, required=False,
+                    help = 'make files for fitting the lya auto correlation')
+
+parser.add_argument('--fit-qso-auto', action="store_true", default = False, required=False,
+                    help = 'make files for fitting the qso auto correlation')
+
+parser.add_argument('--fit-dla-auto', action="store_true", default = False, required=False,
+                    help = 'make files for fitting the dla auto correlation')
+
+parser.add_argument('--fit-lya-aa-auto', action="store_true", default = False, required=False,
+                    help = 'make files for fitting the lya all absorber auto correlation')
+
+parser.add_argument('--fit-lya-qso-cross', action="store_true", default = False, required=False,
+                    help = 'make files for fitting the lya qso cross correlation')
+
+parser.add_argument('--fit-lya-dla-cross', action="store_true", default = False, required=False,
+                    help = 'make files for fitting the lya dla cross correlation')
+
+parser.add_argument('--fit-qso-dla-cross', action="store_true", default = False, required=False,
+                    help = 'make files for fitting the qso dla cross correlation')
+
+parser.add_argument('--fit-lya-auto--lya-qso-cross', action="store_true", default = False, required=False,
+                    help = 'make files for joint lya-auto, lya-qso-cross fit')
+
+parser.add_argument('--fit-lya-auto--lya-qso-cross--qso--auto', action="store_true", default = False, required=False,
+                    help = 'make files for joint lya-auto, lya-qso-cross, qso-auto fit')
+
+parser.add_argument('--fit-lya-auto--lya-dla-cross', action="store_true", default = False, required=False,
+                    help = 'make files for joint lya-auto, lya-dla-cross fit')
+
+parser.add_argument('--fit-lya-auto--lya-dla-cross--dla-auto', action="store_true", default = False, required=False,
+                    help = 'make files for joint lya-auto, lya-dla-cross, dla-auto fit')
+
+parser.add_argument('--fit-qso-auto--qso-dla-cross--dla-auto', action="store_true", default = False, required=False,
+                    help = 'make files for joint qso-auto, qso-dla-cross, dla-auto fit')
+
+parser.add_argument('--fit-all-correlations', action="store_true", default = False, required=False,
+                    help = 'make files for the joint fit of all correlations')
+
+parser.add_argument('--fit-all', action="store_true", default = False, required=False,
+                    help = 'make files for fitting all correlations')
+
 args = parser.parse_args()
 
 ################################################################################
 
 if args.out_dir is None:
     args.out_dir = args.base_dir
+
+if args.fit_all:
+    args.fit_lya_auto = True
+    args.fit_qso_auto = True
+    args.fit_dla_auto = True
+    args.fit_lya_aa_auto = True
+    args.fit_lya_qso_cross = True
+    args.fit_lya_dla_cross = True
+    args.fit_qso_dla_cross = True
+    args.fit_lya_auto__lya_qso_cross = True
+    args.fit_lya_auto__lya_qso_cross__qso_auto = True
+    args.fit_lya_auto__lya_dla_cross = True
+    args.fit_lya_auto__lya_dla_cross__dla_auto = True
+    args.fit_qso_auto__qso_dla_cross = True
+    args.fit_qso_auto__qso_dla_cross__dla_auto = True
+    args.fit_all_correlations = True
 
 ################################################################################
 
@@ -152,9 +212,19 @@ def make_config_file(filepath,options_dict):
     return
 
 ## Functions to make chi2 and config files for each fit combination.
-def make_lya_auto_fit_files(exp_filepaths,config_filepaths,parameter_filepath,chi2_filepath,result_filepath,rmin=20.,rmax=160.,afix='free'):
+def make_lya_auto_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix='free'):
+
+    name = 'lya_auto'
+    suffix = 'rmin{}_rmax{}_a{}'.format(rmin,rmax,afix)
+    fit_dir = fits_dir + '/' + name + '/'
+    submit_utils.check_dir(fit_dir)
+
+    exp_files = [exp_filepaths[key] for key in exp_filepaths.keys() if key in name]
+    zeff = get_zeff(exp_files)
+    f = get_growth_rate(zeff,Om_z0=args.fid_Om)
 
     configs = []
+
 
     data_dict = {'name':            'LYA(LYA)xLYA(LYA)',
                  'tracer1':         'LYA',
@@ -187,7 +257,7 @@ def make_lya_auto_fit_files(exp_filepaths,config_filepaths,parameter_filepath,ch
                        'bao_amp':                       '1.     0.      None    None    fixed',
                        'sigmaNL_per':                   '0.     0.      None    None    fixed',
                        'sigmaNL_par':                   '0.     0.      None    None    fixed',
-                       'growth_rate':                   '{}     0.      None    None    fixed'.format(), # TODO: NEED TO calculate
+                       'growth_rate':                   '{}     0.      None    None    fixed'.format(f), # TODO: NEED TO calculate
                        'bias_eta_LYA':                  '-0.1   1.      None    None    free',
                        'beta_LYA':                      '0.5    1.      None    None    free',
                        'alpha_LYA':                     '2.9    0.      None    None    fixed',
@@ -203,15 +273,25 @@ def make_lya_auto_fit_files(exp_filepaths,config_filepaths,parameter_filepath,ch
                     'parameters':   parameters_dict,
                     }
 
-    make_config_file(config_filepaths['lya_auto'],options_dict)
-    configs += [config_filepaths['lya_auto']]
+    config_filepath = fit_dir + '/config_lya_auto_{}.ini'.format(suffix)
+    make_config_file(config_filepath,options_dict)
+    configs += [config_filepath]
 
-    make_parameter_filepath(parameter_filepath,args)
+    chi2_filepath = fit_dir + 'chi2_{}_{}.ini'.format(name,suffix)
     make_chi2_file(chi2_filepath,zeff,configs,result_filepath)
 
     return options_dict
 
-def make_qso_auto_fit_files(exp_filepaths,config_filepaths,parameter_filepath,chi2_filepath,result_filepath,rmin=20.,rmax=160.,afix='free'):
+def make_qso_auto_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix='free'):
+
+    name = 'qso_auto'
+    suffix = 'rmin{}_rmax{}_a{}'.format(rmin,rmax,afix)
+    fit_dir = fits_dir + '/' + name + '/'
+    submit_utils.check_dir(fit_dir)
+
+    exp_files = [exp_filepaths[key] for key in exp_filepaths.keys() if key in name]
+    zeff = get_zeff(exp_files)
+    f = get_growth_rate(zeff,Om_z0=args.fid_Om)
 
     configs = []
 
@@ -265,15 +345,25 @@ def make_qso_auto_fit_files(exp_filepaths,config_filepaths,parameter_filepath,ch
                     'parameters':   parameters_dict,
                     }
 
-    make_config_file(config_filepaths['qso_auto'],options_dict)
-    configs += [config_filepaths['qso_auto']]
+    config_filepath = fit_dir + '/config_qso_auto_{}.ini'.format(suffix)
+    make_config_file(config_filepath,options_dict)
+    configs += [config_filepath]
 
-    make_parameter_filepath(parameter_filepath,args)
+    chi2_filepath = fit_dir + 'chi2_{}_{}.ini'.format(name,suffix)
     make_chi2_file(chi2_filepath,zeff,configs,result_filepath)
 
     return
 
-def make_dla_auto_fit_files(exp_filepaths,config_filepaths,parameter_filepath,chi2_filepath,result_filepath,rmin=20.,rmax=160.,afix='free'):
+def make_dla_auto_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix='free'):
+
+    name = 'dla_auto'
+    suffix = 'rmin{}_rmax{}_a{}'.format(rmin,rmax,afix)
+    fit_dir = fits_dir + '/' + name + '/'
+    submit_utils.check_dir(fit_dir)
+
+    exp_files = [exp_filepaths[key] for key in exp_filepaths.keys() if key in name]
+    zeff = get_zeff(exp_files)
+    f = get_growth_rate(zeff,Om_z0=args.fid_Om)
 
     configs = []
 
@@ -327,15 +417,25 @@ def make_dla_auto_fit_files(exp_filepaths,config_filepaths,parameter_filepath,ch
                     'parameters':   parameters_dict,
                     }
 
-    make_config_file(config_filepaths['dla_auto'],options_dict)
-    configs += [config_filepaths['dla_auto']]
+    config_filepath = fit_dir + '/config_dla_auto_{}.ini'.format(suffix)
+    make_config_file(config_filepath,options_dict)
+    configs += [config_filepath]
 
-    make_parameter_filepath(parameter_filepath,args)
+    chi2_filepath = fit_dir + 'chi2_{}_{}.ini'.format(name,suffix)
     make_chi2_file(chi2_filepath,zeff,configs,result_filepath)
 
     return
 
-def make_lya_aa_auto_fit_files(exp_filepaths,config_filepaths,parameter_filepath,chi2_filepath,result_filepath,rmin=20.,rmax=160.,afix='free'):
+def make_lya_aa_auto_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix='free'):
+
+    name = 'lya_aa_auto'
+    suffix = 'rmin{}_rmax{}_a{}'.format(rmin,rmax,afix)
+    fit_dir = fits_dir + '/' + name + '/'
+    submit_utils.check_dir(fit_dir)
+
+    exp_files = [exp_filepaths[key] for key in exp_filepaths.keys() if key in name]
+    zeff = get_zeff(exp_files)
+    f = get_growth_rate(zeff,Om_z0=args.fid_Om)
 
     configs = []
 
@@ -395,15 +495,25 @@ def make_lya_aa_auto_fit_files(exp_filepaths,config_filepaths,parameter_filepath
                     'metals':       metals_dict,
                     }
 
-    make_config_file(config_filepaths['lya_aa_auto'],options_dict)
-    configs += [config_filepaths['lya_aa_auto']]
+    config_filepath = fit_dir + '/config_lya_aa_auto_{}.ini'.format(suffix)
+    make_config_file(config_filepath,options_dict)
+    configs += [config_filepath]
 
-    make_parameter_filepath(parameter_filepath,args)
+    chi2_filepath = fit_dir + 'chi2_{}_{}.ini'.format(name,suffix)
     make_chi2_file(chi2_filepath,zeff,configs,result_filepath)
 
     return
 
-def make_lya_qso_cross_fit_files(exp_filepaths,config_filepaths,parameter_filepath,chi2_filepath,result_filepath,rmin=20.,rmax=160.,afix='free'):
+def make_lya_qso_cross_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix='free'):
+
+    name = 'lya_qso_cross'
+    suffix = 'rmin{}_rmax{}_a{}'.format(rmin,rmax,afix)
+    fit_dir = fits_dir + '/' + name + '/'
+    submit_utils.check_dir(fit_dir)
+
+    exp_files = [exp_filepaths[key] for key in exp_filepaths.keys() if key in name]
+    zeff = get_zeff(exp_files)
+    f = get_growth_rate(zeff,Om_z0=args.fid_Om)
 
     configs = []
 
@@ -461,15 +571,25 @@ def make_lya_qso_cross_fit_files(exp_filepaths,config_filepaths,parameter_filepa
                     'parameters':   parameters_dict,
                     }
 
-    make_config_file(config_filepaths['lya_qso_cross'],options_dict)
-    configs += [config_filepaths['lya_qso_cross']]
+    config_filepath = fit_dir + '/config_lya_qso_cross_{}.ini'.format(suffix)
+    make_config_file(config_filepath,options_dict)
+    configs += [config_filepath]
 
-    make_parameter_filepath(parameter_filepath,args)
+    chi2_filepath = fit_dir + 'chi2_{}_{}.ini'.format(name,suffix)
     make_chi2_file(chi2_filepath,zeff,configs,result_filepath)
 
     return
 
-def make_lya_dla_cross_fit_files(exp_filepaths,config_filepaths,parameter_filepath,chi2_filepath,result_filepath,rmin=20.,rmax=160.,afix='free'):
+def make_lya_dla_cross_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix='free'):
+
+    name = 'lya_dla_cross'
+    suffix = 'rmin{}_rmax{}_a{}'.format(rmin,rmax,afix)
+    fit_dir = fits_dir + '/' + name + '/'
+    submit_utils.check_dir(fit_dir)
+
+    exp_files = [exp_filepaths[key] for key in exp_filepaths.keys() if key in name]
+    zeff = get_zeff(exp_files)
+    f = get_growth_rate(zeff,Om_z0=args.fid_Om)
 
     configs = []
 
@@ -527,15 +647,25 @@ def make_lya_dla_cross_fit_files(exp_filepaths,config_filepaths,parameter_filepa
                     'parameters':   parameters_dict,
                     }
 
-    make_config_file(config_filepaths['lya_dla_cross'],options_dict)
-    configs += [config_filepaths['lya_dla_cross']]
+    config_filepath = fit_dir + '/config_lya_dla_cross_{}.ini'.format(suffix)
+    make_config_file(config_filepath,options_dict)
+    configs += [config_filepath]
 
-    make_parameter_filepath(parameter_filepath,args)
+    chi2_filepath = fit_dir + 'chi2_{}_{}.ini'.format(name,suffix)
     make_chi2_file(chi2_filepath,zeff,configs,result_filepath)
 
     return
 
-def make_qso_dla_cross_fit_files(exp_filepaths,config_filepaths,parameter_filepath,chi2_filepath,result_filepath,rmin=20.,rmax=160.,afix='free'):
+def make_qso_dla_cross_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix='free'):
+
+    name = 'qso_dla_cross'
+    suffix = 'rmin{}_rmax{}_a{}'.format(rmin,rmax,afix)
+    fit_dir = fits_dir + '/' + name + '/'
+    submit_utils.check_dir(fit_dir)
+
+    exp_files = [exp_filepaths[key] for key in exp_filepaths.keys() if key in name]
+    zeff = get_zeff(exp_files)
+    f = get_growth_rate(zeff,Om_z0=args.fid_Om)
 
     configs = []
 
@@ -595,15 +725,25 @@ def make_qso_dla_cross_fit_files(exp_filepaths,config_filepaths,parameter_filepa
                     'parameters':   parameters_dict,
                     }
 
-    make_config_file(config_filepaths['qso_dla_cross'],options_dict)
-    configs += [config_filepaths['qso_dla_cross']]
+    config_filepath = fit_dir + '/config_qso_dla_cross_{}.ini'.format(suffix)
+    make_config_file(config_filepath,options_dict)
+    configs += [config_filepath]
 
-    make_parameter_filepath(parameter_filepath,args)
+    chi2_filepath = fit_dir + 'chi2_{}_{}.ini'.format(name,suffix)
     make_chi2_file(chi2_filepath,zeff,configs,result_filepath)
 
     return
 
-def make_lya_auto__lya_qso_cross_fit_files(exp_filepaths,config_filepaths,parameter_filepath,chi2_filepath,result_filepath,rmin=20.,rmax=160.,afix='free'):
+def make_lya_auto__lya_qso_cross_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix='free'):
+
+    name = 'lya_auto__lya_qso_cross'
+    suffix = 'rmin{}_rmax{}_a{}'.format(rmin,rmax,afix)
+    fit_dir = fits_dir + '/' + name + '/'
+    submit_utils.check_dir(fit_dir)
+
+    exp_files = [exp_filepaths[key] for key in exp_filepaths.keys() if key in name]
+    zeff = get_zeff(exp_files)
+    f = get_growth_rate(zeff,Om_z0=args.fid_Om)
 
     configs = []
 
@@ -654,8 +794,9 @@ def make_lya_auto__lya_qso_cross_fit_files(exp_filepaths,config_filepaths,parame
                              'parameters':   lya_auto_parameters_dict,
                              }
 
-    make_config_file(config_filepaths['lya_auto'],lya_auto_options_dict)
-    configs += [config_filepaths['lya_auto']]
+    config_filepath = fit_dir + '/config_lya_auto_{}.ini'.format(suffix)
+    make_config_file(config_filepath,lya_auto_options_dict)
+    configs += [config_filepath]
 
     lya_qso_cross_data_dict = {'name':            'LYA(LYA)xQSO',
                                'tracer1':         'LYA',
@@ -700,16 +841,25 @@ def make_lya_auto__lya_qso_cross_fit_files(exp_filepaths,config_filepaths,parame
                                   'parameters':   lya_qso_cross_parameters_dict,
                                   }
 
-    make_config_file(config_filepaths['lya_qso_cross'],lya_qso_cross_options_dict)
-    configs += [config_filepaths['lya_qso_cross']]
+    config_filepath = fit_dir + '/config_lya_qso_cross_{}.ini'.format(suffix)
+    make_config_file(config_filepath,lya_qso_cross_options_dict)
+    configs += [config_filepath]
 
-    # TODO: What to do with this
-    make_parameter_filepath(parameter_filepath,args)
+    chi2_filepath = fit_dir + 'chi2_{}_{}.ini'.format(name,suffix)
     make_chi2_file(chi2_filepath,zeff,configs,result_filepath)
 
     return
 
-def make_lya_auto__lya_qso_cross__qso_auto_fit_files(exp_filepaths,config_filepaths,parameter_filepath,chi2_filepath,result_filepath,rmin=20.,rmax=160.,afix='free'):
+def make_lya_auto__lya_qso_cross__qso_auto_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix='free'):
+
+    name = 'lya_auto__lya_qso_cross__qso_auto'
+    suffix = 'rmin{}_rmax{}_a{}'.format(rmin,rmax,afix)
+    fit_dir = fits_dir + '/' + name + '/'
+    submit_utils.check_dir(fit_dir)
+
+    exp_files = [exp_filepaths[key] for key in exp_filepaths.keys() if key in name]
+    zeff = get_zeff(exp_files)
+    f = get_growth_rate(zeff,Om_z0=args.fid_Om)
 
     configs = []
 
@@ -760,8 +910,9 @@ def make_lya_auto__lya_qso_cross__qso_auto_fit_files(exp_filepaths,config_filepa
                              'parameters':   lya_auto_parameters_dict,
                              }
 
-    make_config_file(config_filepaths['lya_auto'],lya_auto_options_dict)
-    configs += [config_filepaths['lya_auto']]
+    config_filepath = fit_dir + '/config_lya_auto_{}.ini'.format(suffix)
+    make_config_file(config_filepath,lya_auto_options_dict)
+    configs += [config_filepath]
 
     lya_qso_cross_data_dict = {'name':            'LYA(LYA)xQSO',
                                'tracer1':         'LYA',
@@ -806,8 +957,9 @@ def make_lya_auto__lya_qso_cross__qso_auto_fit_files(exp_filepaths,config_filepa
                                   'parameters':   lya_qso_cross_parameters_dict,
                                   }
 
-    make_config_file(config_filepaths['lya_qso_cross'],lya_qso_cross_options_dict)
-    configs += [config_filepaths['lya_qso_cross']]
+    config_filepath = fit_dir + '/config_lya_qso_cross_{}.ini'.format(suffix)
+    make_config_file(config_filepath,lya_qso_cross_options_dict)
+    configs += [config_filepath]
 
     qso_auto_data_dict = {'name':            'QSOxQSO',
                           'tracer1':         'QSO',
@@ -846,16 +998,25 @@ def make_lya_auto__lya_qso_cross__qso_auto_fit_files(exp_filepaths,config_filepa
                              'parameters':   qso_auto_parameters_dict,
                              }
 
-    make_config_file(config_filepaths['lya_qso_cross'],lya_qso_cross_options_dict)
-    configs += [config_filepaths['lya_qso_cross']]
+    config_filepath = fit_dir + '/config_qso_auto_{}.ini'.format(suffix)
+    make_config_file(config_filepath,qso_auto_options_dict)
+    configs += [config_filepath]
 
-    # TODO: What to do with this
-    make_parameter_filepath(parameter_filepath,args)
+    chi2_filepath = fit_dir + 'chi2_{}_{}.ini'.format(name,suffix)
     make_chi2_file(chi2_filepath,zeff,configs,result_filepath)
 
     return
 
-def make_lya_auto__lya_dla_cross_fit_files(exp_filepaths,config_filepaths,parameter_filepath,chi2_filepath,result_filepath,rmin=20.,rmax=160.,afix='free'):
+def make_lya_auto__lya_dla_cross_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix='free'):
+
+    name = 'lya_auto__lya_dla_cross'
+    suffix = 'rmin{}_rmax{}_a{}'.format(rmin,rmax,afix)
+    fit_dir = fits_dir + '/' + name + '/'
+    submit_utils.check_dir(fit_dir)
+
+    exp_files = [exp_filepaths[key] for key in exp_filepaths.keys() if key in name]
+    zeff = get_zeff(exp_files)
+    f = get_growth_rate(zeff,Om_z0=args.fid_Om)
 
     configs = []
 
@@ -906,8 +1067,9 @@ def make_lya_auto__lya_dla_cross_fit_files(exp_filepaths,config_filepaths,parame
                              'parameters':   lya_auto_parameters_dict,
                              }
 
-    make_config_file(config_filepaths['lya_auto'],lya_auto_options_dict)
-    configs += [config_filepaths['lya_auto']]
+    config_filepath = fit_dir + '/config_lya_auto_{}.ini'.format(suffix)
+    make_config_file(config_filepath,lya_auto_options_dict)
+    configs += [config_filepath]
 
     lya_dla_cross_data_dict = {'name':            'LYA(LYA)xDLA',
                                'tracer1':         'LYA',
@@ -952,16 +1114,25 @@ def make_lya_auto__lya_dla_cross_fit_files(exp_filepaths,config_filepaths,parame
                                   'parameters':   lya_dla_cross_parameters_dict,
                                   }
 
-    make_config_file(config_filepaths['lya_dla_cross'],lya_dla_cross_options_dict)
-    configs += [config_filepaths['lya_dla_cross']]
+    config_filepath = fit_dir + '/config_lya_dla_cross_{}.ini'.format(suffix)
+    make_config_file(config_filepath,lya_dla_cross_options_dict)
+    configs += [config_filepath]
 
-    # TODO: What to do with this
-    make_parameter_filepath(parameter_filepath,args)
+    chi2_filepath = fit_dir + 'chi2_{}_{}.ini'.format(name,suffix)
     make_chi2_file(chi2_filepath,zeff,configs,result_filepath)
 
     return
 
-def make_lya_auto__lya_dla_cross__dla_auto_fit_files(exp_filepaths,config_filepaths,parameter_filepath,chi2_filepath,result_filepath,rmin=20.,rmax=160.,afix='free'):
+def make_lya_auto__lya_dla_cross__dla_auto_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix='free'):
+
+    name = 'lya_auto__lya_dla_cross__dla_auto'
+    suffix = 'rmin{}_rmax{}_a{}'.format(rmin,rmax,afix)
+    fit_dir = fits_dir + '/' + name + '/'
+    submit_utils.check_dir(fit_dir)
+
+    exp_files = [exp_filepaths[key] for key in exp_filepaths.keys() if key in name]
+    zeff = get_zeff(exp_files)
+    f = get_growth_rate(zeff,Om_z0=args.fid_Om)
 
     configs = []
 
@@ -1012,8 +1183,9 @@ def make_lya_auto__lya_dla_cross__dla_auto_fit_files(exp_filepaths,config_filepa
                              'parameters':   lya_auto_parameters_dict,
                              }
 
-    make_config_file(config_filepaths['lya_auto'],lya_auto_options_dict)
-    configs += [config_filepaths['lya_auto']]
+    config_filepath = fit_dir + '/config_lya_auto_{}.ini'.format(suffix)
+    make_config_file(config_filepath,lya_auto_options_dict)
+    configs += [config_filepath]
 
     lya_dla_cross_data_dict = {'name':            'LYA(LYA)xDLA',
                                'tracer1':         'LYA',
@@ -1058,8 +1230,9 @@ def make_lya_auto__lya_dla_cross__dla_auto_fit_files(exp_filepaths,config_filepa
                                   'parameters':   lya_dla_cross_parameters_dict,
                                   }
 
-    make_config_file(config_filepaths['lya_dla_cross'],lya_dla_cross_options_dict)
-    configs += [config_filepaths['lya_dla_cross']]
+    config_filepath = fit_dir + '/config_lya_dla_cross_{}.ini'.format(suffix)
+    make_config_file(config_filepath,lya_dla_cross_options_dict)
+    configs += [config_filepath]
 
     dla_auto_data_dict = {'name':            'DLAxDLA',
                           'tracer1':         'DLA',
@@ -1098,16 +1271,25 @@ def make_lya_auto__lya_dla_cross__dla_auto_fit_files(exp_filepaths,config_filepa
                              'parameters':   dla_auto_parameters_dict,
                              }
 
-    make_config_file(config_filepaths['dla_auto'],dla_auto_options_dict)
-    configs += [config_filepaths['dla_auto']]
+    config_filepath = fit_dir + '/config_dla_auto_{}.ini'.format(suffix)
+    make_config_file(config_filepath,dla_auto_options_dict)
+    configs += [config_filepath]
 
-    # TODO: What to do with this
-    make_parameter_filepath(parameter_filepath,args)
+    chi2_filepath = fit_dir + 'chi2_{}_{}.ini'.format(name,suffix)
     make_chi2_file(chi2_filepath,zeff,configs,result_filepath)
 
     return
 
-def make_qso_auto__qso_dla_cross__dla_auto_fit_files(exp_filepaths,config_filepaths,parameter_filepath,chi2_filepath,result_filepath,rmin=20.,rmax=160.,afix='free'):
+def make_qso_auto__qso_dla_cross__dla_auto_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix='free'):
+
+    name = 'qso_auto__qso_dla_cross__qso_auto'
+    suffix = 'rmin{}_rmax{}_a{}'.format(rmin,rmax,afix)
+    fit_dir = fits_dir + '/' + name + '/'
+    submit_utils.check_dir(fit_dir)
+
+    exp_files = [exp_filepaths[key] for key in exp_filepaths.keys() if key in name]
+    zeff = get_zeff(exp_files)
+    f = get_growth_rate(zeff,Om_z0=args.fid_Om)
 
     configs = []
 
@@ -1159,8 +1341,9 @@ def make_qso_auto__qso_dla_cross__dla_auto_fit_files(exp_filepaths,config_filepa
                              'parameters':   qso_auto_parameters_dict,
                              }
 
-    make_config_file(config_filepaths['qso_auto'],qso_auto_options_dict)
-    configs += [config_filepaths['qso_auto']]
+    config_filepath = fit_dir + '/config_qso_auto_{}.ini'.format(suffix)
+    make_config_file(config_filepath,qso_auto_options_dict)
+    configs += [config_filepath]
 
     qso_dla_cross_data_dict = {'name':            'QSOxDLA',
                                'tracer1':         'QSO',
@@ -1205,8 +1388,9 @@ def make_qso_auto__qso_dla_cross__dla_auto_fit_files(exp_filepaths,config_filepa
                                   'parameters':   qso_dla_cross_parameters_dict,
                                   }
 
-    make_config_file(config_filepaths['qso_dla_cross'],qso_dla_cross_options_dict)
-    configs += [config_filepaths['qso_dla_cross']]
+    config_filepath = fit_dir + '/config_qso_dla_cross_{}.ini'.format(suffix)
+    make_config_file(config_filepath,qso_dla_cross_options_dict)
+    configs += [config_filepath]
 
     dla_auto_data_dict = {'name':            'DLAxDLA',
                           'tracer1':         'DLA',
@@ -1245,16 +1429,25 @@ def make_qso_auto__qso_dla_cross__dla_auto_fit_files(exp_filepaths,config_filepa
                              'parameters':   dla_auto_parameters_dict,
                              }
 
-    make_config_file(config_filepaths['dla_auto'],dla_auto_options_dict)
-    configs += [config_filepaths['dla_auto']]
+    config_filepath = fit_dir + '/config_dla_auto_{}.ini'.format(suffix)
+    make_config_file(config_filepath,dla_auto_options_dict)
+    configs += [config_filepath]
 
-    # TODO: What to do with this
-    make_parameter_filepath(parameter_filepath,args)
+    chi2_filepath = fit_dir + 'chi2_{}_{}.ini'.format(name,suffix)
     make_chi2_file(chi2_filepath,zeff,configs,result_filepath)
 
     return
 
-def make_all_correlations_fit_files(exp_filepaths,config_filepaths,parameter_filepath,chi2_filepath,result_filepath,rmin=20.,rmax=160.,afix='free'):
+def make_all_correlations_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix='free'):
+
+    name = 'all'
+    suffix = 'rmin{}_rmax{}_a{}'.format(rmin,rmax,afix)
+    fit_dir = fits_dir + '/' + name + '/'
+    submit_utils.check_dir(fit_dir)
+
+    exp_files = [exp_filepaths[key] for key in exp_filepaths.keys() if key in name]
+    zeff = get_zeff(exp_files)
+    f = get_growth_rate(zeff,Om_z0=args.fid_Om)
 
     configs = []
 
@@ -1305,8 +1498,9 @@ def make_all_correlations_fit_files(exp_filepaths,config_filepaths,parameter_fil
                              'parameters':   lya_auto_parameters_dict,
                              }
 
-    make_config_file(config_filepaths['lya_auto'],lya_auto_options_dict)
-    configs += [config_filepaths['lya_auto']]
+    config_filepath = fit_dir + '/config_lya_auto_{}.ini'.format(suffix)
+    make_config_file(config_filepath,lya_auto_options_dict)
+    configs += [config_filepath]
 
     lya_qso_cross_data_dict = {'name':            'LYA(LYA)xQSO',
                                'tracer1':         'LYA',
@@ -1351,8 +1545,9 @@ def make_all_correlations_fit_files(exp_filepaths,config_filepaths,parameter_fil
                                   'parameters':   lya_qso_cross_parameters_dict,
                                   }
 
-    make_config_file(config_filepaths['lya_qso_cross'],lya_qso_cross_options_dict)
-    configs += [config_filepaths['lya_qso_cross']]
+    config_filepath = fit_dir + '/config_lya_qso_cross_{}.ini'.format(suffix)
+    make_config_file(config_filepath,lya_qso_cross_options_dict)
+    configs += [config_filepath]
 
     qso_auto_data_dict = {'name':            'QSOxQSO',
                           'tracer1':         'QSO',
@@ -1391,15 +1586,141 @@ def make_all_correlations_fit_files(exp_filepaths,config_filepaths,parameter_fil
                              'parameters':   qso_auto_parameters_dict,
                              }
 
-    make_config_file(config_filepaths['lya_qso_cross'],lya_qso_cross_options_dict)
-    configs += [config_filepaths['lya_qso_cross']]
+    config_filepath = fit_dir + '/config_qso_auto_{}.ini'.format(suffix)
+    make_config_file(config_filepath,qso_auto_options_dict)
+    configs += [config_filepath]
 
+    qso_dla_cross_data_dict = {'name':            'QSOxDLA',
+                               'tracer1':         'QSO',
+                               'tracer2':         'DLA',
+                               'tracer1-type':    'continuous',
+                               'tracer2-type':    'discrete',
+                               'filename':        exp_filepaths['lya_dla_cross'],
+                               'ell-max':         6,
+                               }
 
+    qso_dla_cross_cuts_dict = {'rp-min':  -200.,
+                               'rp-max':  200.,
+                               'rt-min':  0.,
+                               'rt-max':  200.,
+                               'r-min':   rmin,
+                               'r-max':   rmax,
+                               'mu-min':  -1.,
+                               'mu-max':  1.
+                               }
 
+    qso_dla_cross_model_dict = {'model-pk':               'pk_kaiser',
+                                'model-xi':               'xi_drp',
+                                'z evol LYA':             'bias_vs_z_std',
+                                'velocity dispersion':    'pk_velo_lorentz',
+                                'z evol DLA':             'bias_vs_z_std',
+                                'growth function':        'growth_factor_de',
+                                'pk-gauss-smoothing':     'pk_gauss_smoothing',
+                                }
 
+    qso_dla_cross_parameters_dict = {'bias_eta_DLA':              '1.     1.      None    None    fixed',
+                                     'beta_DLA':                  '0.5    1.      None    None    free',
+                                     'alpha_DLA':                 '0.0    0.      None    None    fixed',
+                                     'par binsize QSOxDLA':       '4      0.      None    None    fixed',
+                                     'per binsize QSOxDLA':       '4      0.      None    None    fixed',
+                                     'drp_DLA':                   '0.     0.1     None    None    fixed',
+                                     'sigma_velo_lorentz_DLA':    '2.     0.1     None    None    free',
+                                     }
 
-    # TODO: What to do with this
-    make_parameter_filepath(parameter_filepath,args)
+    qso_dla_cross_options_dict = {'data':         qso_dla_cross_data_dict,
+                                  'cuts':         qso_dla_cross_cuts_dict,
+                                  'model':        qso_dla_cross_model_dict,
+                                  'parameters':   qso_dla_cross_parameters_dict,
+                                  }
+
+    config_filepath = fit_dir + '/config_qso_dla_cross_{}.ini'.format(suffix)
+    make_config_file(config_filepath,qso_dla_cross_options_dict)
+    configs += [config_filepath]
+
+    dla_auto_data_dict = {'name':            'DLAxDLA',
+                          'tracer1':         'DLA',
+                          'tracer2':         'DLA',
+                          'tracer1-type':    'discrete',
+                          'tracer2-type':    'discrete',
+                          'filename':        exp_filepaths['dla_auto'],
+                          'ell-max':         6,
+                          }
+
+    dla_auto_cuts_dict = {'rp-min':  0.,
+                          'rp-max':  200.,
+                          'rt-min':  0.,
+                          'rt-max':  200.,
+                          'r-min':   rmin,
+                          'r-max':   rmax,
+                          'mu-min':  0.,
+                          'mu-max':  1.
+                          }
+
+    dla_auto_model_dict = {'model-pk':               'pk_kaiser',
+                           'model-xi':               'xi_drp',
+                           'velocity dispersion':    'pk_velo_lorentz',
+                           'z evol DLA':             'bias_vs_z_std',
+                           'growth function':        'growth_factor_de',
+                           'pk-gauss-smoothing':     'pk_gauss_smoothing',
+                           }
+
+    dla_auto_parameters_dict = {'par binsize DLAxDLA':  '4      0.      None    None    fixed',
+                                'per binsize DLAxDLA':  '4      0.      None    None    fixed',
+                                }
+
+    dla_auto_options_dict = {'data':         dla_auto_data_dict,
+                             'cuts':         dla_auto_cuts_dict,
+                             'model':        dla_auto_model_dict,
+                             'parameters':   dla_auto_parameters_dict,
+                             }
+
+    config_filepath = fit_dir + '/config_dla_auto_{}.ini'.format(suffix)
+    make_config_file(config_filepath,dla_auto_options_dict)
+    configs += [config_filepath]
+
+    lya_dla_cross_data_dict = {'name':            'LYA(LYA)xDLA',
+                               'tracer1':         'LYA',
+                               'tracer2':         'DLA',
+                               'tracer1-type':    'continuous',
+                               'tracer2-type':    'discrete',
+                               'filename':        exp_filepaths['lya_dla_cross'],
+                               'ell-max':         6,
+                               }
+
+    lya_dla_cross_cuts_dict = {'rp-min':  -200.,
+                               'rp-max':  200.,
+                               'rt-min':  0.,
+                               'rt-max':  200.,
+                               'r-min':   rmin,
+                               'r-max':   rmax,
+                               'mu-min':  -1.,
+                               'mu-max':  1.
+                               }
+
+    lya_dla_cross_model_dict = {'model-pk':               'pk_kaiser',
+                                'model-xi':               'xi_drp',
+                                'z evol LYA':             'bias_vs_z_std',
+                                'velocity dispersion':    'pk_velo_lorentz',
+                                'z evol DLA':             'bias_vs_z_std',
+                                'growth function':        'growth_factor_de',
+                                'pk-gauss-smoothing':     'pk_gauss_smoothing',
+                                }
+
+    lya_dla_cross_parameters_dict = {'par binsize LYA(LYA)xDLA':  '4      0.      None    None    fixed',
+                                     'per binsize LYA(LYA)xDLA':  '4      0.      None    None    fixed',
+                                     }
+
+    lya_dla_cross_options_dict = {'data':         lya_dla_cross_data_dict,
+                                  'cuts':         lya_dla_cross_cuts_dict,
+                                  'model':        lya_dla_cross_model_dict,
+                                  'parameters':   lya_dla_cross_parameters_dict,
+                                  }
+
+    config_filepath = fit_dir + '/config_lya_dla_cross_{}.ini'.format(suffix)
+    make_config_file(config_filepath,lya_dla_cross_options_dict)
+    configs += [config_filepath]
+
+    chi2_filepath = fit_dir + 'chi2_{}_{}.ini'.format(name,suffix)
     make_chi2_file(chi2_filepath,zeff,configs,result_filepath)
 
     return
@@ -1407,23 +1728,50 @@ def make_all_correlations_fit_files(exp_filepaths,config_filepaths,parameter_fil
 ################################################################################
 
 #Calculate the effective redshift.
-h = fits.open(args.base_dir+'/'+args.corr_exp_filename)
-R = np.sqrt(h[1].data['RP']**2 + h[1].data['RT']**2)
-cells = (R > 80.) * (R < 120.)
-zeff = np.average(h[1].data['Z'][cells],weights=h[1].data['NB'][cells])
-h.close()
+def get_zeff(fi,rmin=80.,rmax=120.):
+    zeffs = []
+    weights = []
+    for f in fi:
+        h = fits.open(f)
+        R = np.sqrt(h[1].data['RP']**2 + h[1].data['RT']**2)
+        cells = (R > rmin) * (R < rmax)
+        #Should this be weighted by WE or by NB?
+        zeff = np.average(h[1].data['Z'][cells],weights=h[1].data['NB'][cells])
+        weight = np.sum(h[1].data['NB'][cells])
+        h.close()
+        zeffs += [zeff]
+        weights += [weight]
+    zeff = np.average(zeffs,weights=weights)
+    return zeff
 
 #Calculate f. Assume Or=0 for now.
-# TODO: include the input Om and Or from picca.
-Om_z0 = 0.3147
-Om = Om_z0 * ((1+zeff)**3) / (Om_z0 * ((1+zeff)**3) + 1 - Om_z0)
-Ol = 1 - Om
-f = (Om**0.6) + (Ol/70.)*(1 + Om/2.)
+# TODO: include the input Om and Or from picca
+def get_growth_rate(z,Om_z0=0.3147):
+    Om = Om_z0 * ((1+z)**3) / (Om_z0 * ((1+z)**3) + 1 - Om_z0)
+    Ol = 1 - Om
+    f = (Om**0.6) + (Ol/70.)*(1 + Om/2.)
+    return f
 
 #Calculate beta_QSO by interpolating the input bias.
-b_qso_of_z = np.loadtxt('/global/homes/j/jfarr/Projects/LyaCoLoRe/input_files/Bz_qso_G18.txt')
-b_qso = np.interp(zeff,b_qso_of_z[:,0],b_qso_of_z[:,1])
-beta_qso = f/b_qso
+def get_beta_qso(z,b_qso_of_z_loc='/global/homes/j/jfarr/Projects/LyaCoLoRe/input_files/Bz_qso_G18.txt'):
+    b_qso_of_z = np.loadtxt(b_qso_of_z_loc)
+    b_qso = np.interp(z,b_qso_of_z[:,0],b_qso_of_z[:,1])
+    f = get_growth_rate(z)
+    beta_qso = f/b_qso
+    return beta_qso
+
+################################################################################
+
+exp_filepaths = {'lya_auto':        acvm_dir + '/lya_auto/cf_lya_auto_exp.fits.gz',
+                 'qso_auto':        acvm_dir + '/qso_auto/co_qso_auto_exp.fits.gz',
+                 'dla_auto':        acvm_dir + '/lya_auto/co_dla_auto_exp.fits.gz',
+                 'lya_aa_auto':     acvm_dir + '/lya_aa_auto/cf_lya_aa_auto_exp.fits.gz',
+                 'lya_qso_cross':   acvm_dir + '/lya_qso_cross/xcf_lya_qso_cross_exp.fits.gz',
+                 'lya_dla_cross':   acvm_dir + '/lya_dla_cross/xcf_lya_dla_cross_exp.fits.gz',
+                 'qso_dla_cross':   acvm_dir + '/qso_dla_cross/co_lya_dla_cross_exp.fits.gz',
+                 }
+
+#For each correlation, make the parameter file
 
 #Calculate beta_DLA by interpolating the input bias.
 # TODO: Want to read b_dla from the input ideally.
@@ -1433,122 +1781,44 @@ beta_dla = f/b_qso
 #Write parameter file.
 make_parameter_file(args.base_dir+args.parameter_filename,args)
 
-#create config files for doing fits
-for rmin in args.rmin_values:
-    for rmax in args.rmax_values:
-        for afix in args.afix_values:
 
-            suffix = '{}r_a{}'.format(int(rmin),afix)
-            config_filename = args.base_dir+'config_{}_{}.ini'.format(args.corr_type,suffix)
-            result_filename = args.base_dir+'/result_{}.h5\n\n'.format(suffix)
-            chi2_filename = args.base_dir+'chi2_{}.ini'.format(suffix)
+for v_rea in args.v_realisations:
 
-            make_chi2_file(chi2_filename,zeff,[config_filename],result_filename)
+    ac_dir = a_dir+'/correlation_functions/'
+    submit_utils.check_dir(ac_dir)
+    acv_dir = ac_dir+'/'+ver+'/'
+    submit_utils.check_dir(acv_dir)
+    acvf_dir = acv_dir+'/fits/'
+    submit_utils.check_dir(acvf_dir)
 
-            config_text = ''
-            config_text += '#!/bin/bash -l\n\n'
-            config_text += '[data]\n'
-            if args.corr_type == 'cf':
-                config_text += 'name = LYA(LYA)xLYA(LYA)\n'
-                config_text += 'tracer1 = LYA\n'
-                config_text += 'tracer2 = LYA\n'
-                config_text += 'tracer1-type = continuous\n'
-                config_text += 'tracer2-type = continuous\n'
-            elif args.corr_type == 'xcf':
-                config_text += 'name = LYA(LYA)xQSO\n'
-                config_text += 'tracer1 = QSO\n'
-                config_text += 'tracer2 = LYA\n'
-                config_text += 'tracer1-type = discrete\n'
-                config_text += 'tracer2-type = continuous\n'
-            elif args.corr_type == 'co':
-                config_text += 'name = QSOxQSO\n'
-                config_text += 'tracer1 = QSO\n'
-                config_text += 'tracer2 = QSO\n'
-                config_text += 'tracer1-type = discrete\n'
-                config_text += 'tracer2-type = discrete\n'
-            config_text += 'filename = {}\n'.format(args.base_dir+args.corr_exp_filename)
-            config_text += 'ell-max = 6\n\n'
-            config_text += '[cuts]\n'
-            config_text += 'rp-min = {}\n'.format(args.rpmin)
-            config_text += 'rp-max = {}\n\n'.format(args.rpmax)
-            config_text += 'rt-min = {}\n'.format(args.rtmin)
-            config_text += 'rt-max = {}\n\n'.format(args.rtmax)
-            config_text += 'r-min = {}\n'.format(rmin)
-            config_text += 'r-max = {}\n\n'.format(rmax)
-            if args.corr_type == 'cf':
-                config_text += 'mu-min = 0.\n'
-                config_text += 'mu-max = +1.\n\n'
-            elif args.corr_type == 'xcf':
-                config_text += 'mu-min = -1.\n'
-                config_text += 'mu-max = +1.\n\n'
-            elif args.corr_type == 'co':
-                config_text += 'mu-min = -1.\n'
-                config_text += 'mu-max = +1.\n\n'
-            config_text += '[model]\n'
-            config_text += 'model-pk = pk_kaiser\n'
-            if args.corr_type == 'cf':
-                config_text += 'model-xi = xi\n'
-                config_text += 'z evol LYA = bias_vs_z_std\n'
-            elif args.corr_type == 'xcf':
-                config_text += 'model-xi = xi_drp\n'
-                config_text += 'z evol LYA = bias_vs_z_std\n'
-                config_text += 'z evol QSO = bias_vs_z_std\n'
-                config_text += 'velocity dispersion = pk_velo_lorentz\n'
-            elif args.corr_type == 'co':
-                config_text += 'model-xi = xi_drp\n'
-                config_text += 'z evol QSO = bias_vs_z_std\n'
-                config_text += 'velocity dispersion = pk_velo_lorentz\n'
-            config_text += 'growth function = growth_factor_de\n'
-            config_text += 'pk-gauss-smoothing = pk_gauss_smoothing\n\n'
-            config_text += '[parameters]\n\n'
-            if args.corr_type == 'cf':
-                config_text += 'drp_QSO                = 0. 0.1   None None fixed\n'
-            elif args.corr_type == 'xcf':
-                config_text += 'drp_QSO                = 0. 0.1   None None free\n'
-            elif args.corr_type == 'co':
-                config_text += 'drp_QSO                = 0. 0.1   None None fixed\n'
-            if args.corr_type == 'xcf' or args.corr_type == 'co':
-                config_text += 'sigma_velo_lorentz_QSO = 2. 0.1    None None free\n\n'
-            config_text += 'ap = 1. 0.1 0.5 1.5 {}\n'.format(afix)
-            config_text += 'at = 1. 0.1 0.5 1.5 {}\n'.format(afix)
-            config_text += 'bao_amp = 1. 0. None None fixed\n\n'
-            config_text += 'sigmaNL_per = 0.     0. None None fixed\n'
-            config_text += 'sigmaNL_par = 0.     0.1 None None fixed\n'
-            config_text += 'growth_rate = {} 0. None None fixed\n\n'.format(f)
-            if args.corr_type == 'cf':
-                config_text += 'bias_eta_LYA  = -0.0003512  1. None None free\n'
-                config_text += 'beta_LYA  = 0.5    1. None None free\n'
-                config_text += 'alpha_LYA = 2.9     0. None None fixed\n\n'
-            if args.corr_type == 'xcf':
-                config_text += 'bias_eta_LYA  = -0.0003512  1. None None free\n'
-                config_text += 'beta_LYA  = 1.4    1. None None free\n'
-                config_text += 'alpha_LYA = 2.9     0. None None fixed\n'
-                config_text += 'bias_eta_QSO  = 1. 0. None None fixed\n'
-                config_text += 'beta_QSO      = {} 0.1 None None fixed\n'.format(beta_QSO)
-                config_text += 'alpha_QSO = 1.44     0. None None fixed\n\n'
-            if args.corr_type == 'co':
-                config_text += 'bias_eta_QSO  = 1. 1. None None fixed\n'
-                config_text += 'beta_QSO      = {} 1. None None free\n'.format(beta_QSO)
-                config_text += 'alpha_QSO = 1.44     0. None None fixed\n\n'
-            if args.corr_type == 'cf':
-                config_text += 'par binsize LYA(LYA)xLYA(LYA) = 4 0. None None fixed\n'
-                config_text += 'per binsize LYA(LYA)xLYA(LYA) = 4 0. None None fixed\n\n'
-            elif args.corr_type == 'xcf':
-                config_text += 'par binsize LYA(LYA)xQSO = 4 0. None None fixed\n'
-                config_text += 'per binsize LYA(LYA)xQSO = 4 0. None None fixed\n\n'
-            elif args.corr_type == 'co':
-                config_text += 'par binsize QSOxQSO = 4 0. None None fixed\n'
-                config_text += 'per binsize QSOxQSO = 4 0. None None fixed\n\n'
-            config_text += 'par_sigma_smooth = 1.42 0.4 None None fixed\n'
-            config_text += 'per_sigma_smooth = 3.78 0.4 None None fixed\n\n'
-            if args.include_metals:
-                config_text += '[metals]\n'
-                config_text += 'filename = {}/metal_dmat_z_0_10.fits\n'.format(args.base_dir)
-                config_text += 'model-pk-met = pk_kaiser\n'
-                config_text += 'model-xi-met = cached_xi_kaiser\n'
-                config_text += 'z evol = bias_vs_z_std\n'
-                config_text += 'in tracer1 = SiII(1260) SiIII(1207) SiII(1193) SiII(1190)\n'
-                config_text += 'in tracer2 = SiII(1260) SiIII(1207) SiII(1193) SiII(1190)\n'
-            file = open(config_filename,'w')
-            file.write(config_text)
-            file.close()
+    #create config files for doing fits
+    for rmin in args.rmin_values:
+        for rmax in args.rmax_values:
+            for afix in args.afix_values:
+
+                if args.fit_lya_auto:
+                    make_lya_auto_fit_files(fits_dir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
+                if args.fit_qso_auto:
+                    make_qso_auto_fit_files(fits_dir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
+                if args.fit_dla_auto:
+                    make_dla_auto_fit_files(fits_dir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
+                if args.fit_lya_aa_auto:
+                    make_lya_aa_auto_fit_files(fits_dir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
+                if args.fit_lya_qso_cross:
+                    make_lya_qso_cross_fit_files(fits_dir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
+                if args.fit_lya_dla_cross:
+                    make_lya_dla_cross_fit_files(fits_dir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
+                if args.fit_qso_dla_cross:
+                    make_qso_dla_cross_fit_files(fits_dir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
+                if args.fit_lya_auto__lya_qso_cross:
+                    make_lya_auto__lya_qso_cross_fit_files(fits_dir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
+                if args.fit_lya_auto__lya_qso_cross__qso_auto:
+                    make_lya_auto__lya_qso_cross__qso_auto_fit_files(fits_dir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
+                if args.fit_lya_auto__lya_dla_cross:
+                    make_lya_auto__lya_dla_cross_fit_files(fits_dir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
+                if args.fit_lya_auto__lya_dla_cross__dla_auto:
+                    make_lya_auto__lya_dla_cross__dla_auto_fit_files(fits_dir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
+                if args.fit_qso_auto__qso_dla_cross__dla_auto:
+                    make_qso_auto__qso_dla_cross__dla_auto_fit_files(fits_dir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
+                if args.fit_all_correlations:
+                    make_all_correlations_fit_files(fits_dir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
