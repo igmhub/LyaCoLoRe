@@ -1762,20 +1762,12 @@ def get_beta_qso(z,b_qso_of_z_loc='/global/homes/j/jfarr/Projects/LyaCoLoRe/inpu
 
 ################################################################################
 
-exp_filepaths = {'lya_auto':        acvm_dir + '/lya_auto/cf_lya_auto_exp.fits.gz',
-                 'qso_auto':        acvm_dir + '/qso_auto/co_qso_auto_exp.fits.gz',
-                 'dla_auto':        acvm_dir + '/lya_auto/co_dla_auto_exp.fits.gz',
-                 'lya_aa_auto':     acvm_dir + '/lya_aa_auto/cf_lya_aa_auto_exp.fits.gz',
-                 'lya_qso_cross':   acvm_dir + '/lya_qso_cross/xcf_lya_qso_cross_exp.fits.gz',
-                 'lya_dla_cross':   acvm_dir + '/lya_dla_cross/xcf_lya_dla_cross_exp.fits.gz',
-                 'qso_dla_cross':   acvm_dir + '/qso_dla_cross/co_lya_dla_cross_exp.fits.gz',
-                 }
-
 #For each correlation, make the parameter file
 #for name,exp_filepath in exp_filepaths.items():
 #    make_parameter_file(acvm_dir+'/'+name+'/parameters.txt',args)
 
 for v_rea in args.v_realisations:
+
 
     ac_dir = a_dir+'/correlation_functions/'
     submit_utils.check_dir(ac_dir)
@@ -1783,6 +1775,17 @@ for v_rea in args.v_realisations:
     submit_utils.check_dir(acv_dir)
     acvf_dir = acv_dir+'/fits/'
     submit_utils.check_dir(acvf_dir)
+    acvm_dir = acv_dir+'/measurements/'
+    submit_utils.check_dir(acvm_dir)
+
+    exp_filepaths = {'lya_auto':        acvm_dir + '/lya_auto/cf_lya_auto_exp.fits.gz',
+                     'qso_auto':        acvm_dir + '/qso_auto/co_qso_auto_exp.fits.gz',
+                     'dla_auto':        acvm_dir + '/lya_auto/co_dla_auto_exp.fits.gz',
+                     'lya_aa_auto':     acvm_dir + '/lya_aa_auto/cf_lya_aa_auto_exp.fits.gz',
+                     'lya_qso_cross':   acvm_dir + '/lya_qso_cross/xcf_lya_qso_cross_exp.fits.gz',
+                     'lya_dla_cross':   acvm_dir + '/lya_dla_cross/xcf_lya_dla_cross_exp.fits.gz',
+                     'qso_dla_cross':   acvm_dir + '/qso_dla_cross/co_lya_dla_cross_exp.fits.gz',
+                     }
 
     #create config files for doing fits
     for rmin in args.rmin_values:
