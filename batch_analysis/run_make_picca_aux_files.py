@@ -18,6 +18,15 @@ parser.add_argument('--base-dir', type = str, default = None, required=True,
 parser.add_argument('--out-dir', type = str, default = None, required=False,
                     help = 'output directory')
 
+parser.add_argument('--v-maj', type = int, default = 9, required=False,
+                    help = 'major version of lyacolore realisations')
+
+parser.add_argument('--v-min', type = int, default = 0, required=False,
+                    help = 'minor version of lyacolore realisations')
+
+parser.add_argument('--v-realisations', type = int, default = [0], required=False,
+                    help = 'realisation numbers of lyacolore realisations', nargs='*')
+
 #Fit variables
 
 parser.add_argument('--rmin-values', type = float, default = [20.], required=False,
@@ -1707,8 +1716,10 @@ submit_utils.check_dir(a_dir)
 ac_dir = a_dir+'/correlation_functions/'
 submit_utils.check_dir(ac_dir)
 
-
 for v_rea in args.v_realisations:
+
+    ver = 'v{}.{}.{}'.format(args.v_maj,args.v_min,v_rea)
+    print('\nMaking fit files for version {}:'.format(ver))
 
     acv_dir = ac_dir+'/'+ver+'/'
     submit_utils.check_dir(acv_dir)
