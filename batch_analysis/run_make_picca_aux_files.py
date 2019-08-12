@@ -1728,13 +1728,13 @@ for v_rea in args.v_realisations:
     acvm_dir = acv_dir+'/measurements/'
     submit_utils.check_dir(acvm_dir)
 
-    exp_filepaths = {'lya_auto':        acvm_dir + '/lya_auto/cf_exp_lya_auto.fits.gz',
-                     'qso_auto':        acvm_dir + '/qso_auto/co_exp_qso_auto.fits.gz',
-                     'dla_auto':        acvm_dir + '/lya_auto/co_exp_dla_auto.fits.gz',
-                     'lya_aa_auto':     acvm_dir + '/lya_aa_auto/cf_exp_lya_aa_auto.fits.gz',
-                     'lya_qso_cross':   acvm_dir + '/lya_qso_cross/xcf_exp_lya_qso_cross.fits.gz',
-                     'lya_dla_cross':   acvm_dir + '/lya_dla_cross/xcf_exp_lya_dla_cross.fits.gz',
-                     'qso_dla_cross':   acvm_dir + '/qso_dla_cross/co_exp_lya_dla_cross.fits.gz',
+    exp_filepaths = {'lya_auto':        acvm_dir + '/lya_auto/correlations/cf_exp_lya_auto.fits.gz',
+                     'qso_auto':        acvm_dir + '/qso_auto/correlations/co_exp_qso_auto.fits.gz',
+                     'dla_auto':        acvm_dir + '/lya_auto/correlations/co_exp_dla_auto.fits.gz',
+                     'lya_aa_auto':     acvm_dir + '/lya_aa_auto/correlations/cf_exp_lya_aa_auto.fits.gz',
+                     'lya_qso_cross':   acvm_dir + '/lya_qso_cross/correlations/xcf_exp_lya_qso_cross.fits.gz',
+                     'lya_dla_cross':   acvm_dir + '/lya_dla_cross/correlations/xcf_exp_lya_dla_cross.fits.gz',
+                     'qso_dla_cross':   acvm_dir + '/qso_dla_cross/correlations/co_exp_lya_dla_cross.fits.gz',
                      }
 
     #For each correlation, make the correlation information file
