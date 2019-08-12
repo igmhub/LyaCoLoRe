@@ -1707,33 +1707,6 @@ submit_utils.check_dir(a_dir)
 ac_dir = a_dir+'/correlation_functions/'
 submit_utils.check_dir(ac_dir)
 
-#For each correlation, make the correlation information file
-for name,exp_filepath in exp_filepaths.items():
-    if name == 'lya_auto':
-        corr_type = 'cf'
-        q1 = q2 = 'LYA'
-    if name == 'qso_auto':
-        corr_type = 'co'
-        q1 = q2 = 'QSO'
-    if name == 'dla_auto':
-        corr_type = 'co'
-        q1 = q2 = 'DLA'
-    if name == 'lya_aa_auto':
-        corr_type = 'cf'
-        q1 = q2 = 'LYA'
-    if name == 'lya_qso_cross':
-        corr_type = 'xcf'
-        q1 = 'LYA'
-        q2 = 'QSO'
-    if name == 'lya_dla_cross':
-        corr_type = 'xcf'
-        q1 = 'LYA'
-        q2 = 'DLA'
-    if name == 'qso_dla_cross':
-        corr_type = 'co'
-        q1 = 'QSO'
-        q2 = 'DLA'
-    make_parameter_file(acvm_dir+'/'+name+'/corr_info.txt',corr_type,q1,q2)
 
 for v_rea in args.v_realisations:
 
@@ -1752,6 +1725,34 @@ for v_rea in args.v_realisations:
                      'lya_dla_cross':   acvm_dir + '/lya_dla_cross/xcf_lya_dla_cross_exp.fits.gz',
                      'qso_dla_cross':   acvm_dir + '/qso_dla_cross/co_lya_dla_cross_exp.fits.gz',
                      }
+
+    #For each correlation, make the correlation information file
+    for name,exp_filepath in exp_filepaths.items():
+        if name == 'lya_auto':
+            corr_type = 'cf'
+            q1 = q2 = 'LYA'
+        if name == 'qso_auto':
+            corr_type = 'co'
+            q1 = q2 = 'QSO'
+        if name == 'dla_auto':
+            corr_type = 'co'
+            q1 = q2 = 'DLA'
+        if name == 'lya_aa_auto':
+            corr_type = 'cf'
+            q1 = q2 = 'LYA'
+        if name == 'lya_qso_cross':
+            corr_type = 'xcf'
+            q1 = 'LYA'
+            q2 = 'QSO'
+        if name == 'lya_dla_cross':
+            corr_type = 'xcf'
+            q1 = 'LYA'
+            q2 = 'DLA'
+        if name == 'qso_dla_cross':
+            corr_type = 'co'
+            q1 = 'QSO'
+            q2 = 'DLA'
+        make_parameter_file(acvm_dir+'/'+name+'/corr_info.txt',corr_type,q1,q2)
 
     #create config files for doing fits
     for rmin in args.rmin_values:
