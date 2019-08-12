@@ -3,6 +3,7 @@
 import numpy as np
 from astropy.io import fits
 import argparse
+from scipy.interpolate import interp1d
 
 from lyacolore import submit_utils
 
@@ -136,7 +137,7 @@ def make_chi2_file(filepath,zeff,configs,result_filename):
 
     return
 
-def make_parameter_file(filepath,corr_type,q1,q2):
+def make_corr_info_file(filepath,corr_type,q1,q2):
 
     parameter_file_text = ''
     parameter_file_text += 'correl_type = {}\n'.format(corr_type)
@@ -212,7 +213,7 @@ def make_lya_auto_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix='free
                        'bao_amp':                       '1.     0.      None    None    fixed',
                        'sigmaNL_per':                   '0.     0.      None    None    fixed',
                        'sigmaNL_par':                   '0.     0.      None    None    fixed',
-                       'growth_rate':                   '{}     0.      None    None    fixed'.format(f), # TODO: NEED TO calculate
+                       'growth_rate':                   '{}     0.      None    None    fixed'.format(f),
                        'bias_eta_LYA':                  '-0.1   1.      None    None    free',
                        'beta_LYA':                      '0.5    1.      None    None    free',
                        'alpha_LYA':                     '2.9    0.      None    None    fixed',
@@ -282,7 +283,7 @@ def make_qso_auto_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix='free
                        'bao_amp':                   '1.     0.      None    None    fixed',
                        'sigmaNL_per':               '0.     0.      None    None    fixed',
                        'sigmaNL_par':               '0.     0.      None    None    fixed',
-                       'growth_rate':               '{}     0.      None    None    fixed'.format(), # TODO: NEED TO calculate
+                       'growth_rate':               '{}     0.      None    None    fixed'.format(f),
                        'bias_eta_QSO':              '1.     1.      None    None    fixed',
                        'beta_QSO':                  '0.25   1.      None    None    free',
                        'alpha_QSO':                 '1.44   0.      None    None    fixed',
@@ -354,7 +355,7 @@ def make_dla_auto_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix='free
                        'bao_amp':                   '1.     0.      None    None    fixed',
                        'sigmaNL_per':               '0.     0.      None    None    fixed',
                        'sigmaNL_par':               '0.     0.      None    None    fixed',
-                       'growth_rate':               '{}     0.      None    None    fixed'.format(), # TODO: NEED TO calculate
+                       'growth_rate':               '{}     0.      None    None    fixed'.format(f),
                        'bias_eta_DLA':              '1.     1.      None    None    fixed',
                        'beta_DLA':                  '0.5    1.      None    None    free',
                        'alpha_DLA':                 '0.0    0.      None    None    fixed',
@@ -425,7 +426,7 @@ def make_lya_aa_auto_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix='f
                        'bao_amp':                       '1.     0.      None    None    fixed',
                        'sigmaNL_per':                   '0.     0.      None    None    fixed',
                        'sigmaNL_par':                   '0.     0.      None    None    fixed',
-                       'growth_rate':                   '{}     0.      None    None    fixed'.format(), # TODO: NEED TO calculate
+                       'growth_rate':                   '{}     0.      None    None    fixed'.format(f),
                        'bias_eta_LYA':                  '-0.1   1.      None    None    free',
                        'beta_LYA':                      '0.5    1.      None    None    free',
                        'alpha_LYA':                     '2.9    0.      None    None    fixed',
@@ -469,6 +470,7 @@ def make_lya_qso_cross_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix=
     exp_files = [exp_filepaths[key] for key in exp_filepaths.keys() if key in name]
     zeff = get_zeff(exp_files)
     f = get_growth_rate(zeff,Om_z0=args.fid_Om)
+    beta_QSO = get_beta_obj(zeff,obj='QSO')
 
     configs = []
 
@@ -505,12 +507,12 @@ def make_lya_qso_cross_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix=
                        'bao_amp':                   '1.     0.      None    None    fixed',
                        'sigmaNL_per':               '0.     0.      None    None    fixed',
                        'sigmaNL_par':               '0.     0.      None    None    fixed',
-                       'growth_rate':               '{}     0.      None    None    fixed'.format(), # TODO: NEED TO calculate
+                       'growth_rate':               '{}     0.      None    None    fixed'.format(f),
                        'bias_eta_LYA':              '-0.1   1.      None    None    free',
                        'beta_LYA':                  '0.5    1.      None    None    free',
                        'alpha_LYA':                 '2.9    0.      None    None    fixed',
                        'bias_eta_QSO':              '1.     1.      None    None    fixed',
-                       'beta_QSO':                  '{}     1.      None    None    fixed'.format(), # TODO: NEED TO calculate
+                       'beta_QSO':                  '{}     1.      None    None    fixed'.format(beta_QSO), # TODO: NEED TO calculate
                        'alpha_QSO':                 '1.44   0.      None    None    fixed',
                        'par binsize LYA(LYA)xQSO':  '4      0.      None    None    fixed',
                        'per binsize LYA(LYA)xQSO':  '4      0.      None    None    fixed',
@@ -545,6 +547,7 @@ def make_lya_dla_cross_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix=
     exp_files = [exp_filepaths[key] for key in exp_filepaths.keys() if key in name]
     zeff = get_zeff(exp_files)
     f = get_growth_rate(zeff,Om_z0=args.fid_Om)
+    beta_DLA = get_beta_obj(zeff,obj='DLA')
 
     configs = []
 
@@ -581,18 +584,18 @@ def make_lya_dla_cross_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix=
                        'bao_amp':                   '1.     0.      None    None    fixed',
                        'sigmaNL_per':               '0.     0.      None    None    fixed',
                        'sigmaNL_par':               '0.     0.      None    None    fixed',
-                       'growth_rate':               '{}     0.      None    None    fixed'.format(), # TODO: NEED TO calculate
+                       'growth_rate':               '{}     0.      None    None    fixed'.format(f),
                        'bias_eta_LYA':              '-0.1   1.      None    None    free',
                        'beta_LYA':                  '0.5    1.      None    None    free',
                        'alpha_LYA':                 '2.9    0.      None    None    fixed',
                        'bias_eta_DLA':              '1.     1.      None    None    fixed',
-                       'beta_DLA':                  '{}     1.      None    None    fixed'.format(), # TODO: NEED TO calculate
+                       'beta_DLA':                  '{}     1.      None    None    fixed'.format(beta_DLA), # TODO: NEED TO calculate
                        'alpha_DLA':                 '0.0    0.      None    None    fixed',
                        'par binsize LYA(LYA)xDLA':  '4      0.      None    None    fixed',
                        'per binsize LYA(LYA)xDLA':  '4      0.      None    None    fixed',
                        'par_sigma_smooth':          '1.42   0.4     None    None    fixed',
                        'per_sigma_smooth':          '3.78   0.4     None    None    fixed',
-                       'drp_DLA':                   '0.     0.1     None    None    fixed',
+                       'drp_DLA':                   '0.     0.1     None    None    free',
                        'sigma_velo_lorentz_DLA':    '2.     0.1     None    None    free',
                        }
 
@@ -657,7 +660,7 @@ def make_qso_dla_cross_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix=
                        'bao_amp':                   '1.     0.      None    None    fixed',
                        'sigmaNL_per':               '0.     0.      None    None    fixed',
                        'sigmaNL_par':               '0.     0.      None    None    fixed',
-                       'growth_rate':               '{}     0.      None    None    fixed'.format(), # TODO: NEED TO calculate
+                       'growth_rate':               '{}     0.      None    None    fixed'.format(f),
                        'bias_eta_QSO':              '1.     1.      None    None    fixed',
                        'beta_QSO':                  '0.5    1.      None    None    free', # TODO: can we leave both betas free?
                        'alpha_QSO':                 '1.44   0.      None    None    fixed',
@@ -668,9 +671,9 @@ def make_qso_dla_cross_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix=
                        'per binsize QSOxDLA':       '4      0.      None    None    fixed',
                        'par_sigma_smooth':          '1.42   0.4     None    None    fixed',
                        'per_sigma_smooth':          '3.78   0.4     None    None    fixed',
-                       'drp_QSO':                   '0.     0.1     None    None    fixed',
+                       'drp_QSO':                   '0.     0.1     None    None    free', # TODO: can we leave both drps free?
                        'sigma_velo_lorentz_QSO':    '2.     0.1     None    None    free',
-                       'drp_DLA':                   '0.     0.1     None    None    fixed',
+                       'drp_DLA':                   '0.     0.1     None    None    free', # TODO: can we leave both drps free?
                        'sigma_velo_lorentz_DLA':    '2.     0.1     None    None    free',
                        }
 
@@ -733,7 +736,7 @@ def make_lya_auto__lya_qso_cross_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=
                                 'bao_amp':                       '1.     0.      None    None    fixed',
                                 'sigmaNL_per':                   '0.     0.      None    None    fixed',
                                 'sigmaNL_par':                   '0.     0.      None    None    fixed',
-                                'growth_rate':                   '{}     0.      None    None    fixed'.format(), # TODO: NEED TO calculate
+                                'growth_rate':                   '{}     0.      None    None    fixed'.format(f),
                                 'bias_eta_LYA':                  '-0.1   1.      None    None    free',
                                 'beta_LYA':                      '0.5    1.      None    None    free',
                                 'alpha_LYA':                     '2.9    0.      None    None    fixed',
@@ -782,11 +785,11 @@ def make_lya_auto__lya_qso_cross_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=
                                 }
 
     lya_qso_cross_parameters_dict = {'bias_eta_QSO':              '1.     1.      None    None    fixed',
-                                     'beta_QSO':                  '{}     1.      None    None    fixed'.format(), # TODO: NEED TO calculate
+                                     'beta_QSO':                  '0.25   1.      None    None    free',
                                      'alpha_QSO':                 '1.44   0.      None    None    fixed',
                                      'par binsize LYA(LYA)xQSO':  '4      0.      None    None    fixed',
                                      'per binsize LYA(LYA)xQSO':  '4      0.      None    None    fixed',
-                                     'drp_QSO':                   '0.     0.1     None    None    fixed',
+                                     'drp_QSO':                   '0.     0.1     None    None    free',
                                      'sigma_velo_lorentz_QSO':    '2.     0.1     None    None    free',
                                      }
 
@@ -849,7 +852,7 @@ def make_lya_auto__lya_qso_cross__qso_auto_fit_files(fits_dir,exp_filepaths,rmin
                                 'bao_amp':                       '1.     0.      None    None    fixed',
                                 'sigmaNL_per':                   '0.     0.      None    None    fixed',
                                 'sigmaNL_par':                   '0.     0.      None    None    fixed',
-                                'growth_rate':                   '{}     0.      None    None    fixed'.format(), # TODO: NEED TO calculate
+                                'growth_rate':                   '{}     0.      None    None    free'.format(f),
                                 'bias_eta_LYA':                  '-0.1   1.      None    None    free',
                                 'beta_LYA':                      '0.5    1.      None    None    free',
                                 'alpha_LYA':                     '2.9    0.      None    None    fixed',
@@ -902,7 +905,7 @@ def make_lya_auto__lya_qso_cross__qso_auto_fit_files(fits_dir,exp_filepaths,rmin
                                      'alpha_QSO':                 '1.44   0.      None    None    fixed',
                                      'par binsize LYA(LYA)xQSO':  '4      0.      None    None    fixed',
                                      'per binsize LYA(LYA)xQSO':  '4      0.      None    None    fixed',
-                                     'drp_QSO':                   '0.     0.1     None    None    fixed',
+                                     'drp_QSO':                   '0.     0.1     None    None    free',
                                      'sigma_velo_lorentz_QSO':    '2.     0.1     None    None    free',
                                      }
 
@@ -1006,7 +1009,7 @@ def make_lya_auto__lya_dla_cross_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=
                                 'bao_amp':                       '1.     0.      None    None    fixed',
                                 'sigmaNL_per':                   '0.     0.      None    None    fixed',
                                 'sigmaNL_par':                   '0.     0.      None    None    fixed',
-                                'growth_rate':                   '{}     0.      None    None    fixed'.format(), # TODO: NEED TO calculate
+                                'growth_rate':                   '{}     0.      None    None    fixed'.format(f),
                                 'bias_eta_LYA':                  '-0.1   1.      None    None    free',
                                 'beta_LYA':                      '0.5    1.      None    None    free',
                                 'alpha_LYA':                     '2.9    0.      None    None    fixed',
@@ -1055,11 +1058,11 @@ def make_lya_auto__lya_dla_cross_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=
                                 }
 
     lya_dla_cross_parameters_dict = {'bias_eta_DLA':              '1.     1.      None    None    fixed',
-                                     'beta_DLA':                  '{}     1.      None    None    fixed'.format(), # TODO: NEED TO calculate
-                                     'alpha_DLA':                 '1.44   0.      None    None    fixed',
+                                     'beta_DLA':                  '0.5    1.      None    None    free',
+                                     'alpha_DLA':                 '0.0    0.      None    None    fixed',
                                      'par binsize LYA(LYA)xDLA':  '4      0.      None    None    fixed',
                                      'per binsize LYA(LYA)xDLA':  '4      0.      None    None    fixed',
-                                     'drp_DLA':                   '0.     0.1     None    None    fixed',
+                                     'drp_DLA':                   '0.     0.1     None    None    free',
                                      'sigma_velo_lorentz_DLA':    '2.     0.1     None    None    free',
                                      }
 
@@ -1122,7 +1125,7 @@ def make_lya_auto__lya_dla_cross__dla_auto_fit_files(fits_dir,exp_filepaths,rmin
                                 'bao_amp':                       '1.     0.      None    None    fixed',
                                 'sigmaNL_per':                   '0.     0.      None    None    fixed',
                                 'sigmaNL_par':                   '0.     0.      None    None    fixed',
-                                'growth_rate':                   '{}     0.      None    None    fixed'.format(), # TODO: NEED TO calculate
+                                'growth_rate':                   '{}     0.      None    None    free'.format(f),
                                 'bias_eta_LYA':                  '-0.1   1.      None    None    free',
                                 'beta_LYA':                      '0.5    1.      None    None    free',
                                 'alpha_LYA':                     '2.9    0.      None    None    fixed',
@@ -1175,7 +1178,7 @@ def make_lya_auto__lya_dla_cross__dla_auto_fit_files(fits_dir,exp_filepaths,rmin
                                      'alpha_DLA':                 '0.0    0.      None    None    fixed',
                                      'par binsize LYA(LYA)xDLA':  '4      0.      None    None    fixed',
                                      'per binsize LYA(LYA)xDLA':  '4      0.      None    None    fixed',
-                                     'drp_DLA':                   '0.     0.1     None    None    fixed',
+                                     'drp_DLA':                   '0.     0.1     None    None    free',
                                      'sigma_velo_lorentz_DLA':    '2.     0.1     None    None    free',
                                      }
 
@@ -1275,19 +1278,21 @@ def make_qso_auto__qso_dla_cross__dla_auto_fit_files(fits_dir,exp_filepaths,rmin
                            'pk-gauss-smoothing':     'pk_gauss_smoothing',
                            }
 
-    qso_auto_parameters_dict = {'ap':                   '1.     0.1     0.5     1.5     {}'.format(afix),
-                                'at':                   '1.     0.1     0.5     1.5     {}'.format(afix),
-                                'bao_amp':              '1.     0.      None    None    fixed',
-                                'sigmaNL_per':          '0.     0.      None    None    fixed',
-                                'sigmaNL_par':          '0.     0.      None    None    fixed',
-                                'growth_rate':          '{}     0.      None    None    fixed'.format(), # TODO: NEED TO calculate
-                                'bias_eta_QSO':         '1.0    1.      None    None    fixed',
-                                'beta_QSO':             '0.25   1.      None    None    free',
-                                'alpha_QSO':            '1.44   0.      None    None    fixed',
-                                'par binsize QSOxQSO':  '4      0.      None    None    fixed',
-                                'per binsize QSOxQSO':  '4      0.      None    None    fixed',
-                                'par_sigma_smooth':     '1.42   0.4     None    None    fixed',
-                                'per_sigma_smooth':     '3.78   0.4     None    None    fixed',
+    qso_auto_parameters_dict = {'ap':                       '1.     0.1     0.5     1.5     {}'.format(afix),
+                                'at':                       '1.     0.1     0.5     1.5     {}'.format(afix),
+                                'bao_amp':                  '1.     0.      None    None    fixed',
+                                'sigmaNL_per':              '0.     0.      None    None    fixed',
+                                'sigmaNL_par':              '0.     0.      None    None    fixed',
+                                'growth_rate':              '{}     0.      None    None    fixed'.format(f),
+                                'bias_eta_QSO':             '1.0    1.      None    None    fixed',
+                                'beta_QSO':                 '0.25   1.      None    None    free',
+                                'alpha_QSO':                '1.44   0.      None    None    fixed',
+                                'par binsize QSOxQSO':      '4      0.      None    None    fixed',
+                                'per binsize QSOxQSO':      '4      0.      None    None    fixed',
+                                'par_sigma_smooth':         '1.42   0.4     None    None    fixed',
+                                'per_sigma_smooth':         '3.78   0.4     None    None    fixed',
+                                'drp_QSO':                  '0.     0.1     None    None    free',
+                                'sigma_velo_lorentz_QSO':   '2.     0.1     None    None    free',
                                 }
 
     qso_auto_options_dict = {'data':         qso_auto_data_dict,
@@ -1333,7 +1338,7 @@ def make_qso_auto__qso_dla_cross__dla_auto_fit_files(fits_dir,exp_filepaths,rmin
                                      'alpha_DLA':                 '0.0    0.      None    None    fixed',
                                      'par binsize QSOxDLA':       '4      0.      None    None    fixed',
                                      'per binsize QSOxDLA':       '4      0.      None    None    fixed',
-                                     'drp_DLA':                   '0.     0.1     None    None    fixed',
+                                     'drp_DLA':                   '0.     0.1     None    None    free',
                                      'sigma_velo_lorentz_DLA':    '2.     0.1     None    None    free',
                                      }
 
@@ -1437,7 +1442,7 @@ def make_all_correlations_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,af
                                 'bao_amp':                       '1.     0.      None    None    fixed',
                                 'sigmaNL_per':                   '0.     0.      None    None    fixed',
                                 'sigmaNL_par':                   '0.     0.      None    None    fixed',
-                                'growth_rate':                   '{}     0.      None    None    fixed'.format(), # TODO: NEED TO calculate
+                                'growth_rate':                   '{}     0.      None    None    free'.format(f),
                                 'bias_eta_LYA':                  '-0.1   1.      None    None    free',
                                 'beta_LYA':                      '0.5    1.      None    None    free',
                                 'alpha_LYA':                     '2.9    0.      None    None    fixed',
@@ -1490,7 +1495,7 @@ def make_all_correlations_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,af
                                      'alpha_QSO':                 '1.44   0.      None    None    fixed',
                                      'par binsize LYA(LYA)xQSO':  '4      0.      None    None    fixed',
                                      'per binsize LYA(LYA)xQSO':  '4      0.      None    None    fixed',
-                                     'drp_QSO':                   '0.     0.1     None    None    fixed',
+                                     'drp_QSO':                   '0.     0.1     None    None    free',
                                      'sigma_velo_lorentz_QSO':    '2.     0.1     None    None    free',
                                      }
 
@@ -1578,7 +1583,7 @@ def make_all_correlations_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,af
                                      'alpha_DLA':                 '0.0    0.      None    None    fixed',
                                      'par binsize QSOxDLA':       '4      0.      None    None    fixed',
                                      'per binsize QSOxDLA':       '4      0.      None    None    fixed',
-                                     'drp_DLA':                   '0.     0.1     None    None    fixed',
+                                     'drp_DLA':                   '0.     0.1     None    None    free',
                                      'sigma_velo_lorentz_DLA':    '2.     0.1     None    None    free',
                                      }
 
@@ -1708,12 +1713,19 @@ def get_growth_rate(z,Om_z0=0.3147):
     return f
 
 #Calculate beta_QSO by interpolating the input bias.
-def get_beta_qso(z,b_qso_of_z_loc='/global/homes/j/jfarr/Projects/LyaCoLoRe/input_files/Bz_qso_G18.txt'):
-    b_qso_of_z = np.loadtxt(b_qso_of_z_loc)
-    b_qso = np.interp(z,b_qso_of_z[:,0],b_qso_of_z[:,1])
+# TODO: work out how to set the location more appropriately.
+def get_beta_obj(z,obj='QSO'):
+    b_qso_data_loc='/global/homes/j/jfarr/Projects/LyaCoLoRe/input_files/Bz_qso_G18.txt'
+    b_qso_data = np.loadtxt(b_qso_of_z_loc)
+    if obj == 'QSO':
+        bias_of_z = interp1d(b_qso_data[:,0],b_qso_data[:,1])
+    elif obj == 'DLA':
+        print('DLA bias assumed to be constant with z.')
+        bias_of_z = interp1d(b_qso_data[:,0],2.*np.ones_like(b_qso_data[:,0]))
+    bias = bias_of_z(z)
     f = get_growth_rate(z)
-    beta_qso = f/b_qso
-    return beta_qso
+    beta = f/bias
+    return beta
 
 ################################################################################
 
@@ -1769,7 +1781,7 @@ for v_rea in args.v_realisations:
             corr_type = 'co'
             q1 = 'QSO'
             q2 = 'DLA'
-        make_parameter_file(acvm_dir+'/'+name+'/corr_info.txt',corr_type,q1,q2)
+        make_corr_info_file(acvm_dir+'/'+name+'/corr_info.txt',corr_type,q1,q2)
 
     #create config files for doing fits
     for rmin in args.rmin_values:
