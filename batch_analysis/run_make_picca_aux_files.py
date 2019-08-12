@@ -27,6 +27,12 @@ parser.add_argument('--v-min', type = int, default = 0, required=False,
 parser.add_argument('--v-realisations', type = int, default = [0], required=False,
                     help = 'realisation numbers of lyacolore realisations', nargs='*')
 
+parser.add_argument('--fid-Om', type=float, default=0.315, required=False,
+                    help='Omega_matter(z=0) of fiducial LambdaCDM cosmology')
+
+parser.add_argument('--fid-Or', type=float, default=0., required=False,
+                    help='Omega_radiation(z=0) of fiducial LambdaCDM cosmology')
+
 #Fit variables
 
 parser.add_argument('--rmin-values', type = float, default = [20.], required=False,
