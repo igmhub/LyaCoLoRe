@@ -18,7 +18,7 @@ parser.add_argument('--v-maj', type = int, default = 9, required=False,
 parser.add_argument('--v-min', type = int, default = 0, required=False,
                     help = 'minor version of lyacolore realisations')
 
-parser.add_argument('--v-realisations', type = int, default = 0, required=False,
+parser.add_argument('--v-realisations', type = int, default = [0], required=False,
                     help = 'realisation numbers of lyacolore realisations', nargs='*')
 
 parser.add_argument('--nproc', type = int, default = 32, required=False,
@@ -60,7 +60,7 @@ for v_rea in args.v_realisations:
         #Check that the directories are set up correctly.
         ver = 'v{}.{}.{}'.format(args.v_maj,args.v_min,v_rea)
         print('\nRunning analysis for version {}:'.format(ver))
-        deltas_dir = data_dir + '/picca_input/' + ver + '/deltas_Lyb_metals/'
+        deltas_dir = data_dir + '/picca_input/' + ver + '/deltas_0.5_Lyb_metals/'
         submit_utils.check_dir(add_data_dir+'/run_files/')
         submit_utils.check_dir(add_data_dir+'/scripts/')
 
