@@ -234,6 +234,7 @@ def make_lya_auto_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix='free
     configs += [config_filepath]
 
     chi2_filepath = fit_dir + 'chi2_{}_{}.ini'.format(name,suffix)
+    result_filepath = fit_dir + 'result_{}_{}.h5'.format(name,suffix)
     make_chi2_file(chi2_filepath,zeff,configs,result_filepath)
 
     return options_dict
@@ -306,6 +307,7 @@ def make_qso_auto_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix='free
     configs += [config_filepath]
 
     chi2_filepath = fit_dir + 'chi2_{}_{}.ini'.format(name,suffix)
+    result_filepath = fit_dir + 'result_{}_{}.h5'.format(name,suffix)
     make_chi2_file(chi2_filepath,zeff,configs,result_filepath)
 
     return
@@ -378,6 +380,7 @@ def make_dla_auto_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix='free
     configs += [config_filepath]
 
     chi2_filepath = fit_dir + 'chi2_{}_{}.ini'.format(name,suffix)
+    result_filepath = fit_dir + 'result_{}_{}.h5'.format(name,suffix)
     make_chi2_file(chi2_filepath,zeff,configs,result_filepath)
 
     return
@@ -456,6 +459,7 @@ def make_lya_aa_auto_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix='f
     configs += [config_filepath]
 
     chi2_filepath = fit_dir + 'chi2_{}_{}.ini'.format(name,suffix)
+    result_filepath = fit_dir + 'result_{}_{}.h5'.format(name,suffix)
     make_chi2_file(chi2_filepath,zeff,configs,result_filepath)
 
     return
@@ -533,6 +537,7 @@ def make_lya_qso_cross_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix=
     configs += [config_filepath]
 
     chi2_filepath = fit_dir + 'chi2_{}_{}.ini'.format(name,suffix)
+    result_filepath = fit_dir + 'result_{}_{}.h5'.format(name,suffix)
     make_chi2_file(chi2_filepath,zeff,configs,result_filepath)
 
     return
@@ -610,6 +615,7 @@ def make_lya_dla_cross_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix=
     configs += [config_filepath]
 
     chi2_filepath = fit_dir + 'chi2_{}_{}.ini'.format(name,suffix)
+    result_filepath = fit_dir + 'result_{}_{}.h5'.format(name,suffix)
     make_chi2_file(chi2_filepath,zeff,configs,result_filepath)
 
     return
@@ -688,6 +694,7 @@ def make_qso_dla_cross_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix=
     configs += [config_filepath]
 
     chi2_filepath = fit_dir + 'chi2_{}_{}.ini'.format(name,suffix)
+    result_filepath = fit_dir + 'result_{}_{}.h5'.format(name,suffix)
     make_chi2_file(chi2_filepath,zeff,configs,result_filepath)
 
     return
@@ -804,6 +811,7 @@ def make_lya_auto__lya_qso_cross_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=
     configs += [config_filepath]
 
     chi2_filepath = fit_dir + 'chi2_{}_{}.ini'.format(name,suffix)
+    result_filepath = fit_dir + 'result_{}_{}.h5'.format(name,suffix)
     make_chi2_file(chi2_filepath,zeff,configs,result_filepath)
 
     return
@@ -961,6 +969,7 @@ def make_lya_auto__lya_qso_cross__qso_auto_fit_files(fits_dir,exp_filepaths,rmin
     configs += [config_filepath]
 
     chi2_filepath = fit_dir + 'chi2_{}_{}.ini'.format(name,suffix)
+    result_filepath = fit_dir + 'result_{}_{}.h5'.format(name,suffix)
     make_chi2_file(chi2_filepath,zeff,configs,result_filepath)
 
     return
@@ -1077,6 +1086,7 @@ def make_lya_auto__lya_dla_cross_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=
     configs += [config_filepath]
 
     chi2_filepath = fit_dir + 'chi2_{}_{}.ini'.format(name,suffix)
+    result_filepath = fit_dir + 'result_{}_{}.h5'.format(name,suffix)
     make_chi2_file(chi2_filepath,zeff,configs,result_filepath)
 
     return
@@ -1234,6 +1244,7 @@ def make_lya_auto__lya_dla_cross__dla_auto_fit_files(fits_dir,exp_filepaths,rmin
     configs += [config_filepath]
 
     chi2_filepath = fit_dir + 'chi2_{}_{}.ini'.format(name,suffix)
+    result_filepath = fit_dir + 'result_{}_{}.h5'.format(name,suffix)
     make_chi2_file(chi2_filepath,zeff,configs,result_filepath)
 
     return
@@ -1394,6 +1405,7 @@ def make_qso_auto__qso_dla_cross__dla_auto_fit_files(fits_dir,exp_filepaths,rmin
     configs += [config_filepath]
 
     chi2_filepath = fit_dir + 'chi2_{}_{}.ini'.format(name,suffix)
+    result_filepath = fit_dir + 'result_{}_{}.h5'.format(name,suffix)
     make_chi2_file(chi2_filepath,zeff,configs,result_filepath)
 
     return
@@ -1681,6 +1693,7 @@ def make_all_correlations_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,af
     configs += [config_filepath]
 
     chi2_filepath = fit_dir + 'chi2_{}_{}.ini'.format(name,suffix)
+    result_filepath = fit_dir + 'result_{}_{}.h5'.format(name,suffix)
     make_chi2_file(chi2_filepath,zeff,configs,result_filepath)
 
     return
@@ -1716,7 +1729,7 @@ def get_growth_rate(z,Om_z0=0.3147):
 # TODO: work out how to set the location more appropriately.
 def get_beta_obj(z,obj='QSO'):
     b_qso_data_loc='/global/homes/j/jfarr/Projects/LyaCoLoRe/input_files/Bz_qso_G18.txt'
-    b_qso_data = np.loadtxt(b_qso_of_z_loc)
+    b_qso_data = np.loadtxt(b_qso_data_loc)
     if obj == 'QSO':
         bias_of_z = interp1d(b_qso_data[:,0],b_qso_data[:,1])
     elif obj == 'DLA':
