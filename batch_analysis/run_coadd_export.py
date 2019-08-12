@@ -146,7 +146,7 @@ def stack_coadd_export_cf(name,corr_dir,vers,zbins):
     in_files = ''
     for zbin in zbins:
         zbin_in_files = ''
-        for dir in dirs
+        for dir in dirs:
             in_file = dir + '/correlations/cf_{}_{}_{}.fits.gz'.format(name,zbin[0],zbin[1])
             in_files += in_file + ' '
             zbin_in_files += in_file + ' '
@@ -173,7 +173,7 @@ def stack_coadd_export_xcf(name,corr_dir,vers,zbins):
     for zbin in zbins:
         zbin_D_files = ''
         zbin_R_files = ''
-        for dir in dirs
+        for dir in dirs:
             D_file = dir + '/correlations/xcf_{}_D_{}_{}.fits.gz'.format(name,zbin[0],zbin[1])
             R_file = dir + '/correlations/xcf_{}_R_{}_{}.fits.gz'.format(name,zbin[0],zbin[1])
             D_files += D_file + ' '
@@ -207,7 +207,7 @@ def stack_coadd_export_co(name,corr_dir,vers,zbins):
         zbin_DR_files = ''
         zbin_RD_files = ''
         zbin_RR_files = ''
-        for dir in dirs
+        for dir in dirs:
             DD_file = dir + '/correlations/co_{}_DD_{}_{}.fits.gz'.format(name,zbin[0],zbin[1])
             DR_file = dir + '/correlations/co_{}_DR_{}_{}.fits.gz'.format(name,zbin[0],zbin[1])
             RD_file = dir + '/correlations/co_{}_RD_{}_{}.fits.gz'.format(name,zbin[0],zbin[1])
