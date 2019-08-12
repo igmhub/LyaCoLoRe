@@ -45,6 +45,10 @@ parser.add_argument('--transmission-only', action="store_true", default = False,
 parser.add_argument('--add-picca-DLA-drqs', action="store_true", default = False, required=False,
                     help = 'save picca format drq files for DLAs')
 
+parser.add_argument('--footprint', type = str, default = None, required = False,
+                    choices=['full_sky','desi','desi_pixel','desi_pixel_plus'],
+                    help = 'name of footprint to use')
+
 args = parser.parse_args()
 
 base_dir = args.base_dir
@@ -94,7 +98,14 @@ def get_DLA_data(pixel):
     DLA_data = DLA.get_DLA_data_from_transmission(pixel,filename)
     return DLA_data
 
-tasks = [(pixel,) for pixel in pixels]
+if args.footprint in ['desi','desi_pixel']:
+    footprint_pixels = np.loadtxt('../input_files/DESI_pixels.txt')
+elif args.footprint in ['desi_pixel_plus']:
+    footprint_pixels = np.loadtxt('../input_files/DESI_pixels_plus.txt')
+else:
+    footprint_pixels = np.array(list(range(12*args.nside*args.nside)))
+
+tasks = [(pixel,) for pixel in pixels if pixel in footprint_pixels]
 
 #Run the multiprocessing pool
 if __name__ == '__main__':
