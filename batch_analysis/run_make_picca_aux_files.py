@@ -4,6 +4,10 @@ import numpy as np
 from astropy.io import fits
 import argparse
 
+from lyacolore import submit_utils
+
+################################################################################
+
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 #locations and names
@@ -16,13 +20,13 @@ parser.add_argument('--out-dir', type = str, default = None, required=False,
 
 #Fit variables
 
-parser.add_argument('--rmin-values', type = float, default = [20.], required=True,
+parser.add_argument('--rmin-values', type = float, default = [20.], required=False,
                     help = 'minimum separation', nargs='*')
 
-parser.add_argument('--rmax-values', type = float, default = [160.], required=True,
+parser.add_argument('--rmax-values', type = float, default = [160.], required=False,
                     help = 'maximum separation', nargs='*')
 
-parser.add_argument('--afix-values', type = str, default = ['free'], required=True,
+parser.add_argument('--afix-values', type = str, default = ['free'], required=False,
                     help = 'maximum separation', nargs='*')
 
 #Correlations to fit
