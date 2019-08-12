@@ -71,7 +71,7 @@ parser.add_argument('--fit-qso-dla-cross', action="store_true", default = False,
 parser.add_argument('--fit-lya-auto--lya-qso-cross', action="store_true", default = False, required=False,
                     help = 'make files for joint lya-auto, lya-qso-cross fit')
 
-parser.add_argument('--fit-lya-auto--lya-qso-cross--qso--auto', action="store_true", default = False, required=False,
+parser.add_argument('--fit-lya-auto--lya-qso-cross--qso-auto', action="store_true", default = False, required=False,
                     help = 'make files for joint lya-auto, lya-qso-cross, qso-auto fit')
 
 parser.add_argument('--fit-lya-auto--lya-dla-cross', action="store_true", default = False, required=False,
