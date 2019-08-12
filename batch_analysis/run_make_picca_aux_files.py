@@ -1705,27 +1705,27 @@ submit_utils.check_dir(ac_dir)
 
 #For each correlation, make the correlation information file
 for name,exp_filepath in exp_filepaths.items():
-    if name = 'lya_auto':
+    if name == 'lya_auto':
         corr_type = 'cf'
         q1 = q2 = 'LYA'
-    if name = 'qso_auto':
+    if name == 'qso_auto':
         corr_type = 'co'
         q1 = q2 = 'QSO'
-    if name = 'dla_auto':
+    if name == 'dla_auto':
         corr_type = 'co'
         q1 = q2 = 'DLA'
-    if name = 'lya_aa_auto':
+    if name == 'lya_aa_auto':
         corr_type = 'cf'
         q1 = q2 = 'LYA'
-    if name = 'lya_qso_cross':
+    if name == 'lya_qso_cross':
         corr_type = 'xcf'
         q1 = 'LYA'
         q2 = 'QSO'
-    if name = 'lya_dla_cross':
+    if name == 'lya_dla_cross':
         corr_type = 'xcf'
         q1 = 'LYA'
         q2 = 'DLA'
-    if name = 'qso_dla_cross':
+    if name == 'qso_dla_cross':
         corr_type = 'co'
         q1 = 'QSO'
         q2 = 'DLA'
