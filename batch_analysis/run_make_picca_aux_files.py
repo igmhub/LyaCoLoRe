@@ -14,68 +14,15 @@ parser.add_argument('--base-dir', type = str, default = None, required=True,
 parser.add_argument('--out-dir', type = str, default = None, required=False,
                     help = 'output directory')
 
-parser.add_argument('--parameter-filename', type = str, default = 'parameters.txt', required=False,
-                    help = 'name of parameter file')
+#Fit variables
 
-#cf descriptors
-
-parser.add_argument('--corr-type', type = str, default = None, required=True,
-                    help = 'base directory')
-
-parser.add_argument('--quantity', type = str, default = None, required=True,
-                    help = 'base directory')
-
-parser.add_argument('--npixels', type = int, default = None, required=True,
-                    help = 'number of pixels')
-
-parser.add_argument('--quant-code', type = str, default = None, required=True,
-                    help = 'base directory')
-
-parser.add_argument('--zmin', type = float, default = None, required=True,
-                    help = 'minimum redshift cut value')
-
-parser.add_argument('--zmax', type = float, default = None, required=True,
-                    help = 'maximum redshift cut value')
-
-parser.add_argument('--corr-filename', type = str, default = 'cf.fits.gz', required=False,
-                    help = 'name of correlation file')
-
-parser.add_argument('--corr-exp-filename', type = str, default = 'cf_exp.fits.gz', required=False,
-                    help = 'name of exported correlation file')
-
-parser.add_argument('--nside', type = int, default = 16, required=False,
-                    help = 'HEALPix nside for output files (must be 2^n)')
-
-parser.add_argument('--rpmin', type = float, default = 0., required=False,
-                    help = 'minimum parallel separation')
-
-parser.add_argument('--rpmax', type = float, default = 160., required=False,
-                    help = 'maximum parallel separation')
-
-parser.add_argument('--rtmin', type = float, default = 0., required=False,
-                    help = 'minimum transverse separation')
-
-parser.add_argument('--rtmax', type = float, default = 160., required=False,
-                    help = 'maximum transverse separation')
-
-parser.add_argument('--np', type = int, default = 40, required=False,
-                    help = 'number of parallel bins')
-
-parser.add_argument('--nt', type = int, default = 40, required=False,
-                    help = 'number of transverse bins')
-
-parser.add_argument('--include-metals', action="store_true", default = False, required=False,
-                    help = 'include metal absorption')
-
-#Fit variable
-
-parser.add_argument('--rmin-values', type = float, default = [0.], required=True,
+parser.add_argument('--rmin-values', type = float, default = [20.], required=True,
                     help = 'minimum separation', nargs='*')
 
 parser.add_argument('--rmax-values', type = float, default = [160.], required=True,
                     help = 'maximum separation', nargs='*')
 
-parser.add_argument('--afix-values', type = str, default = None, required=True,
+parser.add_argument('--afix-values', type = str, default = ['free'], required=True,
                     help = 'maximum separation', nargs='*')
 
 #Correlations to fit
@@ -170,23 +117,12 @@ def make_chi2_file(filepath,zeff,configs,result_filename):
 
     return
 
-def make_parameter_file(filepath,args):
+def make_parameter_file(filepath,corr_type,q1,q2):
 
     parameter_file_text = ''
-    parameter_file_text += 'correl_type = {}\n'.format(args.corr_type)
-    parameter_file_text += 'quantity = {}\n'.format(args.quantity)
-    parameter_file_text += 'N_side = {}\n'.format(args.nside)
-    parameter_file_text += 'N_pixels = {}\n'.format(args.npixels)
-    parameter_file_text += 'quantities = {}\n'.format(args.quant_code)
-    parameter_file_text += 'rpmin = {}\n'.format(args.rpmin)
-    parameter_file_text += 'rpmax = {}\n'.format(args.rpmax)
-    parameter_file_text += 'rtmin = {}\n'.format(args.rtmin)
-    parameter_file_text += 'rtmax = {}\n'.format(args.rtmax)
-    parameter_file_text += 'np = {}\n'.format(args.np)
-    parameter_file_text += 'nt = {}\n'.format(args.nt)
-    parameter_file_text += 'zmin = {}\n'.format(args.zmin)
-    parameter_file_text += 'zmax = {}\n'.format(args.zmax)
-    parameter_file_text += 'zeff = {}\n'.format(zeff)
+    parameter_file_text += 'correl_type = {}\n'.format(corr_type)
+    parameter_file_text += 'quantity 1 = {}\n'.format(q1)
+    parameter_file_text += 'quantity 2 = {}\n'.format(q2)
     file = open(filepath,'w')
     file.write(parameter_file_text)
     file.close()
@@ -1762,15 +1698,41 @@ def get_beta_qso(z,b_qso_of_z_loc='/global/homes/j/jfarr/Projects/LyaCoLoRe/inpu
 
 ################################################################################
 
-#For each correlation, make the parameter file
-#for name,exp_filepath in exp_filepaths.items():
-#    make_parameter_file(acvm_dir+'/'+name+'/parameters.txt',args)
+a_dir = args.base_dir+'/analysis/'
+submit_utils.check_dir(a_dir)
+ac_dir = a_dir+'/correlation_functions/'
+submit_utils.check_dir(ac_dir)
+
+#For each correlation, make the correlation information file
+for name,exp_filepath in exp_filepaths.items():
+    if name = 'lya_auto':
+        corr_type = 'cf'
+        q1 = q2 = 'LYA'
+    if name = 'qso_auto':
+        corr_type = 'co'
+        q1 = q2 = 'QSO'
+    if name = 'dla_auto':
+        corr_type = 'co'
+        q1 = q2 = 'DLA'
+    if name = 'lya_aa_auto':
+        corr_type = 'cf'
+        q1 = q2 = 'LYA'
+    if name = 'lya_qso_cross':
+        corr_type = 'xcf'
+        q1 = 'LYA'
+        q2 = 'QSO'
+    if name = 'lya_dla_cross':
+        corr_type = 'xcf'
+        q1 = 'LYA'
+        q2 = 'DLA'
+    if name = 'qso_dla_cross':
+        corr_type = 'co'
+        q1 = 'QSO'
+        q2 = 'DLA'
+    make_parameter_file(acvm_dir+'/'+name+'/corr_info.txt',corr_type,q1,q2)
 
 for v_rea in args.v_realisations:
 
-
-    ac_dir = a_dir+'/correlation_functions/'
-    submit_utils.check_dir(ac_dir)
     acv_dir = ac_dir+'/'+ver+'/'
     submit_utils.check_dir(acv_dir)
     acvf_dir = acv_dir+'/fits/'
