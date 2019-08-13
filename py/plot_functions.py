@@ -44,19 +44,19 @@ class picca_correlation:
         self.cov = cd['cov']
         self.nb = cd['nb']
 
-        self.rp_grid = self.rp.reshape((self.np,self.nt))
-        self.rt_grid = self.rt.reshape((self.np,self.nt))
-        self.z_grid = self.z.reshape((self.np,self.nt))
-        self.xi_grid = self.xi.reshape((self.np,self.nt))
-        self.cov_grid = self.cov.reshape((self.np*self.nt,self.np*self.nt))
-        self.nb_grid = self.nb.reshape((self.np,self.nt))
-
         self.rpmin = cd['rpmin']
         self.rpmax = cd['rpmax']
         self.rtmin = cd['rtmin']
         self.rtmax = cd['rtmax']
         self.np = cd['np']
         self.nt = cd['nt']
+
+        self.rp_grid = self.rp.reshape((self.np,self.nt))
+        self.rt_grid = self.rt.reshape((self.np,self.nt))
+        self.z_grid = self.z.reshape((self.np,self.nt))
+        self.xi_grid = self.xi.reshape((self.np,self.nt))
+        self.cov_grid = self.cov.reshape((self.np*self.nt,self.np*self.nt))
+        self.nb_grid = self.nb.reshape((self.np,self.nt))
 
         """
         #cosmology data
@@ -68,8 +68,9 @@ class picca_correlation:
             self.fit = f
             self.zeff = f['zeff']
         else:
-            self.zeff = xyz
+            self.zeff = utils.get_zeff(self.z,self.rp,self.rt,self.nb,rmin=80.,rmax=120.)
 
+        print(self.zeff)
         return
 
     @classmethod

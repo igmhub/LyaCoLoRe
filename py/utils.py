@@ -530,3 +530,14 @@ def get_file_numbers(original_file_location,input_filename_structure,input_files
         file_numbers += [file_number]
 
     return file_numbers
+
+def get_zeff(z,rp,rt,weights,rmin=80.,rmax=120.):
+
+    #Find the cells that are within the r range.
+    r = np.sqrt(rp**2 + rt**2)
+    cells = (r>rmin)*(r<rmax)
+
+    #Average over these cells using the weights.
+    zeff = np.average(z[cells],weights=weights[cells])
+
+    return zeff
