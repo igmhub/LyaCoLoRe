@@ -34,6 +34,9 @@ parser.add_argument('--fid-Om', type=float, default=0.315, required=False,
 parser.add_argument('--fid-Or', type=float, default=0., required=False,
                     help='Omega_radiation(z=0) of fiducial LambdaCDM cosmology')
 
+parser.add_argument('--fit-stack', action="store_true", default = False, required=False,
+                    help = 'make files for fitting the stack of all realisations')
+
 #Fit variables
 
 parser.add_argument('--rmin-values', type = float, default = [20.], required=False,
@@ -1747,9 +1750,14 @@ submit_utils.check_dir(a_dir)
 ac_dir = a_dir+'/correlation_functions/'
 submit_utils.check_dir(ac_dir)
 
+vers = []
 for v_rea in args.v_realisations:
-
     ver = 'v{}.{}.{}'.format(args.v_maj,args.v_min,v_rea)
+    vers += [ver]
+if args.fit_stack:
+    vers += ['stack']
+
+for ver in vers:
     print('\nMaking fit files for version {}:'.format(ver))
 
     acv_dir = ac_dir+'/'+ver+'/'
