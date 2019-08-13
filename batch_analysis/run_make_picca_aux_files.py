@@ -130,6 +130,8 @@ def make_chi2_file(filepath,zeff,configs,result_filename):
     chi2_text += 'ini files = {}\n\n'.format(config_string)
     chi2_text += '[cosmo-fit type]\n'
     chi2_text += 'cosmo fit func = ap_at\n\n'
+    chi2_text += '[verbosity]\n'
+    chi2_text += 'level = 0\n\n'
     chi2_text += '[output]\n'
     chi2_text += 'filename = {}\n\n'.format(result_filename)
     chi2_text += '[fiducial]\n'
