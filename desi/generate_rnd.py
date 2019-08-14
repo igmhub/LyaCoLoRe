@@ -8,12 +8,14 @@ import warnings
 from lyacolore import catalog,utils
 
 #Set up options
-factor = 10
+factor = 10.0
+out_path = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v9/v9.0.0_full/master_randoms.fits'
 #out_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v8.0/v8.0.0/master_randoms.fits'
-out_path = '/project/projectdirs/desi/users/jfarr/LyaCoLoRe_paper/additional_data/master_randoms.fits'
+#out_path = '/project/projectdirs/desi/users/jfarr/LyaCoLoRe_paper/data/LyaCoLoRe_output/v9.0.9/master_randoms.fits'
 method = 'from_catalog'
+catalog_path = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v9/v9.0.0_full/master.fits'
 #catalog_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v8.0/v8.0.0/master.fits'
-catalog_path = '/project/projectdirs/desi/users/jfarr/LyaCoLoRe_paper/v9.0.0/master.fits'
+#catalog_path = '/project/projectdirs/desi/users/jfarr/LyaCoLoRe_paper/data/LyaCoLoRe_output/v9.0.9/master.fits'
 footprint = 'full_sky'
 nz_filename = 'input_files/Nz_qso_130618_2_colore1_hZs.txt'
 min_cat_z = 1.8

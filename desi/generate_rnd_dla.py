@@ -8,14 +8,14 @@ from lyacolore import DLA, utils
 lya = utils.lya_rest
 
 #Set up options
-factor = 10.0
-#out_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v8.0/v8.0.0/master_DLA_randoms.fits'
-out_path = '/project/projectdirs/desi/users/jfarr/LyaCoLoRe_paper/additional_data/master_DLA_randoms.fits'
+factor = 10.
+#basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v9/v9.0.0_full/'
+#basedir = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v8.0/v8.0.0/'
+basedir = '/project/projectdirs/desi/users/jfarr/LyaCoLoRe_paper/data/LyaCoLoRe_output/v9.0.9/'
+out_path = basedir+'/master_DLA_randoms.fits'
 method = 'from_catalog'
-#DLA_catalog_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v8.0/v8.0.0/master_DLA.fits'
-#QSO_catalog_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v8.0/v8.0.0/master.fits'
-DLA_catalog_path = '/project/projectdirs/desi/users/jfarr/LyaCoLoRe_paper/v9.0.0/master_DLA.fits'
-QSO_catalog_path = '/project/projectdirs/desi/users/jfarr/LyaCoLoRe_paper/v9.0.0/master.fits'
+DLA_catalog_path = basedir+'/master_DLA.fits'
+QSO_catalog_path = basedir+'/master.fits'
 footprint = 'full_sky'
 lambda_min = 3470.
 lambda_max = 6550.
@@ -47,12 +47,14 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
 
     #Get data about the QSO sample.
     h = fits.open(QSO_catalog_path)
-    RA = h['CATALOG'].data['RA']
-    DEC = h['CATALOG'].data['DEC']
-    z_qso = h['CATALOG'].data['Z_QSO_NO_RSD']
-    z_qso_rsd = h['CATALOG'].data['Z_QSO_RSD']
-    pixnum = h['CATALOG'].data['PIXNUM']
-    MOCKID = h['CATALOG'].data['MOCKID']
+    QSO_data = h['CATALOG'].data
+    QSO_data.sort(order='Z_QSO_RSD')
+    RA = QSO_data['RA']
+    DEC = QSO_data['DEC']
+    z_qso = QSO_data['Z_QSO_NO_RSD']
+    z_qso_rsd = QSO_data['Z_QSO_RSD']
+    pixnum = QSO_data['PIXNUM']
+    MOCKID = QSO_data['MOCKID']
     n_qso = z_qso.shape[0]
     h.close()
 
@@ -85,6 +87,10 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
         icdf_RSD = interp1d(cdf_RSD_i,zedges,fill_value=(0.,1.),bounds_error=False)
         z_rnd = icdf_RSD(np.random.random(size=ntot))
 
+        #Exclude DLAs that are beyond the furthest QSO.
+        #In reality should these be excluded?
+        w = z_rnd<np.max(z_qso)
+        z_rnd = z_rnd[w]
         dla_z = np.zeros(ntot)
         dla_skw_id = np.zeros(ntot,dtype='int32')
         dla_count = 0
@@ -96,9 +102,11 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
         for i,dla_z_value in enumerate(z_rnd):
             valid = False
             n_att = 0
+            low = 0
             while valid == False:
                 #Choose a random skewer.
-                skw_id = np.random.choice(n_qso)
+                skw_id = np.random.randint(low=low,high=n_qso)
+                #print(low,n_qso,skw_id)
                 n_att += 1
                 #If the QSO is valid, stop searching.
                 if z_qso[skw_id] > dla_z_value:
@@ -106,14 +114,17 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
                 #Otherwise, if we have exceeded the maximum number of random
                 #attempts, find which skewers are valid.
                 elif n_att > max_n_att:
-                    possibles = np.where(z_qso>dla_z_value)[0]
+                    print('\nMAX N ATTEMPTS REACHED\n')
+                    loc = np.searchsorted(z_qso,dla_z_value)
                     #If there exist valid skewers, choose one of them.
-                    if possibles.shape[0] > 0:
-                        skw_id = np.random.choice(possibles)
+                    if loc < n_qso:
+                        skw_id = np.random.randint(low=loc,high=n_qso)
                         valid = True
                     #Otherwise exit.
                     else:
                         break
+                else:
+                    low = skw_id+1
             #If a valid skewer was found, store the information.
             if valid:
                 dla_z[dla_count] = dla_z_value
@@ -192,6 +203,7 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
 
     #Assign each DLA an NHI value if desired, and make a table.
     if add_NHI:
+        print('\nGetting NHI values...')
         dla_NHI = DLA.get_NHI(dla_z,NHI_min=NHI_min,NHI_max=NHI_max)
         dtype = [('RA', '>f8'), ('DEC', '>f8'), ('Z_QSO_NO_RSD', '>f8'), ('Z_QSO_RSD', '>f8'), ('Z_DLA', '>f8'), ('N_HI_DLA', '>f8'), ('MOCKID', '>i8'), ('DLAID', '>i8'), ('PIXNUM', '>i8')]
         DLA_data = np.array(list(zip(dla_ra,dla_dec,dla_z_qso,dla_z_qso_rsd,dla_z,dla_NHI,dla_MOCKID,dlaid,dla_pixnum)),dtype=dtype)
