@@ -99,9 +99,9 @@ def get_DLA_data(pixel):
     return DLA_data
 
 if args.footprint in ['desi','desi_pixel']:
-    footprint_pixels = np.loadtxt('../input_files/DESI_pixels.txt')
+    footprint_pixels = np.loadtxt('/global/homes/j/jfarr/Projects/LyaCoLoRe/input_files/DESI_pixels.txt')
 elif args.footprint in ['desi_pixel_plus']:
-    footprint_pixels = np.loadtxt('../input_files/DESI_pixels_plus.txt')
+    footprint_pixels = np.loadtxt('/global/homes/j/jfarr/Projects/LyaCoLoRe/input_files/DESI_pixels_plus.txt')
 else:
     footprint_pixels = np.array(list(range(12*args.nside*args.nside)))
 
