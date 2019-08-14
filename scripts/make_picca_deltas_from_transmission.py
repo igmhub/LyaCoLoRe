@@ -14,6 +14,8 @@ import argparse
 from picca.data import delta
 from lyacolore import utils
 
+lya = utils.lya_rest
+
 ################################################################################
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
@@ -49,6 +51,9 @@ parser.add_argument('--randoms-downsampling', type = float, default = None, requ
 
 parser.add_argument('--randoms-downsampling-seed', type = int, default = None, required=False,
                     help = 'seed for the downsampling of randoms')
+
+parser.add_argument('--make-deltas', action="store_true", default = False, required=False,
+                    help = 'whether to make new deltas or not')
 
 parser.add_argument('--randoms-dir', type = str, default = None, required=False,
                     help = 'directory of randoms')
@@ -95,6 +100,9 @@ dll = args.transmission_delta_lambda
 if not os.path.isdir(args.out_dir):
     os.mkdir(args.out_dir)
 
+if args.randoms_dir is None:
+    args.randoms_dir = args.in_dir
+    
 if args.make_randoms_zcats:
     if args.randoms_downsampling is None:
         args.randoms_downsampling = args.downsampling
@@ -156,6 +164,7 @@ def create_cat(args):
     assert nbData<=data['RA'].size
     w = state.choice(sp.arange(data['RA'].size), size=nbData, replace=False)
     w_thid = data['THING_ID'][w]
+    print(w_thid.shape)
     print('INFO: downsampling to {} QSOs in catalog'.format(nbData))
     out = fitsio.FITS(args.out_dir+'/zcat_{}.fits'.format(args.downsampling),'rw',clobber=True)
     cols = [ v[w] for k,v in data.items() if k not in ['PIX'] ]
@@ -179,9 +188,9 @@ def create_cat(args):
         w = (lr_DLA < lRF_max) * (lr_DLA > lRF_min)
     else:
         w = sp.ones(data['Z_QSO'].shape).astype('bool')
+    w *= data['Z']>args.min_cat_z
     for k in data.keys():
         data[k] = data[k][w]
-    w *= data['Z']>args.min_cat_z
     h.close()
     phi = data['RA']*sp.pi/180.
     th = sp.pi/2.-data['DEC']*sp.pi/180.
@@ -485,29 +494,30 @@ def get_stack_data(f):
 
     return (n_stack,T_stack,deltas)
 
-tasks = [(f,) for f in fi]
+if args.make_deltas:
+    tasks = [(f,) for f in fi]
 
-#Run the multiprocessing pool
-if __name__ == '__main__':
-    pool = Pool(processes = args.nproc)
-    results = []
-    start_time = time.time()
-    for task in tasks:
-        pool.apply_async(get_stack_data,task,callback=log_result,error_callback=log_error)
-    pool.close()
-    pool.join()
+    #Run the multiprocessing pool
+    if __name__ == '__main__':
+        pool = Pool(processes = args.nproc)
+        results = []
+        start_time = time.time()
+        for task in tasks:
+            pool.apply_async(get_stack_data,task,callback=log_result,error_callback=log_error)
+        pool.close()
+        pool.join()
 
-### Get stacked transmission
-T_stack = sp.zeros(nstack)
-n_stack = sp.zeros(nstack)
-deltas = {}
-for r in results:
-    n_stack += r[0]
-    T_stack += r[1]
-    deltas = {**deltas, **r[2]}
+    ### Get stacked transmission
+    T_stack = sp.zeros(nstack)
+    n_stack = sp.zeros(nstack)
+    deltas = {}
+    for r in results:
+        n_stack += r[0]
+        T_stack += r[1]
+        deltas = {**deltas, **r[2]}
 
-w = n_stack>0.
-T_stack[w] /= n_stack[w]
+    w = n_stack>0.
+    T_stack[w] /= n_stack[w]
 
 def normalise_deltas(p):
     if len(deltas[p])==0:
@@ -535,14 +545,15 @@ def normalise_deltas(p):
     out.close()
     return
 
-tasks = [(p,) for p in deltas.keys()]
+if args.make_deltas:
+    tasks = [(p,) for p in deltas.keys()]
 
-#Run the multiprocessing pool
-if __name__ == '__main__':
-    pool = Pool(processes = args.nproc)
-    results = []
-    start_time = time.time()
-    for task in tasks:
-        pool.apply_async(normalise_deltas,task,callback=log_result,error_callback=log_error)
-    pool.close()
-    pool.join()
+    #Run the multiprocessing pool
+    if __name__ == '__main__':
+        pool = Pool(processes = args.nproc)
+        results = []
+        start_time = time.time()
+        for task in tasks:
+            pool.apply_async(normalise_deltas,task,callback=log_result,error_callback=log_error)
+        pool.close()
+        pool.join()
