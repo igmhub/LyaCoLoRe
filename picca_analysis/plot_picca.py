@@ -10,40 +10,80 @@ from lyacolore import plot_functions
 
 #Housekeeping options.
 fontsize = 16
-figsize = (12, 6)
 dpi = 80
 show_plot = True
 save_plot = True
+basedir = '/project/projectdirs/desi/users/jfarr/LyaCoLoRe_paper/'
 
 #Create a dictionary with all information about the subplots:
 
 #Main method correlations plot.
-filename = 'corr_plot_test.pdf'
+"""
+figsize = (12,8)
+filename = 'corr_plot.pdf'
 subplots = {}
-subplots[(0,0)] =  {'location':         '/Users/James/Downloads/picca_00229/',
-                    'filename':         'cf_exp_0.2.fits.gz',
+subplots[(0,0)] =  {'location':         basedir+'/analysis/correlation_functions/stack/measurements/lya_auto/correlations/',
+                    'filename':         'cf_exp_lya_auto.fits.gz',
+                    'result_location':  basedir+'/analysis/correlation_functions/stack/measurements/lya_auto/fits/',
+                    'result_name':      'result_lya_auto_rmin20.0_rmax160.0_afree.h5',
+                    'abs_mu':           True,
                     'mu_bins':          [(0.0,0.5),(0.5,0.8),(0.8,0.95),(0.95,1.0)],
-                    'abs_mu':           False,
                     'mu_bin_colours':   ['C0','C1','C2','C3'],
-                    'plot_data':        {'r_power': 2, 'nr': 40, 'rmax_plot': 200.0},
+                    'plot_data':        {'r_power': 2, 'nr': 50, 'rmax_plot': 200.0},
                     'plot_picca_fit':   True,
-                    'picca_fit_data':   {'rmin': 40., 'rmax':160., 'afix': 'free'},
+                    'picca_fit_data':   {'rmin': 20., 'rmax':160., 'afix': 'free'},
                     'plot_manual_fit':  False,
                     'manual_fit_data':  {'b1': -0.1049, 'b2': -0.1049, 'beta1': 1.3783, 'beta2': 1.3783},
-                    'format':           {'legend': False, 'xlabel': True, 'ylabel': True, 'leg_loc': 0},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'leg_loc': 'shared'},
                     }
-subplots[(0,1)] =  {'location':         '/Users/James/Downloads/picca_00230/',
-                    'filename':         'xcf_exp_0.2_shuffle.fits.gz',
-                    'mu_bins':          [(0.0,0.5),(0.5,0.8),(0.8,0.95),(0.95,1.0)],
+subplots[(0,1)] =  {'location':         basedir+'/analysis/correlation_functions/stack/measurements/lya_qso_cross/correlations/',
+                    'filename':         'xcf_exp_lya_qso_cross.fits.gz',
+                    'result_location':  basedir+'/analysis/correlation_functions/stack/measurements/lya_qso_cross/fits/',
+                    'result_name':      'result_lya_qso_cross_rmin20.0_rmax160.0_afree.h5',
                     'abs_mu':           True,
+                    'mu_bins':          [(0.0,0.5),(0.5,0.8),(0.8,0.95),(0.95,1.0)],
                     'mu_bin_colours':   ['C0','C1','C2','C3'],
-                    'plot_data':        {'r_power': 2, 'nr': 40, 'rmax_plot': 200.0},
+                    'plot_data':        {'r_power': 2, 'nr': 50, 'rmax_plot': 200.0},
                     'plot_picca_fit':   True,
                     'picca_fit_data':   {'rmin': 40., 'rmax':160., 'afix': 'free'},
                     'plot_manual_fit':  False,
                     'manual_fit_data':  {'b1': -0.133, 'b2': 2.0, 'beta1': 1.4, 'beta2': 0.79},
+                    'format':           {'legend': False, 'xlabel': True, 'ylabel': True, 'leg_loc': 'shared'},
+                    }
+"""
+"""
+figsize = (12,8)
+filename = 'corr_plot_systematics.pdf'
+subplots = {}
+subplots[(0,0)] =  {'location':         basedir+'/analysis/correlation_functions/stack/measurements/lya_aa_auto/correlations/',
+                    'filename':         'cf_exp_lya_aa_auto.fits.gz',
+                    'result_location':  basedir+'/analysis/correlation_functions/stack/measurements/lya_aa_auto/fits/',
+                    'result_name':      'result_lya_aa_auto_rmin20.0_rmax160.0_afree.h5',
+                    'abs_mu':           True,
+                    'mu_bins':          [(0.0,0.5),(0.5,0.8),(0.8,0.95),(0.95,1.0)],
+                    'mu_bin_colours':   ['C0','C1','C2','C3'],
+                    'plot_data':        {'r_power': 2, 'nr': 50, 'rmax_plot': 200.0},
+                    'plot_picca_fit':   True,
+                    'picca_fit_data':   {'rmin': 20., 'rmax':160., 'afix': 'free'},
+                    'plot_manual_fit':  False,
+                    'manual_fit_data':  {'b1': -0.1049, 'b2': -0.1049, 'beta1': 1.3783, 'beta2': 1.3783},
                     'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'leg_loc': 'shared'},
                     }
+subplots[(0,1)] =  {'location':         basedir+'/analysis/correlation_functions/stack/measurements/lya_dla_cross/correlations/',
+                    'filename':         'xcf_exp_lya_dla_cross.fits.gz',
+                    'result_location':  basedir+'/analysis/correlation_functions/stack/measurements/lya_dla_cross/fits/',
+                    'result_name':      'result_lya_dla_cross_rmin20.0_rmax160.0_afree.h5',
+                    'abs_mu':           True,
+                    'mu_bins':          [(0.0,0.5),(0.5,0.8),(0.8,0.95),(0.95,1.0)],
+                    'mu_bin_colours':   ['C0','C1','C2','C3'],
+                    'plot_data':        {'r_power': 2, 'nr': 50, 'rmax_plot': 200.0},
+                    'plot_picca_fit':   True,
+                    'picca_fit_data':   {'rmin': 40., 'rmax':160., 'afix': 'free'},
+                    'plot_manual_fit':  False,
+                    'manual_fit_data':  {'b1': -0.133, 'b2': 2.0, 'beta1': 1.4, 'beta2': 0.79},
+                    'format':           {'legend': False, 'xlabel': True, 'ylabel': True, 'leg_loc': 'shared'},
+                    }
+"""
 """
 figsize=(12,8)
 filename = 'berkeley_auto_0.2_DLA.pdf'
@@ -197,59 +237,6 @@ subplots[(0,0)] =  {'location':         '/global/homes/j/jfarr/Programs/picca/pi
                     'format':           {'legend': True, 'xlabel': True, 'ylabel': True},
                     }
 
-"""
-"""
-filename = 'corr_plot.pdf'
-subplots = {}
-subplots[(0,0)] =  {'location':         '/global/homes/j/jfarr/Programs/picca/picca_analysis_043/picca_00229/',
-                    'filename':         'cf_exp_0.2.fits.gz',
-                    'mu_bins':          [(0.0,0.5),(0.5,0.8),(0.8,0.95),(0.95,1.0)],
-                    'mu_bin_colours':   ['C0','C1','C2','C3'],
-                    'plot_data':        {'r_power': 2, 'nr': 40, 'rmax_plot': 200.0},
-                    'plot_picca_fit':   True,
-                    'picca_fit_data':   {'rmin': 40., 'rmax':160., 'afix': 'free'},
-                    'plot_manual_fit':  False,
-                    'manual_fit_data':  {'b1': -0.1049, 'b2': -0.1049, 'beta1': 1.3783, 'beta2': 1.3783},
-                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True},
-                    }
-subplots[(0,1)] =  {'location':         '/global/homes/j/jfarr/Programs/picca/picca_analysis_043/picca_00230/',
-                    'filename':         'xcf_exp_0.2_shuffle.fits.gz',
-                    'mu_bins':          [(0.0,0.5),(0.5,0.8),(0.8,0.95),(0.95,1.0)],
-                    'mu_bin_colours':   ['C0','C1','C2','C3'],
-                    'plot_data':        {'r_power': 2, 'nr': 40, 'rmax_plot': 200.0},
-                    'plot_picca_fit':   True,
-                    'picca_fit_data':   {'rmin': 40., 'rmax':160., 'afix': 'free'},
-                    'plot_manual_fit':  False,
-                    'manual_fit_data':  {'b1': -0.133, 'b2': 2.0, 'beta1': 1.4, 'beta2': 0.79},
-                    'format':           {'legend': False, 'xlabel': True, 'ylabel': True},
-                    }
-"""
-"""
-#Systematics correlations plot:
-filename = 'corr_plot_systematics.pdf'
-subplots = {}
-subplots[(0,0)] =  {'location':         '/global/homes/j/jfarr/Programs/picca/picca_analysis_045/picca_00239/',
-                    'filename':         'cf_exp_0.2.fits.gz',
-                    'mu_bins':          [(0.0,0.5),(0.5,0.8),(0.8,0.95),(0.95,1.0)],
-                    'mu_bin_colours':   ['C0','C1','C2','C3'],
-                    'plot_data':        {'r_power': 2, 'nr': 40, 'rmax_plot': 160.0},
-                    'plot_picca_fit':   True,
-                    'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
-                    'plot_manual_fit':  False,
-                    'manual_fit_data':  {'b1': -0.1049, 'b2': -0.1049, 'beta1': 1.3783, 'beta2': 1.3783},
-                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True},
-                    }
-subplots[(0,1)] =  {'location':         '/global/homes/j/jfarr/Programs/picca/picca_analysis_045/picca_00240/',
-                    'filename':         'xcf_exp_0.2_randoms_subbin.fits.gz',
-                    'mu_bins':          [(0.0,0.5),(0.5,0.8),(0.8,0.95),(0.95,1.0)],
-                    'mu_bin_colours':   ['C0','C1','C2','C3'],
-                    'plot_data':        {'r_power': 2, 'nr': 40, 'rmax_plot': 160.0},
-                    'plot_picca_fit':   True,
-                    'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
-                    'plot_manual_fit':  False,
-                    'manual_fit_data':  {'b1': -0.1049, 'b2': 2.0, 'beta1': 1.4, 'beta2': 0.79},
-                    'format':           {'legend': False, 'xlabel': True, 'ylabel': True},
-                    }
 """
 """
 #HCDs test plot:
