@@ -74,7 +74,10 @@ class picca_correlation:
         return
 
     @classmethod
-    def make_correlation_object(cls,location,file_name,res_name=None):
+    def make_correlation_object(cls,location,file_name,res_name=None,res_location=None):
+
+        if res_location is None:
+            res_location = location
 
         try:
             parameters = get_parameters_from_param_file(location+'/parameters.txt')
@@ -89,7 +92,7 @@ class picca_correlation:
 
         if res_name:
             #get fit paramters
-            fit_parameters = get_fit_from_result(location,res_name,parameters['correl_type'])
+            fit_parameters = get_fit_from_result(res_location,res_name,parameters['correl_type'])
         else:
             fit_parameters = None
 
@@ -490,9 +493,13 @@ def get_correlation_object(plot_info):
             res_name = plot_info['result_name']
         except KeyError:
             res_name = 'result_{}r_a{}.h5'.format(str(int(plot_info['picca_fit_data']['rmin'])),plot_info['picca_fit_data']['afix'])
+        try:
+            res_location = plot_info['result_location']
+        except KeyError:
+            res_location = location
     else:
         res_name = None
-    corr_object = picca_correlation.make_correlation_object(location,filename,res_name=res_name)
+    corr_object = picca_correlation.make_correlation_object(location,filename,res_name=res_name,res_location=res_location)
 
     return corr_object
 
