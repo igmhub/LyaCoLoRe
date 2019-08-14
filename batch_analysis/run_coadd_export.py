@@ -102,7 +102,7 @@ def coadd_export_xcf(name,meas_dir,zbins):
             command = 'picca_export.py --data {} --out {} --remove-shuffled-correlation {}'.format(D_file,out_file,R_file)
             retcode = call(command,shell=True)
         D_files += D_file + ' '
-        R_files += R_files + ' '
+        R_files += R_file + ' '
     out_file = dir + '/correlations/xcf_exp_{}.fits.gz'.format(name)
     command='picca_export_coadd_zint.py --data {} --out {} --no-dmat --remove-shuffled-correlation {}'.format(D_files,out_file,R_files)
     retcode = call(command,shell=True)
@@ -347,8 +347,7 @@ def export_qso_dla_cross(meas_dir,zbins):
 ################################################################################
 #Merge the z bins together.
 
-#cf_zbins = [(0.0,2.2),(2.2,2.6),(2.6,3.0),(3.0,10.0)]
-cf_zbins = [(2.6,3.0),(3.0,10.0)]
+cf_zbins = [(0.0,2.2),(2.2,2.6),(2.6,3.0),(3.0,10.0)]
 xcf_zbins = cf_zbins
 co_zbins = [(0.0,10.0)]
 
@@ -383,6 +382,7 @@ for v_rea in args.v_realisations:
         coadd_export_xcf('lya_qso_cross',acvm_dir,xcf_zbins)
 
     if args.export_lya_dla_cross:
+        print('coadd/exporting lya dla cross')
         coadd_export_xcf('lya_dla_cross',acvm_dir,xcf_zbins)
 
     if args.export_qso_dla_cross:

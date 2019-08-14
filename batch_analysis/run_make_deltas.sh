@@ -1,7 +1,6 @@
 ################################################################################
 BASEDIR="/project/projectdirs/desi/users/jfarr/LyaCoLoRe_paper/"
 LYACOLORE_PATH="/global/homes/j/jfarr/Projects/LyaCoLoRe/"
-RANDDIR="${BASEDIR}/data/additional_data/"
 V_CODE_MAJOR=9
 V_CODE_MINOR=0
 V_REALISATIONS=`echo {4..9}`
@@ -12,7 +11,6 @@ FLAGS=""
 
 #Processing quantities.
 DS=0.5
-DLA_Z_BUFFER=0.05
 DS_RAND=0.1
 #Set the seeds for the downsampling using the version number.
 MIN_CAT_Z=1.7
@@ -30,6 +28,7 @@ dll=0.0003
 for r in $V_REALISATIONS; do
 INDIRNAME="$BASEDIR/data/LyaCoLoRe_output/v${V_CODE_MAJOR}.${V_CODE_MINOR}.${r}/"
 OUTDIRNAME="$BASEDIR/data/picca_input/v${V_CODE_MAJOR}.${V_CODE_MINOR}.${r}/"
+RANDDIR=$INDIRNAME
 RUN_FILE="$OUTDIRNAME/run_make_deltas_v${V_CODE_MAJOR}.${V_CODE_MINOR}.${r}.sh"
 if [ ! -d $OUTDIRNAME ] ; then
     mkdir -p $OUTDIRNAME
