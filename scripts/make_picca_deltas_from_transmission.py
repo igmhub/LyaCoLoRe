@@ -61,9 +61,6 @@ parser.add_argument('--randoms-dir', type = str, default = None, required=False,
 parser.add_argument('--min-cat-z', type = float, default = 1.7, required=False,
                     help = 'minimum z of objects in catalog')
 
-parser.add_argument('--DLAs-in-transmission-rest-range', action="store_true", default = False, required=False,
-                    help = 'flag to only include DLAs within the transmission range of rest frame wavelengths')
-
 parser.add_argument('--add-Lyb', action="store_true", default = False, required=False,
                     help = 'whether to add Lyb absorption or not')
 
@@ -88,6 +85,12 @@ parser.add_argument('--transmission-delta-lambda', type = float, default = 0.000
 parser.add_argument('--single-DLA-per-skw', action="store_true", default = False, required=False,
                     help = 'whether to allow at most 1 DLA per skewer or not')
 
+parser.add_argument('--DLA-lambda-rest-min', type = float, default = None, required=False,
+                    help = 'minimum wavelength in the rest frame stored for DLAs')
+
+parser.add_argument('--DLA-lambda-rest-max', type = float, default = None, required=False,
+                    help = 'maximum wavelength in the rest frame stored for DLAs')
+
 args = parser.parse_args()
 
 # Wavelength grid for output.
@@ -102,7 +105,7 @@ if not os.path.isdir(args.out_dir):
 
 if args.randoms_dir is None:
     args.randoms_dir = args.in_dir
-    
+
 if args.make_randoms_zcats:
     if args.randoms_downsampling is None:
         args.randoms_downsampling = args.downsampling
@@ -183,11 +186,12 @@ def create_cat(args):
     data['Z'] = md_data['Z_DLA_RSD'][:]
     # Ensure that DLAs are in the rest frame wavelength range if required
     data['Z_QSO'] = md_data['Z_QSO_RSD'][:]
-    if args.DLAs_in_transmission_rest_range:
-        lr_DLA = lya*(1+data['Z'])/(1+data['Z_QSO'])
-        w = (lr_DLA < lRF_max) * (lr_DLA > lRF_min)
-    else:
-        w = sp.ones(data['Z_QSO'].shape).astype('bool')
+    w = sp.ones(data['Z_QSO'].shape).astype('bool')
+    lr_DLA = lya*(1+data['Z'])/(1+data['Z_QSO'])
+    if args.DLA_lambda_rest_min is not None:
+        w *= (lr_DLA > args.DLA_lambda_rest_min)
+    if args.DLA_lambda_rest_max is not None:
+        w *= (lr_DLA < args.DLA_lambda_rest_max)
     w *= data['Z']>args.min_cat_z
     for k in data.keys():
         data[k] = data[k][w]
@@ -282,11 +286,12 @@ def create_cat(args):
         data['Z'] = mdr_data['Z_DLA'][:]
         data['Z_QSO'] = mdr_data['Z_QSO_RSD'][:]
         # Ensure that DLAs are in the rest frame wavelength range if required
-        if args.DLAs_in_transmission_rest_range:
-            lr_DLA = lya*(1+data['Z'])/(1+data['Z_QSO'])
-            w = (lr_DLA < lRF_max) * (lr_DLA > lRF_min)
-        else:
-            w = sp.ones(data['Z_QSO'].shape).astype('bool')
+        w = sp.ones(data['Z_QSO'].shape).astype('bool')
+        lr_DLA = lya*(1+data['Z'])/(1+data['Z_QSO'])
+        if args.DLA_lambda_rest_min is not None:
+            w *= (lr_DLA > args.DLA_lambda_rest_min)
+        if args.DLA_lambda_rest_max is not None:
+            w *= (lr_DLA < args.DLA_lambda_rest_max)
         w *= data['Z']>args.min_cat_z
         for k in data.keys():
             data[k] = data[k][w]
