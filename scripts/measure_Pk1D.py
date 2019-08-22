@@ -3,6 +3,7 @@
 import numpy as np
 from astropy.io import fits
 import matplotlib.pyplot as plt
+import matplotlib.ticker
 from multiprocessing import Pool
 import multiprocessing
 import sys
@@ -93,6 +94,9 @@ parser.add_argument('--add-vline', type = float, default = None, required=False,
 
 parser.add_argument('--fill-right-vline', action="store_true", default = False, required=False,
                     help = 'shade to the right of the vertical line')
+
+parser.add_argument('--ysubs', type = float, default = None, required=False,
+                    help = 'multiples of integer powers of 10 at which to place y ticks', nargs='*')
 
 ################################################################################
 
@@ -276,6 +280,9 @@ Make a plot.
 #Plot the power spectra
 def plot_P1D_values(Pk1D_results,show_plot=True):
     fig = plt.figure(figsize=figsize, dpi= dpi, facecolor='w', edgecolor='k')
+    ax = fig.add_subplot(111)
+    ax.set_xscale('log')
+    ax.set_yscale('log')
 
     #Extract the z values and sort them.
     z_values = np.array([key for key in Pk1D_results.keys()])
@@ -314,18 +321,18 @@ def plot_P1D_values(Pk1D_results,show_plot=True):
                 ind_orig = np.arange(N_low,N_low+N_rel,1)
                 spacing = N_rel // args.N_k_values
                 ind = ind_orig[(ind_orig % spacing) == 0]
-                d = plt.errorbar(k[ind],to_plot_data[ind],yerr=to_plot_data_err[ind],label='z={}'.format(z_value),c=colour,fmt='o',zorder=3)
+                d = ax.errorbar(k[ind],to_plot_data[ind],yerr=to_plot_data_err[ind],label='z={}'.format(z_value),c=colour,fmt='o',zorder=3)
             else:
-                d = plt.errorbar(k,to_plot_data,yerr=to_plot_data_err,label='z={}'.format(z_value),c=colour,fmt='o',zorder=3)
+                d = ax.errorbar(k,to_plot_data,yerr=to_plot_data_err,label='z={}'.format(z_value),c=colour,fmt='o',zorder=3)
 
         #Otherwise, plot a line with error areas if required.
         elif args.add_error_areas:
-            d = plt.plot(k,to_plot_data,label='z={}'.format(z_value),c=colour)
-            plt.fill_between(k,to_plot_data+to_plot_data_err,to_plot_data-to_plot_data_err,color=colour,alpha=0.2,zorder=3)
+            d = ax.plot(k,to_plot_data,label='z={}'.format(z_value),c=colour)
+            ax.fill_between(k,to_plot_data+to_plot_data_err,to_plot_data-to_plot_data_err,color=colour,alpha=0.2,zorder=3)
 
         #Otherwise, just plot a line.
         else:
-            d = plt.plot(k,to_plot_data,label='z={}'.format(z_value),c=colour,zorder=3)
+            d = ax.plot(k,to_plot_data,label='z={}'.format(z_value),c=colour,zorder=3)
 
         #Add the plotted data to the dictionary.
         data_plots[z_value] = d
@@ -338,12 +345,12 @@ def plot_P1D_values(Pk1D_results,show_plot=True):
             if args.add_model_interval_areas is not None:
                 to_plot_lower = to_plot_model * (1 - args.add_model_interval_areas)
                 to_plot_upper = to_plot_model * (1 + args.add_model_interval_areas)
-                plt.fill_between(k,to_plot_upper,to_plot_lower,color=colour,alpha=0.2,zorder=1)
+                ax.fill_between(k,to_plot_upper,to_plot_lower,color=colour,alpha=0.2,zorder=1)
             elif args.add_model_interval_lines is not None:
                 to_plot_lower = to_plot_model * (1 - args.add_model_interval_lines)
                 to_plot_upper = to_plot_model * (1 + args.add_model_interval_lines)
-                plt.plot(k,to_plot_upper,color=colour,linestyle=':',zorder=1)
-                plt.plot(k,to_plot_lower,color=colour,linestyle=':',zorder=1)
+                ax.plot(k,to_plot_upper,color=colour,linestyle=':',zorder=1)
+                ax.plot(k,to_plot_lower,color=colour,linestyle=':',zorder=1)
             plot_model_min = np.minimum(plot_model_min,np.min(to_plot_model[k_rel]))
             plot_model_max = np.maximum(plot_model_max,np.max(to_plot_model[k_rel]))
 
@@ -351,36 +358,36 @@ def plot_P1D_values(Pk1D_results,show_plot=True):
     space = 0.3
     ylim_lower = plot_model_min * (1 - space)
     ylim_upper = plot_model_max * (1 + space)
-    plt.xlim(args.k_min_plot,args.k_max_plot)
-    plt.ylim(ylim_lower,ylim_upper)
+    ax.set_xlim(args.k_min_plot,args.k_max_plot)
+    ax.set_ylim(ylim_lower,ylim_upper)
 
     #Add blank elements to describe data plot types in legend.
     descriptor_plots = {}
     if args.add_error_bars:
-        d = plt.errorbar([], [], yerr=[], fmt='o', color='gray', label=r'LyaColoRe')
+        d = ax.errorbar([0], [0], yerr=[0], fmt='o', color='gray', label=r'LyaColoRe')
     elif args.add_error_areas:
-        d = plt.fill_between([], [], [], color='gray', alpha=0.2, label=r'LyaColoRe')
+        d = ax.fill_between([0], [0], [0], color='gray', alpha=0.2, label=r'LyaColoRe')
     descriptor_plots['data'] = d
 
     #Add blank elements to describe model/fit/intervals plot types in legend.
     if 'flux' in file_type:
-        err, = plt.plot([], [], color='gray', linestyle='--', label=r'BOSS DR9')
+        err, = ax.plot([0], [0], color='gray', linestyle='--', label=r'BOSS DR9')
         if args.add_model_interval_lines is not None:
-            err_i, = plt.plot([], [], color='gray', linestyle=':', label=r'DR9 $\pm$ 10%')
+            err_i, = ax.plot([0], [0], color='gray', linestyle=':', label=r'DR9 $\pm$ 10%')
         elif args.add_model_interval_areas is not None:
-            err_i = plt.fill_between([], [], [], color='gray', alpha=0.2, label=r'DR9 $\pm$ 10%')
+            err_i = ax.fill_between([0], [0], [0], color='gray', alpha=0.2, label=r'DR9 $\pm$ 10%')
         descriptor_plots['error'] = err
         descriptor_plots['error_interval'] = err_i
 
     #Add vertical line, and shade if desired.
     if args.add_vline is not None:
-        plt.axvline(x=args.add_vline,linestyle='-.',color='darkgrey',zorder=4)
+        ax.axvline(x=args.add_vline,linestyle='-.',color='darkgrey',zorder=4)
         if args.fill_right_vline:
             extend = 0.1
             k_shade = np.array([args.add_vline,args.k_max_plot*(1+extend)])
             y_shade_upper = np.array([ylim_upper*(1+extend)]*2)
             y_shade_lower = np.array([ylim_lower*(1-extend)]*2)
-            plt.fill_between(k_shade,y_shade_upper,y_shade_lower,linewidth=0.0,edgecolor='darkgrey',facecolor='none',hatch='/',zorder=4)
+            ax.fill_between(k_shade,y_shade_upper,y_shade_lower,linewidth=0.0,edgecolor='darkgrey',facecolor='none',hatch='/',zorder=4)
 
     #Add a legend, ensuring everything is in the right order.
     legend_items = []
@@ -394,11 +401,15 @@ def plot_P1D_values(Pk1D_results,show_plot=True):
             legend_labels += [descriptor_plots[key][0].get_label()]
         else:
             legend_labels += [descriptor_plots[key].get_label()]
-    plt.legend(legend_items,legend_labels,ncol=2,loc=0,facecolor='w')
+    ax.legend(legend_items,legend_labels,ncol=2,loc=0,facecolor='w')
 
-    #Use a log plot.
-    plt.semilogx()
-    plt.semilogy()
+    #Set yticks.
+    if args.ysubs is not None:
+        locator = matplotlib.ticker.LogLocator(subs=args.ysubs)
+        ax.yaxis.set_major_locator(locator)
+        thresh = np.ceil(np.log10(ylim_upper-ylim_lower))+1
+        formatter = matplotlib.ticker.LogFormatterSciNotation(labelOnlyBase=False,minor_thresholds=(thresh,thresh))
+        ax.yaxis.set_major_formatter(formatter)
 
     #Add appropriate labels.
     if args.k_plot_power == 1 :
@@ -409,11 +420,11 @@ def plot_P1D_values(Pk1D_results,show_plot=True):
         ylabel = r'$k^{:d}\ P_{{1\mathrm{{D}}}}(k)\ [(\mathrm{{s}}\ \mathrm{{km}}^{{-1}})^{{{:d}}}]$'.format(int(args.k_plot_power),int(args.k_plot_power)-1,int(args.k_plot_power)-1)
     else:
         ylabel = r'$P_{1\mathrm{D}}\ [\mathrm{km\ s}^{{-1}}]$'
-    plt.ylabel(ylabel,fontsize=fontsize)
+    ax.set_ylabel(ylabel,fontsize=fontsize)
     if units == 'km/s':
-        plt.xlabel(r'$k\ [\mathrm{s\ km}^{-1}]$',fontsize=fontsize)
+        ax.set_xlabel(r'$k\ [\mathrm{s\ km}^{-1}]$',fontsize=fontsize)
     elif units == 'Mpc/h':
-        plt.xlabel(r'$k\ [h\ \mathrm{Mpc}^{-1}]$',fontsize=fontsize)
+        ax.set_xlabel(r'$k\ [h\ \mathrm{Mpc}^{-1}]$',fontsize=fontsize)
     filename = 'Pk1D_{}_{}.pdf'.format(file_type,N_pixels)
     plt.savefig('Pk1D_k{}_vs_k_{}.pdf'.format(int(args.k_plot_power),file_type))
     if show_plot:
