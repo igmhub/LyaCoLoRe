@@ -164,7 +164,6 @@ def make_config_file(filepath,options_dict):
         sect_dict = options_dict[key]
         for option in sect_dict.keys():
             config_text += '{} = {}\n'.format(option,sect_dict[option])
-        print(' ')
 
     file = open(filepath,'w')
     file.write(config_text)
@@ -599,7 +598,7 @@ def make_lya_dla_cross_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix=
                        'beta_LYA':                  '0.5    1.      None    None    free',
                        'alpha_LYA':                 '2.9    0.      None    None    fixed',
                        'bias_eta_DLA':              '1.     1.      None    None    fixed',
-                       'beta_DLA':                  '{}     1.      None    None    fixed'.format(beta_DLA), # TODO: NEED TO calculate
+                       'beta_DLA':                  '{}     1.      None    None    fixed'.format(beta_DLA),
                        'alpha_DLA':                 '0.0    0.      None    None    fixed',
                        'par binsize LYA(LYA)xDLA':  '4      0.      None    None    fixed',
                        'per binsize LYA(LYA)xDLA':  '4      0.      None    None    fixed',
@@ -1738,7 +1737,7 @@ def get_beta_obj(z,obj='QSO'):
     if obj == 'QSO':
         bias_of_z = interp1d(b_qso_data[:,0],b_qso_data[:,1])
     elif obj == 'DLA':
-        print('DLA bias assumed to be constant with z.')
+        print(' -> -> -> DLA bias assumed to be constant with z.')
         bias_of_z = interp1d(b_qso_data[:,0],2.*np.ones_like(b_qso_data[:,0]))
     bias = bias_of_z(z)
     f = get_growth_rate(z)
@@ -1810,30 +1809,44 @@ for ver in vers:
     for rmin in args.rmin_values:
         for rmax in args.rmax_values:
             for afix in args.afix_values:
+                print(' -> making files for rmin={}, rmax={}, afix={}'.format(rmin,rmax,afix))
 
                 if args.fit_lya_auto:
+                    print(' -> -> making lya_auto files')
                     make_lya_auto_fit_files(acvf_dir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
                 if args.fit_qso_auto:
+                    print(' -> -> making qso_auto files')
                     make_qso_auto_fit_files(acvf_dir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
                 if args.fit_dla_auto:
+                    print(' -> -> making dla_auto files')
                     make_dla_auto_fit_files(acvf_dir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
                 if args.fit_lya_aa_auto:
+                    print(' -> -> making lya_aa_auto files')
                     make_lya_aa_auto_fit_files(acvf_dir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
                 if args.fit_lya_qso_cross:
+                    print(' -> -> making lya_qso_cross files')
                     make_lya_qso_cross_fit_files(acvf_dir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
                 if args.fit_lya_dla_cross:
+                    print(' -> -> making lya_dla_cross files')
                     make_lya_dla_cross_fit_files(acvf_dir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
                 if args.fit_qso_dla_cross:
+                    print(' -> -> making qso_dla_cross files')
                     make_qso_dla_cross_fit_files(acvf_dir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
                 if args.fit_lya_auto__lya_qso_cross:
+                    print(' -> -> making joint lya_auto__lya_qso_cross files')
                     make_lya_auto__lya_qso_cross_fit_files(acvf_dir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
                 if args.fit_lya_auto__lya_qso_cross__qso_auto:
+                    print(' -> -> making joint lya_auto__lya_qso_cross__qso_auto files')
                     make_lya_auto__lya_qso_cross__qso_auto_fit_files(acvf_dir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
                 if args.fit_lya_auto__lya_dla_cross:
+                    print(' -> -> making joint lya_auto__lya_dla_cross files')
                     make_lya_auto__lya_dla_cross_fit_files(acvf_dir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
                 if args.fit_lya_auto__lya_dla_cross__dla_auto:
+                    print(' -> -> making joint lya_auto__lya_dla_cross__dla_auto files')
                     make_lya_auto__lya_dla_cross__dla_auto_fit_files(acvf_dir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
                 if args.fit_qso_auto__qso_dla_cross__dla_auto:
+                    print(' -> -> making joint qso_auto__qso_dla_cross__dla_auto files')
                     make_qso_auto__qso_dla_cross__dla_auto_fit_files(acvf_dir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
                 if args.fit_all_correlations:
+                    print(' -> -> making joint all correlations files')
                     make_all_correlations_fit_files(acvf_dir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
