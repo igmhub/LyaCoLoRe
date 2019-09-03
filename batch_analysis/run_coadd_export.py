@@ -117,10 +117,10 @@ def coadd_export_co(name,meas_dir,zbins):
     RD_files = ''
     RR_files = ''
     for zbin in zbins:
-        DD_file = '/correlations/co_{}_DD_{}_{}.fits.gz'.format(name,zbin[0],zbin[1])
-        DR_file = '/correlations/co_{}_DR_{}_{}.fits.gz'.format(name,zbin[0],zbin[1])
-        RD_file = '/correlations/co_{}_RD_{}_{}.fits.gz'.format(name,zbin[0],zbin[1])
-        RR_file = '/correlations/co_{}_RR_{}_{}.fits.gz'.format(name,zbin[0],zbin[1])
+        DD_file = dir + '/correlations/co_{}_DD_{}_{}.fits.gz'.format(name,zbin[0],zbin[1])
+        DR_file = dir + '/correlations/co_{}_DR_{}_{}.fits.gz'.format(name,zbin[0],zbin[1])
+        RD_file = dir + '/correlations/co_{}_RD_{}_{}.fits.gz'.format(name,zbin[0],zbin[1])
+        RR_file = dir + '/correlations/co_{}_RR_{}_{}.fits.gz'.format(name,zbin[0],zbin[1])
         if args.export_individual_zbins:
             out_file = dir + '/correlations/co_exp_{}_{}_{}.fits.gz'.format(name,zbin[0],zbin[1])
             command = 'picca_export_co.py --DD-file {} --DR-file {} --RD-file {} --RR-file {} --out {}'.format(DD_file,DR_file,RD_file,RR_file,out_file)
@@ -140,21 +140,29 @@ def stack_coadd_export_cf(name,corr_dir,vers,zbins):
     in_dirs = []
     for ver in vers:
         in_dir = corr_dir + '/' + ver + '/measurements/' + name + '/'
-        dirs += [dir]
-    out_dir = corr_dir + '/stack/' + '/measurements/' + name + '/'
+        in_dirs += [in_dir]
+
+    s_dir = corr_dir + '/stack/'
+    submit_utils.check_dir(s_dir)    
+    sm_dir = s_dir + '/measurements/'
+    submit_utils.check_dir(sm_dir)   
+    smt_dir = sm_dir + name + '/'
+    submit_utils.check_dir(smt_dir)  
+    smtc_dir = smt_dir + '/correlations/'
+    submit_utils.check_dir(smtc_dir)
 
     in_files = ''
     for zbin in zbins:
         zbin_in_files = ''
-        for dir in dirs:
-            in_file = dir + '/correlations/cf_{}_{}_{}.fits.gz'.format(name,zbin[0],zbin[1])
+        for in_dir in in_dirs:
+            in_file = in_dir + '/correlations/cf_{}_{}_{}.fits.gz'.format(name,zbin[0],zbin[1])
             in_files += in_file + ' '
             zbin_in_files += in_file + ' '
         if args.export_individual_zbins:
-            out_file = out_dir + '/correlations/cf_exp_{}_{}_{}.fits.gz'.format(name,zbin[0],zbin[1])
+            out_file = smtc_dir + '/cf_exp_{}_{}_{}.fits.gz'.format(name,zbin[0],zbin[1])
             command = 'picca_export_coadd_zint_co.py --data {} --out {} --no-dmat'.format(zbin_in_files,out_file)
             retcode = call(command,shell=True)
-    out_file = dir + '/correlations/cf_exp_{}.fits.gz'.format(name)
+    out_file = smtc_dir + '/cf_exp_{}.fits.gz'.format(name)
     command='picca_export_coadd_zint.py --data {} --out {} --no-dmat'.format(in_files,out_file)
     retcode = call(command,shell=True)
 
@@ -165,26 +173,34 @@ def stack_coadd_export_xcf(name,corr_dir,vers,zbins):
     in_dirs = []
     for ver in vers:
         in_dir = corr_dir + '/' + ver + '/measurements/' + name + '/'
-        dirs += [dir]
-    out_dir = corr_dir + '/stack/' + '/measurements/' + name + '/'
+        in_dirs += [in_dir]
+
+    s_dir = corr_dir + '/stack/'
+    submit_utils.check_dir(s_dir)    
+    sm_dir = s_dir + '/measurements/'
+    submit_utils.check_dir(sm_dir)   
+    smt_dir = sm_dir + name + '/'
+    submit_utils.check_dir(smt_dir)  
+    smtc_dir = smt_dir + '/correlations/'
+    submit_utils.check_dir(smtc_dir)
 
     D_files = ''
     R_files = ''
     for zbin in zbins:
         zbin_D_files = ''
         zbin_R_files = ''
-        for dir in dirs:
-            D_file = dir + '/correlations/xcf_{}_D_{}_{}.fits.gz'.format(name,zbin[0],zbin[1])
-            R_file = dir + '/correlations/xcf_{}_R_{}_{}.fits.gz'.format(name,zbin[0],zbin[1])
+        for in_dir in in_dirs:
+            D_file = in_dir + '/correlations/xcf_{}_D_{}_{}.fits.gz'.format(name,zbin[0],zbin[1])
+            R_file = in_dir + '/correlations/xcf_{}_R_{}_{}.fits.gz'.format(name,zbin[0],zbin[1])
             D_files += D_file + ' '
             R_files += R_file + ' '
             zbin_D_files += D_file + ' '
             zbin_R_files += R_file + ' '
         if args.export_individual_zbins:
-            out_file = out_dir + '/correlations/xcf_exp_{}_{}_{}.fits.gz'.format(name,zbin[0],zbin[1])
+            out_file = smtc_dir + '/xcf_exp_{}_{}_{}.fits.gz'.format(name,zbin[0],zbin[1])
             command = 'picca_export_coadd_zint_co.py --data {} --out {} --no-dmat --remove-shuffled-correlation {}'.format(zbin_D_files,out_file,zbin_R_files)
             retcode = call(command,shell=True)
-    out_file = dir + '/correlations/xcf_exp_{}.fits.gz'.format(name)
+    out_file = smtc_dir + '/xcf_exp_{}.fits.gz'.format(name)
     command='picca_export_coadd_zint.py --data {} --out {} --no-dmat --remove-shuffled-correlation {}'.format(D_files,out_file,R_files)
     retcode = call(command,shell=True)
 
@@ -195,8 +211,16 @@ def stack_coadd_export_co(name,corr_dir,vers,zbins):
     in_dirs = []
     for ver in vers:
         in_dir = corr_dir + '/' + ver + '/measurements/' + name + '/'
-        dirs += [dir]
-    out_dir = corr_dir + '/stack/' + '/measurements/' + name + '/'
+        in_dirs += [in_dir]
+
+    s_dir = corr_dir + '/stack/'
+    submit_utils.check_dir(s_dir)
+    sm_dir = s_dir + '/measurements/'
+    submit_utils.check_dir(sm_dir)    
+    smt_dir = sm_dir + name + '/'
+    submit_utils.check_dir(smt_dir)    
+    smtc_dir = smt_dir + '/correlations/'
+    submit_utils.check_dir(smtc_dir)    
 
     DD_files = ''
     DR_files = ''
@@ -207,11 +231,11 @@ def stack_coadd_export_co(name,corr_dir,vers,zbins):
         zbin_DR_files = ''
         zbin_RD_files = ''
         zbin_RR_files = ''
-        for dir in dirs:
-            DD_file = dir + '/correlations/co_{}_DD_{}_{}.fits.gz'.format(name,zbin[0],zbin[1])
-            DR_file = dir + '/correlations/co_{}_DR_{}_{}.fits.gz'.format(name,zbin[0],zbin[1])
-            RD_file = dir + '/correlations/co_{}_RD_{}_{}.fits.gz'.format(name,zbin[0],zbin[1])
-            RR_file = dir + '/correlations/co_{}_RR_{}_{}.fits.gz'.format(name,zbin[0],zbin[1])
+        for in_dir in in_dirs:
+            DD_file = in_dir + '/correlations/co_{}_DD_{}_{}.fits.gz'.format(name,zbin[0],zbin[1])
+            DR_file = in_dir + '/correlations/co_{}_DR_{}_{}.fits.gz'.format(name,zbin[0],zbin[1])
+            RD_file = in_dir + '/correlations/co_{}_RD_{}_{}.fits.gz'.format(name,zbin[0],zbin[1])
+            RR_file = in_dir + '/correlations/co_{}_RR_{}_{}.fits.gz'.format(name,zbin[0],zbin[1])
             DD_files += DD_file + ' '
             DR_files += DR_file + ' '
             RD_files += RD_file + ' '
@@ -221,10 +245,10 @@ def stack_coadd_export_co(name,corr_dir,vers,zbins):
             zbin_RD_files += RD_file + ' '
             zbin_RR_files += RR_file + ' '
         if args.export_individual_zbins:
-            out_file = out_dir + '/correlations/co_exp_{}_{}_{}.fits.gz'.format(name,zbin[0],zbin[1])
+            out_file = smtc_dir + '/co_exp_{}_{}_{}.fits.gz'.format(name,zbin[0],zbin[1])
             command = 'picca_export_coadd_zint_co.py --DD-files {} --DR-files {} --RD-files {} --RR-files {} --out {}'.format(zbin_DD_files,zbin_DR_files,zbin_RD_files,zbin_RR_files,out_file)
             retcode = call(command,shell=True)
-    out_file = dir + '/correlations/co_exp_{}.fits.gz'.format(name)
+    out_file = smtc_dir + '/co_exp_{}.fits.gz'.format(name)
     command='picca_export_coadd_zint_co.py --DD-files {} --DR-files {} --RD-files {} --RR-files {} --out {}'.format(DD_files,DR_files,RD_files,RR_files,out_file)
     retcode = call(command,shell=True)
 
@@ -347,9 +371,9 @@ def export_qso_dla_cross(meas_dir,zbins):
 ################################################################################
 #Merge the z bins together.
 
-cf_zbins = [(0.0,2.2),(2.2,2.6),(2.6,3.0),(3.0,10.0)]
+cf_zbins = [(0.0,2.0),(2.0,2.2),(2.2,2.4),(2.4,2.6),(2.6,2.8),(2.8,3.0),(3.0,3.4),(3.4,10.0)]
 xcf_zbins = cf_zbins
-co_zbins = [(0.0,10.0)]
+co_zbins = xcf_zbins
 
 vers = []
 for v_rea in args.v_realisations:
@@ -382,7 +406,6 @@ for v_rea in args.v_realisations:
         coadd_export_xcf('lya_qso_cross',acvm_dir,xcf_zbins)
 
     if args.export_lya_dla_cross:
-        print('coadd/exporting lya dla cross')
         coadd_export_xcf('lya_dla_cross',acvm_dir,xcf_zbins)
 
     if args.export_qso_dla_cross:

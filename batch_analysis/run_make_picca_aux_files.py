@@ -1775,7 +1775,7 @@ for ver in vers:
                      'lya_aa_auto':     acvm_dir + '/lya_aa_auto/correlations/cf_exp_lya_aa_auto.fits.gz',
                      'lya_qso_cross':   acvm_dir + '/lya_qso_cross/correlations/xcf_exp_lya_qso_cross.fits.gz',
                      'lya_dla_cross':   acvm_dir + '/lya_dla_cross/correlations/xcf_exp_lya_dla_cross.fits.gz',
-                     'qso_dla_cross':   acvm_dir + '/qso_dla_cross/correlations/co_exp_lya_dla_cross.fits.gz',
+                     #'qso_dla_cross':   acvm_dir + '/qso_dla_cross/correlations/co_exp_lya_dla_cross.fits.gz',
                      }
 
     #For each correlation, make the correlation information file

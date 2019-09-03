@@ -432,6 +432,7 @@ def get_fit_from_result(location,result_name,corr_type):
             fit[attr] = par_dict
         else:
             fit[attr] = p
+        print(attr,par_dict)
 
     print('chi2: {:4.1f}/({:d}-{:d})'.format(fit['fval'],fit['ndata'],fit['npar']))
 
@@ -531,12 +532,15 @@ def plot_wedges(fig,ax,plot_info):
 
     for i,mubin in enumerate(plot_info['mu_bins']):
         #Plot the data.
-        plot_label = r'${}<\mu<{}$'.format(mubin[0],mubin[1])
         colour = plot_info['mu_bin_colours'][i]
         try:
             abs_mu = plot_info['abs_mu']
         except:
             abs_mu = False
+        if abs_mu:
+            plot_label = r'${}<|\mu|<{}$'.format(mubin[0],mubin[1])
+        else:
+            plot_label = r'${}<\mu<{}$'.format(mubin[0],mubin[1])
         ar,lab = corr_obj.plot_wedge(ax,mubin,plot_label,colour,**plot_info['plot_data'],abs_mu=abs_mu)
         artists += [ar]
         labels += [lab]
