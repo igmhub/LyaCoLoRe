@@ -43,6 +43,9 @@ parser.add_argument('--z-width', type = float, default = 0.2, required=False,
 parser.add_argument('--file-type', type = str, default = 'flux', required=False,
                     help = 'type of file to measure from')
 
+parser.add_argument('--quantity', type = str, default = 'flux', required=False,
+                    help = 'quantity represented in file')
+
 parser.add_argument('--units', type = str, default = 'km/s', required=False,
                     help = 'choose \"km/s\" or \"Mpc/h\"')
 
@@ -113,6 +116,7 @@ N_processes = args.nproc
 z_values = np.array(args.z_values)
 z_width = args.z_width
 file_type = args.file_type
+quantity = args.quantity
 units = args.units
 show_plot = args.show_plot
 save_data = args.save_data
@@ -132,6 +136,7 @@ figsize = (12, 6)
 dpi = 80
 #plt.rc('text', usetex=True)
 plt.rc('font', size=fontsize)
+plt.locator_params(axis='y', nbins=3)
 
 ################################################################################
 
@@ -163,7 +168,7 @@ if args.Pk1D_data is None:
 
     #Get z and R along the skewers.
     m = fits.open(base_dir+'/master.fits')
-    if 'colorecell' in file_type:
+    if 'colorecell' in quantity:
         z = m['COSMO_COL'].data['Z']
         R = m['COSMO_COL'].data['R']
     else:
@@ -172,18 +177,25 @@ if args.Pk1D_data is None:
     m.close()
 
     #Determine if we're looking at the Gaussian skewers.
-    gaussian = ('colorecell' in file_type)
+    gaussian = ('colorecell' in quantity)
 
     dr_hMpc = (R[-1] - R[0])/(R.shape[0] - 1)
 
     #Function to get deltas and ivar from each pixel.
-    def get_pixel_P1D(pixel):
-        dirname = utils.get_dir_name(base_dir,pixel)
-        filename = utils.get_file_name(dirname,'picca-'+file_type,N_side,pixel,compressed=args.compressed_input)
-        h = fits.open(filename)
-        delta_rows = h[0].data.T
-        ivar_rows = h[1].data.T
-        z = 10**(h[2].data)/lya - 1
+    def get_pixel_P1D(pixel,file_type='delta'):
+        if file_type == 'image':
+            dirname = utils.get_dir_name(base_dir,pixel)
+            filename = utils.get_file_name(dirname,'picca-'+quantity,N_side,pixel,compressed=args.compressed_input)
+            h = fits.open(filename)
+            delta_rows = h[0].data.T
+            ivar_rows = h[1].data.T
+            z = 10**(h[2].data)/lya - 1
+            h.close()
+        elif file_type == 'delta':
+            filename = base_dir + '/delta-{}.fits.gz'.format(pixel)
+            h = fits.open(filename)
+            for hdu in h[1:]:
+                delta_rows =
         Pk1D_results = {}
         for z_value in z_values:
             k, Pk, var = Pk1D.get_Pk1D(delta_rows,ivar_rows,dr_hMpc,z,z_value=z_value
@@ -259,7 +271,7 @@ def save_P1D_values(Pk1D_results):
 
     #Combine the HDUs into an HDUlist and save as a new file. Close the HDUlist.
     hdulist = fits.HDUList(hdus)
-    filename = 'Pk1D_data_{}_{}.fits'.format(file_type,N_pixels)
+    filename = 'Pk1D_data_{}_{}.fits'.format(quantity,N_pixels)
     hdulist.writeto(filename,overwrite=overwrite)
     hdulist.close
 
@@ -331,7 +343,7 @@ def plot_P1D_values(Pk1D_results,show_plot=True):
         data_plots[z_value] = d
 
         #If we are plotting flux, add BOSS DR9 fitting function results.
-        if 'flux' in file_type:
+        if 'flux' in quantity:
             model_Pk_kms = tuning.P1D_z_kms_PD2013(z_value,k)
             to_plot_model = model_Pk_kms * (k ** args.k_plot_power)
             plt.plot(k,to_plot_model,c=colour,linestyle='--',zorder=2)
@@ -363,7 +375,7 @@ def plot_P1D_values(Pk1D_results,show_plot=True):
     descriptor_plots['data'] = d
 
     #Add blank elements to describe model/fit/intervals plot types in legend.
-    if 'flux' in file_type:
+    if 'flux' in quantity:
         err, = plt.plot([], [], color='gray', linestyle='--', label=r'BOSS DR9')
         if args.add_model_interval_lines is not None:
             err_i, = plt.plot([], [], color='gray', linestyle=':', label=r'DR9 $\pm$ 10%')
@@ -414,8 +426,8 @@ def plot_P1D_values(Pk1D_results,show_plot=True):
         plt.xlabel(r'$k\ [\mathrm{s\ km}^{-1}]$',fontsize=fontsize)
     elif units == 'Mpc/h':
         plt.xlabel(r'$k\ [h\ \mathrm{Mpc}^{-1}]$',fontsize=fontsize)
-    filename = 'Pk1D_{}_{}.pdf'.format(file_type,N_pixels)
-    plt.savefig('Pk1D_k{}_vs_k_{}.pdf'.format(int(args.k_plot_power),file_type))
+    filename = 'Pk1D_{}_{}.pdf'.format(quantity,N_pixels)
+    plt.savefig('Pk1D_k{}_vs_k_{}.pdf'.format(int(args.k_plot_power),quantity))
     if show_plot:
         plt.show()
     return
