@@ -212,8 +212,8 @@ def make_lya_auto_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix='free
                   'pk-gauss-smoothing': 'pk_gauss_smoothing',
                   }
 
-    parameters_dict = {'ap':                            '1.     0.1     0.5     1.5     {}'.format(afix),
-                       'at':                            '1.     0.1     0.5     1.5     {}'.format(afix),
+    parameters_dict = {'ap':                            '1.     0.1     0.8     1.2     {}'.format(afix),
+                       'at':                            '1.     0.1     0.8     1.2     {}'.format(afix),
                        'bao_amp':                       '1.     0.      None    None    fixed',
                        'sigmaNL_per':                   '0.     0.      None    None    fixed',
                        'sigmaNL_par':                   '0.     0.      None    None    fixed',
@@ -283,8 +283,8 @@ def make_qso_auto_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix='free
                   'pk-gauss-smoothing':     'pk_gauss_smoothing',
                   }
 
-    parameters_dict = {'ap':                        '1.     0.1     0.5     1.5     {}'.format(afix),
-                       'at':                        '1.     0.1     0.5     1.5     {}'.format(afix),
+    parameters_dict = {'ap':                        '1.     0.1     0.8     1.2     {}'.format(afix),
+                       'at':                        '1.     0.1     0.8     1.2     {}'.format(afix),
                        'bao_amp':                   '1.     0.      None    None    fixed',
                        'sigmaNL_per':               '0.     0.      None    None    fixed',
                        'sigmaNL_par':               '0.     0.      None    None    fixed',
@@ -356,8 +356,8 @@ def make_dla_auto_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix='free
                   'pk-gauss-smoothing':     'pk_gauss_smoothing',
                   }
 
-    parameters_dict = {'ap':                        '1.     0.1     0.5     1.5     {}'.format(afix),
-                       'at':                        '1.     0.1     0.5     1.5     {}'.format(afix),
+    parameters_dict = {'ap':                        '1.     0.1     0.8     1.2     {}'.format(afix),
+                       'at':                        '1.     0.1     0.8     1.2     {}'.format(afix),
                        'bao_amp':                   '1.     0.      None    None    fixed',
                        'sigmaNL_per':               '0.     0.      None    None    fixed',
                        'sigmaNL_par':               '0.     0.      None    None    fixed',
@@ -428,8 +428,8 @@ def make_lya_aa_auto_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix='f
                   'pk-gauss-smoothing': 'pk_gauss_smoothing',
                   }
 
-    parameters_dict = {'ap':                            '1.     0.1     0.5     1.5     {}'.format(afix),
-                       'at':                            '1.     0.1     0.5     1.5     {}'.format(afix),
+    parameters_dict = {'ap':                            '1.     0.1     0.8     1.2     {}'.format(afix),
+                       'at':                            '1.     0.1     0.8     1.2     {}'.format(afix),
                        'bao_amp':                       '1.     0.      None    None    fixed',
                        'sigmaNL_per':                   '0.     0.      None    None    fixed',
                        'sigmaNL_par':                   '0.     0.      None    None    fixed',
@@ -510,8 +510,8 @@ def make_lya_qso_cross_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix=
                   'pk-gauss-smoothing':     'pk_gauss_smoothing',
                   }
 
-    parameters_dict = {'ap':                        '1.     0.1     0.5     1.5     {}'.format(afix),
-                       'at':                        '1.     0.1     0.5     1.5     {}'.format(afix),
+    parameters_dict = {'ap':                        '1.     0.1     0.8     1.2     {}'.format(afix),
+                       'at':                        '1.     0.1     0.8     1.2     {}'.format(afix),
                        'bao_amp':                   '1.     0.      None    None    fixed',
                        'sigmaNL_per':               '0.     0.      None    None    fixed',
                        'sigmaNL_par':               '0.     0.      None    None    fixed',
@@ -588,8 +588,8 @@ def make_lya_dla_cross_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix=
                   'pk-gauss-smoothing':     'pk_gauss_smoothing',
                   }
 
-    parameters_dict = {'ap':                        '1.     0.1     0.5     1.5     {}'.format(afix),
-                       'at':                        '1.     0.1     0.5     1.5     {}'.format(afix),
+    parameters_dict = {'ap':                        '1.     0.1     0.8     1.2     {}'.format(afix),
+                       'at':                        '1.     0.1     0.8     1.2     {}'.format(afix),
                        'bao_amp':                   '1.     0.      None    None    fixed',
                        'sigmaNL_per':               '0.     0.      None    None    fixed',
                        'sigmaNL_par':               '0.     0.      None    None    fixed',
@@ -665,8 +665,8 @@ def make_qso_dla_cross_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix=
                   'pk-gauss-smoothing':     'pk_gauss_smoothing',
                   }
 
-    parameters_dict = {'ap':                        '1.     0.1     0.5     1.5     {}'.format(afix),
-                       'at':                        '1.     0.1     0.5     1.5     {}'.format(afix),
+    parameters_dict = {'ap':                        '1.     0.1     0.8     1.2     {}'.format(afix),
+                       'at':                        '1.     0.1     0.8     1.2     {}'.format(afix),
                        'bao_amp':                   '1.     0.      None    None    fixed',
                        'sigmaNL_per':               '0.     0.      None    None    fixed',
                        'sigmaNL_par':               '0.     0.      None    None    fixed',
@@ -742,8 +742,8 @@ def make_lya_auto__lya_qso_cross_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=
                            'pk-gauss-smoothing': 'pk_gauss_smoothing',
                            }
 
-    lya_auto_parameters_dict = {'ap':                            '1.     0.1     0.5     1.5     {}'.format(afix),
-                                'at':                            '1.     0.1     0.5     1.5     {}'.format(afix),
+    lya_auto_parameters_dict = {'ap':                            '1.     0.1     0.8     1.2     {}'.format(afix),
+                                'at':                            '1.     0.1     0.8     1.2     {}'.format(afix),
                                 'bao_amp':                       '1.     0.      None    None    fixed',
                                 'sigmaNL_per':                   '0.     0.      None    None    fixed',
                                 'sigmaNL_par':                   '0.     0.      None    None    fixed',
@@ -859,8 +859,8 @@ def make_lya_auto__lya_qso_cross__qso_auto_fit_files(fits_dir,exp_filepaths,rmin
                            'pk-gauss-smoothing': 'pk_gauss_smoothing',
                            }
 
-    lya_auto_parameters_dict = {'ap':                            '1.     0.1     0.5     1.5     {}'.format(afix),
-                                'at':                            '1.     0.1     0.5     1.5     {}'.format(afix),
+    lya_auto_parameters_dict = {'ap':                            '1.     0.1     0.8     1.2     {}'.format(afix),
+                                'at':                            '1.     0.1     0.8     1.2     {}'.format(afix),
                                 'bao_amp':                       '1.     0.      None    None    fixed',
                                 'sigmaNL_per':                   '0.     0.      None    None    fixed',
                                 'sigmaNL_par':                   '0.     0.      None    None    fixed',
@@ -1017,8 +1017,8 @@ def make_lya_auto__lya_dla_cross_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=
                            'pk-gauss-smoothing': 'pk_gauss_smoothing',
                            }
 
-    lya_auto_parameters_dict = {'ap':                            '1.     0.1     0.5     1.5     {}'.format(afix),
-                                'at':                            '1.     0.1     0.5     1.5     {}'.format(afix),
+    lya_auto_parameters_dict = {'ap':                            '1.     0.1     0.8     1.2     {}'.format(afix),
+                                'at':                            '1.     0.1     0.8     1.2     {}'.format(afix),
                                 'bao_amp':                       '1.     0.      None    None    fixed',
                                 'sigmaNL_per':                   '0.     0.      None    None    fixed',
                                 'sigmaNL_par':                   '0.     0.      None    None    fixed',
@@ -1134,8 +1134,8 @@ def make_lya_auto__lya_dla_cross__dla_auto_fit_files(fits_dir,exp_filepaths,rmin
                            'pk-gauss-smoothing': 'pk_gauss_smoothing',
                            }
 
-    lya_auto_parameters_dict = {'ap':                            '1.     0.1     0.5     1.5     {}'.format(afix),
-                                'at':                            '1.     0.1     0.5     1.5     {}'.format(afix),
+    lya_auto_parameters_dict = {'ap':                            '1.     0.1     0.8     1.2     {}'.format(afix),
+                                'at':                            '1.     0.1     0.8     1.2     {}'.format(afix),
                                 'bao_amp':                       '1.     0.      None    None    fixed',
                                 'sigmaNL_per':                   '0.     0.      None    None    fixed',
                                 'sigmaNL_par':                   '0.     0.      None    None    fixed',
@@ -1293,8 +1293,8 @@ def make_qso_auto__qso_dla_cross__dla_auto_fit_files(fits_dir,exp_filepaths,rmin
                            'pk-gauss-smoothing':     'pk_gauss_smoothing',
                            }
 
-    qso_auto_parameters_dict = {'ap':                       '1.     0.1     0.5     1.5     {}'.format(afix),
-                                'at':                       '1.     0.1     0.5     1.5     {}'.format(afix),
+    qso_auto_parameters_dict = {'ap':                       '1.     0.1     0.8     1.2     {}'.format(afix),
+                                'at':                       '1.     0.1     0.8     1.2     {}'.format(afix),
                                 'bao_amp':                  '1.     0.      None    None    fixed',
                                 'sigmaNL_per':              '0.     0.      None    None    fixed',
                                 'sigmaNL_par':              '0.     0.      None    None    fixed',
@@ -1453,8 +1453,8 @@ def make_all_correlations_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,af
                            'pk-gauss-smoothing': 'pk_gauss_smoothing',
                            }
 
-    lya_auto_parameters_dict = {'ap':                            '1.     0.1     0.5     1.5     {}'.format(afix),
-                                'at':                            '1.     0.1     0.5     1.5     {}'.format(afix),
+    lya_auto_parameters_dict = {'ap':                            '1.     0.1     0.8     1.2     {}'.format(afix),
+                                'at':                            '1.     0.1     0.8     1.2     {}'.format(afix),
                                 'bao_amp':                       '1.     0.      None    None    fixed',
                                 'sigmaNL_per':                   '0.     0.      None    None    fixed',
                                 'sigmaNL_par':                   '0.     0.      None    None    fixed',
