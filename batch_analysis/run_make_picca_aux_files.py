@@ -605,7 +605,7 @@ def make_lya_dla_cross_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix=
                        'per binsize LYA(LYA)xDLA':  '4      0.      None    None    fixed',
                        'par_sigma_smooth':          '1.42   0.4     None    None    fixed',
                        'per_sigma_smooth':          '3.78   0.4     None    None    fixed',
-                       'drp_DLA':                   '0.     0.1     None    None    free',
+                       'drp_DLA':                   '0.     0.1     None    None    fixed',
                        'sigma_velo_lorentz_DLA':    '2.     0.1     None    None    free',
                        }
 
@@ -682,9 +682,9 @@ def make_qso_dla_cross_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix=
                        'per binsize QSOxDLA':       '4      0.      None    None    fixed',
                        'par_sigma_smooth':          '1.42   0.4     None    None    fixed',
                        'per_sigma_smooth':          '3.78   0.4     None    None    fixed',
-                       'drp_QSO':                   '0.     0.1     None    None    free', # TODO: can we leave both drps free?
+                       'drp_QSO':                   '0.     0.1     None    None    fixed', # TODO: can we leave both drps free?
                        'sigma_velo_lorentz_QSO':    '2.     0.1     None    None    free',
-                       'drp_DLA':                   '0.     0.1     None    None    free', # TODO: can we leave both drps free?
+                       'drp_DLA':                   '0.     0.1     None    None    fixed', # TODO: can we leave both drps free?
                        'sigma_velo_lorentz_DLA':    '2.     0.1     None    None    free',
                        }
 
@@ -801,7 +801,7 @@ def make_lya_auto__lya_qso_cross_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=
                                      'alpha_QSO':                 '1.44   0.      None    None    fixed',
                                      'par binsize LYA(LYA)xQSO':  '4      0.      None    None    fixed',
                                      'per binsize LYA(LYA)xQSO':  '4      0.      None    None    fixed',
-                                     'drp_QSO':                   '0.     0.1     None    None    free',
+                                     'drp_QSO':                   '0.     0.1     None    None    fixed',
                                      'sigma_velo_lorentz_QSO':    '2.     0.1     None    None    free',
                                      }
 
@@ -918,7 +918,7 @@ def make_lya_auto__lya_qso_cross__qso_auto_fit_files(fits_dir,exp_filepaths,rmin
                                      'alpha_QSO':                 '1.44   0.      None    None    fixed',
                                      'par binsize LYA(LYA)xQSO':  '4      0.      None    None    fixed',
                                      'per binsize LYA(LYA)xQSO':  '4      0.      None    None    fixed',
-                                     'drp_QSO':                   '0.     0.1     None    None    free',
+                                     'drp_QSO':                   '0.     0.1     None    None    fixed',
                                      'sigma_velo_lorentz_QSO':    '2.     0.1     None    None    free',
                                      }
 
@@ -1076,7 +1076,7 @@ def make_lya_auto__lya_dla_cross_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=
                                      'alpha_DLA':                 '0.0    0.      None    None    fixed',
                                      'par binsize LYA(LYA)xDLA':  '4      0.      None    None    fixed',
                                      'per binsize LYA(LYA)xDLA':  '4      0.      None    None    fixed',
-                                     'drp_DLA':                   '0.     0.1     None    None    free',
+                                     'drp_DLA':                   '0.     0.1     None    None    fixed',
                                      'sigma_velo_lorentz_DLA':    '2.     0.1     None    None    free',
                                      }
 
@@ -1193,7 +1193,7 @@ def make_lya_auto__lya_dla_cross__dla_auto_fit_files(fits_dir,exp_filepaths,rmin
                                      'alpha_DLA':                 '0.0    0.      None    None    fixed',
                                      'par binsize LYA(LYA)xDLA':  '4      0.      None    None    fixed',
                                      'per binsize LYA(LYA)xDLA':  '4      0.      None    None    fixed',
-                                     'drp_DLA':                   '0.     0.1     None    None    free',
+                                     'drp_DLA':                   '0.     0.1     None    None    fixed',
                                      'sigma_velo_lorentz_DLA':    '2.     0.1     None    None    free',
                                      }
 
@@ -1307,7 +1307,7 @@ def make_qso_auto__qso_dla_cross__dla_auto_fit_files(fits_dir,exp_filepaths,rmin
                                 'per binsize QSOxQSO':      '4      0.      None    None    fixed',
                                 'par_sigma_smooth':         '1.42   0.4     None    None    fixed',
                                 'per_sigma_smooth':         '3.78   0.4     None    None    fixed',
-                                'drp_QSO':                  '0.     0.1     None    None    free',
+                                'drp_QSO':                  '0.     0.1     None    None    fixed',
                                 'sigma_velo_lorentz_QSO':   '2.     0.1     None    None    free',
                                 }
 
@@ -1354,7 +1354,7 @@ def make_qso_auto__qso_dla_cross__dla_auto_fit_files(fits_dir,exp_filepaths,rmin
                                      'alpha_DLA':                 '0.0    0.      None    None    fixed',
                                      'par binsize QSOxDLA':       '4      0.      None    None    fixed',
                                      'per binsize QSOxDLA':       '4      0.      None    None    fixed',
-                                     'drp_DLA':                   '0.     0.1     None    None    free',
+                                     'drp_DLA':                   '0.     0.1     None    None    fixed',
                                      'sigma_velo_lorentz_DLA':    '2.     0.1     None    None    free',
                                      }
 
@@ -1512,7 +1512,7 @@ def make_all_correlations_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,af
                                      'alpha_QSO':                 '1.44   0.      None    None    fixed',
                                      'par binsize LYA(LYA)xQSO':  '4      0.      None    None    fixed',
                                      'per binsize LYA(LYA)xQSO':  '4      0.      None    None    fixed',
-                                     'drp_QSO':                   '0.     0.1     None    None    free',
+                                     'drp_QSO':                   '0.     0.1     None    None    fixed',
                                      'sigma_velo_lorentz_QSO':    '2.     0.1     None    None    free',
                                      }
 
@@ -1600,7 +1600,7 @@ def make_all_correlations_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,af
                                      'alpha_DLA':                 '0.0    0.      None    None    fixed',
                                      'par binsize QSOxDLA':       '4      0.      None    None    fixed',
                                      'per binsize QSOxDLA':       '4      0.      None    None    fixed',
-                                     'drp_DLA':                   '0.     0.1     None    None    free',
+                                     'drp_DLA':                   '0.     0.1     None    None    fixed',
                                      'sigma_velo_lorentz_DLA':    '2.     0.1     None    None    free',
                                      }
 
