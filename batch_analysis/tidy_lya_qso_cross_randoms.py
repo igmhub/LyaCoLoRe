@@ -1,7 +1,7 @@
 import numpy as np
 import scipy as sp
 import fitsio
-from subprocess import call
+import subprocess
 
 basedir = "/project/projectdirs/desi/users/jfarr/LyaCoLoRe_paper/"
 v_maj = 9
@@ -14,6 +14,7 @@ def coadd_correlations(fi,fout=None):
     # Define variables of the correct shape to store correlation information.
     h = fitsio.FITS(fi[0])
     head = h[1].read_header()
+    nobj = 0
     rp = h[1]['RP'][:]*0
     rt = h[1]['RT'][:]*0
     nb = h[1]['NB'][:]*0
@@ -30,6 +31,7 @@ def coadd_correlations(fi,fout=None):
 
         # Add information about the weights and correlation bins.
         h = fitsio.FITS(f)
+        #nobj += h[1].read_header()['NOBJ']
         we_aux = h[2]['WE'][:]
         wet_aux = we_aux.sum(axis=0)
         rp += h[1]['RP'][:]*wet_aux
@@ -54,9 +56,13 @@ def coadd_correlations(fi,fout=None):
     # Normalise all variables by the total weights.
     w = we>0
     da[w] /= we[w]
-    rp /= wet
-    rt /= wet
-    z /= wet
+    wt = wet>0
+    rp[wt] /= wet[wt]
+    rt[wt] /= wet[wt]
+    z[wt] /= wet[wt]
+
+    # Update header's nobj:
+    #head['NOBJ'] = nobj
 
     if fout is not None:
 
@@ -81,6 +87,7 @@ for r in v_realisations:
         print(' -> looking at zbin {}'.format(zbin))
         #Move the incorrectly labelled correlation.
         command = 'mv {}/analysis/correlation_functions/v9.0.{}/measurements/lya_qso_cross/correlations/xcf_lya_qso_cross_R_{}_{}.fits.gz {}/analysis/correlation_functions/v9.0.{}/measurements/lya_qso_cross/correlations/xcf_lya_qso_cross_R_{}_{}_1.fits.gz'.format(basedir,r,zbin[0],zbin[1],basedir,r,zbin[0],zbin[1])
+        subprocess.call(command,shell=True)
 
         #Combine the two correlations.
         fi = []
