@@ -74,7 +74,7 @@ class picca_correlation:
         return
 
     @classmethod
-    def make_correlation_object(cls,location,file_name,res_name=None,res_location=None):
+    def make_correlation_object(cls,location,file_name,res_name=None,res_location=None,corr_name='LYA(LYA)xLYA(LYA)'):
 
         if res_location is None:
             res_location = location
@@ -92,7 +92,7 @@ class picca_correlation:
 
         if res_name:
             #get fit paramters
-            fit_parameters = get_fit_from_result(res_location,res_name,parameters['correl_type'])
+            fit_parameters = get_fit_from_result(res_location,res_name,corr_name,parameters['corr_type'])
         else:
             fit_parameters = None
 
@@ -418,7 +418,7 @@ class picca_correlation:
         return
 
 
-def get_fit_from_result(location,result_name,corr_type):
+def get_fit_from_result(location,result_name,corr_name,corr_type):
 
     result_filepath = location + result_name
     ff = h5py.File(result_filepath,'r')
@@ -436,11 +436,15 @@ def get_fit_from_result(location,result_name,corr_type):
 
     print('chi2: {:4.1f}/({:d}-{:d})'.format(fit['fval'],fit['ndata'],fit['npar']))
 
-    # TODO: This won't work if it's not the lya auto correlation
-    name = list(ff.keys())[0]
-    if name == 'best fit':
-        name = list(ff.keys())[1]
-    fit['xi_grid'] = ff[name+'/fit'][...]
+    if corr_name:
+        fit['xi_grid'] = ff['{}/fit'.format(corr_name)][...]
+    else:
+        if corr_type == 'cf':
+            fit['xi_grid'] = ff['LYA(LYA)xLYA(LYA)/fit'][...]
+        elif corr_type == 'xcf':
+            fit['xi_grid'] = ff['LYA(LYA)xQSO/fit'][...]
+        elif corr_type == 'co':
+            fit['xi_grid'] = ff['QSOxQSO/fit'][...]
 
     ff.close()
 
@@ -498,9 +502,14 @@ def get_correlation_object(plot_info):
             res_location = plot_info['result_location']
         except KeyError:
             res_location = location
+        try:
+            corr_name = plot_info['corr_name']
+        except KeyError:
+            corr_name = None
     else:
         res_name = None
-    corr_object = picca_correlation.make_correlation_object(location,filename,res_name=res_name,res_location=res_location)
+
+    corr_object = picca_correlation.make_correlation_object(location,filename,res_name=res_name,res_location=res_location,corr_name=corr_name)
 
     return corr_object
 
