@@ -7,6 +7,7 @@ import astropy.table
 import os
 import matplotlib.pyplot as plt
 from astropy.cosmology import Planck15
+import time
 
 from lyacolore import utils
 
@@ -87,6 +88,9 @@ def dndz(z, NHI_min=17.2, NHI_max=22.5):
 def get_NHI(z, NHI_min=17.2, NHI_max=22.5, NHI_nsamp=100):
     """ Get random column densities for a given z
     """
+    times = []
+    t = time.time()
+
     # number of DLAs we want to generate
     Nz = len(z)
 
@@ -99,6 +103,9 @@ def get_NHI(z, NHI_min=17.2, NHI_max=22.5, NHI_nsamp=100):
     NHI_edges = 10**log_NHI_edges
     NHI_widths = NHI_edges[1:] - NHI_edges[:-1]
 
+    times += [time.time()-t]
+    t = time.time()
+
     probs = np.zeros([Nz,NHI_nsamp])
 
     if use_pyigm:
@@ -106,9 +113,19 @@ def get_NHI(z, NHI_min=17.2, NHI_max=22.5, NHI_nsamp=100):
         #Evaluate f at the points of the NHI grid and each redshift.
         f = 10**fN_default.evaluate(log_NHI,z)
 
+        times += [time.time()-t]
+        t = time.time()
+        
         #Calculate the probaility of each NHI bin.
         aux = f*np.outer(NHI_widths,np.ones(z.shape))
+        
+        times += [time.time()-t]
+        t = time.time()
+    
         probs = (aux/np.sum(aux,axis=0)).T
+
+        times += [time.time()-t]
+        t = time.time()
 
     else:
 
@@ -117,16 +134,31 @@ def get_NHI(z, NHI_min=17.2, NHI_max=22.5, NHI_nsamp=100):
         probs_high = dnHD_dz_cumlgN(z,nn[1:]).T
         probs[:,1:] = probs_high-probs_low
 
+    times += [time.time()-t]
+    t = time.time()
+
     #Calculate the cumulative distribution
+    """
     cumulative = np.zeros(probs.shape)
     for i in range(NHI_nsamp):
         cumulative[:,i] = np.sum(probs[:,:i],axis=1)
+    """
+    cumulative = np.cumsum(probs,axis=1)
 
     #Add the top and bottom edges on to improve interpolation.
+    """
     log_NHI_interp = np.concatenate([[log_NHI_edges[0]],log_NHI,[log_NHI_edges[1]]])
     end_0 = np.zeros((z.shape[0],1))
     end_1 = np.ones((z.shape[0],1))
     cumulative_interp = np.concatenate([end_0,cumulative,end_1],axis=1)
+    """
+
+    log_NHI_interp = log_NHI_edges
+    end_0 = np.zeros((z.shape[0],1))
+    cumulative_interp = np.concatenate([end_0,cumulative],axis=1)
+
+    times += [time.time()-t]
+    t = time.time()
 
     #Assign NHI values by choosing a random number in [0,1] and interpolating
     #the cumulative distribution to get a value of NHI.
@@ -134,6 +166,13 @@ def get_NHI(z, NHI_min=17.2, NHI_max=22.5, NHI_nsamp=100):
     for i in range(Nz):
         p = np.random.uniform()
         log_NHI_values[i] = np.interp(p,cumulative_interp[i,:],log_NHI_interp)
+
+    times += [time.time()-t]
+    t = time.time()
+
+    times = np.array(times)
+    times /= np.sum(times)
+    #print(times.round(4))
 
     return log_NHI_values
 
