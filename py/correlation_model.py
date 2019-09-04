@@ -123,13 +123,13 @@ def get_C4(B1,B2):
     return (8/35)*B1*B2
 
 def get_growth_factor_scaling(z,quantity,location=None):
-
+    
     if location == None:
         location = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v9/v9.0.0_full/'
     if quantity in ['G']:
         D_at_z0 = 1
         D_at_zval = 1
-    elif quantity in ['D','F','T','q','d']:
+    elif quantity in ['D','F','T','q','d','LYA','QSO','DLA']:
         h = fits.open(location+'/master.fits')
         D = h['COSMO_COL'].data['D']
         z_D = h['COSMO_COL'].data['Z']

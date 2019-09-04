@@ -70,7 +70,7 @@ class picca_correlation:
         else:
             self.zeff = utils.get_zeff(self.z,self.rp,self.rt,self.nb,rmin=80.,rmax=120.)
 
-        print(self.zeff)
+        print('zeff:',self.zeff)
         return
 
     @classmethod
@@ -92,7 +92,7 @@ class picca_correlation:
 
         if res_name:
             #get fit paramters
-            fit_parameters = get_fit_from_result(res_location,res_name,corr_name,parameters['corr_type'])
+            fit_parameters = get_fit_from_result(res_location,res_name,corr_name,parameters['correl_type'])
         else:
             fit_parameters = None
 
@@ -432,7 +432,7 @@ def get_fit_from_result(location,result_name,corr_name,corr_type):
             fit[attr] = par_dict
         else:
             fit[attr] = p
-        print(attr,par_dict)
+        #print(attr,par_dict)
 
     print('chi2: {:4.1f}/({:d}-{:d})'.format(fit['fval'],fit['ndata'],fit['npar']))
 
@@ -502,12 +502,14 @@ def get_correlation_object(plot_info):
             res_location = plot_info['result_location']
         except KeyError:
             res_location = location
-        try:
-            corr_name = plot_info['corr_name']
-        except KeyError:
-            corr_name = None
     else:
         res_name = None
+        res_location = None
+
+    try:
+        corr_name = plot_info['corr_name']
+    except KeyError:
+        corr_name = None
 
     corr_object = picca_correlation.make_correlation_object(location,filename,res_name=res_name,res_location=res_location,corr_name=corr_name)
 
@@ -584,6 +586,10 @@ def plot_wedges(fig,ax,plot_info):
             fig.legend(artists,labels,loc='lower center',borderaxespad=0,bbox_to_anchor=(0.5,0.05),ncol=len(plot_info['mu_bins']))
         else:
             ax.legend(loc=leg_loc)
+
+    #Add a title if desired.
+    if plot_info['format']['title'] is not None:
+        ax.set_title(plot_info['format']['title'])
 
     return
 
