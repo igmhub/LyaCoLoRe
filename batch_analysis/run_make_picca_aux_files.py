@@ -1742,6 +1742,7 @@ def get_beta_obj(z,obj='QSO'):
     bias = bias_of_z(z)
     f = get_growth_rate(z)
     beta = f/bias
+    print(z,bias,f,beta)
     return beta
 
 ################################################################################
@@ -1770,7 +1771,7 @@ for ver in vers:
 
     exp_filepaths = {'lya_auto':        acvm_dir + '/lya_auto/correlations/cf_exp_lya_auto.fits.gz',
                      'qso_auto':        acvm_dir + '/qso_auto/correlations/co_exp_qso_auto.fits.gz',
-                     'dla_auto':        acvm_dir + '/lya_auto/correlations/co_exp_dla_auto.fits.gz',
+                     'dla_auto':        acvm_dir + '/dla_auto/correlations/co_exp_dla_auto.fits.gz',
                      'lya_aa_auto':     acvm_dir + '/lya_aa_auto/correlations/cf_exp_lya_aa_auto.fits.gz',
                      'lya_qso_cross':   acvm_dir + '/lya_qso_cross/correlations/xcf_exp_lya_qso_cross.fits.gz',
                      'lya_dla_cross':   acvm_dir + '/lya_dla_cross/correlations/xcf_exp_lya_dla_cross.fits.gz',
