@@ -223,8 +223,8 @@ def make_lya_auto_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix='free
                        'alpha_LYA':                     '2.9    0.      None    None    fixed',
                        'par binsize LYA(LYA)xLYA(LYA)': '4      0.      None    None    fixed',
                        'per binsize LYA(LYA)xLYA(LYA)': '4      0.      None    None    fixed',
-                       'par_sigma_smooth':              '0.     0.4     None    None    free',
-                       'per_sigma_smooth':              '0.     0.4     None    None    free',
+                       'par_sigma_smooth':              '2.     2.      None    None    free',
+                       'per_sigma_smooth':              '2.     2.      None    None    free',
                        }
 
     options_dict = {'data':         data_dict,
@@ -294,10 +294,10 @@ def make_qso_auto_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix='free
                        'alpha_QSO':                 '1.44   0.      None    None    fixed',
                        'par binsize QSOxQSO':       '4      0.      None    None    fixed',
                        'per binsize QSOxQSO':       '4      0.      None    None    fixed',
-                       'par_sigma_smooth':          '0.     0.4     None    None    free',
-                       'per_sigma_smooth':          '0.     0.4     None    None    free',
+                       'par_sigma_smooth':          '2.     2.      None    None    free',
+                       'per_sigma_smooth':          '2.     2.      None    None    free',
                        'drp_QSO':                   '0.     0.1     None    None    fixed',
-                       'sigma_velo_lorentz_QSO':    '2.     0.1     None    None    free',
+                       'sigma_velo_lorentz_QSO':    '0.     0.1     None    None    fixed',
                        }
 
     options_dict = {'data':         data_dict,
@@ -367,10 +367,10 @@ def make_dla_auto_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix='free
                        'alpha_DLA':                 '0.0    0.      None    None    fixed',
                        'par binsize DLAxDLA':       '4      0.      None    None    fixed',
                        'per binsize DLAxDLA':       '4      0.      None    None    fixed',
-                       'par_sigma_smooth':          '0.     0.4     None    None    free',
-                       'per_sigma_smooth':          '0.     0.4     None    None    free',
+                       'par_sigma_smooth':          '2.     2.      None    None    free',
+                       'per_sigma_smooth':          '2.     2.      None    None    free',
                        'drp_DLA':                   '0.     0.1     None    None    fixed',
-                       'sigma_velo_lorentz_DLA':    '2.     0.1     None    None    free',
+                       'sigma_velo_lorentz_DLA':    '0.     0.1     None    None    fixed',
                        }
 
     options_dict = {'data':         data_dict,
@@ -439,8 +439,8 @@ def make_lya_aa_auto_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix='f
                        'alpha_LYA':                     '2.9    0.      None    None    fixed',
                        'par binsize LYA(LYA)xLYA(LYA)': '4      0.      None    None    fixed',
                        'per binsize LYA(LYA)xLYA(LYA)': '4      0.      None    None    fixed',
-                       'par_sigma_smooth':              '0.     0.4     None    None    free',
-                       'per_sigma_smooth':              '0.     0.4     None    None    free',
+                       'par_sigma_smooth':              '2.     2.      None    None    free',
+                       'per_sigma_smooth':              '2.     2.      None    None    free',
                        }
 
     metals_dict = {'filename':      '{}/data/additional_data/metal_dmat_z_0_10.fits\n'.format(args.base_dir),
@@ -524,10 +524,10 @@ def make_lya_qso_cross_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix=
                        'alpha_QSO':                 '1.44   0.      None    None    fixed',
                        'par binsize LYA(LYA)xQSO':  '4      0.      None    None    fixed',
                        'per binsize LYA(LYA)xQSO':  '4      0.      None    None    fixed',
-                       'par_sigma_smooth':          '0.     0.4     None    None    free',
-                       'per_sigma_smooth':          '0.     0.4     None    None    free',
+                       'par_sigma_smooth':          '2.     2.      None    None    free',
+                       'per_sigma_smooth':          '2.     2.      None    None    free',
                        'drp_QSO':                   '0.     0.1     None    None    fixed',
-                       'sigma_velo_lorentz_QSO':    '2.     0.1     None    None    free',
+                       'sigma_velo_lorentz_QSO':    '0.     0.1     None    None    fixed',
                        }
 
     options_dict = {'data':         data_dict,
@@ -602,10 +602,10 @@ def make_lya_dla_cross_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix=
                        'alpha_DLA':                 '0.0    0.      None    None    fixed',
                        'par binsize LYA(LYA)xDLA':  '4      0.      None    None    fixed',
                        'per binsize LYA(LYA)xDLA':  '4      0.      None    None    fixed',
-                       'par_sigma_smooth':          '0.     0.4     None    None    free',
-                       'per_sigma_smooth':          '0.     0.4     None    None    free',
+                       'par_sigma_smooth':          '2.     2.      None    None    free',
+                       'per_sigma_smooth':          '2.     2.      None    None    free',
                        'drp_DLA':                   '0.     0.1     None    None    fixed',
-                       'sigma_velo_lorentz_DLA':    '2.     0.1     None    None    free',
+                       'sigma_velo_lorentz_DLA':    '0.     0.1     None    None    fixed',
                        }
 
     options_dict = {'data':         data_dict,
@@ -679,12 +679,12 @@ def make_qso_dla_cross_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix=
                        'alpha_DLA':                 '0.0    0.      None    None    fixed',
                        'par binsize QSOxDLA':       '4      0.      None    None    fixed',
                        'per binsize QSOxDLA':       '4      0.      None    None    fixed',
-                       'par_sigma_smooth':          '0.     0.4     None    None    free',
-                       'per_sigma_smooth':          '0.     0.4     None    None    free',
+                       'par_sigma_smooth':          '2.     2.      None    None    free',
+                       'per_sigma_smooth':          '2.     2.      None    None    free',
                        'drp_QSO':                   '0.     0.1     None    None    fixed', # TODO: can we leave both drps free?
-                       'sigma_velo_lorentz_QSO':    '2.     0.1     None    None    free',
+                       'sigma_velo_lorentz_QSO':    '0.     0.1     None    None    fixed',
                        'drp_DLA':                   '0.     0.1     None    None    fixed', # TODO: can we leave both drps free?
-                       'sigma_velo_lorentz_DLA':    '2.     0.1     None    None    free',
+                       'sigma_velo_lorentz_DLA':    '0.     0.1     None    None    fixed',
                        }
 
     options_dict = {'data':         data_dict,
@@ -753,8 +753,8 @@ def make_lya_auto__lya_qso_cross_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=
                                 'alpha_LYA':                     '2.9    0.      None    None    fixed',
                                 'par binsize LYA(LYA)xLYA(LYA)': '4      0.      None    None    fixed',
                                 'per binsize LYA(LYA)xLYA(LYA)': '4      0.      None    None    fixed',
-                                'par_sigma_smooth':              '0.     0.4     None    None    free',
-                                'per_sigma_smooth':              '0.     0.4     None    None    free',
+                                'par_sigma_smooth':              '2.     2.      None    None    free',
+                                'per_sigma_smooth':              '2.     2.      None    None    free',
                                 }
 
     lya_auto_options_dict = {'data':         lya_auto_data_dict,
@@ -801,7 +801,7 @@ def make_lya_auto__lya_qso_cross_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=
                                      'par binsize LYA(LYA)xQSO':  '4      0.      None    None    fixed',
                                      'per binsize LYA(LYA)xQSO':  '4      0.      None    None    fixed',
                                      'drp_QSO':                   '0.     0.1     None    None    fixed',
-                                     'sigma_velo_lorentz_QSO':    '2.     0.1     None    None    free',
+                                     'sigma_velo_lorentz_QSO':    '0.     0.1     None    None    fixed',
                                      }
 
     lya_qso_cross_options_dict = {'data':         lya_qso_cross_data_dict,
@@ -870,8 +870,8 @@ def make_lya_auto__lya_qso_cross__qso_auto_fit_files(fits_dir,exp_filepaths,rmin
                                 'alpha_LYA':                     '2.9    0.      None    None    fixed',
                                 'par binsize LYA(LYA)xLYA(LYA)': '4      0.      None    None    fixed',
                                 'per binsize LYA(LYA)xLYA(LYA)': '4      0.      None    None    fixed',
-                                'par_sigma_smooth':              '0.     0.4     None    None    free',
-                                'per_sigma_smooth':              '0.     0.4     None    None    free',
+                                'par_sigma_smooth':              '2.     2.      None    None    free',
+                                'per_sigma_smooth':              '2.     2.      None    None    free',
                                 }
 
     lya_auto_options_dict = {'data':         lya_auto_data_dict,
@@ -918,7 +918,7 @@ def make_lya_auto__lya_qso_cross__qso_auto_fit_files(fits_dir,exp_filepaths,rmin
                                      'par binsize LYA(LYA)xQSO':  '4      0.      None    None    fixed',
                                      'per binsize LYA(LYA)xQSO':  '4      0.      None    None    fixed',
                                      'drp_QSO':                   '0.     0.1     None    None    fixed',
-                                     'sigma_velo_lorentz_QSO':    '2.     0.1     None    None    free',
+                                     'sigma_velo_lorentz_QSO':    '0.     0.1     None    None    fixed',
                                      }
 
     lya_qso_cross_options_dict = {'data':         lya_qso_cross_data_dict,
@@ -1028,8 +1028,8 @@ def make_lya_auto__lya_dla_cross_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=
                                 'alpha_LYA':                     '2.9    0.      None    None    fixed',
                                 'par binsize LYA(LYA)xLYA(LYA)': '4      0.      None    None    fixed',
                                 'per binsize LYA(LYA)xLYA(LYA)': '4      0.      None    None    fixed',
-                                'par_sigma_smooth':              '0.     0.4     None    None    free',
-                                'per_sigma_smooth':              '0.     0.4     None    None    free',
+                                'par_sigma_smooth':              '2.     2.      None    None    free',
+                                'per_sigma_smooth':              '2.     2.      None    None    free',
                                 }
 
     lya_auto_options_dict = {'data':         lya_auto_data_dict,
@@ -1076,7 +1076,7 @@ def make_lya_auto__lya_dla_cross_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=
                                      'par binsize LYA(LYA)xDLA':  '4      0.      None    None    fixed',
                                      'per binsize LYA(LYA)xDLA':  '4      0.      None    None    fixed',
                                      'drp_DLA':                   '0.     0.1     None    None    fixed',
-                                     'sigma_velo_lorentz_DLA':    '2.     0.1     None    None    free',
+                                     'sigma_velo_lorentz_DLA':    '0.     0.1     None    None    fixed',
                                      }
 
     lya_dla_cross_options_dict = {'data':         lya_dla_cross_data_dict,
@@ -1145,8 +1145,8 @@ def make_lya_auto__lya_dla_cross__dla_auto_fit_files(fits_dir,exp_filepaths,rmin
                                 'alpha_LYA':                     '2.9    0.      None    None    fixed',
                                 'par binsize LYA(LYA)xLYA(LYA)': '4      0.      None    None    fixed',
                                 'per binsize LYA(LYA)xLYA(LYA)': '4      0.      None    None    fixed',
-                                'par_sigma_smooth':              '0.     0.4     None    None    free',
-                                'per_sigma_smooth':              '0.     0.4     None    None    free',
+                                'par_sigma_smooth':              '2.     2.      None    None    free',
+                                'per_sigma_smooth':              '2.     2.      None    None    free',
                                 }
 
     lya_auto_options_dict = {'data':         lya_auto_data_dict,
@@ -1193,7 +1193,7 @@ def make_lya_auto__lya_dla_cross__dla_auto_fit_files(fits_dir,exp_filepaths,rmin
                                      'par binsize LYA(LYA)xDLA':  '4      0.      None    None    fixed',
                                      'per binsize LYA(LYA)xDLA':  '4      0.      None    None    fixed',
                                      'drp_DLA':                   '0.     0.1     None    None    fixed',
-                                     'sigma_velo_lorentz_DLA':    '2.     0.1     None    None    free',
+                                     'sigma_velo_lorentz_DLA':    '0.     0.1     None    None    fixed',
                                      }
 
     lya_dla_cross_options_dict = {'data':         lya_dla_cross_data_dict,
@@ -1304,10 +1304,10 @@ def make_qso_auto__qso_dla_cross__dla_auto_fit_files(fits_dir,exp_filepaths,rmin
                                 'alpha_QSO':                '1.44   0.      None    None    fixed',
                                 'par binsize QSOxQSO':      '4      0.      None    None    fixed',
                                 'per binsize QSOxQSO':      '4      0.      None    None    fixed',
-                                'par_sigma_smooth':         '0.     0.4     None    None    free',
-                                'per_sigma_smooth':         '0.     0.4     None    None    free',
+                                'par_sigma_smooth':         '2.     2.      None    None    free',
+                                'per_sigma_smooth':         '2.     2.      None    None    free',
                                 'drp_QSO':                  '0.     0.1     None    None    fixed',
-                                'sigma_velo_lorentz_QSO':   '2.     0.1     None    None    free',
+                                'sigma_velo_lorentz_QSO':   '0.     0.1     None    None    fixed',
                                 }
 
     qso_auto_options_dict = {'data':         qso_auto_data_dict,
@@ -1354,7 +1354,7 @@ def make_qso_auto__qso_dla_cross__dla_auto_fit_files(fits_dir,exp_filepaths,rmin
                                      'par binsize QSOxDLA':       '4      0.      None    None    fixed',
                                      'per binsize QSOxDLA':       '4      0.      None    None    fixed',
                                      'drp_DLA':                   '0.     0.1     None    None    fixed',
-                                     'sigma_velo_lorentz_DLA':    '2.     0.1     None    None    free',
+                                     'sigma_velo_lorentz_DLA':    '0.     0.1     None    None    fixed',
                                      }
 
     qso_dla_cross_options_dict = {'data':         qso_dla_cross_data_dict,
@@ -1464,8 +1464,8 @@ def make_all_correlations_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,af
                                 'alpha_LYA':                     '2.9    0.      None    None    fixed',
                                 'par binsize LYA(LYA)xLYA(LYA)': '4      0.      None    None    fixed',
                                 'per binsize LYA(LYA)xLYA(LYA)': '4      0.      None    None    fixed',
-                                'par_sigma_smooth':              '0.     0.4     None    None    free',
-                                'per_sigma_smooth':              '0.     0.4     None    None    free',
+                                'par_sigma_smooth':              '2.     2.      None    None    free',
+                                'per_sigma_smooth':              '2.     2.      None    None    free',
                                 }
 
     lya_auto_options_dict = {'data':         lya_auto_data_dict,
@@ -1512,7 +1512,7 @@ def make_all_correlations_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,af
                                      'par binsize LYA(LYA)xQSO':  '4      0.      None    None    fixed',
                                      'per binsize LYA(LYA)xQSO':  '4      0.      None    None    fixed',
                                      'drp_QSO':                   '0.     0.1     None    None    fixed',
-                                     'sigma_velo_lorentz_QSO':    '2.     0.1     None    None    free',
+                                     'sigma_velo_lorentz_QSO':    '0.     0.1     None    None    fixed',
                                      }
 
     lya_qso_cross_options_dict = {'data':         lya_qso_cross_data_dict,
@@ -1600,7 +1600,7 @@ def make_all_correlations_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,af
                                      'par binsize QSOxDLA':       '4      0.      None    None    fixed',
                                      'per binsize QSOxDLA':       '4      0.      None    None    fixed',
                                      'drp_DLA':                   '0.     0.1     None    None    fixed',
-                                     'sigma_velo_lorentz_DLA':    '2.     0.1     None    None    free',
+                                     'sigma_velo_lorentz_DLA':    '0.     0.1     None    None    fixed',
                                      }
 
     qso_dla_cross_options_dict = {'data':         qso_dla_cross_data_dict,
