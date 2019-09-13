@@ -37,8 +37,8 @@ for fit_type in fit_types:
                 b_eta_err = ff['best fit'].attrs['bias_eta_{}'.format(t)][1]
                 print('{:12s} = {:2.3e} \pm {:1.4e}'.format('bias_eta',b_eta,b_eta_err))
 
-                beta = ff['best fit'].attrs['beta_{}'.format(f)][0]
-                beta_err = ff['best fit'].attrs['beta_{}'.format(f)][1]
+                beta = ff['best fit'].attrs['beta_{}'.format(t)][0]
+                beta_err = ff['best fit'].attrs['beta_{}'.format(t)][1]
                 print('{:12s} = {:2.3e} \pm {:1.4e}'.format('beta',beta,beta_err))
 
                 b = b_eta*f/beta
