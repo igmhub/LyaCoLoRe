@@ -9,9 +9,8 @@ import h5py
 ver = 'stack'
 fit_types = ['lya_auto','lya_qso_cross','lya_auto__lya_qso_cross','lya_dla_cross','lya_auto__lya_dla_cross','qso_auto','lya_aa_auto']
 rmins = [20.,40.0]
-pars = ['ap', 'at', 'bias_eta_LYA', 'beta_LYA', 'beta_QSO', 'beta_DLA']
-additional_absorbers = ['SiII(1190)','SiII(1193)','SiIII(1207)','SiII(1260)']
-additional_absorber_pars = ['bias_eta','beta']
+pars = ['ap', 'at']
+tracers = ['LYA','QSO','DLA','SiII(1190)','SiII(1193)','SiIII(1207)','SiII(1260)']
 
 nchar = np.max([len(par) for par in pars])
 print(' ')
@@ -31,33 +30,23 @@ for fit_type in fit_types:
             except:
                 print('{:12s} not found'.format(par))
 
-        f = ff['best fit'].attrs['growth_rate'][0]
-        try:
-            b_LYA = ff['best fit'].attrs['bias_eta_LYA'][0]*f/ff['best fit'].attrs['beta_LYA'][0]
-            b_LYA_err = b_LYA * np.sqrt((ff['best fit'].attrs['bias_eta_LYA'][1]/ff['best fit'].attrs['bias_eta_LYA'][0])**2 + (ff['best fit'].attrs['beta_LYA'][1]/ff['best fit'].attrs['beta_LYA'][0])**2)
-            print('{:12s} = {:2.3f} \pm {:1.4f}'.format('b_F',b_LYA,b_LYA_err))
-        except:
-            pass
-        try:    
-            b_QSO = f/ff['best fit'].attrs['beta_QSO'][0]
-            b_QSO_err = b_QSO * (ff['best fit'].attrs['beta_QSO'][1]/ff['best fit'].attrs['beta_QSO'][0])
-            print('{:12s} = {:2.3f} \pm {:1.4f}'.format('b_QSO',b_QSO,b_QSO_err))
-        except:
-            pass
-        try:    
-            b_DLA = f/ff['best fit'].attrs['beta_DLA'][0]
-            b_DLA_err = b_DLA * (ff['best fit'].attrs['beta_DLA'][1]/ff['best fit'].attrs['beta_DLA'][0])
-            print('{:12s} = {:2.3f} \pm {:1.4f}'.format('b_DLA',b_DLA,b_DLA_err))
-        except:
-            pass
-        #Get the metal biases
-        for aa in additional_absorbers:
-            print(' ')
-            print(aa)
-            for attr in ff['best fit'].attrs:
-                for aa_p in additional_absorber_pars:
-                    if (aa in attr):
-                        if (aa_p in attr[:len(aa_p)]):
-                            print('{:12s} = {:2.3e} \pm {:1.4e}'.format(aa_p,ff['best fit'].attrs[attr][0],ff['best fit'].attrs[attr][1]))
+        for t in tracers:
+            try:
+                print(t)
+                b_eta = ff['best fit'].attrs['bias_eta_{}'.format(t)][0]
+                b_eta_err = ff['best fit'].attrs['bias_eta_{}'.format(t)][1]
+                print('{:12s} = {:2.3e} \pm {:1.4e}'.format('bias_eta',b_eta,b_eta_err))
+
+                beta = ff['best fit'].attrs['beta_{}'.format(f)][0]
+                beta_err = ff['best fit'].attrs['beta_{}'.format(f)][1]
+                print('{:12s} = {:2.3e} \pm {:1.4e}'.format('beta',beta,beta_err))
+
+                b = b_eta*f/beta
+                b_err = b * np.sqrt((b_eta_err/b_eta)**2 + (beta_err/beta)**2)
+                print('{:12s} = {:2.3e} \pm {:1.4e}'.format('bias',b,b_err))
+                print(' ')
+            except:
+                pass
+
         print(' ')
         print('-'*80)
