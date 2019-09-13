@@ -7,12 +7,15 @@ from scipy.interpolate import interp1d
 import h5py
 
 ver = 'stack'
-fit_types = ['lya_auto','lya_qso_cross','lya_auto__lya_qso_cross','lya_dla_cross','lya_auto__lya_dla_cross','qso_auto']
+fit_types = ['lya_auto','lya_qso_cross','lya_auto__lya_qso_cross','lya_dla_cross','lya_auto__lya_dla_cross','qso_auto','lya_aa_auto']
 rmins = [20.,40.0]
 pars = ['ap', 'at', 'bias_eta_LYA', 'beta_LYA', 'beta_QSO', 'beta_DLA']
+additional_absorbers = ['SiII(1190)','SiII(1193)','SiIII(1207)','SiII(1260)']
+additional_absorber_pars = ['bias_eta','beta']
 
 nchar = np.max([len(par) for par in pars])
 print(' ')
+print('-'*80)
 for fit_type in fit_types:
     print(fit_type)
     for rmin in rmins:
@@ -47,4 +50,14 @@ for fit_type in fit_types:
             print('{:12s} = {:2.3f} \pm {:1.4f}'.format('b_DLA',b_DLA,b_DLA_err))
         except:
             pass
+        #Get the metal biases
+        for aa in additional_absorbers:
+            print(' ')
+            print(aa)
+            for attr in ff['best fit'].attrs:
+                for aa_p in additional_absorber_pars:
+                    if (aa in attr):
+                        if (aa_p in attr[:len(aa_p)]):
+                            print('{:12s} = {:2.3e} \pm {:1.4e}'.format(aa_p,ff['best fit'].attrs[attr][0],ff['best fit'].attrs[attr][1]))
         print(' ')
+        print('-'*80)
