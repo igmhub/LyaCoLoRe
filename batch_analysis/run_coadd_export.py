@@ -184,7 +184,7 @@ def stack_coadd_export_cf(name,corr_dir,vers,zbins,coadd_only=False):
             retcode = call(command,shell=True)
     out_file = smtc_dir + '/cf_exp_{}.fits.gz'.format(name)
     if coadd_only:
-        coadd_only_out_file = dir + '/correlations/cf_{}.fits.gz'.format(name)
+        coadd_only_out_file = smtc_dir + '/correlations/cf_{}.fits.gz'.format(name)
     else:
         coadd_only_out_file = None
     command='picca_export_coadd_zint.py --data {} --out {} --no-dmat --coadd-out {}'.format(in_files,out_file,coadd_only_out_file)
@@ -226,11 +226,11 @@ def stack_coadd_export_xcf(name,corr_dir,vers,zbins,coadd_only=False,coadd_only_
             retcode = call(command,shell=True)
     out_file = smtc_dir + '/xcf_exp_{}.fits.gz'.format(name)
     if coadd_only:
-        coadd_only_out_file = dir + '/correlations/xcf_{}.fits.gz'.format(name)
+        coadd_only_out_file = smtc_dir + '/correlations/xcf_{}.fits.gz'.format(name)
     else:
         coadd_only_out_file = None
     if coadd_only:
-        coadd_only_randoms_out_file = dir + '/correlations/xcf_R_{}.fits.gz'.format(name)
+        coadd_only_randoms_out_file = smtc_dir + '/correlations/xcf_R_{}.fits.gz'.format(name)
     else:
         coadd_only_randoms_out_file = None
     command='picca_export_coadd_zint.py --data {} --out {} --no-dmat --remove-shuffled-correlation {} --coadd-out {} --coadd-out-shuffled {}'.format(D_files,out_file,R_files,coadd_only_out_file,coadd_only_randoms_out_file)
