@@ -29,12 +29,6 @@ parser.add_argument('--nside', type = int, default = 16, required=False,
 parser.add_argument('--export-individual-zbins', action="store_true", default = False, required=False,
                     help = 'export the individual z bins')
 
-parser.add_argument('--coadd-only', action="store_true", default = False, required=False,
-                    help = 'coadd the (unexported) correlations')
-
-parser.add_argument('--coadd-only-randoms', action="store_true", default = False, required=False,
-                    help = 'coadd the (unexported) random correlations')
-
 parser.add_argument('--export-all', action="store_true", default = False, required=False,
                     help = 'export all correlations')
 
