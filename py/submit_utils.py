@@ -89,3 +89,67 @@ def run_picca_job(job_info,global_options):
     retcode = call('sbatch {}'.format(run_script_path),shell=True)
 
     return
+
+#Function to stack correlation files by simply concatenating the lists of
+#subsamples in each correltion.
+def concatenate_subsamples(fi,fout,corr_type):
+
+    #Set up the data structures to store the information.
+    cor_data = []
+    cor = {}
+    h = fitsio.FITS(fi[0])
+    attri = {}
+    for k in ['RP','RT','Z','NB']:
+        attri[k] = np.zeros(h[1][k][:].shape)
+
+    #Assume that the headers in the different files are all the same (and correct)
+    head = h[1].read_header()
+    head2 = h[2].read_header()
+    h.close()
+
+    #Loop through the files, adding the data to our overarching structures.
+    for f in fi:
+        h = fitsio.FITS(f)
+        for k in ['RP','RT','Z']:
+            attri[k] += h[1][k][:] * h[1]['NB'][:]
+        attri['NB'] += h[1]['NB'][:]
+        cor_data += [h[2][:]]
+        h.close()
+
+    #Ensure that data are correctly normalised.
+    for k in ['RP','RT','Z']:
+        attri[k] /= attri['NB']
+
+    if corr_type in ['cf','xcf']:
+        for k in ['WE','DA']:
+            cor[k] = np.concatenate([cd[k] for cd in cor_data],axis=0)
+    elif corr_type in ['co']:
+        for k in ['WE','NB']:
+            cor[k] = np.concatenate([cd[k] for cd in cor_data],axis=0)
+
+    #Give shift the HEALPID of the pixels in order to avoid duplication.
+    shift = int(10**(np.floor(np.log10(np.max(np.concatenate([cd['HEALPID'] for cd in cor_data])))) + 1))
+    cor['HEALPID'] = np.concatenate([cd['HEALPID']+i*shift for i,cd in enumerate(cor_data)],axis=0)
+
+    #Construct the output file in the standard picca format.
+    out = fitsio.FITS(fout,'rw',clobber=True)
+    names = ['RP','RT','Z','NB']
+    out.write([attri[k] for k in names],names=names,
+        comment=['R-parallel','R-transverse','Redshift','Number of pairs'],
+        units=['h^-1 Mpc','h^-1 Mpc','',''],
+        header=head,extname='ATTRI')
+    head2 = [{'name':'HLPXSCHM','value':'RING','comment':'Healpix scheme'}
+             {'name':'HIDSHIFT','value':shift,'comment':'Shift unit applied to HEALPix IDs'}]
+    if corr_type in ['cf','xcf']:
+        names2 = ['HEALPID','WE','DA']
+        comment2 = ['Healpix index', 'Sum of weight', 'Correlation']
+    elif corr_type in ['co']:
+        names2 = ['HEALPID','WE','NB']
+        comment2 = ['Healpix index', 'Sum of weight', 'Number of pairs']
+    out.write([cor[k] for k in names2],names=names2,
+        comment=comment2,
+        header=head2,extname='COR')
+
+    out.close
+
+    return
