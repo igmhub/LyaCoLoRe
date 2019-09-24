@@ -3,36 +3,37 @@ from astropy.io import fits
 import fitsio
 
 realisations = range(10)
-corr_types = ['lya_auto']
+#corr_types = ['lya_auto','dla_auto','qso_auto','lya_qso_cross','lya_dla_cross']
+#namings = ['cf','co','co','xcf','xcf']
+corr_types = ['lya_auto','lya_qso_cross','lya_dla_cross']
+namings = ['cf','xcf','xcf']
 
-for ct in corr_types:
+for i,ct in enumerate(corr_types):
 
+    print(ct,namings[i])
     #Set up the data structures to store the information.
     cor_data = []
     cor = {}
     ver = 'v9.0.{}'.format(realisations[0])
-    h = fits.open('/project/projectdirs/desi/users/jfarr/LyaCoLoRe_paper/analysis/correlation_functions/{}/measurements/{}/correlations/cf_{}.fits.gz'.format(ver,ct,ct))
+    h = fitsio.FITS('/project/projectdirs/desi/users/jfarr/LyaCoLoRe_paper/analysis/correlation_functions/{}/measurements/{}/correlations/{}_{}.fits.gz'.format(ver,ct,namings[i],ct))
     attri = {}
     for k in ['RP','RT','Z','NB']:
-        attri[k] = np.zeros(h[1].data[k].shape)
-    attri_header = fits.Header()
-    for k in ['RPMIN','RPMAX','RTMAX','NP','NT','ZCUTMIN','ZCUTMAX','NSIDE']:
-        attri_header[k] = h[1].header[k]
-    cor_header = fits.Header()
-    for k in ['HLPXSCHM']:
-        cor_header[k] = h[2].header[k]
-    attri_dtype = h[1].data.dtype
-    cor_dtype = h[2].data.dtype
+        attri[k] = np.zeros(h[1][k][:].shape)
+
+    #Assume that the headers in the different files are all the same (and correct)
+    head = h[1].read_header()
+    head2 = h[2].read_header()
     h.close()
 
     #Loop through the files, adding the data to our overarching structures.
     for r in realisations:
         ver = 'v9.0.{}'.format(r)
-        h = fits.open('/project/projectdirs/desi/users/jfarr/LyaCoLoRe_paper/analysis/correlation_functions/{}/measurements/{}/correlations/cf_{}.fits.gz'.format(ver,ct,ct))
+        print(ver)
+        h = fitsio.FITS('/project/projectdirs/desi/users/jfarr/LyaCoLoRe_paper/analysis/correlation_functions/{}/measurements/{}/correlations/{}_{}.fits.gz'.format(ver,ct,namings[i],ct))
         for k in ['RP','RT','Z']:
-            attri[k] += h[1].data[k]*h[1].data['NB']
-        attri['NB'] += h[1].data['NB']
-        cor_data += [h[2].data]
+            attri[k] += h[1][k][:] * h[1]['NB'][:]
+        attri['NB'] += h[1]['NB'][:]
+        cor_data += [h[2][:]]
         h.close()
 
     #Ensure that data are correctly normalised.
@@ -44,7 +45,7 @@ for ct in corr_types:
 
     cor['HEALPID'] = np.concatenate([cd['HEALPID']+realisations[i]*(10**5) for i,cd in enumerate(cor_data)],axis=0)
 
-    fout = '/project/projectdirs/desi/users/jfarr/LyaCoLoRe_paper/analysis/correlation_functions/stack/measurements/{}/correlations/cf_{}_subsamples.fits.gz'.format(ver,ct,ct)
+    fout = '/project/projectdirs/desi/users/jfarr/LyaCoLoRe_paper/analysis/correlation_functions/stack/measurements/{}/correlations/{}_{}_subsamples.fits.gz'.format(ct,namings[i],ct)
     out = fitsio.FITS(fout,'rw',clobber=True)
     out.write([attri[k] for k in ['RP','RT','Z','NB']],names=['RP','RT','Z','NB'],
         comment=['R-parallel','R-transverse','Redshift','Number of pairs'],
@@ -58,18 +59,3 @@ for ct in corr_types:
 
     out.close
 
-    """
-    attri_table = np.array([attri[k] for k in attri_dtype.names],dtype=attri_dtype)
-    cor_table = np.array([cor[k] for k in cor_dtype.names],dtype=cor_dtype)
-
-    print(attri_table.shape)
-    print(cor_table.shape)
-
-    prihdr = fits.Header()
-    prihdu = fits.PrimaryHDU(header=prihdr)
-    hdu_attri = fits.BinTableHDU(attri_table,header=attri_header,name='ATTRI')
-    hdu_cor = fits.BinTableHDU(cor_table,header=cor_header,name='COR')
-    hdulist = fits.HDUList([prihdu,hdu_attri,hdu_cor])
-    hdulist.writeto('/project/projectdirs/desi/users/jfarr/LyaCoLoRe_paper/analysis/correlation_functions/stack/measurements/{}/correlations/cf_{}_subsamples.fits.gz'.format(ver,ct,ct))
-    hdulist.close()
-    """
