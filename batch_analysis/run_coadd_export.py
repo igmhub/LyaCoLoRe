@@ -394,6 +394,7 @@ for v_rea in args.v_realisations:
 
 if args.stack_correlations:
     stack_dir = ac_dir + '/stack/'
+    print('\nCoadding and exporting correlations for stack:')
 
     if args.export_lya_auto:
         stack_coadd_export_cf('lya_auto',ac_dir,vers,cf_zbins)
