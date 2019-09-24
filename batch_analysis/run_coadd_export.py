@@ -116,8 +116,8 @@ def coadd_export_xcf(name,meas_dir,zbins,coadd_only_randoms=False):
 
     #Construct the output names.
     out_file = dir + '/xcf_exp_{}.fits.gz'.format(name)
-    coadd_only_out_file = dir + '/xcf_D_{}.fits.gz'.format(name)
-    coadd_only_randoms_out_file = dir + '/xcf_R_{}.fits.gz'.format(name)
+    coadd_only_out_file = dir + '/xcf_{}_D.fits.gz'.format(name)
+    coadd_only_randoms_out_file = dir + '/xcf_{}_R.fits.gz'.format(name)
 
     #Carry out the export/coadding.
     command='picca_export_coadd_zint.py --data {} --out {} --no-dmat --remove-shuffled-correlation {} --coadd-out {} --coadd-out-shuffled {}'.format(D_files,out_file,R_files,coadd_only_out_file,coadd_only_randoms_out_file)
@@ -152,10 +152,10 @@ def coadd_export_co(name,meas_dir,zbins):
 
     #Construct the output names.
     out_file = dir + '/co_exp_{}.fits.gz'.format(name)
-    coadd_only_DD_out_file = dir + '/co_DD_{}.fits.gz'.format(name)
-    coadd_only_DR_out_file = dir + '/co_DR_{}.fits.gz'.format(name)
-    coadd_only_RD_out_file = dir + '/co_RD_{}.fits.gz'.format(name)
-    coadd_only_RR_out_file = dir + '/co_RR_{}.fits.gz'.format(name)
+    coadd_only_DD_out_file = dir + '/co_{}_DD.fits.gz'.format(name)
+    coadd_only_DR_out_file = dir + '/co_{}_DR.fits.gz'.format(name)
+    coadd_only_RD_out_file = dir + '/co_{}_RD.fits.gz'.format(name)
+    coadd_only_RR_out_file = dir + '/co_{}_RR.fits.gz'.format(name)
 
     #Carry out the export/coadding.
     command='picca_export_coadd_zint_co.py --DD-files {} --DR-files {} --RD-files {} --RR-files {} --out {} --coadd-out-DD {} --coadd-out-DR {} --coadd-out-RD {} --coadd-out-RR {}'.format(DD_files,DR_files,RD_files,RR_files,out_file,coadd_only_DD_out_file,coadd_only_DR_out_file,coadd_only_RD_out_file,coadd_only_RR_out_file)
@@ -229,9 +229,9 @@ def stack_coadd_export_xcf(name,corr_dir,vers,zbins):
         #Stack the measurements by concatenating subsamples.
         fiin = []
         for ver in vers:
-            fin = corr_dir + '/' + ver + '/measurements/' + name + '/correlations/xcf_{}_{}.fits.gz'.format(dt,name)
+            fin = corr_dir + '/' + ver + '/measurements/' + name + '/correlations/xcf_{}_{}.fits.gz'.format(name,dt)
             fii += [fin]
-        fout = smtc_dir + '/xcf_{}_{}.fits.gz'.format(dt,name)
+        fout = smtc_dir + '/xcf_{}_{}.fits.gz'.format(name,dt)
         fouts[dt] = fout
         submit_utils.concatenate_subsamples(fiin,fout,'xcf')
 
@@ -296,9 +296,9 @@ def stack_coadd_export_co(name,corr_dir,vers,zbins):
         #Stack the measurements by concatenating subsamples.
         fiin = []
         for ver in vers:
-            fin = corr_dir + '/' + ver + '/measurements/' + name + '/correlations/co_{}_{}.fits.gz'.format(dt,name)
+            fin = corr_dir + '/' + ver + '/measurements/' + name + '/correlations/co_{}_{}.fits.gz'.format(name,dt)
             fii += [fin]
-        fout = smtc_dir + '/co_{}_{}.fits.gz'.format(dt,name)
+        fout = smtc_dir + '/co_{}_{}.fits.gz'.format(name,dt)
         fouts[dt] = fout
         submit_utils.concatenate_subsamples(fiin,fout,'xcf')
 
@@ -394,7 +394,6 @@ for v_rea in args.v_realisations:
 
 if args.stack_correlations:
     stack_dir = ac_dir + '/stack/'
-    submit_utils.check_corr_dir(stack_dir)
 
     if args.export_lya_auto:
         stack_coadd_export_cf('lya_auto',ac_dir,vers,cf_zbins)
