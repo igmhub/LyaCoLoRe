@@ -39,7 +39,7 @@ parser.add_argument('--fit-stack', action="store_true", default = False, require
 
 #Fit variables
 
-parser.add_argument('--rmin-values', type = float, default = [20.], required=False,
+parser.add_argument('--rmin-values', type = float, default = [40.], required=False,
                     help = 'minimum separation', nargs='*')
 
 parser.add_argument('--rmax-values', type = float, default = [160.], required=False,
@@ -428,6 +428,27 @@ def make_lya_aa_auto_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix='f
                   'pk-gauss-smoothing': 'pk_gauss_smoothing',
                   }
 
+    if rmin >= 21:
+        fix_SiIII1207_bias = 'fixed'
+        print('SiIII(1207) bias fixed to DR12 value as rmin is too large to fit it')
+    else:
+        fix_SiIII1207_bias = 'free'
+    if rmin >= 56:
+        fix_SiII1193_bias = 'fixed'
+        print('SiII(1193) bias fixed to DR12 value as rmin is too large to fit it')
+    else:
+        fix_SiII1193_bias = 'free'
+    if rmin >= 64:
+        fix_SiII1190_bias = 'fixed'
+        print('SiII(1190) bias fixed to DR12 value as rmin is too large to fit it')
+    else:
+        fix_SiII1190_bias = 'free'
+    if rmin >= 111:
+        fix_SiII1260_bias = 'fixed'
+        print('SiII(1260) bias fixed to DR12 value as rmin is too large to fit it')
+    else:
+        fix_SiII1260_bias = 'free'
+
     parameters_dict = {'ap':                            '1.     0.1     0.8     1.2     {}'.format(afix),
                        'at':                            '1.     0.1     0.8     1.2     {}'.format(afix),
                        'bao_amp':                       '1.     0.      None    None    fixed',
@@ -441,16 +462,16 @@ def make_lya_aa_auto_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix='f
                        'per binsize LYA(LYA)xLYA(LYA)': '4      0.      None    None    fixed',
                        'par_sigma_smooth':              '2.     2.      None    None    free',
                        'per_sigma_smooth':              '2.     2.      None    None    free',
-                       'bias_eta_SiII(1260)':           '-0.47E-3   0.01    None    None    free',
+                       'bias_eta_SiII(1260)':           '-0.15E-3   0.01    None    None    {}'.format(fix_SiII1260_bias),
                        'beta_SiII(1260)':               '0.5        0.      None    None    fixed',
                        'alpha_SiII(1260)':              '1.0        0.      None    None    fixed',
-                       'bias_eta_SiIII(1207)':          '-2.02E-3   0.01    None    None    free',
+                       'bias_eta_SiIII(1207)':          '-0.33E-3   0.01    None    None    {}'.format(fix_SiIII1207_bias),
                        'beta_SiIII(1207)':              '0.5        0.      None    None    fixed',
                        'alpha_SiIII(1207)':             '1.0        0.      None    None    fixed',
-                       'bias_eta_SiII(1193)':           '-1.18E-3   0.01    None    None    free',
+                       'bias_eta_SiII(1193)':           '-0.35E-3   0.01    None    None    {}'.format(fix_SiII1193_bias),
                        'beta_SiII(1193)':               '0.5        0.      None    None    fixed',
                        'alpha_SiII(1193)':              '1.0        0.      None    None    fixed',
-                       'bias_eta_SiII(1190)':           '-0.47E-3   0.01    None    None    free',
+                       'bias_eta_SiII(1190)':           '-0.44E-3   0.01    None    None    {}'.format(fix_SiII1190_bias),
                        'beta_SiII(1190)':               '0.5        0.      None    None    fixed',
                        'alpha_SiII(1190)':              '1.0        0.      None    None    fixed',
                        'bias_eta_LYB':                  '-0.47E-3   0.01    None    None    free',
