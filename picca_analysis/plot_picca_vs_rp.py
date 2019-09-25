@@ -15,12 +15,352 @@ dpi = 80
 show_plot = True
 save_plot = True
 filename = 'corr_plot_systematics.pdf'
+basedir = '/project/projectdirs/desi/users/jfarr/LyaCoLoRe_paper/'
 
+filename = 'lya_dla_cross_shuffled_forests.pdf'
+figsize=(16,8)
+subplots = {}
+subplots[(0,0)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_062/picca_00325/',
+                    'filename':         '/xcf_exp_norandoms.fits.gz',
+                    'corr_name':        'LYA(LYA)xDLA',
+                    #'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
+                    'rt_bins':          [(0.0,4.0),(20.0,24.0),(40.0,44.0)],
+                    'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
+                    'plot_data':        {'r_power': 0, 'nr': 40},
+                    'plot_picca_fit':   False,
+                    'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
+                    'plot_manual_fit':  True,
+                    'manual_fit_data':  {'b1': -0.119, 'b2': 2.0, 'beta1': 1.6, 'beta2': 0.48},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': 'data only', 'leg_loc': 'shared'},
+                    }
+subplots[(0,1)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_062/picca_00325/',
+                    'filename':         '/xcf_exp_randomsonly.fits.gz',
+                    'corr_name':        'LYA(LYA)xDLA',
+                    #'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
+                    'rt_bins':          [(0.0,4.0),(20.0,24.0),(40.0,44.0)],
+                    'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
+                    'plot_data':        {'r_power': 0, 'nr': 40},
+                    'plot_picca_fit':   False,
+                    'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
+                    'plot_manual_fit':  True,
+                    'manual_fit_data':  {'b1': -0.119, 'b2': 2.0, 'beta1': 1.6, 'beta2': 0.48},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': 'randoms only', 'leg_loc': 'shared'},
+}
+"""
+filename = 'lya_dla_cross_testnzqso_contributions.pdf'
+figsize=(16,16)
+subplots = {}
+subplots[(0,0)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_062/picca_00323/',
+                    'filename':         '/xcf_exp_norandoms.fits.gz',
+                    'corr_name':        'LYA(LYA)xDLA',
+                    #'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
+                    'rt_bins':          [(0.0,4.0),(20.0,24.0),(40.0,44.0)],
+                    'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
+                    'plot_data':        {'r_power': 0, 'nr': 40},
+                    'plot_picca_fit':   False,
+                    'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
+                    'plot_manual_fit':  True,
+                    'manual_fit_data':  {'b1': -0.119, 'b2': 2.0, 'beta1': 1.6, 'beta2': 0.48},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': '59 Q/sqd, data only', 'leg_loc': 'shared'},
+                    }
+subplots[(1,0)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_062/picca_00323/',
+                    'filename':         '/xcf_exp_randomsonly.fits.gz',
+                    'corr_name':        'LYA(LYA)xDLA',
+                    #'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
+                    'rt_bins':          [(0.0,4.0),(20.0,24.0),(40.0,44.0)],
+                    'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
+                    'plot_data':        {'r_power': 0, 'nr': 40},
+                    'plot_picca_fit':   False,
+                    'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
+                    'plot_manual_fit':  True,
+                    'manual_fit_data':  {'b1': -0.119, 'b2': 2.0, 'beta1': 1.6, 'beta2': 0.48},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': '59 Q/sqd, randoms only', 'leg_loc': 'shared'},
+                    }
+subplots[(0,1)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_062/picca_00324/',
+                    'filename':         '/xcf_exp_norandoms.fits.gz',
+                    'corr_name':        'LYA(LYA)xDLA',
+                    #'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
+                    'rt_bins':          [(0.0,4.0),(20.0,24.0),(40.0,44.0)],
+                    'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
+                    'plot_data':        {'r_power': 0, 'nr': 40},
+                    'plot_picca_fit':   False,
+                    'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
+                    'plot_manual_fit':  True,
+                    'manual_fit_data':  {'b1': -0.119, 'b2': 2.0, 'beta1': 1.6, 'beta2': 0.48},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': '118 Q/sqd, data only', 'leg_loc': 'shared'},
+                    }
+subplots[(1,1)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_062/picca_00324/',
+                    'filename':         '/xcf_exp_randomsonly.fits.gz',
+                    'corr_name':        'LYA(LYA)xDLA',
+                    #'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
+                    'rt_bins':          [(0.0,4.0),(20.0,24.0),(40.0,44.0)],
+                    'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
+                    'plot_data':        {'r_power': 0, 'nr': 40},
+                    'plot_picca_fit':   False,
+                    'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
+                    'plot_manual_fit':  True,
+                    'manual_fit_data':  {'b1': -0.119, 'b2': 2.0, 'beta1': 1.6, 'beta2': 0.48},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': '118 Q/sqd, randoms only', 'leg_loc': 'shared'},
+                    }
+
+"""
+"""
+filename = 'lya_dla_cross_randomsonly_lrcuts_altbins.pdf'
+figsize=(16,16)
+subplots = {}
+subplots[(0,0)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_053/picca_00281/',
+                    'filename':         'xcf_exp_randomsonly.fits.gz',
+                    'result_location':  basedir+'/analysis/correlation_functions/stack/fits/lya_auto__lya_dla_cross/',
+                    'result_name':      'result_lya_auto__lya_dla_cross_rmin40.0_rmax160.0_afree.h5',
+                    'corr_name':        'LYA(LYA)xDLA',
+                    #'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
+                    'rt_bins':          [(0.0,4.0),(20.0,24.0),(40.0,44.0)],
+                    'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
+                    'plot_data':        {'r_power': 0, 'nr': 40},
+                    'plot_picca_fit':   False,
+                    'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
+                    'plot_manual_fit':  True,
+                    'manual_fit_data':  {'b1': -0.119, 'b2': 2.0, 'beta1': 1.6, 'beta2': 0.48},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': r'$\lambda_{r,\rm{DLA}}<\lambda_{\rm{Ly}\alpha}$', 'leg_loc': 'shared'},
+                    }
+subplots[(0,1)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_054/picca_00286/',
+                    'filename':         'xcf_exp_randomsonly.fits.gz',
+                    'result_location':  basedir+'/analysis/correlation_functions/stack/fits/lya_auto__lya_dla_cross/',
+                    'result_name':      'result_lya_auto__lya_dla_cross_rmin40.0_rmax160.0_afree.h5',
+                    'corr_name':        'LYA(LYA)xDLA',
+                    #'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
+                    'rt_bins':          [(0.0,4.0),(20.0,24.0),(40.0,44.0)],
+                    'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
+                    'plot_data':        {'r_power': 0, 'nr': 40},
+                    'plot_picca_fit':   False,
+                    'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
+                    'plot_manual_fit':  True,
+                    'manual_fit_data':  {'b1': -0.119, 'b2': 2.0, 'beta1': 1.6, 'beta2': 0.48},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': r'$\lambda_{r,\rm{DLA}}<1200 \AA$', 'leg_loc': 'shared'},
+                    }
+subplots[(1,0)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_055/picca_00291/',
+                    'filename':         'xcf_exp_randomsonly.fits.gz',
+                    'result_location':  basedir+'/analysis/correlation_functions/stack/fits/lya_auto__lya_dla_cross/',
+                    'result_name':      'result_lya_auto__lya_dla_cross_rmin40.0_rmax160.0_afree.h5',
+                    'corr_name':        'LYA(LYA)xDLA',
+                    #'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
+                    'rt_bins':          [(0.0,4.0),(20.0,24.0),(40.0,44.0)],
+                    'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
+                    'plot_data':        {'r_power': 0, 'nr': 40},
+                    'plot_picca_fit':   False,
+                    'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
+                    'plot_manual_fit':  True,
+                    'manual_fit_data':  {'b1': -0.119, 'b2': 2.0, 'beta1': 1.6, 'beta2': 0.48},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': r'$\lambda_{r,\rm{DLA}}<1180 \AA$', 'leg_loc': 'shared'},
+                    }
+subplots[(1,1)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_056/picca_00296/',
+                    'filename':         'xcf_exp_randomsonly.fits.gz',
+                    'result_location':  basedir+'/analysis/correlation_functions/stack/fits/lya_auto__lya_dla_cross/',
+                    'result_name':      'result_lya_auto__lya_dla_cross_rmin40.0_rmax160.0_afree.h5',
+                    'corr_name':        'LYA(LYA)xDLA',
+                    #'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
+                    'rt_bins':          [(0.0,4.0),(20.0,24.0),(40.0,44.0)],
+                    'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
+                    'plot_data':        {'r_power': 0, 'nr': 40},
+                    'plot_picca_fit':   False,
+                    'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
+                    'plot_manual_fit':  True,
+                    'manual_fit_data':  {'b1': -0.119, 'b2': 2.0, 'beta1': 1.6, 'beta2': 0.48},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': r'$\lambda_{r,\rm{DLA}}<1160 \AA$', 'leg_loc': 'shared'},
+                    }
+"""
+"""
+filename = 'lya_dla_cross_stack_contributions.pdf'
+figsize=(18,8)
+subplots = {}
+subplots[(0,0)] =  {'location':         basedir+'/analysis/correlation_functions/stack/measurements/lya_dla_cross/',
+                    'filename':         '/correlations/xcf_exp_lya_dla_cross.fits.gz',
+                    'result_location':  basedir+'/analysis/correlation_functions/stack/fits/lya_auto__lya_dla_cross/',
+                    'result_name':      'result_lya_auto__lya_dla_cross_rmin40.0_rmax160.0_afree.h5',
+                    'corr_name':        'LYA(LYA)xDLA',
+                    #'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
+                    'rt_bins':          [(0.0,4.0),(20.0,24.0),(40.0,44.0)],
+                    'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
+                    'plot_data':        {'r_power': 0, 'nr': 40},
+                    'plot_picca_fit':   True,
+                    'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
+                    'plot_manual_fit':  False,
+                    'manual_fit_data':  {'b1': -0.119, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': 'standard removal', 'leg_loc': 'shared'},
+                    }
+subplots[(0,1)] =  {'location':         basedir+'/analysis/correlation_functions/stack/measurements/lya_dla_cross/',
+                    'filename':         '/correlations/xcf_exp_lya_dla_cross_norandoms.fits.gz',
+                    'result_location':  basedir+'/analysis/correlation_functions/stack/fits/lya_auto__lya_dla_cross/',
+                    'result_name':      'result_lya_auto__lya_dla_cross_rmin40.0_rmax160.0_afree.h5',
+                    'corr_name':        'LYA(LYA)xDLA',
+                    #'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
+                    'rt_bins':          [(0.0,4.0),(20.0,24.0),(40.0,44.0)],
+                    'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
+                    'plot_data':        {'r_power': 0, 'nr': 40},
+                    'plot_picca_fit':   True,
+                    'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
+                    'plot_manual_fit':  False,
+                    'manual_fit_data':  {'b1': -0.119, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': 'data only', 'leg_loc': 'shared'},
+                    }
+subplots[(0,2)] =  {'location':         basedir+'/analysis/correlation_functions/stack/measurements/lya_dla_cross/',
+                    'filename':         '/correlations/xcf_exp_lya_dla_cross_randomsonly.fits.gz',
+                    'result_location':  basedir+'/analysis/correlation_functions/stack/fits/lya_auto__lya_dla_cross/',
+                    'result_name':      'result_lya_auto__lya_dla_cross_rmin40.0_rmax160.0_afree.h5',
+                    'corr_name':        'LYA(LYA)xDLA',
+                    #'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
+                    'rt_bins':          [(0.0,4.0),(20.0,24.0),(40.0,44.0)],
+                    'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
+                    'plot_data':        {'r_power': 0, 'nr': 40},
+                    'plot_picca_fit':   True,
+                    'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
+                    'plot_manual_fit':  False,
+                    'manual_fit_data':  {'b1': -0.119, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': 'randoms only', 'leg_loc': 'shared'},
+                    }
+
+"""
+"""
 #Create a dictionary with all information about the subplots:
-filename = 'lya_dla_cross_zbins_compare.pdf'
+filename = 'lya_dla_cross_compare_dlalrcuts.pdf'
+figsize=(16,16)
+subplots = {}
+subplots[(0,0)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_053/picca_00281/',
+                    'filename':         'xcf_exp_randoms.fits.gz',
+                    'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
+                    #'rt_bins':          [(28.0,32.0),(32.0,36.0),(36.0,40.0),(40.0,44.0),(44.0,48.0)],
+                    'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
+                    'plot_data':        {'r_power': 0, 'nr': 40},
+                    'plot_picca_fit':   False,
+                    'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
+                    'plot_manual_fit':  True,
+                    'manual_fit_data':  {'b1': -0.119, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': r'$\lambda_{r,DLA} < \lambda_\alpha$', 'leg_loc': 'shared'},
+                    }
+subplots[(0,1)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_054/picca_00286/',
+                    'filename':         'xcf_exp_randoms.fits.gz',
+                    'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
+                    #'rt_bins':          [(28.0,32.0),(32.0,36.0),(36.0,40.0),(40.0,44.0),(44.0,48.0)],
+                    'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
+                    'plot_data':        {'r_power': 0, 'nr': 40},
+                    'plot_picca_fit':   False,
+                    'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
+                    'plot_manual_fit':  True,
+                    'manual_fit_data':  {'b1': -0.119, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': r'$\lambda_{r,DLA} < 1200 \AA$', 'leg_loc': 'shared'},
+                    }
+subplots[(1,0)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_055/picca_00291/',
+                    'filename':         'xcf_exp_randoms.fits.gz',
+                    'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
+                    #'rt_bins':          [(28.0,32.0),(32.0,36.0),(36.0,40.0),(40.0,44.0),(44.0,48.0)],
+                    'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
+                    'plot_data':        {'r_power': 0, 'nr': 40},
+                    'plot_picca_fit':   False,
+                    'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
+                    'plot_manual_fit':  True,
+                    'manual_fit_data':  {'b1': -0.119, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': r'$\lambda_{r,DLA} < 1180 \AA$', 'leg_loc': 'shared'},
+                    }
+subplots[(1,1)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_056/picca_00296/',
+                    'filename':         'xcf_exp_randoms.fits.gz',
+                    'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
+                    #'rt_bins':          [(28.0,32.0),(32.0,36.0),(36.0,40.0),(40.0,44.0),(44.0,48.0)],
+                    'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
+                    'plot_data':        {'r_power': 0, 'nr': 40},
+                    'plot_picca_fit':   False,
+                    'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
+                    'plot_manual_fit':  True,
+                    'manual_fit_data':  {'b1': -0.119, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': r'$\lambda_{r,DLA} < 1160 \AA$', 'leg_loc': 'shared'},
+                    }
+"""
+"""
+filename = 'lya_dla_cross_compare_dlalrbins.pdf'
+figsize=(16,16)
+subplots = {}
+subplots[(0,0)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_057/picca_00301/',
+                    'filename':         'xcf_exp_randoms.fits.gz',
+                    'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
+                    #'rt_bins':          [(28.0,32.0),(32.0,36.0),(36.0,40.0),(40.0,44.0),(44.0,48.0)],
+                    'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
+                    'plot_data':        {'r_power': 0, 'nr': 40},
+                    'plot_picca_fit':   False,
+                    'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
+                    'plot_manual_fit':  True,
+                    'manual_fit_data':  {'b1': -0.119, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': r'$1180 < \lambda_{r,DLA}\ [\AA]\ < \lambda_\alpha$', 'leg_loc': 'shared'},
+                    }
+subplots[(0,1)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_058/picca_00306/',
+                    'filename':         'xcf_exp_randoms.fits.gz',
+                    'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
+                    #'rt_bins':          [(28.0,32.0),(32.0,36.0),(36.0,40.0),(40.0,44.0),(44.0,48.0)],
+                    'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
+                    'plot_data':        {'r_power': 0, 'nr': 40},
+                    'plot_picca_fit':   False,
+                    'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
+                    'plot_manual_fit':  True,
+                    'manual_fit_data':  {'b1': -0.119, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': r'$1140 < \lambda_{r,DLA}\ [\AA]\ < 1180$', 'leg_loc': 'shared'},
+                    }
+subplots[(1,0)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_059/picca_00311/',
+                    'filename':         'xcf_exp_randoms.fits.gz',
+                    'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
+                    #'rt_bins':          [(28.0,32.0),(32.0,36.0),(36.0,40.0),(40.0,44.0),(44.0,48.0)],
+                    'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
+                    'plot_data':        {'r_power': 0, 'nr': 40},
+                    'plot_picca_fit':   False,
+                    'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
+                    'plot_manual_fit':  True,
+                    'manual_fit_data':  {'b1': -0.119, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': r'$1100 < \lambda_{r,DLA}\ [\AA]\ < 1140$', 'leg_loc': 'shared'},
+                    }
+subplots[(1,1)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_060/picca_00316/',
+                    'filename':         'xcf_exp_randoms.fits.gz',
+                    'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
+                    #'rt_bins':          [(28.0,32.0),(32.0,36.0),(36.0,40.0),(40.0,44.0),(44.0,48.0)],
+                    'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
+                    'plot_data':        {'r_power': 0, 'nr': 40},
+                    'plot_picca_fit':   False,
+                    'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
+                    'plot_manual_fit':  True,
+                    'manual_fit_data':  {'b1': -0.119, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': r'$1060 < \lambda_{r,DLA}\ [\AA]\ < 1100$', 'leg_loc': 'shared'},
+                    }
+"""
+"""
+filename = 'lya_dla_cross_compare_deltalr1200_deltadlalr1200.pdf'
+figsize=(16,8)
+subplots = {}
+subplots[(0,0)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_050/picca_00266/',
+                    'filename':         'xcf_exp_0.2_randoms.fits.gz',
+                    'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
+                    #'rt_bins':          [(28.0,32.0),(32.0,36.0),(36.0,40.0),(40.0,44.0),(44.0,48.0)],
+                    'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
+                    'plot_data':        {'r_power': 0, 'nr': 40},
+                    'plot_picca_fit':   False,
+                    'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
+                    'plot_manual_fit':  True,
+                    'manual_fit_data':  {'b1': -0.119, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': r'$\lambda_r < 1200 \AA$', 'leg_loc': 'shared'},
+                    }
+subplots[(0,1)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_052/picca_00276/',
+                    'filename':         'xcf_exp_0.2_randoms.fits.gz',
+                    'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
+                    #'rt_bins':          [(28.0,32.0),(32.0,36.0),(36.0,40.0),(40.0,44.0),(44.0,48.0)],
+                    'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
+                    'plot_data':        {'r_power': 0, 'nr': 40},
+                    'plot_picca_fit':   False,
+                    'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
+                    'plot_manual_fit':  True,
+                    'manual_fit_data':  {'b1': -0.119, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': r'$\lambda_r < 1200 \AA,\ \lambda_{r,DLA} < 1200 \AA$', 'leg_loc': 'shared'},
+                    }
+"""
+"""
+filename = 'lya_dla_cross_zbins_compare_deltalr1200_deltadlalr1200.pdf'
 figsize=(24,12)
 subplots = {}
-subplots[(0,0)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_049/picca_00262/',
+subplots[(0,0)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_050/picca_00267/',
                     'filename':         'xcf_exp_0.2_randoms_0.0_2.2.fits.gz',
                     'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
                     #'rt_bins':          [(28.0,32.0),(32.0,36.0),(36.0,40.0),(40.0,44.0),(44.0,48.0)],
@@ -32,7 +372,7 @@ subplots[(0,0)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output
                     'manual_fit_data':  {'b1': -0.09605, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
                     'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': r'$z_{\rm{QSO}}<2.2$', 'leg_loc': 'shared'},
                     }
-subplots[(0,1)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_049/picca_00263/',
+subplots[(0,1)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_050/picca_00268/',
                     'filename':         'xcf_exp_0.2_randoms_2.2_2.6.fits.gz',
                     'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
                     #'rt_bins':          [(28.0,32.0),(32.0,36.0),(36.0,40.0),(40.0,44.0),(44.0,48.0)],
@@ -44,7 +384,7 @@ subplots[(0,1)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output
                     'manual_fit_data':  {'b1': -0.1161, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
                     'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': r'$2.2<z_{\rm{QSO}}<2.6$', 'leg_loc': 'shared'},
                     }
-subplots[(0,2)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_049/picca_00264/',
+subplots[(0,2)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_050/picca_00269/',
                     'filename':         'xcf_exp_0.2_randoms_2.6_3.0.fits.gz',
                     'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
                     #'rt_bins':          [(28.0,32.0),(32.0,36.0),(36.0,40.0),(40.0,44.0),(44.0,48.0)],
@@ -56,7 +396,7 @@ subplots[(0,2)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output
                     'manual_fit_data':  {'b1': -0.1591, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
                     'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': r'$2.6<z_{\rm{QSO}}<3.0$', 'leg_loc': 'shared'},
                     }
-subplots[(0,3)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_049/picca_00265/',
+subplots[(0,3)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_050/picca_00270/',
                     'filename':         'xcf_exp_0.2_randoms_3.0_10.0.fits.gz',
                     'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
                     #'rt_bins':          [(28.0,32.0),(32.0,36.0),(36.0,40.0),(40.0,44.0),(44.0,48.0)],
@@ -68,8 +408,8 @@ subplots[(0,3)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output
                     'manual_fit_data':  {'b1': -0.2133, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
                     'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': r'$3.0<z_{\rm{QSO}}$', 'leg_loc': 'shared'},
                     }
-subplots[(1,0)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_049/picca_00257/',
-                    'filename':         'xcf_exp_randoms_0.0_2.2.fits.gz',
+subplots[(1,0)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_052/picca_00277/',
+                    'filename':         'xcf_exp_0.2_randoms_0.0_2.2.fits.gz',
                     'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
                     #'rt_bins':          [(28.0,32.0),(32.0,36.0),(36.0,40.0),(40.0,44.0),(44.0,48.0)],
                     'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
@@ -80,8 +420,8 @@ subplots[(1,0)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output
                     'manual_fit_data':  {'b1': -0.09605, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
                     'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': r'$z_{\rm{QSO}}<2.2$', 'leg_loc': 'shared'},
                     }
-subplots[(1,1)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_049/picca_00258/',
-                    'filename':         'xcf_exp_randoms_2.2_2.6.fits.gz',
+subplots[(1,1)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_052/picca_00278/',
+                    'filename':         'xcf_exp_0.2_randoms_2.2_2.6.fits.gz',
                     'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
                     #'rt_bins':          [(28.0,32.0),(32.0,36.0),(36.0,40.0),(40.0,44.0),(44.0,48.0)],
                     'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
@@ -92,8 +432,8 @@ subplots[(1,1)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output
                     'manual_fit_data':  {'b1': -0.1161, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
                     'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': r'$2.2<z_{\rm{QSO}}<2.6$', 'leg_loc': 'shared'},
                     }
-subplots[(1,2)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_049/picca_00259/',
-                    'filename':         'xcf_exp_randoms_2.6_3.0.fits.gz',
+subplots[(1,2)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_052/picca_00279/',
+                    'filename':         'xcf_exp_0.2_randoms_2.6_3.0.fits.gz',
                     'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
                     #'rt_bins':          [(28.0,32.0),(32.0,36.0),(36.0,40.0),(40.0,44.0),(44.0,48.0)],
                     'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
@@ -104,8 +444,8 @@ subplots[(1,2)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output
                     'manual_fit_data':  {'b1': -0.1591, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
                     'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': r'$2.6<z_{\rm{QSO}}<3.0$', 'leg_loc': 'shared'},
                     }
-subplots[(1,3)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_049/picca_00260/',
-                    'filename':         'xcf_exp_randoms_3.0_10.0.fits.gz',
+subplots[(1,3)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_052/picca_00280/',
+                    'filename':         'xcf_exp_0.2_randoms_3.0_10.0.fits.gz',
                     'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
                     #'rt_bins':          [(28.0,32.0),(32.0,36.0),(36.0,40.0),(40.0,44.0),(44.0,48.0)],
                     'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
@@ -117,7 +457,8 @@ subplots[(1,3)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output
                     'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': r'$3.0<z_{\rm{QSO}}$', 'leg_loc': 'shared'},
                     }
 """
-filename = 'lya_dla_cross_zbins.pdf'
+"""
+filename = 'lya_dla_cross_zbins_new0.5.pdf'
 figsize=(24,6)
 subplots = {}
 subplots[(0,0)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_049/picca_00257/',
@@ -158,6 +499,107 @@ subplots[(0,2)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output
                     }
 subplots[(0,3)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_049/picca_00260/',
                     'filename':         'xcf_exp_randoms_3.0_10.0.fits.gz',
+                    'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
+                    #'rt_bins':          [(28.0,32.0),(32.0,36.0),(36.0,40.0),(40.0,44.0),(44.0,48.0)],
+                    'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
+                    'plot_data':        {'r_power': 0, 'nr': 40},
+                    'plot_picca_fit':   False,
+                    'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
+                    'plot_manual_fit':  True,
+                    'manual_fit_data':  {'b1': -0.2133, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': r'$3.0<z_{\rm{QSO}}$', 'leg_loc': 'shared'},
+                    }
+"""
+"""
+filename = 'lya_dla_cross_zbins_new0.5_contributions.pdf'
+figsize=(24,12)
+subplots = {}
+subplots[(0,0)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_049/picca_00257/',
+                    'filename':         'xcf_exp_norandoms_0.0_2.2.fits.gz',
+                    'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
+                    #'rt_bins':          [(28.0,32.0),(32.0,36.0),(36.0,40.0),(40.0,44.0),(44.0,48.0)],
+                    'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
+                    'plot_data':        {'r_power': 0, 'nr': 40},
+                    'plot_picca_fit':   False,
+                    'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
+                    'plot_manual_fit':  True,
+                    'manual_fit_data':  {'b1': -0.09605, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': r'$z_{\rm{QSO}}<2.2$', 'leg_loc': 'shared'},
+                    }
+subplots[(0,1)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_049/picca_00258/',
+                    'filename':         'xcf_exp_norandoms_2.2_2.6.fits.gz',
+                    'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
+                    #'rt_bins':          [(28.0,32.0),(32.0,36.0),(36.0,40.0),(40.0,44.0),(44.0,48.0)],
+                    'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
+                    'plot_data':        {'r_power': 0, 'nr': 40},
+                    'plot_picca_fit':   False,
+                    'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
+                    'plot_manual_fit':  True,
+                    'manual_fit_data':  {'b1': -0.1161, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': r'$2.2<z_{\rm{QSO}}<2.6$', 'leg_loc': 'shared'},
+                    }
+subplots[(0,2)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_049/picca_00259/',
+                    'filename':         'xcf_exp_norandoms_2.6_3.0.fits.gz',
+                    'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
+                    #'rt_bins':          [(28.0,32.0),(32.0,36.0),(36.0,40.0),(40.0,44.0),(44.0,48.0)],
+                    'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
+                    'plot_data':        {'r_power': 0, 'nr': 40},
+                    'plot_picca_fit':   False,
+                    'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
+                    'plot_manual_fit':  True,
+                    'manual_fit_data':  {'b1': -0.1591, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': r'$2.6<z_{\rm{QSO}}<3.0$', 'leg_loc': 'shared'},
+                    }
+subplots[(0,3)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_049/picca_00260/',
+                    'filename':         'xcf_exp_norandoms_3.0_10.0.fits.gz',
+                    'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
+                    #'rt_bins':          [(28.0,32.0),(32.0,36.0),(36.0,40.0),(40.0,44.0),(44.0,48.0)],
+                    'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
+                    'plot_data':        {'r_power': 0, 'nr': 40},
+                    'plot_picca_fit':   False,
+                    'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
+                    'plot_manual_fit':  True,
+                    'manual_fit_data':  {'b1': -0.2133, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': r'$3.0<z_{\rm{QSO}}$', 'leg_loc': 'shared'},
+                    }
+subplots[(1,0)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_049/picca_00257/',
+                    'filename':         'xcf_exp_randomsonly_0.0_2.2.fits.gz',
+                    'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
+                    #'rt_bins':          [(28.0,32.0),(32.0,36.0),(36.0,40.0),(40.0,44.0),(44.0,48.0)],
+                    'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
+                    'plot_data':        {'r_power': 0, 'nr': 40},
+                    'plot_picca_fit':   False,
+                    'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
+                    'plot_manual_fit':  True,
+                    'manual_fit_data':  {'b1': -0.09605, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': r'$z_{\rm{QSO}}<2.2$', 'leg_loc': 'shared'},
+                    }
+subplots[(1,1)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_049/picca_00258/',
+                    'filename':         'xcf_exp_randomsonly_2.2_2.6.fits.gz',
+                    'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
+                    #'rt_bins':          [(28.0,32.0),(32.0,36.0),(36.0,40.0),(40.0,44.0),(44.0,48.0)],
+                    'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
+                    'plot_data':        {'r_power': 0, 'nr': 40},
+                    'plot_picca_fit':   False,
+                    'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
+                    'plot_manual_fit':  True,
+                    'manual_fit_data':  {'b1': -0.1161, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': r'$2.2<z_{\rm{QSO}}<2.6$', 'leg_loc': 'shared'},
+                    }
+subplots[(1,2)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_049/picca_00259/',
+                    'filename':         'xcf_exp_randomsonly_2.6_3.0.fits.gz',
+                    'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
+                    #'rt_bins':          [(28.0,32.0),(32.0,36.0),(36.0,40.0),(40.0,44.0),(44.0,48.0)],
+                    'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
+                    'plot_data':        {'r_power': 0, 'nr': 40},
+                    'plot_picca_fit':   False,
+                    'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
+                    'plot_manual_fit':  True,
+                    'manual_fit_data':  {'b1': -0.1591, 'b2': 2.0, 'beta1': 1.53, 'beta2': 0.48},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': r'$2.6<z_{\rm{QSO}}<3.0$', 'leg_loc': 'shared'},
+                    }
+subplots[(1,3)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_049/picca_00260/',
+                    'filename':         'xcf_exp_randomsonly_3.0_10.0.fits.gz',
                     'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
                     #'rt_bins':          [(28.0,32.0),(32.0,36.0),(36.0,40.0),(40.0,44.0),(44.0,48.0)],
                     'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
@@ -409,9 +851,11 @@ for key in subplots.keys():
     corr_obj = plot_functions.get_correlation_object(subplots[key])
     subplots[key]['corr_object'] = corr_obj
     plot_functions.plot_rt_bins_vs_rp(axs[key],subplots[key])
-    axs[key].set_ylim(-0.005,0.007)
-    axs[key].set_xlim(-75,75)
-    
+    #axs[key].set_ylim(-0.001,0.0025)
+    axs[key].set_ylim(-0.004,0.0025)
+    axs[key].set_xlim(-200,200)
+    axs[key].grid()
+
 #Save and show if desired.
 plt.tight_layout()
 if save_plot:
