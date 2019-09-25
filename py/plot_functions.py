@@ -591,6 +591,9 @@ def plot_wedges(fig,ax,plot_info):
     if plot_info['format']['title'] is not None:
         ax.set_title(plot_info['format']['title'])
 
+    #Add a zero line.
+    ax.axhline(y=0,c='lightgrey')
+
     return
 
 def plot_rp_bins_vs_rt(ax,plot_info):
@@ -630,6 +633,9 @@ def plot_rp_bins_vs_rt(ax,plot_info):
     if plot_info['format']['title'] is not None:
         ax.set_title(plot_info['format']['title'])
 
+    #Add a zero line.
+    ax.axhline(y=0,c='lightgrey')
+
     return
 
 def plot_rt_bins_vs_rp(ax,plot_info):
@@ -668,5 +674,8 @@ def plot_rt_bins_vs_rp(ax,plot_info):
     #Add a title if desired.
     if plot_info['format']['title'] is not None:
         ax.set_title(plot_info['format']['title'])
+
+    #Add a zero line.
+    ax.axhline(y=0,c='lightgrey')
 
     return
