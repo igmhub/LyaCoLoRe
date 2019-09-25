@@ -230,7 +230,7 @@ def stack_coadd_export_xcf(name,corr_dir,vers,zbins):
         fiin = []
         for ver in vers:
             fin = corr_dir + '/' + ver + '/measurements/' + name + '/correlations/xcf_{}_{}.fits.gz'.format(name,dt)
-            fii += [fin]
+            fiin += [fin]
         fout = smtc_dir + '/xcf_{}_{}.fits.gz'.format(name,dt)
         fouts[dt] = fout
         submit_utils.concatenate_subsamples(fiin,fout,'xcf')
@@ -297,14 +297,14 @@ def stack_coadd_export_co(name,corr_dir,vers,zbins):
         fiin = []
         for ver in vers:
             fin = corr_dir + '/' + ver + '/measurements/' + name + '/correlations/co_{}_{}.fits.gz'.format(name,dt)
-            fii += [fin]
+            fiin += [fin]
         fout = smtc_dir + '/co_{}_{}.fits.gz'.format(name,dt)
         fouts[dt] = fout
-        submit_utils.concatenate_subsamples(fiin,fout,'xcf')
+        submit_utils.concatenate_subsamples(fiin,fout,'co')
 
     #Export the outfile.
     fout_exp = smtc_dir + '/co_exp_{}.fits.gz'.format(name)
-    command='picca_export_co.py --DD-file {} --DR-file {} --RD-file {} --RR-file {} --do-not-smooth-cov'.format(fouts['DD'],fouts['DR'],fouts['RD'],fouts['RR'],fout_exp)
+    command='picca_export_co.py --DD-file {} --DR-file {} --RD-file {} --RR-file {} --out {} --do-not-smooth-cov'.format(fouts['DD'],fouts['DR'],fouts['RD'],fouts['RR'],fout_exp)
     retcode = call(command,shell=True)
 
     """
