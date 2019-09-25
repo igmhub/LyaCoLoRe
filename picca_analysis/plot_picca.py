@@ -9,7 +9,7 @@ from lyacolore import plot_functions
 ################################################################################
 
 #Housekeeping options.
-fontsize = 16
+fontsize = 18
 dpi = 80
 show_plot = True
 save_plot = True

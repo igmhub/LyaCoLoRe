@@ -9,7 +9,7 @@ from lyacolore import plot_functions
 ################################################################################
 
 #Housekeeping options.
-fontsize = 16
+fontsize = 18
 figsize = (12, 5)
 dpi = 80
 show_plot = True
@@ -411,7 +411,7 @@ for key in subplots.keys():
     plot_functions.plot_rt_bins_vs_rp(axs[key],subplots[key])
     axs[key].set_ylim(-0.005,0.007)
     axs[key].set_xlim(-75,75)
-    
+
 #Save and show if desired.
 plt.tight_layout()
 if save_plot:
