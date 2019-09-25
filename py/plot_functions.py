@@ -364,7 +364,6 @@ class picca_correlation:
         return
 
     def plot_grid(self,ax,mubin,plot_label,colour,r_power=2,nr=40,rmax_plot=160.):
-    #def plot_grid(self,plot_label,r_power,vmax=10**-4,xlabel='',ylabel='',label_fontsize=12,show_grid=True):
 
         im_grid = ImageGrid(fig, 111,          # as in plt.subplot(111)
                  nrows_ncols=(1,2),
@@ -612,6 +611,9 @@ def plot_wedges(fig,ax,plot_info):
         if plot_info['format']['title'] is not None:
             ax.set_title(plot_info['format']['title'])
 
+    #Add a zero line.
+    ax.axhline(y=0,c='lightgrey')
+
     return
 
 def plot_rp_bins_vs_rt(ax,plot_info):
@@ -651,6 +653,9 @@ def plot_rp_bins_vs_rt(ax,plot_info):
     if plot_info['format']['title'] is not None:
         ax.set_title(plot_info['format']['title'])
 
+    #Add a zero line.
+    ax.axhline(y=0,c='lightgrey')
+
     return
 
 def plot_rt_bins_vs_rp(ax,plot_info):
@@ -689,5 +694,8 @@ def plot_rt_bins_vs_rp(ax,plot_info):
     #Add a title if desired.
     if plot_info['format']['title'] is not None:
         ax.set_title(plot_info['format']['title'])
+
+    #Add a zero line.
+    ax.axhline(y=0,c='lightgrey')
 
     return
