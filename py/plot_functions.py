@@ -109,6 +109,11 @@ class picca_correlation:
             absoluteMu=abs_mu)
         r, xi_wed, cov_wed = b.wedge(self.xi,self.cov)
 
+        print(mubin)
+        print(r[:4])
+        print(xi_wed[:4])
+        print(' ')
+
         #Get the errors.
         Nr = len(r)
         err_wed = np.zeros(Nr)
@@ -294,6 +299,13 @@ class picca_correlation:
         xi_err_plot = xi_err*(r**r_power)
         xi_plot = xi*(r**r_power)
         ax.errorbar(rp,xi_plot,yerr=xi_err_plot,label=r'${:3.1f}<r_\perp<{:3.1f}$'.format(rtmin,rtmax),fmt='o',color=colour)
+
+        #Hack to plot residual
+        #xi_model_grid = self.fit['xi_grid'].reshape((self.np,self.nt))
+        #xi_model = np.average(xi_model_grid,weights=weights_grid,axis=1)
+        #xi_model_plot = xi_model*(r**r_power)
+        #ax.errorbar(rp,(xi_plot-xi_model_plot)/xi_model_plot,yerr=xi_err_plot,label=r'${:3.1f}<r_\perp<{:3.1f}$'.format(rtmin,rtmax),fmt='o',color=colour)
+
 
         return
 
@@ -560,10 +572,18 @@ def plot_wedges(fig,ax,plot_info):
         if plot_info['plot_picca_fit']:
             rmin_fit = plot_info['picca_fit_data']['rmin']
             rmax_fit = plot_info['picca_fit_data']['rmax']
-            corr_obj.plot_wedge_fit(ax,mubin,'',colour,**plot_info['plot_data'],rmin_fit=rmin_fit,rmax_fit=rmax_fit,abs_mu=abs_mu)
+            try:
+                fit_plot_data = plot_info['fit_plot_data']
+            except:
+                fit_plot_data = plot_info['plot_data']
+            corr_obj.plot_wedge_fit(ax,mubin,'',colour,**fit_plot_data,rmin_fit=rmin_fit,rmax_fit=rmax_fit,abs_mu=abs_mu)
         if plot_info['plot_manual_fit']:
             b1,b2,beta1,beta2 = plot_info['manual_fit_data'].values()
-            corr_obj.plot_wedge_manual_model(ax,b1,b2,beta1,beta2,mubin,'',colour,**plot_info['plot_data'])
+            try:
+                fit_plot_data = plot_info['fit_plot_data']
+            except:
+                fit_plot_data = plot_info['plot_data']
+            corr_obj.plot_wedge_manual_model(ax,b1,b2,beta1,beta2,mubin,'',colour,fit_plot_data)
 
     #Add axis labels.
     if plot_info['format']['xlabel']:
@@ -588,8 +608,9 @@ def plot_wedges(fig,ax,plot_info):
             ax.legend(loc=leg_loc)
 
     #Add a title if desired.
-    if plot_info['format']['title'] is not None:
-        ax.set_title(plot_info['format']['title'])
+    if 'title' in list(plot_info['format'].keys()):
+        if plot_info['format']['title'] is not None:
+            ax.set_title(plot_info['format']['title'])
 
     return
 
