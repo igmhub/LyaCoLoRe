@@ -186,7 +186,7 @@ if args.Pk1D_data is None:
     dr_hMpc = (R[-1] - R[0])/(R.shape[0] - 1)
 
     #Function to get deltas and ivar from each pixel.
-    def get_pixel_P1D(pixel,file_type='delta'):
+    def get_pixel_P1D(pixel,file_type='image'):
         if file_type == 'image':
             dirname = utils.get_dir_name(base_dir,pixel)
             filename = utils.get_file_name(dirname,'picca-'+quantity,N_side,pixel,compressed=args.compressed_input)
@@ -199,7 +199,7 @@ if args.Pk1D_data is None:
             filename = base_dir + '/delta-{}.fits.gz'.format(pixel)
             h = fits.open(filename)
             for hdu in h[1:]:
-                delta_rows =
+                delta_rows = None
         Pk1D_results = {}
         for z_value in z_values:
             k, Pk, var = Pk1D.get_Pk1D(delta_rows,ivar_rows,dr_hMpc,z,z_value=z_value
@@ -399,6 +399,11 @@ def plot_P1D_values(Pk1D_results,show_plot=True):
             k_shade = np.array([args.add_vline,args.k_max_plot*(1+extend)])
             y_shade_upper = np.array([ylim_upper*(1+extend)]*2)
             y_shade_lower = np.array([ylim_lower*(1-extend)]*2)
+            #Line to fade the area with a translucent white overlay.
+            #ax.fill_between(k_shade,y_shade_upper,y_shade_lower,linewidth=0.0,edgecolor=None,facecolor='white',alpha=0.5,zorder=4)
+            #Line to fade the area with a translucent white overlay.
+            #ax.fill_between(k_shade,y_shade_upper,y_shade_lower,linewidth=0.0,edgecolor=None,facecolor='grey',alpha=0.5,zorder=-1)
+            #Line to hash the area with grey lines.
             ax.fill_between(k_shade,y_shade_upper,y_shade_lower,linewidth=0.0,edgecolor='darkgrey',facecolor='none',hatch='/',zorder=4)
 
     #Add a legend, ensuring everything is in the right order.
