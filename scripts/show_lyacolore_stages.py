@@ -73,9 +73,13 @@ for i_skewer in i_skewers:
         if stages_2[i]:
             filename = utils.get_file_name(dirname,stages_2[i],N_side,pixel,compressed=True)
             h_2 = fits.open(filename)
-            mockid_2 = h[3].data['THING_ID'][i_skewer]
+            try:
+                i_skewer_2 = np.where(h[3].data['THING_ID']==mockid_1)[0][0]
+            except:
+                print('Skewer',mockid_1,'not found')
+                pass
             lambdas_2 = 10**h_2[2].data
-            skewer_2 = h_2[0].data[:,i_skewer]
+            skewer_2 = h_2[0].data[:,i_skewer_2]
             axs[i].plot(lambdas_2,skewer_2,label=label_2[i],color=style_dict[stages_2[i]]['c'],linestyle=style_dict[stages_2[i]]['ls'])
             print(mockid_2)
 
@@ -83,8 +87,8 @@ for i_skewer in i_skewers:
                 filename = utils.get_file_name(dirname,'gaussian-colore',N_side,pixel,compressed=True)
                 h = fits.open(filename)
                 lambdas_vel = lya*(1+h[4].data['Z'][:])
-                i_col = np.where(h[1].data['MOCKID']==mockid_2)[0][0]
-                #print(i_col)
+                i_col = np.where(h[1].data['MOCKID']==mockid_1)[0][0]
+                print(h[1].data['MOCKID'][i_col])
                 vel = h[3].data[i_col,:]
                 axs[i].plot(lambdas_vel,vel*5000,label='vel*5000',color='grey',linestyle=style_dict[stages_2[i]]['ls'])
 
