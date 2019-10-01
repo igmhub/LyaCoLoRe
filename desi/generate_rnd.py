@@ -9,14 +9,12 @@ from lyacolore import catalog,utils
 
 #Set up options
 factor = 10.0
-out_path = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v9/v9.0.0_full/master_randoms.fits'
-#out_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v8.0/v8.0.0/master_randoms.fits'
-#out_path = '/project/projectdirs/desi/users/jfarr/LyaCoLoRe_paper/data/LyaCoLoRe_output/v9.0.9/master_randoms.fits'
+#basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v9/v9.0.0_full/'
+basedir = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v9.0/v9.0.0/'
+out_path = basedir + '/master_randoms.fits'
+catalog_path = basedir + '/master.fits'
 method = 'from_catalog'
-catalog_path = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v9/v9.0.0_full/master.fits'
-#catalog_path = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v8.0/v8.0.0/master.fits'
-#catalog_path = '/project/projectdirs/desi/users/jfarr/LyaCoLoRe_paper/data/LyaCoLoRe_output/v9.0.9/master.fits'
-footprint = 'full_sky'
+footprint = 'desi_pixel_plus'
 nz_filename = 'input_files/Nz_qso_130618_2_colore1_hZs.txt'
 min_cat_z = 1.8
 max_cat_z = 3.79
@@ -24,7 +22,7 @@ overwrite = True
 N_side = 16
 start_MOCKID_rnd = 10**10
 
-def generate_rnd(factor=3, out_path= None, method='use_catalog', catalog_path=None, footprint=None, nz_filename='input_files/Nz_qso_130618_2_colore1_hZs.txt', min_cat_z=1.8, max_cat_z=4.0, overwrite=False, N_side=16,start_MOCKID_rnd=10**10):
+def generate_rnd(factor=3, out_path= None, method='use_catalog', catalog_path=None, footprint=None, nz_filename='input_files/Nz_qso_130618_2_colore1_hZs.txt', min_cat_z=1.8, max_cat_z=4.0, overwrite=False, N_side=16,start_MOCKID_rnd=10**10,seed=0):
     """
     Routine to generate a random catalog in 3D following
     certain N(z) distribution
@@ -35,6 +33,9 @@ def generate_rnd(factor=3, out_path= None, method='use_catalog', catalog_path=No
     out_path: Name of output file where randoms will be saved (default: None)
     method: Method to generate the random catalog (default: 'random_choice')
     """
+
+    #Set up a random sampler.
+    state = np.random.RandomState(seed)
 
     #Set up vectors from n(z) file.
     N_vec = 500
@@ -66,18 +67,20 @@ def generate_rnd(factor=3, out_path= None, method='use_catalog', catalog_path=No
         dndz_RSD,_ = np.histogram(z_master_RSD,bins=zedges)
 
         #Get ntot
-        ntot = factor*tab.shape[0]
+        print(tab.shape[0])
+        ntot = int(factor*tab.shape[0])
+        print(ntot)
 
         #Turn this into a cdf and draw redshifts from it
         cdf_RSD = np.cumsum(dndz_RSD)/np.sum(dndz_RSD)
         cdf_RSD_i = np.concatenate([[0],cdf_RSD])
         icdf_RSD = interp1d(cdf_RSD_i,zedges,fill_value=(0.,1.),bounds_error=False)
-        z_rnd = icdf_RSD(np.random.random(size=ntot)) + np.random.normal(size=ntot,scale=10**-6)
+        z_rnd = icdf_RSD(state.uniform(size=ntot)) + state.normal(size=ntot,scale=10**-6)
 
     elif method=='rnd_choice':
         #Method 2: choose from within the vectorisation of the dndz file.
         #This just seems like a less good version of 3?
-        z_rnd = np.random.choice(zvec,p=dndz/np.sum(dndz),size=ntot) + 2*np.random.normal(size=ntot,scale=dz)
+        z_rnd = state.choice(zvec,p=dndz/np.sum(dndz),size=ntot) + 2*state.normal(size=ntot,scale=dz)
 
     elif method=='cdf':
         #Method 3: Calculate the cumulative distribution and interpolate.
@@ -99,12 +102,31 @@ def generate_rnd(factor=3, out_path= None, method='use_catalog', catalog_path=No
         z_master_RSD = tab['Z_QSO_RSD']
         dz_rsd_master = z_master_RSD - z_master_NO_RSD
         sigma_rsd_master = np.std(dz_rsd_master)
-        z_rnd += np.random.normal(size=ntot,scale=sigma_rsd_master)
+        z_rnd += state.normal(size=ntot,scale=sigma_rsd_master)
 
     #Assign random positions on the sky to the QSOs.
-    ra_rnd = 360.*np.random.random(size=len(z_rnd))
-    cth_rnd = -1+2.*np.random.random(size=len(z_rnd))
+    #We have to iterate to ensure that the footprint is ok
+    ra_rnd = 360.*state.uniform(size=len(z_rnd))
+    cth_rnd = -1+2.*state.uniform(size=len(z_rnd))
     dec_rnd = np.arcsin(cth_rnd)*180/np.pi
+
+    QSO_filter = utils.make_QSO_filter(footprint)
+    good = QSO_filter(ra_rnd,dec_rnd)
+    ra_rnd = ra_rnd[good]
+    dec_rnd = dec_rnd[good]
+    nrnd = ra_rnd.shape[0]
+    while nrnd<ntot:
+        extra_ra_rnd = 360.*state.uniform(size=ntot)
+        extra_dec_rnd = -1+2.*state.uniform(size=ntot)
+        good = QSO_filter(extra_ra_rnd,extra_dec_rnd)
+        extra_ra_rnd = extra_ra_rnd[good]
+        extra_dec_rnd = extra_dec_rnd[good]
+        ra_rnd = np.concatenate((ra_rnd,extra_ra_rnd))
+        dec_rnd = np.concatenate((dec_rnd,extra_dec_rnd))
+        nrnd = ra_rnd.shape[0]
+    if nrnd>ntot:
+        ra_rnd = ra_rnd[:ntot]
+        dec_rnd = dec_rnd[:ntot]
 
     #Assign MOCKIDs to the QSOs, checking that there's no overlap with those in
     #the master file.
@@ -137,4 +159,4 @@ def generate_rnd(factor=3, out_path= None, method='use_catalog', catalog_path=No
     return
 
 # Execute
-generate_rnd(factor=factor,out_path=out_path,method=method,catalog_path=catalog_path,footprint=footprint,nz_filename=nz_filename,min_cat_z=min_cat_z,max_cat_z=max_cat_z,overwrite=overwrite,N_side=N_side,start_MOCKID_rnd=start_MOCKID_rnd)
+generate_rnd(factor=factor,out_path=out_path,method=method,catalog_path=catalog_path,footprint=footprint,nz_filename=nz_filename,min_cat_z=min_cat_z,max_cat_z=max_cat_z,overwrite=overwrite,N_side=N_side,start_MOCKID_rnd=start_MOCKID_rnd,seed=i)
