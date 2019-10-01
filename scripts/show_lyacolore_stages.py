@@ -56,7 +56,14 @@ for i_skewer in i_skewers:
         dirname = utils.get_dir_name(basedir,pixel)
         filename = utils.get_file_name(dirname,stages_1[i],N_side,pixel,compressed=True)
         h = fits.open(filename)
-        mockid_1 = h[3].data['THING_ID'][i_skewer]
+        if i == 0:
+            mockid_1 = h[3].data['THING_ID'][i_skewer]
+        else:
+            try:
+                i_skewer = np.where(h[3].data['THING_ID']==mockid_1)[0][0]
+            except:
+                print('Skewer',mockid_1,'not found')
+                pass
         lambdas = 10**h[2].data
         skewer = h[0].data[:,i_skewer]
         if add_one[i]:
