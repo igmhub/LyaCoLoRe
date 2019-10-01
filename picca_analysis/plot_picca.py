@@ -18,6 +18,127 @@ basedir = '/project/projectdirs/desi/users/jfarr/LyaCoLoRe_paper/'
 #Create a dictionary with all information about the subplots:
 
 """
+#Main method correlations plot.
+figsize = (12,6)
+filename = 'corr_plot_rmin40_joint.pdf'
+subplots = {}
+subplots[(0,0)] =  {'location':         basedir+'/analysis/correlation_functions/stack/measurements/lya_auto/',
+                    'filename':         '/correlations/cf_exp_lya_auto.fits.gz',
+                    #'result_location':  basedir+'/analysis/correlation_functions/stack/fits/lya_auto/',
+                    #'result_name':      'result_lya_auto_rmin40.0_rmax160.0_afree_smoothingfree.h5',
+                    'result_location':  basedir+'/analysis/correlation_functions/stack/fits/lya_auto__lya_qso_cross/',
+                    'result_name':      'result_lya_auto__lya_qso_cross_rmin40.0_rmax160.0_afree.h5',
+                    'corr_name':        'LYA(LYA)xLYA(LYA)',
+                    'abs_mu':           True,
+                    'mu_bins':          [(0.0,0.5),(0.5,0.8),(0.8,0.95),(0.95,1.0)],
+                    'mu_bin_colours':   ['C0','C1','C2','C3'],
+                    'plot_data':        {'r_power': 2, 'nr': 40, 'rmax_plot': 200.0},
+                    'plot_picca_fit':   True,
+                    'picca_fit_data':   {'rmin': 40., 'rmax':160., 'afix': 'free'},
+                    'plot_manual_fit':  False,
+                    'manual_fit_data':  {'b1': -0.1049, 'b2': -0.1049, 'beta1': 1.3783, 'beta2': 1.3783},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'leg_loc': 'shared'},
+                    }
+subplots[(0,1)] =  {'location':         basedir+'/analysis/correlation_functions/stack/measurements/lya_qso_cross/',
+                    'filename':         '/correlations/xcf_exp_lya_qso_cross.fits.gz',
+                    #'result_location':  basedir+'/analysis/correlation_functions/stack/fits/lya_qso_cross/',
+                    #'result_name':      'result_lya_qso_cross_rmin40.0_rmax160.0_afree_smoothingfree.h5',
+                    'result_location':  basedir+'/analysis/correlation_functions/stack/fits/lya_auto__lya_qso_cross/',
+                    'result_name':      'result_lya_auto__lya_qso_cross_rmin40.0_rmax160.0_afree.h5',
+                    'corr_name':        'LYA(LYA)xQSO',
+                    'abs_mu':           True,
+                    'mu_bins':          [(0.0,0.5),(0.5,0.8),(0.8,0.95),(0.95,1.0)],
+                    'mu_bin_colours':   ['C0','C1','C2','C3'],
+                    'plot_data':        {'r_power': 2, 'nr': 40, 'rmax_plot': 200.0},
+                    'plot_picca_fit':   True,
+                    'picca_fit_data':   {'rmin': 40., 'rmax':160., 'afix': 'free'},
+                    'plot_manual_fit':  False,
+                    'manual_fit_data':  {'b1': -0.133, 'b2': 2.0, 'beta1': 1.4, 'beta2': 0.79},
+                    'format':           {'legend': False, 'xlabel': True, 'ylabel': True, 'leg_loc': 'shared'},
+                    }
+"""
+"""
+figsize = (12,6)
+filename = 'corr_plot_systematics_rmin40.pdf'
+subplots = {}
+subplots[(0,0)] =  {'location':         basedir+'/analysis/correlation_functions/stack/measurements/lya_aa_auto/',
+                    'filename':         '/correlations/cf_exp_lya_aa_auto.fits.gz',
+                    'result_location':  basedir+'/analysis/correlation_functions/stack/fits/lya_aa_auto/',
+                    'result_name':      'result_lya_aa_auto_rmin40.0_rmax160.0_afree.h5',
+                    'corr_name':        'LYA(LYA)xLYA(LYA)',
+                    'abs_mu':           True,
+                    'mu_bins':          [(0.0,0.5),(0.5,0.8),(0.8,0.95),(0.95,1.0)],
+                    'mu_bin_colours':   ['C0','C1','C2','C3'],
+                    'plot_data':        {'r_power': 2, 'nr': 40, 'rmax_plot': 200.0},
+                    'plot_picca_fit':   True,
+                    'picca_fit_data':   {'rmin': 40., 'rmax':160., 'afix': 'free'},
+                    'plot_manual_fit':  False,
+                    'manual_fit_data':  {'b1': -0.1049, 'b2': -0.1049, 'beta1': 1.3783, 'beta2': 1.3783},
+                    'fit_plot_data':    {'r_power': 2, 'nr': 40, 'rmax_plot': 200.0},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'leg_loc': 'shared'},
+                    }
+subplots[(0,1)] =  {'location':         basedir+'/analysis/correlation_functions/stack/measurements/lya_dla_cross/',
+                    'filename':         '/correlations/xcf_exp_lya_dla_cross.fits.gz',
+                    'result_location':  basedir+'/analysis/correlation_functions/stack/fits/lya_dla_cross/',
+                    'result_name':      'result_lya_dla_cross_rmin40.0_rmax160.0_afree.h5',
+                    'corr_name':        'LYA(LYA)xDLA',
+                    'abs_mu':           True,
+                    'mu_bins':          [(0.0,0.5),(0.5,0.8),(0.8,0.95),(0.95,1.0)],
+                    'mu_bin_colours':   ['C0','C1','C2','C3'],
+                    'plot_data':        {'r_power': 2, 'nr': 40, 'rmax_plot': 200.0},
+                    'plot_picca_fit':   True,
+                    'picca_fit_data':   {'rmin': 40., 'rmax':160., 'afix': 'free'},
+                    'plot_manual_fit':  False,
+                    'manual_fit_data':  {'b1': -0.133, 'b2': 2.0, 'beta1': 1.4, 'beta2': 0.79},
+                    'fit_plot_data':    {'r_power': 2, 'nr': 40, 'rmax_plot': 200.0},
+                    'format':           {'legend': False, 'xlabel': True, 'ylabel': True, 'leg_loc': 'shared'},
+                    }
+"""
+"""
+figsize = (12,6)
+filename = 'corr_plot_qso_auto_rmin40.pdf'
+subplots = {}
+subplots[(0,0)] =  {'location':         basedir+'/analysis/correlation_functions/stack/measurements/qso_auto/',
+                    'filename':         'correlations/co_exp_qso_auto.fits.gz',
+                    'result_location':  basedir+'/analysis/correlation_functions/stack/fits/qso_auto/',
+                    'result_name':      'result_qso_auto_rmin40.0_rmax160.0_afree.h5',
+                    'corr_name':        'QSOxQSO',
+                    'abs_mu':           True,
+                    'mu_bins':          [(0.0,0.5),(0.5,0.8),(0.8,1.0)],
+                    'mu_bin_colours':   ['C0','C1','C2','C3'],
+                    'plot_data':        {'r_power': 2, 'nr': 40, 'rmax_plot': 200.0},
+                    'plot_picca_fit':   True,
+                    'picca_fit_data':   {'rmin': 40., 'rmax':160., 'afix': 'free'},
+                    'plot_manual_fit':  False,
+                    'manual_fit_data':  {'b1': -0.1049, 'b2': -0.1049, 'beta1': 1.3783, 'beta2': 1.3783},
+                    'fit_plot_data':    {'r_power': 2, 'nr': 40, 'rmax_plot': 200.0},
+                    'format':           {'legend': True, 'title': None, 'xlabel': True, 'ylabel': True, 'leg_loc': 'shared'},
+                    }
+"""
+
+
+
+figsize = (12,6)
+filename = 'lya_qso_cross_isotropic.pdf'
+subplots = {}
+subplots[(0,0)] =  {'location':         basedir+'/analysis/correlation_functions/stack/measurements/lya_qso_cross/',
+                    'filename':         '/correlations/xcf_exp_lya_qso_cross.fits.gz',
+                    #'result_location':  basedir+'/analysis/correlation_functions/stack/fits/lya_qso_cross/',
+                    #'result_name':      'result_lya_qso_cross_rmin40.0_rmax160.0_afree_smoothingfree.h5',
+                    'result_location':  basedir+'/analysis/correlation_functions/stack/fits/lya_auto__lya_qso_cross/',
+                    'result_name':      'result_lya_auto__lya_qso_cross_rmin40.0_rmax160.0_afree.h5',
+                    'corr_name':        'LYA(LYA)xQSO',
+                    'abs_mu':           True,
+                    'mu_bins':          [(0.0,1.0)],
+                    'mu_bin_colours':   ['C0','C1','C2','C3'],
+                    'plot_data':        {'r_power': 0, 'nr': 40, 'rmax_plot': 200.0},
+                    'plot_picca_fit':   True,
+                    'picca_fit_data':   {'rmin': 40., 'rmax':160., 'afix': 'free'},
+                    'plot_manual_fit':  False,
+                    'manual_fit_data':  {'b1': -0.133, 'b2': 2.0, 'beta1': 1.4, 'beta2': 0.79},
+                    'format':           {'legend': False, 'xlabel': True, 'ylabel': True, 'leg_loc': 'shared'},
+                    }
+"""
 figsize = (12,6)
 filename = 'compare_lya_qso_cross_covariances_stack.pdf'
 subplots = {}
@@ -148,46 +269,6 @@ subplots[(0,1)] =  {'location':         basedir+'/analysis/correlation_functions
                     }
 """
 """
-#Main method correlations plot.
-figsize = (12,6)
-filename = 'corr_plot_rmin40_joint.pdf'
-subplots = {}
-subplots[(0,0)] =  {'location':         basedir+'/analysis/correlation_functions/stack/measurements/lya_auto/',
-                    'filename':         '/correlations/cf_exp_lya_auto.fits.gz',
-                    #'result_location':  basedir+'/analysis/correlation_functions/stack/fits/lya_auto/',
-                    #'result_name':      'result_lya_auto_rmin40.0_rmax160.0_afree_smoothingfree.h5',
-                    'result_location':  basedir+'/analysis/correlation_functions/stack/fits/lya_auto__lya_qso_cross/',
-                    'result_name':      'result_lya_auto__lya_qso_cross_rmin40.0_rmax160.0_afree.h5',
-                    'corr_name':        'LYA(LYA)xLYA(LYA)',
-                    'abs_mu':           True,
-                    'mu_bins':          [(0.0,0.5),(0.5,0.8),(0.8,0.95),(0.95,1.0)],
-                    'mu_bin_colours':   ['C0','C1','C2','C3'],
-                    'plot_data':        {'r_power': 2, 'nr': 40, 'rmax_plot': 200.0},
-                    'plot_picca_fit':   True,
-                    'picca_fit_data':   {'rmin': 40., 'rmax':160., 'afix': 'free'},
-                    'plot_manual_fit':  False,
-                    'manual_fit_data':  {'b1': -0.1049, 'b2': -0.1049, 'beta1': 1.3783, 'beta2': 1.3783},
-                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'leg_loc': 'shared'},
-                    }
-subplots[(0,1)] =  {'location':         basedir+'/analysis/correlation_functions/stack/measurements/lya_qso_cross/',
-                    'filename':         '/correlations/xcf_exp_lya_qso_cross.fits.gz',
-                    #'result_location':  basedir+'/analysis/correlation_functions/stack/fits/lya_qso_cross/',
-                    #'result_name':      'result_lya_qso_cross_rmin40.0_rmax160.0_afree_smoothingfree.h5',
-                    'result_location':  basedir+'/analysis/correlation_functions/stack/fits/lya_auto__lya_qso_cross/',
-                    'result_name':      'result_lya_auto__lya_qso_cross_rmin40.0_rmax160.0_afree.h5',
-                    'corr_name':        'LYA(LYA)xQSO',
-                    'abs_mu':           True,
-                    'mu_bins':          [(0.0,0.5),(0.5,0.8),(0.8,0.95),(0.95,1.0)],
-                    'mu_bin_colours':   ['C0','C1','C2','C3'],
-                    'plot_data':        {'r_power': 2, 'nr': 40, 'rmax_plot': 200.0},
-                    'plot_picca_fit':   True,
-                    'picca_fit_data':   {'rmin': 40., 'rmax':160., 'afix': 'free'},
-                    'plot_manual_fit':  False,
-                    'manual_fit_data':  {'b1': -0.133, 'b2': 2.0, 'beta1': 1.4, 'beta2': 0.79},
-                    'format':           {'legend': False, 'xlabel': True, 'ylabel': True, 'leg_loc': 'shared'},
-                    }
-"""
-"""
 figsize = (12,6)
 filename = 'corr_plot_systematics_rmin20_metalsv9.0.0.pdf'
 subplots = {}
@@ -224,6 +305,7 @@ subplots[(0,1)] =  {'location':         basedir+'/analysis/correlation_functions
                     'format':           {'legend': False, 'xlabel': True, 'ylabel': True, 'leg_loc': 'shared'},
                     }
 """
+"""
 figsize = (12,6)
 filename = 'corr_plot_systematics_rmin40_sep_temp_dla_auto.pdf'
 subplots = {}
@@ -259,6 +341,7 @@ subplots[(0,1)] =  {'location':         basedir+'/analysis/correlation_functions
                     'manual_fit_data':  {'b1': -0.133, 'b2': 2.0, 'beta1': 1.4, 'beta2': 0.79},
                     'format':           {'legend': False, 'xlabel': True, 'ylabel': True, 'leg_loc': 'shared'},
                     }
+"""
 """
 figsize = (12,6)
 filename = 'corr_plot_systematics_rmin40_sep_temp_dla_auto.pdf'
@@ -582,8 +665,9 @@ for key in subplots.keys():
     if subplots[key]['format']['leg_loc'] == 'shared':
         share_legend = True
     subplots[key]['corr_object'] = corr_obj
-    plot_functions.plot_wedges(fig,axs[key],subplots[key])
+    plot_functions.plot_wedges(fig,axs[key],subplots[key],fontsize=fontsize)
 
+#plt.grid()
 #Save and show if desired.
 if share_legend:
     rect = (0,0.1,1,1.0)
