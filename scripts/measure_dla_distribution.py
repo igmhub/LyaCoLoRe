@@ -13,9 +13,15 @@ fN_cosmo = fN_default.cosmo
 use_pyigm = True
 
 include_RSDs = True
-basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test_DLA_sample/'
-#basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v9/v9.0.0_full/'
+#basedir = '/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/test_DLA_sample/'
+basedir = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/london/v9.0/v9.0.0/'
+#basedir = '/global/projecta/projectdirs/desi/mocks/lya_forest/develop/saclay/v4.4/v4.4.0/'
 qso_z_buffer=0.00
+
+save_plot = True
+ver = 'london_v9.0.0'
+f_filename = 'f_NHI_{}.pdf'.format(ver)
+dndz_filename = 'dndz_{}.pdf'.format(ver)
 
 #Open a DLA master file and extract the relevant data.
 h = fits.open(basedir+'/master_DLA.fits')
@@ -37,12 +43,11 @@ dla_NHI = dla_NHI[dla_filter]
 #Open the master file to get QSO information (needed for determining absorption length)
 h = fits.open(basedir+'/master.fits')
 z_qso = h['CATALOG'].data['Z_QSO_NO_RSD']
-z_cell = h['COSMO_COl'].data['Z']
 N_qso = z_qso.shape[0]
 h.close()
 
 #Function to measure dn/dz
-def measure_dndz(dla_z,dla_NHI,log_NHI_bin,z_bins,z_cell):
+def measure_dndz(dla_z,dla_NHI,log_NHI_bin,z_bins):
 
     #Filter the DLAs according to the bin in log NHI.
     log_NHI_min = log_NHI_bin[0]
@@ -83,7 +88,7 @@ def measure_dndz(dla_z,dla_NHI,log_NHI_bin,z_bins,z_cell):
     return z,dndz
 
 #Function to measure f(NHI)
-def measure_fNHI(dla_z,dla_NHI,z_bin,log_NHI_bin_edges,z_cell):
+def measure_fNHI(dla_z,dla_NHI,z_bin,log_NHI_bin_edges):
 
     #Make the NHI bins.
     log_NHI_bins = []
@@ -154,19 +159,20 @@ for k,N_int in enumerate(N_intervals):
     Nmin_bin = N_int[0]
     Nmax_bin = N_int[1]
 
-    z_values,dndz_measured = measure_dndz(dla_z,dla_NHI,N_int,z_bins,z_cell)
+    z_values,dndz_measured = measure_dndz(dla_z,dla_NHI,N_int,z_bins)
     plt.scatter(z_values,dndz_measured,marker='x',label=r'${}<\log N_{{HI}}<{}$'.format(Nmin_bin,Nmax_bin))
 
     dndz_model = DLA.dndz(z_edges,Nmin_bin,Nmax_bin)
     plt.plot(z_edges,dndz_model,c='C{}'.format(k),linestyle='--')
 
 plt.xlim(2.2,3.6)
-plt.ylim(0.0,3.5)
+plt.ylim(ymin=0.0,ymax=3.5)
 plt.xlabel(r'$z$')
 plt.ylabel(r'$\mathrm{{d}}n / \mathrm{{d}}z$')
 plt.legend()
 plt.grid()
-#plt.savefig('dndz_v7_improved__qsozbuffer{}.pdf'.format(qso_z_buffer))
+if save_plot:
+    plt.savefig(dndz_filename)
 plt.show()
 
 #Measure f(NHI)
@@ -180,7 +186,7 @@ for k,z_bin in enumerate(z_bins):
     print('looking at',z_bin)
 
     #Measure the f values and scatter plot.
-    z_val,log_NHI_values,f_values = measure_fNHI(dla_z,dla_NHI,z_bin,log_NHI_bin_edges,z_cell)
+    z_val,log_NHI_values,f_values = measure_fNHI(dla_z,dla_NHI,z_bin,log_NHI_bin_edges)
     non_empty = (f_values > 0)
     plt.scatter(log_NHI_values[non_empty],np.log10(f_values[non_empty]),label=r'$z={:1.2f}$'.format(z_val),c='C{}'.format(k),marker='x')
 
@@ -192,7 +198,7 @@ for k,z_bin in enumerate(z_bins):
     #plt.plot(log_NHI_values,(f_values-f_model_values)/(f_model_values),label=r'$z={:1.2f}$'.format(z_val),c='C{}'.format(k))
 
 #Control the axes etc of the plot.
-plt.xlim(17.0,23.0)
+plt.xlim(16.7,23.0)
 plt.ylim(-28.0,-17.0)
 #plt.xlim(18.5,20.0)
 #plt.ylim(-21.0,-20.0)
@@ -201,5 +207,6 @@ plt.ylabel(r'$\log(f(N_{{HI}}))$')
 plt.xlabel(r'$\log(N_{{HI}})$')
 plt.legend()
 plt.grid()
-#plt.savefig('f_NHI_v7_improved_qsozbuffer{}.pdf'.format(qso_z_buffer))
+if save_plot:
+    plt.savefig(f_filename)
 plt.show()
