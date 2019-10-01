@@ -11,7 +11,7 @@ basedir = "/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v9/v9.0.0_all_file
 N_side = 16
 pixel = 0
 #i_skewer = 11
-i_skewers = list(range(100))
+i_skewers = list(range(24,100))
 fontsize = 16
 figsize = (12,15)
 dpi = 80
@@ -48,6 +48,7 @@ N_types = len(plot_types)
 
 for i_skewer in i_skewers:
 
+    print(i_skewer)
     #Make the figure.
     fig, axs = plt.subplots(N_stages, N_types, sharex=True, figsize=figsize, dpi=dpi, facecolor='w', edgecolor='k')
 
@@ -60,7 +61,7 @@ for i_skewer in i_skewers:
         skewer = h[0].data[:,i_skewer]
         if add_one[i]:
             skewer += 1.
-        #print(mockid_1)
+        print(mockid_1)
         axs[i].plot(lambdas,skewer,label=label_1[i],color=style_dict[stages_1[i]]['c'],linestyle=style_dict[stages_1[i]]['ls'])
         if stages_2[i]:
             filename = utils.get_file_name(dirname,stages_2[i],N_side,pixel,compressed=True)
@@ -69,7 +70,7 @@ for i_skewer in i_skewers:
             lambdas_2 = 10**h_2[2].data
             skewer_2 = h_2[0].data[:,i_skewer]
             axs[i].plot(lambdas_2,skewer_2,label=label_2[i],color=style_dict[stages_2[i]]['c'],linestyle=style_dict[stages_2[i]]['ls'])
-            #print(mockid_2)
+            print(mockid_2)
 
             if 'RSD' in stages_2[i]:
                 filename = utils.get_file_name(dirname,'gaussian-colore',N_side,pixel,compressed=True)
@@ -80,7 +81,7 @@ for i_skewer in i_skewers:
                 vel = h[3].data[i_col,:]
                 axs[i].plot(lambdas_vel,vel*5000,label='vel*5000',color='grey',linestyle=style_dict[stages_2[i]]['ls'])
 
-        #print(' ')
+        print(' ')
 
         #Scale the axes nicely given the x axis limits.
         j_min = np.searchsorted(lambdas,lambda_min)
@@ -125,12 +126,14 @@ for i_skewer in i_skewers:
     l_to_r = interp1d(r,l)
     topax = axs[0].twiny()
 
+    """
     print(l[:5])
     print(r[:5])
     print(' ')
     print(l[5:10])
     print(r[5:10])
     print(' ')
+    """
 
     topax_values = [3940,3980,4020,4060]
     topax_locations = r_to_l(topax_values)
