@@ -160,14 +160,15 @@ def make_qso_auto_job_info(meas_dir,ver,zmin,zmax,zcat,zcat_rand,corr_type='DD',
 
 def make_dla_auto_job_info(meas_dir,ver,zmin,zmax,zcat,zcat_rand,corr_type='DD',time=None):
 
-    dir = meas_dir + '/dla_auto/'
+    dir = meas_dir + '/dla_auto_lrmin1040.0_lrmax1200.0/'
     out_dir = dir + '/correlations/'
     submit_utils.check_corr_dir(dir)
     if time is None:
         time = 24
+    time = nh_to_hhmmss(time)
 
     header_info = {'queue':    'regular',
-                   'time':     '{}:00:00'.format(int(time)),
+                   'time':     time,
                    'job_name': 'run_dla_auto_{}_{}_{}_{}'.format(corr_type,ver,zmin,zmax),
                    'err_file': 'dla_auto_{}_{}_{}_{}_%j.err'.format(corr_type,ver,zmin,zmax),
                    'out_file': 'dla_auto_{}_{}_{}_{}_%j.out'.format(corr_type,ver,zmin,zmax),
@@ -381,6 +382,20 @@ def make_qso_dla_cross_job_info(meas_dir,ver,zmin,zmax,zcat_qso,zcat_qso_rand,zc
 
 ################################################################################
 
+def nh_to_hhmmss(nh):
+    hh = int(np.floor(nh))
+    remh = nh - hh
+    mm = int(np.floor(remh*60))
+    remm = remh*60 - mm
+    ss = int(np.ceil(remm*60))
+    if ss==60:
+        ss = 0
+        mm += 1
+    hhmmss = '{:02d}:{:02d}:{:02d}'.format(hh,mm,ss)
+    return hhmmss
+
+################################################################################
+
 cf_zbins = [(0.0,2.0),(2.0,2.2),(2.2,2.4),(2.4,2.6),(2.6,2.8),(2.8,3.0),(3.0,3.4),(3.4,10.0)]
 xcf_zbins = cf_zbins
 co_zbins = xcf_zbins
@@ -407,17 +422,17 @@ job_time_dict = {'lya_auto':        {cf_zbins[0]: 4.,   cf_zbins[1]: 5.,   cf_zb
                                               co_zbins[4]: 7., co_zbins[5]: 7., co_zbins[6]: 7., co_zbins[7]: 7.,
                                               },
                                      },
-                 'dla_auto':        {'DD':   {co_zbins[0]: 2., co_zbins[1]: 2., co_zbins[2]: 2., co_zbins[3]: 2.,
-                                              co_zbins[4]: 2., co_zbins[5]: 2., co_zbins[6]: 2., co_zbins[7]: 2.,
+                 'dla_auto':        {'DD':   {co_zbins[0]: 1., co_zbins[1]: 1., co_zbins[2]: 1., co_zbins[3]: 1.,
+                                              co_zbins[4]: 1., co_zbins[5]: 1., co_zbins[6]: 1., co_zbins[7]: 1.,
                                               },
-                                     'RD':   {co_zbins[0]: 3., co_zbins[1]: 3., co_zbins[2]: 3., co_zbins[3]: 3.,
-                                              co_zbins[4]: 3., co_zbins[5]: 3., co_zbins[6]: 3., co_zbins[7]: 3.,
+                                     'RD':   {co_zbins[0]: 1., co_zbins[1]: 1., co_zbins[2]: 1., co_zbins[3]: 1.,
+                                              co_zbins[4]: 1., co_zbins[5]: 1., co_zbins[6]: 1., co_zbins[7]: 1.,
                                               },
-                                     'DR':   {co_zbins[0]: 3., co_zbins[1]: 3., co_zbins[2]: 3., co_zbins[3]: 3.,
-                                              co_zbins[4]: 3., co_zbins[5]: 3., co_zbins[6]: 3., co_zbins[7]: 3.,
+                                     'DR':   {co_zbins[0]: 1., co_zbins[1]: 1., co_zbins[2]: 1., co_zbins[3]: 1.,
+                                              co_zbins[4]: 1., co_zbins[5]: 1., co_zbins[6]: 1., co_zbins[7]: 1.,
                                               },
-                                     'RR':   {co_zbins[0]: 4., co_zbins[1]: 4., co_zbins[2]: 4., co_zbins[3]: 4.,
-                                              co_zbins[4]: 4., co_zbins[5]: 4., co_zbins[6]: 4., co_zbins[7]: 4.,
+                                     'RR':   {co_zbins[0]: 1.5, co_zbins[1]: 1.5, co_zbins[2]: 1.5, co_zbins[3]: 1.5,
+                                              co_zbins[4]: 1.5, co_zbins[5]: 1.5, co_zbins[6]: 1.5, co_zbins[7]: 1.5,
                                               },
                                      },
                  'lya_aa_auto':     {cf_zbins[0]: 4.,   cf_zbins[1]: 5.,   cf_zbins[2]: 15.,  cf_zbins[3]: 15.,
@@ -473,9 +488,9 @@ for v_rea in args.v_realisations:
     lya_deltas_loc = '{}/data/picca_input/{}/deltas_0.5/'.format(args.base_dir,ver)
     lya_aa_deltas_loc = '{}/data/picca_input/{}/deltas_0.5_Lyb_metals/'.format(args.base_dir,ver)
     zcat_qso_loc = '{}/data/picca_input/{}/zcat_0.5.fits'.format(args.base_dir,ver)
-    zcat_dla_loc = '{}/data/picca_input/{}/zcat_DLA_0.5.fits'.format(args.base_dir,ver)
+    zcat_dla_loc = '{}/data/picca_input/{}/zcat_DLA_0.5_lrmin1040.0_lrmax1200.0.fits'.format(args.base_dir,ver)
     zcat_qso_rand_loc = '{}/data/picca_input/{}/zcat_0.1_randoms.fits'.format(args.base_dir,ver)
-    zcat_dla_rand_loc = '{}/data/picca_input/{}/zcat_DLA_0.1_randoms.fits'.format(args.base_dir,ver)
+    zcat_dla_rand_loc = '{}/data/picca_input/{}/zcat_DLA_0.1_randoms_lrmin1040.0_lrmax1200.0.fits'.format(args.base_dir,ver)
 
     for zbin in cf_zbins:
 
