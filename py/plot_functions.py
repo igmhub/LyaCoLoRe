@@ -298,7 +298,7 @@ class picca_correlation:
         r = np.sqrt(rp**2 + rt**2)
         xi_err_plot = xi_err*(r**r_power)
         xi_plot = xi*(r**r_power)
-        ax.errorbar(rp,xi_plot,yerr=xi_err_plot,label=r'${:3.1f}<r_\perp<{:3.1f}$'.format(rtmin,rtmax),fmt='o',color=colour)
+        ar = ax.errorbar(rp,xi_plot,yerr=xi_err_plot,label=r'${:3.1f}<r_\perp<{:3.1f}$'.format(rtmin,rtmax),fmt='o',color=colour)
 
         #Hack to plot residual
         #xi_model_grid = self.fit['xi_grid'].reshape((self.np,self.nt))
@@ -307,7 +307,7 @@ class picca_correlation:
         #ax.errorbar(rp,(xi_plot-xi_model_plot)/xi_model_plot,yerr=xi_err_plot,label=r'${:3.1f}<r_\perp<{:3.1f}$'.format(rtmin,rtmax),fmt='o',color=colour)
 
 
-        return
+        return ar, plot_label
 
     def plot_rt_bin_vs_rp_fit(self,ax,rtbin,plot_label,colour,r_power=2,nr=40,rmax_plot=200.,rmin_fit=None,rmax_fit=None):
 
@@ -322,7 +322,11 @@ class picca_correlation:
 
         rt = np.average(self.rt_grid,weights=weights_grid,axis=1)
         rp = np.average(self.rp_grid,weights=weights_grid,axis=1)
-        xi_grid = self.fit['xi_grid'].reshape((self.np,self.nt))
+        
+        #TEMP haCK
+        #xi_grid = self.fit['xi_grid'].reshape((100,50))[:,:self.nt].reshape((self.np,self.nt))
+
+        #xi_grid = self.fit['xi_grid'].reshape((self.np,self.nt))
         xi = np.average(xi_grid,weights=weights_grid,axis=1)
 
         #Define the variables to plot, and plot them.
@@ -545,7 +549,7 @@ def bins_from_boundaries(boundaries):
 
     return bins
 
-def plot_wedges(fig,ax,plot_info):
+def plot_wedges(fig,ax,plot_info,fontsize):
 
     #Unpack the plot_info dictionary.
     corr_obj = plot_info['corr_object']
@@ -586,14 +590,14 @@ def plot_wedges(fig,ax,plot_info):
 
     #Add axis labels.
     if plot_info['format']['xlabel']:
-        ax.set_xlabel(r'$r\ [\mathrm{{Mpc}}/h]$')
+        ax.set_xlabel(r'$r\ [\mathrm{{Mpc}}/h]$',fontsize=fontsize)
     if plot_info['format']['ylabel']:
         if plot_info['plot_data']['r_power'] > 1:
-            ax.set_ylabel(r'$r^{:d}\ \xi (r)\ [(\mathrm{{Mpc}}\ h^{{-1}})^{{{:d}}}]$'.format(int(plot_info['plot_data']['r_power']),int(plot_info['plot_data']['r_power'])))
+            ax.set_ylabel(r'$r^{:d}\ \xi (r)\ [(\mathrm{{Mpc}}\ h^{{-1}})^{{{:d}}}]$'.format(int(plot_info['plot_data']['r_power']),int(plot_info['plot_data']['r_power'])),fontsize=fontsize)
         elif plot_info['plot_data']['r_power'] == 1:
-            ax.set_ylabel(r'$r\ \xi (r)\ [\mathrm{{Mpc}}\ h^{{-1}}]$')
+            ax.set_ylabel(r'$r\ \xi (r)\ [\mathrm{{Mpc}}\ h^{{-1}}]$',fontsize=fontsize)
         elif plot_info['plot_data']['r_power'] == 0:
-            ax.set_ylabel(r'$\xi (r)$')
+            ax.set_ylabel(r'$\xi (r)$',fontsize=fontsize)
 
     #Add a legend if desired.
     if plot_info['format']['legend']:
@@ -602,17 +606,17 @@ def plot_wedges(fig,ax,plot_info):
         except:
             leg_loc = 0
         if leg_loc == 'shared':
-            fig.legend(artists,labels,loc='lower center',borderaxespad=0,bbox_to_anchor=(0.5,0.05),ncol=len(plot_info['mu_bins']))
+            fig.legend(artists,labels,loc='lower center',borderaxespad=0,bbox_to_anchor=(0.5,0.05),ncol=len(plot_info['mu_bins']),fontsize=fontsize)
         else:
-            ax.legend(loc=leg_loc)
+            ax.legend(loc=leg_loc,fontsize=fontsize)
 
     #Add a title if desired.
     if 'title' in list(plot_info['format'].keys()):
         if plot_info['format']['title'] is not None:
-            ax.set_title(plot_info['format']['title'])
+            ax.set_title(plot_info['format']['title'],fontsize=fontsize)
 
     #Add a zero line.
-    ax.axhline(y=0,c='lightgrey')
+    #ax.axhline(y=0,c='lightgrey')
 
     return
 
@@ -658,16 +662,21 @@ def plot_rp_bins_vs_rt(ax,plot_info):
 
     return
 
-def plot_rt_bins_vs_rp(ax,plot_info):
+def plot_rt_bins_vs_rp(fig,ax,plot_info,fontsize):
 
     #Unpack the plot_info dictionary.
     corr_obj = plot_info['corr_object']
 
+    artists = []
+    labels = []
+
     for i,rtbin in enumerate(plot_info['rt_bins']):
         #Plot the data.
-        plot_label = r'${}<r_\parallel<{}$'.format(rtbin[0],rtbin[1])
+        plot_label = r'${}<r_\perp<{}$'.format(rtbin[0],rtbin[1])
         colour = plot_info['rt_bin_colours'][i]
-        corr_obj.plot_rt_bin_vs_rp(ax,rtbin,plot_label,colour,**plot_info['plot_data'])
+        ar,lab = corr_obj.plot_rt_bin_vs_rp(ax,rtbin,plot_label,colour,**plot_info['plot_data'])
+        artists += [ar]
+        labels += [lab]
 
         #Add a model or fit.
         if plot_info['plot_picca_fit']:
@@ -678,24 +687,31 @@ def plot_rt_bins_vs_rp(ax,plot_info):
 
     #Add axis labels.
     if plot_info['format']['xlabel']:
-        ax.set_xlabel(r'$r_\parallel\ [\mathrm{{Mpc}}/h]$')
+        ax.set_xlabel(r'$r_\parallel\ [\mathrm{{Mpc}}/h]$',fontsize=fontsize)
     if plot_info['format']['ylabel']:
         if plot_info['plot_data']['r_power'] > 1:
-            ax.set_ylabel(r'$r^{:d}\ \xi (r)\ [(\mathrm{{Mpc}}\ h^{{-1}})^{{{:d}}}]$'.format(int(plot_info['plot_data']['r_power']),int(plot_info['plot_data']['r_power'])))
+            ax.set_ylabel(r'$r^{:d}\ \xi (r)\ [(\mathrm{{Mpc}}\ h^{{-1}})^{{{:d}}}]$'.format(int(plot_info['plot_data']['r_power']),int(plot_info['plot_data']['r_power'])),fontsize=fontsize)
         elif plot_info['plot_data']['r_power'] == 1:
-            ax.set_ylabel(r'$r\ \xi (r)\ [\mathrm{{Mpc}}\ h^{{-1}}]$')
+            ax.set_ylabel(r'$r\ \xi (r)\ [\mathrm{{Mpc}}\ h^{{-1}}]$',fontsize=fontsize)
         elif plot_info['plot_data']['r_power'] == 0:
-            ax.set_ylabel(r'$\xi (r)$')
+            ax.set_ylabel(r'$\xi (r)$',fontsize=fontsize)
 
     #Add a legend if desired.
     if plot_info['format']['legend']:
-        ax.legend()
+        try:
+            leg_loc = plot_info['format']['leg_loc']
+        except:
+            leg_loc = 0
+        if leg_loc == 'shared':
+            fig.legend(artists,labels,loc='lower center',borderaxespad=0,bbox_to_anchor=(0.5,0.05),ncol=len(plot_info['rt_bins']),fontsize=fontsize)
+        else:
+            ax.legend(loc=leg_loc,fontsize=fontsize)
 
     #Add a title if desired.
     if plot_info['format']['title'] is not None:
-        ax.set_title(plot_info['format']['title'])
+        ax.set_title(plot_info['format']['title'],fontsize=fontsize)
 
     #Add a zero line.
-    ax.axhline(y=0,c='lightgrey')
+    ax.axhline(y=0,c='lightgrey',zorder=-1)
 
     return
