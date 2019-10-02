@@ -14,8 +14,8 @@ But the code should be able to run without it.
 
 It is also good to add the path to LyaCoLoRe to your .bashrc file as follows:
 
-```export
-LYACOLORE_PATH=<path to LyaCoLoRe>
+```bash
+export LYACOLORE_PATH=<path to LyaCoLoRe>
 ```
 
 ## Examples
