@@ -1,5 +1,9 @@
-# path to LyaCoLoRe
-LYACOLORE_PATH="/Users/James//Projects/LyaCoLoRe/"
+# clear out the old example data
+rm -r $LYACOLORE_PATH/example_data/lya_skewers/*
+
+# choose which pixels to run on
+# note, only pixels xxx to yyy are included in the example data
+PIXELS=`seq 0 10`
 
 # specify number of cores to use
 NCORES=1
@@ -25,7 +29,7 @@ TRANS_LMAX=6500.0
 TRANS_DL=0.2
 
 # specify process flags
-MM_FLAGS="--overwrite --pixels 0"
+MM_FLAGS="--overwrite --pixels $PIXELsS"
 MT_FLAGS="--add-DLAs --add-RSDs --add-small-scale-fluctuations --overwrite --compress"
 
 # specify details of colore output
@@ -43,11 +47,6 @@ echo "input will be taken from "$INPUT_PATH
 INPUT_FILES=`ls -1 ${INPUT_PATH}/out_srcs_*.fits`
 NFILES=`echo $INPUT_FILES | wc -w`
 echo "${NFILES} input files have been found"
-
-# code version
-V_CODE_MAJ="7"
-V_CODE_MIN="0"
-V_REALISATION="0"
 
 # full path to folder where output will be written
 OUTPUT_PATH="${LYACOLORE_PATH}/example_data/lya_skewers/"
