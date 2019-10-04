@@ -9,20 +9,19 @@ To install, run
 python setup.py install --user
 ```
 
-
-It is also helpful to include `LyaCoLoRe/py` in your `PYTHONPATH`, with something like:
+Then you need to include `LyaCoLoRe/py` in your `PYTHONPATH`, with something like:
 ```bash
 export PYTHONPATH=$PYTHONPATH:<path to LyaCoLoRe>/py
 ```
 
-If you would like to add DLAs using the best avaiable code, you'll need to `pip install pyigm`.
-But the code should be able to run without it.
-
-It is also good to add the path to LyaCoLoRe to your .bashrc file as follows:
+and then add the path to LyaCoLoRe to your .bashrc file as follows:
 
 ```bash
 export LYACOLORE_PATH=<path to LyaCoLoRe>
 ```
+
+If you would like to add DLAs using the best avaiable code, you'll need to install pyigm, the instructions for which are at https://github.com/pyigm/pyigm/blob/master/docs/install.rst.
+The code should be able to run without it, but the DLA distributions will be more basic.
 
 ## Examples
 You can find some examples under `example_scripts/`. For instance, you can:
