@@ -4,9 +4,15 @@ It is imortant to notice that the output files of CoLoRe are the input ones for 
 and LyaCoLoRe's outputs will be the transmission files.
 
 ## Install
-To install, include `LyaCoLoRe/py` in your `PYTHONPATH`, with something like:
+To install, run
 ```bash
-export PYTHONPATH=$PYTHONPATH:$HOME/Programs/igmhub/LyaCoLoRe/py
+python setup.py install --user
+```
+
+
+It is also helpful to include `LyaCoLoRe/py` in your `PYTHONPATH`, with something like:
+```bash
+export PYTHONPATH=$PYTHONPATH:<path to LyaCoLoRe>/py
 ```
 
 If you would like to add DLAs using the best avaiable code, you'll need to `pip install pyigm`.
