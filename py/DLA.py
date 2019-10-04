@@ -115,13 +115,13 @@ def get_NHI(z, NHI_min=17.2, NHI_max=22.5, NHI_nsamp=100):
 
         times += [time.time()-t]
         t = time.time()
-        
+
         #Calculate the probaility of each NHI bin.
         aux = f*np.outer(NHI_widths,np.ones(z.shape))
-        
+
         times += [time.time()-t]
         t = time.time()
-    
+
         probs = (aux/np.sum(aux,axis=0)).T
 
         times += [time.time()-t]
@@ -130,8 +130,8 @@ def get_NHI(z, NHI_min=17.2, NHI_max=22.5, NHI_nsamp=100):
     else:
 
         # TODO: test this
-        probs_low = dnHD_dz_cumlgN(z,nn[:-1]).T
-        probs_high = dnHD_dz_cumlgN(z,nn[1:]).T
+        probs_low = dnHD_dz_cumlgN(z,log_NHI_edges[:-1]).T
+        probs_high = dnHD_dz_cumlgN(z,log_NHI_edges[1:]).T
         probs[:,1:] = probs_high-probs_low
 
     times += [time.time()-t]
