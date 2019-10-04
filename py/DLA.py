@@ -83,7 +83,7 @@ def dndz(z, NHI_min=17.2, NHI_max=22.5):
         dndz = dndX * dXdz
         return dndz
     else:
-        return dnHD_dz_cumlgN(z,Nmax)-dnHD_dz_cumlgN(z,Nmin)
+        return dnHD_dz_cumlgN(z,NHI_max)-dnHD_dz_cumlgN(z,NHI_min)
 
 def get_NHI(z, NHI_min=17.2, NHI_max=22.5, NHI_nsamp=100):
     """ Get random column densities for a given z
