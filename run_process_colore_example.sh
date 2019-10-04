@@ -30,7 +30,8 @@ TRANS_DL=0.2
 
 # specify process flags
 MM_FLAGS="--overwrite --pixels $PIXELsS"
-MT_FLAGS="--add-DLAs --add-RSDs --add-small-scale-fluctuations --overwrite --compress"
+MT_FLAGS="--add-DLAs --add-RSDs --add-small-scale-fluctuations --overwrite --compress --transmission-only"
+MS_FLAGS="--overwrite --compress --transmission-only --compressed-input"
 
 # specify details of colore output
 COLORE_NGRID=4096
@@ -84,6 +85,6 @@ command="${PROCESS_PATH}/make_transmission.py --in-dir ${INPUT_PATH} --out-dir $
 $command
 
 echo "producing analysis pixels"
-command="${PROCESS_PATH}/make_summaries.py --base-dir ${OUTPUT_PATH} --nproc ${NCORES} --pixels ${PIXELS} --overwrite --picca-N-merge-values 1 10 --compressed-input"
+command="${PROCESS_PATH}/make_summaries.py --base-dir ${OUTPUT_PATH} --nproc ${NCORES} --pixels ${PIXELS} --overwrite --picca-N-merge-values 1 10 --compressed-input --compress ${MS_FLAGS}"
 $command
 
