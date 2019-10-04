@@ -16,17 +16,17 @@ out_path = basedir+'/master_DLA_randoms.fits'
 method = 'from_catalog'
 DLA_catalog_path = basedir+'/master_DLA.fits'
 QSO_catalog_path = basedir+'/master.fits'
-footprint = 'full_sky'
+footprint = 'desi_pixel_plus'
 lambda_min = 3470.
 lambda_max = 6550.
 NHI_min = 17.2
 NHI_max = 22.5
 overwrite = True
 N_side = 16
-add_NHI = True
+add_NHI = False
 start_DLAID_rnd = 10**12
 
-def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_path=None, footprint='desi_pixel_plus', lambda_min=3470., lambda_max=6550., NHI_min=17.2, NHI_max=22.5, overwrite=False, N_side=16, add_NHI=True, method='from_catalog', start_DLAID_rnd=10**12):
+def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_path=None, footprint='desi_pixel_plus', lambda_min=3470., lambda_max=6550., NHI_min=17.2, NHI_max=22.5, overwrite=False, N_side=16, add_NHI=True, method='from_catalog', start_DLAID_rnd=10**12, seed=0):
     """
     Routine to generate a random catalog in 3D following
     certain N(z) distribution
@@ -36,6 +36,9 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
     factor: Size of the generated catalog (before masking)
     out_path: Output path
     """
+
+    #Set up a random sampler.
+    state = np.random.RandomState(seed)
 
     #Generate a z vector and the dn/dz function.
     zmin = lambda_min/lya - 1
@@ -48,7 +51,7 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
     #Get data about the QSO sample.
     h = fits.open(QSO_catalog_path)
     QSO_data = h['CATALOG'].data
-    QSO_data.sort(order='Z_QSO_RSD')
+    QSO_data.sort(order='Z_QSO_NO_RSD')
     RA = QSO_data['RA']
     DEC = QSO_data['DEC']
     z_qso = QSO_data['Z_QSO_NO_RSD']
@@ -79,13 +82,12 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
 
         #Calculate n_total from the number in the catalog.
         ntot = int(n_DLA_cat * factor)
-        print(ntot)
 
         #Turn dn/dz into a cdf and draw redshifts from it.
         cdf_RSD = np.cumsum(dndz_RSD)/np.sum(dndz_RSD)
         cdf_RSD_i = np.concatenate([[0],cdf_RSD])
         icdf_RSD = interp1d(cdf_RSD_i,zedges,fill_value=(0.,1.),bounds_error=False)
-        z_rnd = icdf_RSD(np.random.random(size=ntot))
+        z_rnd = icdf_RSD(state.uniform(size=ntot))
 
         #Exclude DLAs that are beyond the furthest QSO.
         #In reality should these be excluded?
@@ -105,7 +107,7 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
             low = 0
             while valid == False:
                 #Choose a random skewer.
-                skw_id = np.random.randint(low=low,high=n_qso)
+                skw_id = state.randint(low=low,high=n_qso)
                 #print(low,n_qso,skw_id)
                 n_att += 1
                 #If the QSO is valid, stop searching.
@@ -118,12 +120,13 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
                     loc = np.searchsorted(z_qso,dla_z_value)
                     #If there exist valid skewers, choose one of them.
                     if loc < n_qso:
-                        skw_id = np.random.randint(low=loc,high=n_qso)
+                        skw_id = state.randint(low=loc,high=n_qso)
                         valid = True
                     #Otherwise exit.
                     else:
                         break
                 else:
+                    #print('\nSkewer',skw_id,'is too low at',z_qso[skw_id],'for dla with z',dla_z_value,'. Look at',skw_id+1,'out of',n_qso)
                     low = skw_id+1
             #If a valid skewer was found, store the information.
             if valid:
@@ -150,7 +153,7 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
         cdf = np.cumsum(dndz)/np.sum(dndz)
         cdf_i = np.concatenate([[0],cdf])
         icdf = interp1d(cdf_i,zedges,fill_value=(0.,1.),bounds_error=False)
-        z_rnd = icdf(np.random.random(size=ntot))
+        z_rnd = icdf(state.uniform(size=ntot))
 
         #Measure sigma_RSD from the catalog and apply it as a Gaussian shift.
         if DLA_catalog_path is None:
@@ -160,7 +163,7 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
         z_master_RSD = tab['Z_DLA_RSD']
         dz_rsd_master = z_master_RSD - z_master_NO_RSD
         sigma_rsd_master = np.std(dz_rsd_master)
-        z_rnd += np.random.normal(size=ntot,scale=sigma_rsd_master)
+        z_rnd += state.normal(size=ntot,scale=sigma_rsd_master)
 
         dla_z = np.zeros(ntot)
         dla_skw_id = np.zeros(ntot,dtype='int32')
@@ -169,7 +172,7 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
         #For each DLA, place it in a skewer at random. Only keep it if it has
         #redshift lower than the QSO's.
         for i,dla_z_value in enumerate(z_rnd):
-            skw_id = np.random.choice(n_qso)
+            skw_id = state.choice(n_qso)
             if dla_z_value < z_qso[skw_id]:
                 dla_z[dla_count] = dla_z_value
                 dla_skw_id[dla_count] = skw_id
@@ -217,4 +220,4 @@ def generate_rnd(factor=3, out_path=None , DLA_catalog_path=None, QSO_catalog_pa
     return
 
 # Execute
-generate_rnd(factor=factor,out_path=out_path,DLA_catalog_path=DLA_catalog_path,QSO_catalog_path=QSO_catalog_path,footprint=footprint,lambda_min=lambda_min,lambda_max=lambda_max,NHI_min=NHI_min,NHI_max=NHI_max,overwrite=overwrite,N_side=N_side,add_NHI=add_NHI,method=method,start_DLAID_rnd=start_DLAID_rnd)
+generate_rnd(factor=factor,out_path=out_path,DLA_catalog_path=DLA_catalog_path,QSO_catalog_path=QSO_catalog_path,footprint=footprint,lambda_min=lambda_min,lambda_max=lambda_max,NHI_min=NHI_min,NHI_max=NHI_max,overwrite=overwrite,N_side=N_side,add_NHI=add_NHI,method=method,start_DLAID_rnd=start_DLAID_rnd,seed=i)

@@ -12,6 +12,12 @@ export PYTHONPATH=$PYTHONPATH:$HOME/Programs/igmhub/LyaCoLoRe/py
 If you would like to add DLAs using the best avaiable code, you'll need to `pip install pyigm`.
 But the code should be able to run without it.
 
+It is also good to add the path to LyaCoLoRe to your .bashrc file as follows:
+
+```bash
+export LYACOLORE_PATH=<path to LyaCoLoRe>
+```
+
 ## Examples
 You can find some examples under `example_scripts/`. For instance, you can:
 

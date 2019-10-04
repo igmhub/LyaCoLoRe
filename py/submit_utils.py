@@ -2,6 +2,7 @@ import numpy as np
 from subprocess import call
 import argparse
 import os
+import fitsio
 
 #Function to make the header at the top of each run script.
 def make_header(queue='regular',nnodes=1,time='01:00:00',job_name='run_script',err_file='run-%j.err',out_file='run-%j.out'):
@@ -138,7 +139,7 @@ def concatenate_subsamples(fi,fout,corr_type):
         comment=['R-parallel','R-transverse','Redshift','Number of pairs'],
         units=['h^-1 Mpc','h^-1 Mpc','',''],
         header=head,extname='ATTRI')
-    head2 = [{'name':'HLPXSCHM','value':'RING','comment':'Healpix scheme'}
+    head2 = [{'name':'HLPXSCHM','value':'RING','comment':'Healpix scheme'},
              {'name':'HIDSHIFT','value':shift,'comment':'Shift unit applied to HEALPix IDs'}]
     if corr_type in ['cf','xcf']:
         names2 = ['HEALPID','WE','DA']

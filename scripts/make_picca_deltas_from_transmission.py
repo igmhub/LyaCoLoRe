@@ -227,10 +227,14 @@ def create_cat(args):
 
     N_DLA = sp.sum(w_DLA)
     print('INFO: downsampling leaves {} DLAs in catalog'.format(N_DLA))
+    suffix = ''
     if args.single_DLA_per_skw:
-        out = fitsio.FITS(args.out_dir+'/zcat_DLA_{}_single.fits'.format(args.downsampling),'rw',clobber=True)
-    else:
-        out = fitsio.FITS(args.out_dir+'/zcat_DLA_{}.fits'.format(args.downsampling),'rw',clobber=True)
+        suffix += '_single'
+    if args.DLA_lambda_rest_min is not None:
+        suffix += '_lrmin{}'.format(args.DLA_lambda_rest_min)
+    if args.DLA_lambda_rest_max is not None:
+        suffix += '_lrmax{}'.format(args.DLA_lambda_rest_max)
+    out = fitsio.FITS(args.out_dir+'/zcat_DLA_{}{}.fits'.format(args.downsampling,suffix),'rw',clobber=True)
     cols = [ v[w_DLA] for k,v in data.items() if k not in ['PIX','Z_QSO'] ]
     names = [ k for k in data.keys() if k not in ['PIX','Z_QSO'] ]
     out.write(cols,names=names)
@@ -330,10 +334,14 @@ def create_cat(args):
         w_DLA *= r_state.choice([0,1],size=data['THING_ID'].shape[0],replace=True,p=[1-mod_r_ds,mod_r_ds]).astype('bool')
 
         print('INFO: downsampling leaves {} DLAs in randoms catalog'.format(sp.sum(w_DLA)))
+        suffix = ''
         if args.single_DLA_per_skw:
-            out = fitsio.FITS(args.out_dir+'/zcat_DLA_{}_randoms_single.fits'.format(args.randoms_downsampling),'rw',clobber=True)
-        else:
-            out = fitsio.FITS(args.out_dir+'/zcat_DLA_{}_randoms.fits'.format(args.randoms_downsampling),'rw',clobber=True)
+            suffix += '_single'
+        if args.DLA_lambda_rest_min is not None:
+            suffix += '_lrmin{}'.format(args.DLA_lambda_rest_min)
+        if args.DLA_lambda_rest_max is not None:
+            suffix += '_lrmax{}'.format(args.DLA_lambda_rest_max)
+        out = fitsio.FITS(args.out_dir+'/zcat_DLA_{}_randoms{}.fits'.format(args.randoms_downsampling,suffix),'rw',clobber=True)
         cols = [ v[w_DLA] for k,v in data.items() if k not in ['PIX','Z_QSO'] ]
         names = [ k for k in data.keys() if k not in ['PIX','Z_QSO'] ]
         out.write(cols,names=names)
@@ -392,10 +400,10 @@ h.close()
 print('INFO: Found {} quasars'.format(zcat_ra.size))
 
 ### List of transmission files
-if (args.in_dir is None and args.in_files is None) or (args.in_dir is not None and args.in_files is not None):
-    print("ERROR: No transmisson input files or both 'indir' and 'infiles' given")
+if (args.in_dir is None and args.in_files is None):
+    print("ERROR: No transmisson input files")
     sys.exit()
-elif args.in_dir is not None:
+elif args.in_files is None:
     fi = glob.glob(args.in_dir+'/*/*/transmission*.fits*')
     fi = sp.sort(sp.array(fi))
     h = fitsio.FITS(fi[0])

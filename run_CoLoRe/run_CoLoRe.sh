@@ -20,12 +20,12 @@ GAUSSIAN="true"
 COLORE_PATH="/global/homes/j/jfarr/Programs/CoLoRe_PAR_GAUSS/"
 
 # full path to folder where output will be written
-OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v5/v5_seed${SEED}/"
+OUTPUT_PATH=$3
 echo "output will written to "$OUTPUT_PATH
 mkdir $OUTPUT_PATH
 
 # we will create this parameter file
-PARAM_FILE="/global/homes/j/jfarr/Projects/run_CoLoRe/run_files/param_v5_seed${SEED}.cfg"
+PARAM_FILE="${LYACOLORE_PATH}/run_CoLoRe/run_files/param_seed${SEED}_${NGRID}.cfg"
 echo "parameter file "$PARAM_FILE
 
 cat > $PARAM_FILE <<EOF
@@ -33,7 +33,7 @@ global = {
   prefix_out = "${OUTPUT_PATH}/out"
   output_format = "FITS"
   output_density = false
-  pk_filename = "/global/homes/j/jfarr/Projects/run_CoLoRe/input_files/PlanckDR12_kmax_matterpower_z0.dat"
+  pk_filename = "${LYACOLORE_PATH}/run_CoLoRe/input_files/PlanckDR12_kmax_matterpower_z0.dat"
   z_min = 1.6
   z_max = 3.79
   seed = ${SEED}
@@ -59,8 +59,8 @@ cosmo_par = {
   sigma_8 = 0.830
 }
 srcs1 = {
-  nz_filename = "/global/homes/j/jfarr/Projects/run_CoLoRe/input_files/Nz_qso_130618_2_colore1_hZs.txt"
-  bias_filename = "/global/homes/j/jfarr/Projects/run_CoLoRe/input_files/Bz_qso_G18.txt"
+  nz_filename = "${LYACOLORE_PATH}/run_CoLoRe/input_files/Nz_qso_130618_2_colore1_hZs.txt"
+  bias_filename = "${LYACOLORE_PATH}/run_CoLoRe/input_files/Bz_qso_G18.txt"
   include_shear = false
   store_skewers = true
   gaussian_skewers = ${GAUSSIAN}
@@ -69,10 +69,10 @@ srcs1 = {
 EOF
 
 # we copy the param file to the output directory
-cp $PARAM_FILE "/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v5/v5_seed${SEED}/param_v5_seed${SEED}.cfg"
+cp $PARAM_FILE $OUTPUT_PATH
 
 # we will create this script
-RUN_FILE="/global/homes/j/jfarr/Projects/run_CoLoRe/run_files/run_colore_v5_seed${SEED}.sh"
+RUN_FILE="${LYACOLORE_PATH}/run_CoLoRe/run_files/run_colore_seed${SEED}_${NGRID}.sh"
 echo "run file "$RUN_FILE
 
 cat > $RUN_FILE <<EOF
@@ -82,8 +82,8 @@ cat > $RUN_FILE <<EOF
 #SBATCH --nodes $NODES
 #SBATCH --time 00:30:00
 #SBATCH --job-name CoLoRe_Lya_${NGRID}_${NODES}_highZ
-#SBATCH --error "/global/homes/j/jfarr/Projects/run_CoLoRe/run_files/CoLoRe_Lya_${NGRID}_${NODES}-%j.err"
-#SBATCH --output "/global/homes/j/jfarr/Projects/run_CoLoRe/run_files/CoLoRe_Lya_${NGRID}_${NODES}-%j.out"
+#SBATCH --error "${LYACOLORE_PATH}/run_CoLoRe/run_files/CoLoRe_Lya_${NGRID}_${NODES}-%j.err"
+#SBATCH --output "${LYACOLORE_PATH}/run_CoLoRe/run_files/CoLoRe_Lya_${NGRID}_${NODES}-%j.out"
 #SBATCH -C haswell
 #SBATCH -A desi
 
