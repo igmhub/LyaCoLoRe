@@ -24,6 +24,11 @@ OUTPUT_PATH=$3
 echo "output will written to "$OUTPUT_PATH
 mkdir $OUTPUT_PATH
 
+# if it does not exist already, make a run_files directory
+if [ ! -d $OUTPUT_PATH/run_files ] ; then
+    mkdir -p $OUTPUT_PATH/run_files
+fi
+
 # we will create this parameter file
 PARAM_FILE="${LYACOLORE_PATH}/run_CoLoRe/run_files/param_seed${SEED}_${NGRID}.cfg"
 echo "parameter file "$PARAM_FILE
