@@ -194,7 +194,7 @@ class Transformation:
         return
 
     #Function to add the single value parameters to the object.
-    def add_singval_parameters(n=0.7,k1=0.001,R_kms=25.,a_v=1.):
+    def add_singval_parameters(self,n=0.7,k1=0.001,R_kms=25.,a_v=1.):
         self.n = n
         self.k1 = k1
         self.R_kms = R_kms
@@ -916,7 +916,7 @@ def get_sigma_dF_P1D(z,l_hMpc=0.25,Om=0.3147):
 
 def get_model_biases(z,model='BOSS_DR12_joint'):
 
-    if model == 'BBOSS_DR12_joint':
+    if model == 'BOSS_DR12_joint':
         #BOSS DR12 combined auto+cross data, from du Mas des Bourboux et all (2017)
         data_z = np.array([2.4])
         data_beta = np.array([1.650])
