@@ -381,7 +381,6 @@ class SimulationData:
                 A0 = 58.6
             except AttributeError:
                 print('WARNING: No tranformation found.\n -> Using specified values of parameters.')
-                self.VEL_rows *= a_v
 
         elif use_transformation:
             try:

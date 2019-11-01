@@ -243,7 +243,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,texp,D0,D1,D2,n,k1,R_kms,a_v,RSD_weight
     t = time.time()
 
     #Scale the RSD skewers.
-    data.scale_velocities(a_v=a_v)
+    data.scale_velocities(use_transformation=False,a_v=a_v)
 
     #Get the transformation for the current set of input parameters.
     transformation = tuning.Transformation()
@@ -266,7 +266,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,texp,D0,D1,D2,n,k1,R_kms,a_v,RSD_weight
 
     #Add small scale fluctuations to the skewers.
     generator = np.random.RandomState(seed)
-    data.add_small_scale_gaussian_fluctuations(args.cell_size,generator,white_noise=False,lambda_min=0.0,IVAR_cutoff=args.lambda_rest_max,n=n,k1=k1,R_kms=R_kms)
+    data.add_small_scale_gaussian_fluctuations(args.cell_size,generator,white_noise=False,lambda_min=0.0,IVAR_cutoff=args.lambda_rest_max,use_transformation=True)
 
     #print('{:3.2f} checkpoint extra power'.format(time.time()-t))
     t = time.time()
