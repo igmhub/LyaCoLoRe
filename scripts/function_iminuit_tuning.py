@@ -505,10 +505,10 @@ def plot_scalar_measurement_values(m_set,data_type='mean_F',show_plot=True,save_
         model = tuning.get_mean_F_model(np.array(args.z_values))
     elif data_type == 'bias_delta':
         text = r'$b_\delta$'
-        model = tuning.get_bias_delta_model(np.array(args.z_values))
+        model, _ = tuning.get_model_biases(np.array(args.z_values))
     elif data_type == 'bias_eta':
         text = r'$b_\eta$'
-        model = tuning.get_bias_eta_model(np.array(args.z_values))
+        _, model = tuning.get_model_biases(np.array(args.z_values))
 
     plt.figure(figsize=(12, 8), dpi= 80, facecolor='w', edgecolor='k')
     plt.plot(data['z'],data['data'],label=text+' mocks',marker='o')
