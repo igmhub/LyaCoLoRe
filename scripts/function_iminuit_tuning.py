@@ -61,6 +61,12 @@ parser.add_argument('--z-values', type = float, default = [2.0,2.4,2.8,3.2], req
 parser.add_argument('--z-width', type = float, default = 0.1, required=False,
                     help = 'Width of z bins')
 
+parser.add_argument('--remove-P1D-file', type = str, default = None, required=False,
+                    help = 'P1D to remove from the added ssf while tuning')
+
+parser.add_argument('--remove-P1D-measure', action="store_true", default = False, required=False,
+                    help = 'Remove the measured P1D from the added ssf while tuning')
+
 # Output options.
 parser.add_argument('--k-plot-max', type = float, default = 0.02, required=False,
                     help = 'max value of z to plot')
@@ -106,6 +112,16 @@ eps_bias_delta = 0.025
 eps_bias_eta = 10**6#0.025
 d_delta = 10.**-3
 d_eta = 10**-9
+
+if args.remove_P1D_file is not None and args.remove_P1D_measure:
+    raise ValueError('Please specify only 1 P1D removal method.')
+elif args.remove_P1D_measure:
+    raise ValueError('This has not yet been implemented! Please try measuring P1D first and using the \'--remove-P1D-file\' option.')
+elif if args.remove_P1D_file is not None:
+    h = fits.open(args.remove_P1D_file)
+    remove_P1D_data = h[1].data
+else:
+    remove_P1D_data = None
 
 # TODO: Enable tuning to be started from an ini file (needs a parser)
 # TODO: Enable tuning to be started from an existing tuning file (with large errors)
@@ -267,7 +283,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,texp,D0,D1,D2,n,k1,R_kms,a_v,RSD_weight
 
     #Add small scale fluctuations to the skewers.
     generator = np.random.RandomState(seed)
-    data.add_small_scale_gaussian_fluctuations(args.cell_size,generator,white_noise=False,lambda_min=0.0,IVAR_cutoff=args.lambda_rest_max,use_transformation=True)
+    data.add_small_scale_gaussian_fluctuations(args.cell_size,generator,white_noise=False,lambda_min=0.0,IVAR_cutoff=args.lambda_rest_max,use_transformation=True,remove_P1D_data=remove_P1D_data)
 
     #print('{:3.2f} checkpoint extra power'.format(time.time()-t))
     t = time.time()
