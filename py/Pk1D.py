@@ -15,35 +15,26 @@ def get_Pk1D(skewer_rows,IVAR_rows,dr_hMpc,z,z_value=0.0,z_width=None,R1=25.0,un
     #print(' ')
     if z_width:
         #Find relevant chunk of the skewers
-        z_min = z_value - z_width/2.
-        z_max = z_value + z_width/2.
-
-        j_lower = np.searchsorted(z,z_min)
-        j_upper = np.searchsorted(z,z_max) - 1
-        N_cells_chunk = j_upper - j_lower + 1
+        w = (abs(z-z_value)<z_width/2.)
     else:
-        j_lower = 0
-        j_upper = skewer_rows.shape[1] - 1
-        N_cells_chunk = skewer_rows.shape[1]
+        w = (z>-10.)
+    N_cells_chunk = w.sum()
 
     #if skewer contains entire chunk, keep, otherwise discard
     N_qso = skewer_rows.shape[0]
     skewer_rows_chunk = []
     IVAR_rows_chunk = []
-    for i in range(N_qso):
-        if np.sum(IVAR_rows[i][j_lower:j_upper+1]) == N_cells_chunk:
-            skewer_rows_chunk.append(skewer_rows[i][j_lower:j_upper+1])
-            IVAR_rows_chunk.append(IVAR_rows[i][j_lower:j_upper+1])
-    skewer_rows_chunk = np.array(skewer_rows_chunk)
-    IVAR_rows_chunk = np.array(IVAR_rows_chunk)
 
-    relevant_QSOs = (np.sum(IVAR_rows[:,j_lower:j_upper+1],axis=1) == N_cells_chunk)
+    relevant_QSOs = (IVAR_rows[:,w].sum(axis=1)==N_cells_chunk)
+    skewer_rows_chunk = skewer_rows[relevant_QSOs,:][:,w]
+    IVAR_rows_chunk = IVAR_rows[relevant_QSOs,:][:,w]
+
     #print(np.average(skewer_rows_chunk))
     #print(np.sum(skewer_rows_chunk))
     #not_relevant_QSOs = np.sum(IVAR_rows[:,j_lower:j_upper+1],axis=1) < N_cells_chunk
 
     #trim z to the chunk now being considered
-    z = z[j_lower:j_upper+1]
+    z = z[w]
 
     z_check = 2.4
     i_check = np.searchsorted(z,z_check)

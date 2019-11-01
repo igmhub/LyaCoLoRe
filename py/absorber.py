@@ -26,8 +26,12 @@ class AbsorberData:
             return False
         return True
 
-    def transmission(self):
+    def transmission(self,store=False):
         if not self.tau_computed():
             print('you can not get transmission without first computing tau')
             raise ValueError('Can not access transmission arrays')
-        return np.exp(-self.tau)
+        if store:
+            self.transmission_rows = np.exp(-self.tau)
+            return
+        else:
+            return np.exp(-self.tau)

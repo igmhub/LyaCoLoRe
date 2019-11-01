@@ -10,6 +10,7 @@ lya = utils.lya_rest
 #Assumes that the object already has tau calculated and RSDs applied.
 def get_bias_delta(data,z_values,weights=None,d=0.001,z_width=0.2):
 
+    t = time.time()
     betas = data.transformation.get_texp(data.Z)
 
     if isinstance(z_values, float):
@@ -35,6 +36,9 @@ def get_bias_delta(data,z_values,weights=None,d=0.001,z_width=0.2):
     underdensity.lya_absorber.tau /= np.exp(betas*underdensity.D*d)
     underdensity.add_all_RSDs()
 
+    print('{:3.2f} checkpoint over/under'.format(time.time()-t))
+    t = time.time()
+
     #Don't think this is quite valid as D(r_j) != D(s_j)
     #i.e. RSDs muddle the cells in each skewer and so this scaling would need to be done before adding RSDs
     #Same applies to the overdensity, of course
@@ -49,12 +53,14 @@ def get_bias_delta(data,z_values,weights=None,d=0.001,z_width=0.2):
         mean_F_over = overdensity.get_mean_quantity('flux',z_value=z_value,z_width=z_width,single_value=False,power=1)
         mean_F_under = underdensity.get_mean_quantity('flux',z_value=z_value,z_width=z_width,single_value=False,power=1)
         mean_F = data.get_mean_quantity('flux',z_value=z_value,z_width=z_width,single_value=False,power=1)
+        
+        print(' -> {:3.2f} checkpoint means'.format(time.time()-t))
+        t = time.time()
 
         #Get relevant values of D to scale by
         #(we have added d to the Gaussian field, not the density field)
-        i_lower = np.searchsorted(data.Z,z_value - z_width/2.)
-        i_upper = np.searchsorted(data.Z,z_value + z_width/2.)
-        D_values = data.D[i_lower:i_upper]
+        w = (abs(data.Z-z_value)<z_width/2.)
+        D_values = data.D[w]
 
         bias = np.average((1/mean_F) * (1/(2.*d*D_values)) * (mean_F_over - mean_F_under))
         biases += [bias]

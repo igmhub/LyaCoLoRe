@@ -519,6 +519,32 @@ class SimulationData:
 
         return
 
+    # Function to store the transmission skewers for 1 absorber (rather than 
+    # compute them on the fly each time required).
+    def store_transmission_skewers(self,absorber):
+
+        absorber.transmission(store=True)
+        
+        return
+
+    # Function to store the transmission skewers for all absorbers (rather than
+    # compute them on the fly each time required).
+    def store_all_transmission_skewers(self):
+        
+        # Store Lya transmission skewers.
+        self.store_transmission_skewers(self.lya_absorber)
+        
+        # Store Lyb transmission skewers if needed.
+        if self.lyb_absorber is not None:
+            self.store_transmission_skewers(self.lyb_absorber)
+
+        # Store metal transmission skewers if needed.
+        if self.metals is not None:
+            for metal in iter(self.metals.values()):
+                self.store_transmission_skewers(metal)
+
+        return
+
     #Get the weights for going into redshift space.
     def compute_RSD_weights(self,thermal=False,d=0.0,z_r0=2.5):
 
@@ -594,10 +620,15 @@ class SimulationData:
                         metal_skewers = interp1d(metal_lam,metal.tau,axis=1,fill_value=(0.,0.),bounds_error=False)(10**self.LOGLAM_MAP)
                         #Add tau contribution and rest wavelength to header.
                         skewer_rows += metal_skewers
-            skewer_rows = skewer_rows ** power
+            if power != 1.:
+                skewer_rows = skewer_rows ** power
 
         elif quantity == 'flux':
-            skewer_rows = self.lya_absorber.transmission()
+            try:
+                skewer_rows = self.lya_absorber.transmission_rows
+            except AttributeError:
+                skewer_rows = self.lya_absorber.transmission()
+
             if all_absorbers:
                 if self.lyb_absorber is not None:
                     #Shift the skewers according to absorber rest wavelength.
@@ -612,7 +643,8 @@ class SimulationData:
                         metal_skewers = interp1d(metal_lam,metal.transmission(),axis=1,fill_value=(1.,1.),bounds_error=False)(10**self.LOGLAM_MAP)
                         #Add tau contribution and rest wavelength to header.
                         skewer_rows *= metal_skewers
-            skewer_rows = skewer_rows ** power
+            if power != 1.:
+                skewer_rows = skewer_rows ** power
 
         elif quantity == 'FlnF':
             #Use that ln(F)=-tau so FlnF = -F*tau
@@ -632,7 +664,6 @@ class SimulationData:
         #Else if there's no width, compute the mean of the cells neighbouring the z_value.
         elif not z_width:
             j_value_upper = np.searchsorted(self.Z,z_value)
-
             j_value_lower = max(j_value_upper - 1,0)
             relevant_rows = [i for i in range(self.N_qso) if np.sum(self.IVAR_rows[j_value_lower,j_value_upper]) == 2]
 
@@ -652,13 +683,12 @@ class SimulationData:
 
         #Else, compute the mean of the chunk of width z_width centred on z_value.
         else:
-            j_value_upper = np.searchsorted(self.Z,z_value + z_width/2.) - 1
-            j_value_lower = np.max([0,np.searchsorted(self.Z,z_value - z_width/2.)])
+            w = (abs(self.Z-z_value)<z_width/2.)
 
             if single_value:
-                mean = np.average(skewer_rows[:,j_value_lower:j_value_upper+1],weights=self.IVAR_rows[:,j_value_lower:j_value_upper+1])
+                mean = np.average(skewer_rows[:,w],weights=self.IVAR_rows[:,w])
             else:
-                mean = np.average(skewer_rows[:,j_value_lower:j_value_upper+1],weights=self.IVAR_rows[:,j_value_lower:j_value_upper+1],axis=0)
+                mean = np.average(skewer_rows[:,w],weights=self.IVAR_rows[:,w],axis=0)
 
         return mean
 
