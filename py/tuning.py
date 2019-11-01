@@ -926,7 +926,7 @@ def get_model_biases(z,model='BOSS_DR12_joint'):
 
         data_f = 0.9625
         data_bias_delta_z_evol_exponent = 2.9
-        #Not sure about this?
+        # TODO: Improve on this - need to calculate f with the same parameters as in the relevant paper.
         data_bias_eta_z_evol_exponent = 2.9
 
         data_bias_delta = data_bias_delta_1plusbeta / (1 + data_beta)
@@ -942,7 +942,7 @@ def get_model_biases(z,model='BOSS_DR12_joint'):
 
         data_f = 0.96612
         data_bias_delta_z_evol_exponent = 2.9
-        #Not sure about this?
+        # TODO: Improve on this - need to calculate f with the same parameters as in the relevant paper.
         data_bias_eta_z_evol_exponent = 2.9
 
         data_bias_delta = (data_f * data_bias_eta) / data_beta
