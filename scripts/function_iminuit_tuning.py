@@ -371,7 +371,7 @@ def f(C0,C1,C2,texp,D0,D1,D2,n,k1,R,a_v,return_measurements=False):
     print('starting at',time.ctime())
     print('looking at params: C=({:2.4f},{:2.4f},{:2.4f}), texp={:1.2f},  D=({:2.4f},{:2.4f},{:2.4f}), n={:2.4f}, k1={:2.6f}'.format(C0,C1,C2,texp,D0,D1,D2,n,k1))
 
-    tasks = [(pixel,C0,C1,C2,texp,D0,D1,D2,n,k1,R,a_v,None) for pixel in pixels]
+    tasks = [(pixel,C0,C1,C2,texp,D0,D1,D2,n,k1,R,a_v,None) for pixel in args.pixels]
 
     #Run the multiprocessing pool
     if __name__ == '__main__':
