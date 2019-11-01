@@ -336,8 +336,66 @@ class SimulationData:
 
         return
 
+    # Function to add transformation to the object formally.
+    def add_transformation(self,transformation):
+        self.transformation = transformation
+        return
+
+    # Function to scale the velocities in the skewers up.
+    def scale_velocities(self,use_transformation=True,a_v=None):
+
+        if use_transformation and a_v != None:
+            print('WARNING: asked to use transformation and specified a_v.\n -> Using transformation.')
+            try:
+                self.VEL_rows *= self.transformation.a_v
+            except AttributeError:
+                print('WARNING: No tranformation found.\n -> Using specified value of a_v.')
+                self.VEL_rows *= a_v
+
+        elif use_transformation:
+            try:
+                self.VEL_rows *= self.transformation.a_v
+            except AttributeError:
+                print('WARNING: No tranformation found.\n -> Using a_v=1.')
+
+        elif a_v == None:
+            print('WARNING: Not asked to use tranformation and no value of a_v specified.\n -> Using a_v=1.')
+
+        return
+
     #Function to add small scale gaussian fluctuations.
-    def add_small_scale_gaussian_fluctuations(self,cell_size,generator,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n=0.7,k1=0.001,A0=58.6,R_kms=25.0):
+    def add_small_scale_gaussian_fluctuations(self,cell_size,generator,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,use_transformation=True,n=None,k1=None,A0=None,R_kms=None):
+
+        if use_transformation and n != None:
+            print('WARNING: asked to use transformation and specified parameter values.\n -> Using transformation.')
+            try:
+                n = self.transformation.n
+                k1 = self.transformation.k1
+                R_kms = self.transformation.R_kms
+                A0 = 58.6
+            except AttributeError:
+                print('WARNING: No tranformation found.\n -> Using specified values of parameters.')
+                self.VEL_rows *= a_v
+
+        elif use_transformation:
+            try:
+                n = self.transformation.n
+                k1 = self.transformation.k1
+                R_kms = self.transformation.R_kms
+                A0 = 58.6
+            except AttributeError:
+                print('WARNING: No tranformation found.\n -> Using default parameter values.')
+                n = 0.7
+                k1 = 0.001
+                R_kms = 25.0
+                A0 = 58.6
+
+        elif n == None:
+            print('WARNING: Not asked to use tranformation and no parameter values specified.\n -> Using default parameter values.')
+            n = 0.7
+            k1 = 0.001
+            R_kms = 25.0
+            A0 = 58.6
 
         #Define the new R grid. Ensure that we include the entire range of R.
         old_R = self.R

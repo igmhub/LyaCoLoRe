@@ -81,8 +81,7 @@ def load_tuning(f,mode='parameters'):
     #Close the file.
     h.close()
 
-
-    return
+    return dict
 
 ################################################################################
 """
@@ -95,8 +94,18 @@ class transformation:
     def __init__(self):
         return
 
+    @classmethod
+    def make_transformation_from_file(cls,filepath):
+        # Initiate the transformation object.
+        transformation = cls()
+        # Add parameters from the filepath,
+        transformation.add_parameters_from_file(filepath)
+        return transformation
+
     #Function to add the transformation functions by interpolating data.
-    def add_parameters_from_data(self,z_values,tau0_values,texp_values,seps_values):
+    def add_parameters_from_data(self,z_values,tau0_values,texp_values,seps_values,n,k1,R_kms,a_v):
+        # For each of the redshift-dependent parameters, define a function which
+        # interpolates the data given and add it to the object.
         def f_tau0_z(z):
             return np.exp(np.interp(np.log(z),np.log(z_values),np.log(tau0_values)))
         self.f_tau0_z = f_tau0_z
@@ -106,18 +115,48 @@ class transformation:
         def f_seps_z(z):
             return np.exp(np.interp(np.log(z),np.log(z_values),np.log(seps_values)))
         self.f_seps_z = f_seps_z
+
+        # Add each of the single-value parameters to the object.
+        self.n = n
+        self.k1 = k1
+        self.R_kms = R_kms
+        self.a_v = a_v
+        
         return
 
     # TODO: UPDATE TUNING FILE COLUMN NAMES
     #Function to add the transformation functions by interpolating data from a
     #given tuning file.
     def add_parameters_from_file(self,filepath):
+        # Open the file.
         h = fits.open(filepath)
+
+        # Get the redshift-dependent parameter arrays.
         z = h[1].data['z']
-        tau0 = h[1].data['alpha']
-        texp = h[1].data['beta']
-        seps = h[1].data['sigma_G']
-        self.add_parameters_from_data(z,tau0,texp,seps)
+        try:
+            tau0 = h[1].data['tau0']
+        except:
+            tau0 = h[1].data['alpha']
+        try:
+            texp = h[1].data['texp']
+        except:
+            texp = h[1].data['beta']
+        try:
+            seps = h[1].data['seps']
+        except:
+            seps = h[1].data['sigma_G']
+
+        # Get the single-value parameters from the header.
+        n = h[1].header['n']
+        k1 = h[1].header['k1']
+        R_kms = h[1].header['R']
+        try:
+            a_v = h[1].header['a_v']
+        except:
+            a_v = h[1].header['vb']
+
+        self.add_parameters_from_data(z,tau0,texp,seps,n,k1,R_kms,a_v)
+
         return
 
     #Function to add the transformation functions by given the functions.
@@ -295,18 +334,18 @@ class function_measurement:
         self.sigma_F_chi2 = np.sum(((self.sigma_F - model_sigma_F)**2)/denom)
         return
 
-    def add_bias_delta_chi2(self,eps=0.1,model='BOSS'):
+    def add_bias_delta_chi2(self,eps=0.1,model='BOSS_DR12_joint'):
         #Calculate the "model" value and weight.
-        model_bias_delta = get_bias_delta_model(self.z_value,model=model)
+        model_bias_delta, model_bias_eta = get_model_biases(self.z_value,model=model)
         denom = (eps * model_bias_delta)**2
 
         #Add the chi2 to the measurment object.
         self.bias_delta_chi2 = np.sum(((self.bias_delta - model_bias_delta)**2)/denom)
         return
 
-    def add_bias_eta_chi2(self,eps=0.1,model='BOSS'):
+    def add_bias_eta_chi2(self,eps=0.1,model='BOSS_DR12_joint'):
         #Calculate the "model" value and weight.
-        model_bias_eta = get_bias_eta_model(self.z_value,model=model)
+        model_bias_delta, model_bias_eta = get_model_biases(self.z_value,model=model)
         denom = (eps * model_bias_eta)**2
 
         #Add the chi2 to the measurment object.
@@ -839,53 +878,44 @@ def get_sigma_dF_P1D(z,l_hMpc=0.25,Om=0.3147):
 
     return sigma_dF
 
-#BOSS data.
-#DR12 combined auto+cross data, from du Mas des Bourboux et all (2017)
-data_z = np.array([2.4])
-data_beta = np.array([1.650])
-data_beta_err = np.array([0.081])
-data_bias_delta_1plusbeta = np.array([-0.3544])
-data_bias_delta_1plusbeta_err = np.array([0.0038])
 
-data_f = 0.9625
-data_bias_delta_z_evol_exponent = 2.9
-#Not sure about this?
-data_bias_eta_z_evol_exponent = 2.9
+def get_model_biases(z,model='BOSS_DR12_joint'):
 
-data_bias_delta = data_bias_delta_1plusbeta / (1 + data_beta)
-data_bias_eta = data_beta * data_bias_delta / data_f
+    if model == 'BBOSS_DR12_joint':
+        #BOSS DR12 combined auto+cross data, from du Mas des Bourboux et all (2017)
+        data_z = np.array([2.4])
+        data_beta = np.array([1.650])
+        data_beta_err = np.array([0.081])
+        data_bias_delta_1plusbeta = np.array([-0.3544])
+        data_bias_delta_1plusbeta_err = np.array([0.0038])
 
-"""
+        data_f = 0.9625
+        data_bias_delta_z_evol_exponent = 2.9
+        #Not sure about this?
+        data_bias_eta_z_evol_exponent = 2.9
 
-#eBOSS data.
-#DR14 combined auto+cross data, from de Saintie Agathe et al. (2019)
-data_z = np.array([2.34])
-data_beta = np.array([1.994])
-data_beta_err = np.array([0.099])
-data_bias_eta = np.array([-0.214])
-data_bias_eta_err = np.array([0.004])
+        data_bias_delta = data_bias_delta_1plusbeta / (1 + data_beta)
+        data_bias_eta = data_beta * data_bias_delta / data_f
 
-data_f = 0.96612
-data_bias_delta_z_evol_exponent = 2.9
-#Not sure about this?
-data_bias_eta_z_evol_exponent = 2.9
+    elif model == 'eBOSS_DR14_joint':
+        #eBOSS DR14 combined auto+cross data, from de Saintie Agathe et al. (2019)
+        data_z = np.array([2.34])
+        data_beta = np.array([1.994])
+        data_beta_err = np.array([0.099])
+        data_bias_eta = np.array([-0.214])
+        data_bias_eta_err = np.array([0.004])
 
-data_bias_delta = (data_f * data_bias_eta) / data_beta
-"""
+        data_f = 0.96612
+        data_bias_delta_z_evol_exponent = 2.9
+        #Not sure about this?
+        data_bias_eta_z_evol_exponent = 2.9
 
-def get_bias_delta_model(z,model='BOSS'):
+        data_bias_delta = (data_f * data_bias_eta) / data_beta
 
     z_evol = ((1 + z)/(1 + data_z))**data_bias_delta_z_evol_exponent
     bias_delta_model = data_bias_delta * z_evol
 
-    return bias_delta_model
-
-def get_bias_eta_model(z,model='BOSS'):
-
-    z_evol = ((1 + z)/(1 + data_z))**data_bias_eta_z_evol_exponent
-    bias_eta_model = data_bias_eta * z_evol
-
-    return bias_eta_model
+    return bias_delta_model, bias_eta_model
 
 
 ################################################################################
