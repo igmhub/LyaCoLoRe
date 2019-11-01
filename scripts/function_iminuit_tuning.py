@@ -335,7 +335,7 @@ Produce the RSD weights matrices
 """
 
 print('Producing preparatory RSD maps:')
-tasks = [(pixel,initial_C0,initial_C1,initial_C2,initial_texp,initial_D0,initial_D1,initial_D2,initial_n,initial_k1,initial_R,initial_a_v,None,True) for pixel in pixels]
+tasks = [(pixel,initial_C0,initial_C1,initial_C2,initial_texp,initial_D0,initial_D1,initial_D2,initial_n,initial_k1,initial_R,initial_a_v,None,True) for pixel in args.pixels]
 
 if __name__ == '__main__':
     pool = Pool(processes = args.nproc)
