@@ -409,8 +409,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,g
     pixel_object = simulation_data.SimulationData.get_gaussian_skewers_object(gaussian_filename,file_number,input_format,SIGMA_G=global_measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
 
     # Make a transformation object and add it to the pixel object.
-    transformation = tuning.transformation.make_transformation_from_file(tuning_file)
-    pixel_object.add_transformation(transformation)
+    pixel_object.add_transformation_from_file(tuning_file)
 
     #Scale the velocities.
     pixel_object.scale_velocities(use_transformation=True)

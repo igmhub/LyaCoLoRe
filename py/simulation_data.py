@@ -3,7 +3,7 @@ from astropy.io import fits
 from scipy.interpolate import interp1d
 import time
 
-from . import utils, read_files, bias, convert, RSD, DLA, independent, absorber, absorber_data, stats
+from . import absorber, absorber_data, bias, convert, DLA, independent, read_files, RSD, stats, tuning, utils
 
 lya = utils.lya_rest
 
@@ -338,6 +338,12 @@ class SimulationData:
 
     # Function to add transformation to the object formally.
     def add_transformation(self,transformation):
+        self.transformation = transformation
+        return
+
+    # Function to add transformation to the object formally from a filepath.
+    def add_transformation_from_file(self,filepath):
+        transformation = tuning.Transformation.make_transformation_from_file(filepath)
         self.transformation = transformation
         return
 
