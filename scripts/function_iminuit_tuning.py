@@ -242,9 +242,6 @@ def measure_pixel_segment(pixel,C0,C1,C2,texp,D0,D1,D2,n,k1,R_kms,a_v,RSD_weight
     #print('{:3.2f} checkpoint sim_dat'.format(time.time()-t))
     t = time.time()
 
-    #Scale the RSD skewers.
-    data.scale_velocities(use_transformation=False,a_v=a_v)
-
     #Get the transformation for the current set of input parameters.
     transformation = tuning.Transformation()
     def f_tau0_z(z):
@@ -253,8 +250,12 @@ def measure_pixel_segment(pixel,C0,C1,C2,texp,D0,D1,D2,n,k1,R_kms,a_v,RSD_weight
         return get_parameter(z,texp,0.,0.)
     def f_seps_z(z):
         return get_parameter(z,D0,D1,D2)
-    transformation.add_parameters_from_functions(f_tau0_z,f_texp_z,f_seps_z)
+    transformation.add_zdep_parameters_from_functions(f_tau0_z,f_texp_z,f_seps_z)
+    transformation.add_singval_parameters(n=n,k1=k1,R_kms=R_kms,a_v=a_v)
     data.add_transformation(transformation)
+
+    #Scale the RSD skewers.
+    data.scale_velocities(use_transformation=True)
 
     #trim skewers to the minimal length
     lambda_buffer = 100. #Angstroms

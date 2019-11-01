@@ -140,19 +140,14 @@ class Transformation:
         # interpolates the data given and add it to the object.
         def f_tau0_z(z):
             return np.exp(np.interp(np.log(z),np.log(z_values),np.log(tau0_values)))
-        self.f_tau0_z = f_tau0_z
         def f_texp_z(z):
             return np.exp(np.interp(np.log(z),np.log(z_values),np.log(texp_values)))
-        self.f_texp_z = f_texp_z
         def f_seps_z(z):
             return np.exp(np.interp(np.log(z),np.log(z_values),np.log(seps_values)))
-        self.f_seps_z = f_seps_z
+        add_zdep_parameters_from_functions(f_tau0_z,f_texp_z,f_seps_z)
 
         # Add each of the single-value parameters to the object.
-        self.n = n
-        self.k1 = k1
-        self.R_kms = R_kms
-        self.a_v = a_v
+        self.add_singval_parameters(n=n,k1=k1,R_kms=R_kms,a_v=a_v)
 
         return
 
@@ -191,11 +186,19 @@ class Transformation:
 
         return
 
-    #Function to add the transformation functions by given the functions.
-    def add_parameters_from_functions(self,f_tau0_z,f_texp_z,f_seps_z):
+    #Function to add the z dependent parameter functions by giving the functions.
+    def add_zdep_parameters_from_functions(self,f_tau0_z,f_texp_z,f_seps_z):
         self.f_tau0_z = f_tau0_z
         self.f_texp_z = f_texp_z
         self.f_seps_z = f_seps_z
+        return
+
+    #Function to add the single value parameters to the object.
+    def add_singval_parameters(n=0.7,k1=0.001,R_kms=25.,a_v=1.):
+        self.n = n
+        self.k1 = k1
+        self.R_kms = R_kms
+        self.a_v = a_v
         return
 
     #Function to evaluate tau0, the normalisation of the FGPA.
