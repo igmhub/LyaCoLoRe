@@ -947,8 +947,11 @@ def get_model_biases(z,model='BOSS_DR12_joint'):
 
         data_bias_delta = (data_f * data_bias_eta) / data_beta
 
-    z_evol = ((1 + z)/(1 + data_z))**data_bias_delta_z_evol_exponent
-    bias_delta_model = data_bias_delta * z_evol
+    z_evol_bias_delta = ((1 + z)/(1 + data_z))**data_bias_delta_z_evol_exponent
+    bias_delta_model = data_bias_delta * z_evol_bias_delta
+
+    z_evol_bias_eta = ((1 + z)/(1 + data_z))**data_bias_eta_z_evol_exponent
+    bias_eta_model = data_bias_eta * z_evol_bias_eta
 
     return bias_delta_model, bias_eta_model
 
