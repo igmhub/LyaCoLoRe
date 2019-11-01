@@ -7,82 +7,114 @@ from . import bias, convert, Pk1D, utils
 
 lya = utils.lya_rest
 
+# Not yet implemented.
+"""
 def load_tuning(f,mode='parameters'):
 
-    dict = {}
+    tuning_dict = {}
 
     #Open the tuning file and extract the lognormal/FGPA transformation parameters.
     h = fits.open(tuning_file)
-    dict['z'] = h[1].data['z']
+    tuning_dict['z'] = h[1].data['z']
     try:
-        dict['tau0_of_z'] = h[1].data['tau0_of_z']
+        tuning_dict['tau0_of_z'] = h[1].data['tau0_of_z']
     except:
-        dict['tau0_of_z'] = h[1].data['alpha']
+        tuning_dict['tau0_of_z'] = h[1].data['alpha']
     try:
-        dict['texp_of_z'] = h[1].data['texp_of_z']
+        tuning_dict['texp_of_z'] = h[1].data['texp_of_z']
     except:
-        dict['texp_of_z'] = h[1].data['beta']
+        tuning_dict['texp_of_z'] = h[1].data['beta']
     try:
-        dict['seps_of_z'] = h[1].data['seps_of_z']
+        tuning_dict['seps_of_z'] = h[1].data['seps_of_z']
     except:
-        dict['seps_of_z'] = h[1].data['sigma_G']
+        tuning_dict['seps_of_z'] = h[1].data['sigma_G']
 
     #Extract additional parameters from the file's header.
     try:
-        dict['tau0_A0'] = h[1].header['C0']
+        tuning_dict['tau0_A0'] = h[1].header['C0']
     except:
-        dict['tau0_A0'] = h[1].header['C0']
+        tuning_dict['tau0_A0'] = h[1].header['C0']
     try:
-        dict['tau0_A1'] = h[1].header['C1']
+        tuning_dict['tau0_A1'] = h[1].header['C1']
     except:
-        dict['tau0_A1'] = h[1].header['C1']
+        tuning_dict['tau0_A1'] = h[1].header['C1']
     try:
-        dict['tau0_A2'] = h[1].header['C2']
+        tuning_dict['tau0_A2'] = h[1].header['C2']
     except:
-        dict['tau0_A2'] = h[1].header['C2']
+        tuning_dict['tau0_A2'] = h[1].header['C2']
 
     try:
-        dict['texp_A0'] = h[1].header['D0']
+        tuning_dict['texp_A0'] = h[1].header['D0']
     except:
-        dict['texp_A0'] = h[1].header['D0']
+        tuning_dict['texp_A0'] = h[1].header['D0']
     try:
-        dict['texp_A1'] = h[1].header['D1']
+        tuning_dict['texp_A1'] = h[1].header['D1']
     except:
-        dict['texp_A1'] = h[1].header['D1']
+        tuning_dict['texp_A1'] = h[1].header['D1']
     try:
-        dict['texp_A2'] = h[1].header['D2']
+        tuning_dict['texp_A2'] = h[1].header['D2']
     except:
-        dict['texp_A2'] = h[1].header['D2']
+        tuning_dict['texp_A2'] = h[1].header['D2']
 
     try:
-        dict['seps_A0'] = h[1].header['D0']
+        tuning_dict['seps_A0'] = h[1].header['D0']
     except:
-        dict['seps_A0'] = h[1].header['D0']
+        tuning_dict['seps_A0'] = h[1].header['D0']
     try:
-        dict['seps_A1'] = h[1].header['D1']
+        tuning_dict['seps_A1'] = h[1].header['D1']
     except:
-        dict['seps_A1'] = h[1].header['D1']
+        tuning_dict['seps_A1'] = h[1].header['D1']
     try:
-        dict['seps_A2'] = h[1].header['D2']
+        tuning_dict['seps_A2'] = h[1].header['D2']
     except:
-        dict['seps_A2'] = h[1].header['D2']
+        tuning_dict['seps_A2'] = h[1].header['D2']
 
-    dict['n'] = h[1].header['n']
-    dict['k1'] = h[1].header['k1']
+    tuning_dict['n'] = h[1].header['n']
+    tuning_dict['k1'] = h[1].header['k1']
     try:
-        dict['R_kms'] = h[1].header['R_kms']
+        tuning_dict['R_kms'] = h[1].header['R_kms']
     except:
-        dict['R_kms'] = h[1].header['R']
+        tuning_dict['R_kms'] = h[1].header['R']
     try:
-        dict['a_v'] = h[1].header['a_v']
+        tuning_dict['a_v'] = h[1].header['a_v']
     except:
-        dict['a_v'] = h[1].header['vb']
+        tuning_dict['a_v'] = h[1].header['vb']
 
     #Close the file.
     h.close()
 
-    return dict
+    return tuning_dict
 
+def iminuit_input_from_tuning_file(filepath):
+
+    td = load_tuning(filepath)
+
+    a_kwargs = {'C0' : td['tau0_A0'],      'error_C0' : 1.0,   'fix_C0' : fix_all|fix_C0,     'limit_C0' : (0., 100.),
+                'C1' : td['tau0_A1'],      'error_C1' : 1.0,   'fix_C1' : fix_all|fix_C1,     #'limit_C1' : (0., 20.),
+                'C2' : td['tau0_A2'],      'error_C2' : 1.0,   'fix_C2' : fix_all|fix_C2,     #'limit_C2' : (0., 20.),
+                }
+
+    b_kwargs = {'beta' : td['texp_A0'],  'error_beta' : 1.0, 'fix_beta' : fix_all|fix_beta, 'limit_beta' : (0.,5.)
+                }
+
+    sG_kwargs = {'D0' : td['seps_A0'],     'error_D0' : 1.0,   'fix_D0' : fix_all|fix_D0,     'limit_D0' : (0., 100.),
+                 'D1' : td['seps_A1'],     'error_D1' : 0.2,   'fix_D1' : fix_all|fix_D1,     #'limit_D1' : (0., 20.),
+                 'D2' : td['seps_A2'],     'error_D2' : 1.0,   'fix_D2' : fix_all|fix_D2,     #'limit_D2' : (0., 20.),
+                 }
+
+    s_kwargs = {'n'  : td['n'],       'error_n' : 1.0,    'fix_n' : fix_all|fix_n,       'limit_n' : (-2., 10.),
+                'k1' : td['k1'],      'error_k1' : 0.001, 'fix_k1' : fix_all|fix_k1,     'limit_k1' : (0., 0.1),
+                }
+
+    other_kwargs = {'R'  : td,    'error_R' : 1.0,   'fix_R' : fix_all|fix_R,       'limit_R' : (0., 1000.),
+                    'a_v': td,  'error_a_v' : 0.1, 'fix_a_v' : fix_all|fix_a_v,   'limit_a_v' : (0., 2.0),
+                    'return_measurements'  : False,    'fix_return_measurements' : True,
+                    'errordef'             : 1,
+                    }
+
+
+    return iminuit_initial
+"""
 ################################################################################
 """
 Below: new tuning, measurement based
@@ -90,7 +122,7 @@ Below: new tuning, measurement based
 
 #Object to store the transformation used to go from CoLoRe's Gaussian skewers to
 #flux skewers. Stores functions of redshift.
-class transformation:
+class Transformation:
     def __init__(self):
         return
 
@@ -121,7 +153,7 @@ class transformation:
         self.k1 = k1
         self.R_kms = R_kms
         self.a_v = a_v
-        
+
         return
 
     # TODO: UPDATE TUNING FILE COLUMN NAMES

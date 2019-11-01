@@ -15,6 +15,7 @@ from lyacolore import convert, Pk1D, utils, independent, tuning, simulation_data
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
+# Data options.
 parser.add_argument('--base-dir', type = str, default = None, required=True,
                     help = 'Base directory for the input data')
 
@@ -24,20 +25,16 @@ parser.add_argument('--tuning-file-out', type = str, default = None, required=Tr
 parser.add_argument('--plot-dir-out', type = str, default = None, required=False,
                     help = 'Out directory for the plots')
 
+# Computational options.
+parser.add_argument('--nproc', type = int, default = 1, required=False,
+                    help = 'number of processes to use')
+
+# Options for making skewers.
 parser.add_argument('--pixels', type = int, default = None, required=False,
                     help = 'Which pixel numbers to use for input files', nargs='*')
 
 parser.add_argument('--N-pixels', type = int, default = None, required=False,
                     help = 'Number of files to use as input')
-
-parser.add_argument('--nproc', type = int, default = 1, required=False,
-                    help = 'number of processes to use')
-
-parser.add_argument('--z-values', type = float, default = [2.0,2.4,2.8,3.2], required=False,
-                    help = 'which z values to measure at', nargs='*')
-
-parser.add_argument('--z-width', type = float, default = 0.1, required=False,
-                    help = 'Width of z bins')
 
 parser.add_argument('--nside', type = int, default = 16, required=False,
                     help = 'HEALPix nside for output files (must be 2^n)')
@@ -45,8 +42,11 @@ parser.add_argument('--nside', type = int, default = 16, required=False,
 parser.add_argument('--min-cat-z', type = float, default = 1.8, required=False,
                     help = 'minimum z of objects in catalog')
 
-parser.add_argument('--k-plot-max', type = float, default = 0.02, required=False,
-                    help = 'minimum z of objects in catalog')
+parser.add_argument('--seed', type = int, default = 16, required=False,
+                    help = 'Random seed to use for the generation of random extra power.')
+
+parser.add_argument('--cell-size', type = float, default = 0.25, required=False,
+                    help = 'size in Mpc/h of output cells')
 
 parser.add_argument('--lambda-min', type = float, default = 3550., required=False,
                     help = 'Minimum observed wavelength to use in the tuning process')
@@ -54,26 +54,36 @@ parser.add_argument('--lambda-min', type = float, default = 3550., required=Fals
 parser.add_argument('--lambda-rest-max', type = float, default = 1200., required=False,
                     help = 'Maximum rest-frame wavelength to use in the tuning process')
 
-parser.add_argument('--seed', type = int, default = 16, required=False,
-                    help = 'Random seed to use for the generation of random extra power.')
+# Tuning options.
+parser.add_argument('--z-values', type = float, default = [2.0,2.4,2.8,3.2], required=False,
+                    help = 'which z values to measure at', nargs='*')
 
-parser.add_argument('--cell-size', type = float, default = 0.25, required=False,
-                    help = 'size in Mpc/h of output cells')
+parser.add_argument('--z-width', type = float, default = 0.1, required=False,
+                    help = 'Width of z bins')
 
-parser.add_argument('--tuning-file-start', type = str, default = None, required=True,
-                    help = 'Tuning data file to use as a start point')
+# Output options.
+parser.add_argument('--k-plot-max', type = float, default = 0.02, required=False,
+                    help = 'max value of z to plot')
 
 parser.add_argument('--overwrite', action="store_true", default = False, required=False,
                     help = 'overwrite existing files')
 
+parser.add_argument('--compressed-input', action="store_true", default = False, required=False,
+                    help = 'input files in format .fits.gz')
+
+parser.add_argument('--show-plots', action="store_true", default = False, required=False,
+                    help = 'show plots')
+
 """
 # TODO: Implement these.
+parser.add_argument('--start-from-file', type = str, default = None, required=False,
+                    help = 'Tuning data file to use as a start point')
+
+parser.add_argument('--start-from-random', action="store_true", default = False, required=False,
+                    help = 'Tuning data file to use as a start point')
+
 parser.add_argument('--nskewers', type = int, default = None, required=False,
                     help = 'number of skewers to process')
-
-parser.add_argument('--footprint', type = str, default = None, required = False,
-                    choices=['full_sky','desi','desi_pixel','desi_pixel_plus'],
-                    help = 'name of footprint to use')
 
 parser.add_argument('--downsampling', type = float, default = 1.0, required=False,
                     help = 'fraction by which to subsample the CoLoRe output')
@@ -85,12 +95,8 @@ args = parser.parse_args()
 lya = utils.lya_rest
 
 #Admin options
-show_plots = True
-save_plots = True
-save_tuning = True
-
-compressed_input = True
-lambda_buffer = 100. #Angstroms
+save_plots = (args.plot_dir_out != None)
+save_tuning = (args.tuning_file_out != None)
 
 #Choose parameter values.
 max_k = 0.01 #skm-1
@@ -101,37 +107,77 @@ eps_bias_eta = 10**6#0.025
 d_delta = 10.**-3
 d_eta = 10**-9
 
+# TODO: Enable tuning to be started from an ini file (needs a parser)
+# TODO: Enable tuning to be started from an existing tuning file (with large errors)
+# Not yet implemented
+"""
 #Get the starting values of the parameters from a tuning file.
-if args.tuning_file_start is None:
-    args.tuning_file_start = '../input_files/tuning_data_with_bias_vel1.3_b1.65_lr1200.fits'
+default_tuning_file = '../input_files/tuning_data_with_bias_vel1.3_b1.65_lr1200.fits'
+default_init_file = '../input_files/tuning.ini'
+if args.start_from_file!=None and args.start_from_random:
+    print('WARNING: Start file specified, and requested to start from random.')
+    print(' -> Starting from {}'.format(args.tuning_file_start))
+elif args.start_from_file==None and not args.start_from_random:
+    print('WARNING: No start file specified, and not requested to start from random.')
+    print(' -> Starting from {}'.format(default_tuning_file))
+    args.tuning_file_start = default_tuning_file
 
+if args.start_from_file!=None:
+    iminuit_initial = tuning.iminuit_input_from_tuning_file(args.start_from_file)
+elif args.start_from_random:
+    iminuit_initial =
+"""
 
-#Choose tuning parameter initial values.
+# Choose tuning parameter initial values.
 initial_C0 = 1.482229863221668
 initial_C1 = 4.5
 initial_C2 = 0.0
-initial_beta = 1.65
+initial_texp = 1.65
 initial_D0 = 6.018308640829534
 initial_D1 = 0.2756162052010332
 initial_D2 = 0.0
 initial_n = 0.7318824370864454
 initial_k1 = 0.0341049400675243
 initial_R = 25.0 #kms-1
-initial_vb = 1.3
+initial_a_v = 1.3
 
-#Choose parameters to fix.
+# Choose parameters to fix.
 fix_all = True
 fix_C0 = False
 fix_C1 = True
 fix_C2 = True
-fix_beta = True
+fix_texp = True
 fix_D0 = False
 fix_D1 = False
 fix_D2 = True
 fix_n = False
 fix_k1 = False
 fix_R = True
-fix_vb = True
+fix_a_v = True
+
+# Make dictionaries for input to iminuit.
+tau0_kwargs = {'C0' : initial_C0,      'error_C0' : 1.0,   'fix_C0' : fix_all|fix_C0,     'limit_C0' : (0., 100.),
+               'C1' : initial_C1,      'error_C1' : 1.0,   'fix_C1' : fix_all|fix_C1,     #'limit_C1' : (0., 20.),
+               'C2' : initial_C2,      'error_C2' : 1.0,   'fix_C2' : fix_all|fix_C2,     #'limit_C2' : (0., 20.),
+               }
+
+texp_kwargs = {'texp' : initial_texp,  'error_texp' : 1.0, 'fix_texp' : fix_all|fix_texp, 'limit_texp' : (0.,5.)
+               }
+
+seps_kwargs = {'D0' : initial_D0,     'error_D0' : 1.0,   'fix_D0' : fix_all|fix_D0,     'limit_D0' : (0., 100.),
+               'D1' : initial_D1,     'error_D1' : 0.2,   'fix_D1' : fix_all|fix_D1,     #'limit_D1' : (0., 20.),
+               'D2' : initial_D2,     'error_D2' : 1.0,   'fix_D2' : fix_all|fix_D2,     #'limit_D2' : (0., 20.),
+               }
+
+s_kwargs = {'n'  : initial_n,       'error_n' : 1.0,    'fix_n' : fix_all|fix_n,       'limit_n' : (-2., 10.),
+            'k1' : initial_k1,      'error_k1' : 0.001, 'fix_k1' : fix_all|fix_k1,     'limit_k1' : (0., 0.1),
+            }
+
+other_kwargs = {'R'  : initial_R,    'error_R' : 1.0,   'fix_R' : fix_all|fix_R,       'limit_R' : (0., 1000.),
+                'a_v': initial_a_v,  'error_a_v' : 0.1, 'fix_a_v' : fix_all|fix_a_v,   'limit_a_v' : (0., 2.0),
+                'return_measurements'  : False,    'fix_return_measurements' : True,
+                'errordef'             : 1,
+                }
 
 #Colours for the plot
 colours = ['C0','C1','C2','C3','C4','C5','C6']
@@ -148,10 +194,7 @@ if (args.tuning_file_out[-8:] != '.fits.gz') and (args.tuning_file_out[-5:] != '
 
 #Get the location to save the plots if none is given.
 if args.plot_dir_out is None:
-    if args.tuning_file_out[-8:] == '.fits.gz':
-        args.plot_dir_out = args.tuning_file_out[:-8] + '_plots/'
-    elif args.tuning_file_out[-5:] == '.fits':
-        args.plot_dir_out = args.tuning_file_out[:-5] + '_plots/'
+    print('No plot directory specified: plots will not be saved.')
 
 #Get the list of input pixels if one is not given.
 if (args.pixels is None) and (args.N_pixels is None):
@@ -184,7 +227,7 @@ def log_error(retval):
 ################################################################################
 
 # TODO: want to move this to tuning.py eventually
-def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,R_kms,vel_boost,RSD_weights,prep=False):
+def measure_pixel_segment(pixel,C0,C1,C2,texp,D0,D1,D2,n,k1,R_kms,a_v,RSD_weights,prep=False):
     t = time.time()
     seed = int(pixel * 10**5 + args.seed)
 
@@ -200,25 +243,25 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,R_kms,vel_boos
     t = time.time()
 
     #Scale the RSD skewers.
-    data.VEL_rows *= vel_boost
+    data.scale_velocities(a_v=a_v)
 
     #Get the transformation for the current set of input parameters.
-    transformation = tuning.transformation()
+    transformation = tuning.Transformation()
     def f_tau0_z(z):
         return get_parameter(z,C0,C1,C2)
     def f_texp_z(z):
-        return get_parameter(z,beta_value,0.,0.)
+        return get_parameter(z,texp,0.,0.)
     def f_seps_z(z):
         return get_parameter(z,D0,D1,D2)
     transformation.add_parameters_from_functions(f_tau0_z,f_texp_z,f_seps_z)
-    data.transformation = transformation
+    data.add_transformation(transformation)
 
     #trim skewers to the minimal length
-    extra = 0.1
-    z_lower_cut = np.min(args.z_values) - args.z_width*(1+extra)/2.
-    z_upper_cut = np.max(args.z_values) + args.z_width*(1+extra)/2.
-    lambda_min_val = np.min([args.lambda_min,lya*(1 + z_lower_cut)])
-    lambda_max_val = lya*(1 + z_upper_cut)
+    lambda_buffer = 100. #Angstroms
+    z_lower_cut = np.min(args.z_values) - args.z_width/2.
+    z_upper_cut = np.max(args.z_values) + args.z_width/2.
+    lambda_min_val = np.min([args.lambda_min,lya*(1 + z_lower_cut)]) - lambda_buffer
+    lambda_max_val = lya*(1 + z_upper_cut) + lambda_buffer
     data.trim_skewers(lambda_min_val,args.min_cat_z,lambda_max=lambda_max_val,whole_lambda_range=False)
 
     #Add small scale fluctuations to the skewers.
@@ -262,7 +305,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,beta_value,D0,D1,D2,n,k1,R_kms,vel_boos
         for z_value in args.z_values:
             ID = n
             t_m = time.time()
-            measurement = tuning.function_measurement(ID,z_value,args.z_width,data.N_qso,n,k1,C0,C1,C2,beta_value,D0,D1,D2,pixels=[pixel])
+            measurement = tuning.function_measurement(ID,z_value,args.z_width,data.N_qso,n,k1,C0,C1,C2,texp,D0,D1,D2,pixels=[pixel])
             times_m[0] += time.time() - t_m
             t_m = time.time()
             measurement.add_mean_F_measurement(data)
@@ -292,7 +335,7 @@ Produce the RSD weights matrices
 """
 
 print('Producing preparatory RSD maps:')
-tasks = [(pixel,initial_C0,initial_C1,initial_C2,initial_beta,initial_D0,initial_D1,initial_D2,initial_n,initial_k1,initial_R,initial_vb,None,True) for pixel in pixels]
+tasks = [(pixel,initial_C0,initial_C1,initial_C2,initial_texp,initial_D0,initial_D1,initial_D2,initial_n,initial_k1,initial_R,initial_a_v,None,True) for pixel in pixels]
 
 if __name__ == '__main__':
     pool = Pool(processes = args.nproc)
@@ -315,7 +358,7 @@ print('done!\n')
 ################################################################################
 
 #Define the function which we seek to minimise.
-def f(C0,C1,C2,beta,D0,D1,D2,n,k1,R,vb,return_measurements=False):
+def f(C0,C1,C2,texp,D0,D1,D2,n,k1,R,a_v,return_measurements=False):
 
     #Re-define the multiprocessing tracking functions without the progress bar
     def log_result(retval):
@@ -325,9 +368,9 @@ def f(C0,C1,C2,beta,D0,D1,D2,n,k1,R,vb,return_measurements=False):
         print('Error:',retval)
 
     print('starting at',time.ctime())
-    print('looking at params: C=({:2.4f},{:2.4f},{:2.4f}), beta={:1.2f},  D=({:2.4f},{:2.4f},{:2.4f}), n={:2.4f}, k1={:2.6f}'.format(C0,C1,C2,beta,D0,D1,D2,n,k1))
+    print('looking at params: C=({:2.4f},{:2.4f},{:2.4f}), texp={:1.2f},  D=({:2.4f},{:2.4f},{:2.4f}), n={:2.4f}, k1={:2.6f}'.format(C0,C1,C2,texp,D0,D1,D2,n,k1))
 
-    tasks = [(pixel,C0,C1,C2,beta,D0,D1,D2,n,k1,R,vb,None) for pixel in pixels]
+    tasks = [(pixel,C0,C1,C2,texp,D0,D1,D2,n,k1,R,a_v,None) for pixel in pixels]
 
     #Run the multiprocessing pool
     if __name__ == '__main__':
@@ -372,7 +415,7 @@ def f(C0,C1,C2,beta,D0,D1,D2,n,k1,R,vb,return_measurements=False):
 
     with open("parameter_log.txt","a") as f:
         txt = str(time.ctime()+'\n')
-        txt += 'C0:{}, C1:{}, C2:{}, D0:{}, D1:{}, D2:{}, n:{}, k1:{}, beta:{}\n'.format(C0,C1,C2,D0,D1,D2,n,k1,beta)
+        txt += 'C0:{}, C1:{}, C2:{}, D0:{}, D1:{}, D2:{}, n:{}, k1:{}, texp:{}\n'.format(C0,C1,C2,D0,D1,D2,n,k1,texp)
         txt += log_text + '\n\n'
         f.write(txt)
         f.close()
@@ -383,36 +426,7 @@ def f(C0,C1,C2,beta,D0,D1,D2,n,k1,R,vb,return_measurements=False):
     else:
         return chi2
 
-#Parameters defined by:
-#   alpha = C0 * (Z**C1) + C2
-#   beta = np.ones_like(alpha) * beta_value
-#   sigma_G_required = D0 * (Z**D1) + D2
-
-
-a_kwargs = {'C0' : initial_C0,      'error_C0' : 1.0,   'fix_C0' : fix_all|fix_C0,     'limit_C0' : (0., 100.),
-            'C1' : initial_C1,      'error_C1' : 1.0,   'fix_C1' : fix_all|fix_C1,     #'limit_C1' : (0., 20.),
-            'C2' : initial_C2,      'error_C2' : 1.0,   'fix_C2' : fix_all|fix_C2,     #'limit_C2' : (0., 20.),
-            }
-
-b_kwargs = {'beta' : initial_beta,  'error_beta' : 1.0, 'fix_beta' : fix_all|fix_beta, 'limit_beta' : (0.,5.)
-            }
-
-sG_kwargs = {'D0' : initial_D0,     'error_D0' : 1.0,   'fix_D0' : fix_all|fix_D0,     'limit_D0' : (0., 100.),
-             'D1' : initial_D1,     'error_D1' : 0.2,   'fix_D1' : fix_all|fix_D1,     #'limit_D1' : (0., 20.),
-             'D2' : initial_D2,     'error_D2' : 1.0,   'fix_D2' : fix_all|fix_D2,     #'limit_D2' : (0., 20.),
-             }
-
-s_kwargs = {'n'  : initial_n,       'error_n' : 1.0,    'fix_n' : fix_all|fix_n,       'limit_n' : (-2., 10.),
-            'k1' : initial_k1,      'error_k1' : 0.001, 'fix_k1' : fix_all|fix_k1,     'limit_k1' : (0., 0.1),
-            }
-
-other_kwargs = {'R'  : initial_R,    'error_R' : 1.0,   'fix_R' : fix_all|fix_R,       'limit_R' : (0., 1000.),
-                'vb' : initial_vb,   'error_vb' : 0.1,  'fix_vb' : fix_all|fix_vb,     'limit_vb' : (0., 2.0),
-                'return_measurements'  : False,    'fix_return_measurements' : True,
-                'errordef'             : 1,
-                }
-
-minuit = Minuit(f,**a_kwargs,**b_kwargs,**sG_kwargs,**s_kwargs,**other_kwargs)
+minuit = Minuit(f,**tau0_kwargs,**texp_kwargs,**seps_kwargs,**s_kwargs,**other_kwargs)
 
 if not fix_all:
     minuit.print_param()
@@ -422,14 +436,14 @@ if not fix_all:
 C0 = minuit.values['C0']
 C1 = minuit.values['C1']
 C2 = minuit.values['C2']
-beta = minuit.values['beta']
+texp = minuit.values['texp']
 D0 = minuit.values['D0']
 D1 = minuit.values['D1']
 D2 = minuit.values['D2']
 n = minuit.values['n']
 k1 = minuit.values['k1']
 R = minuit.values['R']
-vb = minuit.values['vb']
+a_v = minuit.values['a_v']
 
 print(minuit.values)
 
@@ -437,7 +451,7 @@ print(minuit.values)
 def save_tuning_file(filename,overwrite=False):
     z = np.linspace(1.6,4.0,2401)
     alpha_arr = get_parameter(z,C0,C1,C2)
-    beta_arr = np.ones(alpha_arr.shape)*beta
+    texp_arr = np.ones(alpha_arr.shape)*texp
     sigma_G_arr = get_parameter(z,D0,D1,D2)
 
     header = fits.Header()
@@ -450,13 +464,13 @@ def save_tuning_file(filename,overwrite=False):
     header['n'] = n
     header['k1'] = k1
     header['R'] = R
-    header['vb'] = vb
+    header['a_v'] = a_v
 
     prihdr = fits.Header()
     prihdu = fits.PrimaryHDU(header=prihdr)
 
-    dtype = [('z', 'f4'), ('alpha', 'f4'), ('beta', 'f4'), ('sigma_G', 'f4')]
-    data = np.array(list(zip(z,alpha_arr,beta_arr,sigma_G_arr)),dtype=dtype)
+    dtype = [('z', 'f4'), ('alpha', 'f4'), ('texp', 'f4'), ('sigma_G', 'f4')]
+    data = np.array(list(zip(z,alpha_arr,texp_arr,sigma_G_arr)),dtype=dtype)
     hdu_tuning = fits.BinTableHDU(data,header=header,name='TUNING')
 
     hdulist = fits.HDUList([prihdu,hdu_tuning])
@@ -469,7 +483,7 @@ if save_tuning:
     save_tuning_file(args.tuning_file_out,overwrite=args.overwrite)
 
 #Do a final run to get the measurements.
-final_chi2,final_measurements = f(C0,C1,C2,beta,D0,D1,D2,n,k1,R,vb,return_measurements=True)
+final_chi2,final_measurements = f(C0,C1,C2,texp,D0,D1,D2,n,k1,R,a_v,return_measurements=True)
 
 #Plot a graph of mean_F, bias_delta or bias_eta with redshift
 def plot_scalar_measurement_values(m_set,data_type='mean_F',show_plot=True,save_plot=False):
@@ -598,8 +612,8 @@ def plot_parameter_values(minuit_results,z_min=1.8,z_max=4.0,z_size=0.01,show_pl
     return
 
 #Make the relevant plots.
-plot_scalar_measurement_values(final_measurements,data_type='mean_F',show_plot=show_plots,save_plot=save_plots)
-plot_scalar_measurement_values(final_measurements,data_type='bias_delta',show_plot=show_plots,save_plot=save_plots)
-plot_scalar_measurement_values(final_measurements,data_type='bias_eta',show_plot=show_plots,save_plot=save_plots)
-plot_P1D_values(final_measurements,show_plot=show_plots,save_plot=save_plots)
-plot_parameter_values(minuit,z_min=min(args.z_values)-args.z_width/2.,z_max=max(args.z_values)+args.z_width/2.,show_plot=show_plots,save_plot=save_plots)
+plot_scalar_measurement_values(final_measurements,data_type='mean_F',show_plot=args.show_plots,save_plot=save_plots)
+plot_scalar_measurement_values(final_measurements,data_type='bias_delta',show_plot=args.show_plots,save_plot=save_plots)
+plot_scalar_measurement_values(final_measurements,data_type='bias_eta',show_plot=args.show_plots,save_plot=save_plots)
+plot_P1D_values(final_measurements,show_plot=args.show_plots,save_plot=save_plots)
+plot_parameter_values(minuit,z_min=min(args.z_values)-args.z_width/2.,z_max=max(args.z_values)+args.z_width/2.,show_plot=args.show_plots,save_plot=save_plots)
