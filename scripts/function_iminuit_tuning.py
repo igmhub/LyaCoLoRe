@@ -268,8 +268,8 @@ def measure_pixel_segment(pixel,C0,C1,C2,texp,D0,D1,D2,n,k1,R_kms,a_v,RSD_weight
     generator = np.random.RandomState(seed)
     data.add_small_scale_gaussian_fluctuations(args.cell_size,generator,white_noise=False,lambda_min=0.0,IVAR_cutoff=args.lambda_rest_max,n=n,k1=k1,R_kms=R_kms)
 
-        #print('{:3.2f} checkpoint extra power'.format(time.time()-t))
-        t = time.time()
+    #print('{:3.2f} checkpoint extra power'.format(time.time()-t))
+    t = time.time()
 
     #Copmute the physical skewers
     data.compute_physical_skewers()
