@@ -67,6 +67,9 @@ parser.add_argument('--remove-P1D-file', type = str, default = None, required=Fa
 parser.add_argument('--remove-P1D-measure', action="store_true", default = False, required=False,
                     help = 'Remove the measured P1D from the added ssf while tuning')
 
+parser.add_argument('--fix-all', action="store_true", default = False, required=False,
+                    help = 'Fix all parameters.')
+
 # Output options.
 parser.add_argument('--k-plot-max', type = float, default = 0.02, required=False,
                     help = 'max value of z to plot')
@@ -117,7 +120,7 @@ if args.remove_P1D_file is not None and args.remove_P1D_measure:
     raise ValueError('Please specify only 1 P1D removal method.')
 elif args.remove_P1D_measure:
     raise ValueError('This has not yet been implemented! Please try measuring P1D first and using the \'--remove-P1D-file\' option.')
-elif if args.remove_P1D_file is not None:
+elif args.remove_P1D_file is not None:
     h = fits.open(args.remove_P1D_file)
     remove_P1D_data = h[1].data
 else:
@@ -158,7 +161,6 @@ initial_R = 25.0 #kms-1
 initial_a_v = 1.3
 
 # Choose parameters to fix.
-fix_all = True
 fix_C0 = False
 fix_C1 = True
 fix_C2 = True
@@ -172,25 +174,25 @@ fix_R = True
 fix_a_v = True
 
 # Make dictionaries for input to iminuit.
-tau0_kwargs = {'C0' : initial_C0,      'error_C0' : 1.0,   'fix_C0' : fix_all|fix_C0,     'limit_C0' : (0., 100.),
-               'C1' : initial_C1,      'error_C1' : 1.0,   'fix_C1' : fix_all|fix_C1,     #'limit_C1' : (0., 20.),
-               'C2' : initial_C2,      'error_C2' : 1.0,   'fix_C2' : fix_all|fix_C2,     #'limit_C2' : (0., 20.),
+tau0_kwargs = {'C0' : initial_C0,      'error_C0' : 1.0,   'fix_C0' : args.fix_all|fix_C0,     'limit_C0' : (0., 100.),
+               'C1' : initial_C1,      'error_C1' : 1.0,   'fix_C1' : args.fix_all|fix_C1,     #'limit_C1' : (0., 20.),
+               'C2' : initial_C2,      'error_C2' : 1.0,   'fix_C2' : args.fix_all|fix_C2,     #'limit_C2' : (0., 20.),
                }
 
-texp_kwargs = {'texp' : initial_texp,  'error_texp' : 1.0, 'fix_texp' : fix_all|fix_texp, 'limit_texp' : (0.,5.)
+texp_kwargs = {'texp' : initial_texp,  'error_texp' : 1.0, 'fix_texp' : args.fix_all|fix_texp, 'limit_texp' : (0.,5.)
                }
 
-seps_kwargs = {'D0' : initial_D0,     'error_D0' : 1.0,   'fix_D0' : fix_all|fix_D0,     'limit_D0' : (0., 100.),
-               'D1' : initial_D1,     'error_D1' : 0.2,   'fix_D1' : fix_all|fix_D1,     #'limit_D1' : (0., 20.),
-               'D2' : initial_D2,     'error_D2' : 1.0,   'fix_D2' : fix_all|fix_D2,     #'limit_D2' : (0., 20.),
+seps_kwargs = {'D0' : initial_D0,     'error_D0' : 1.0,   'fix_D0' : args.fix_all|fix_D0,     'limit_D0' : (0., 100.),
+               'D1' : initial_D1,     'error_D1' : 0.2,   'fix_D1' : args.fix_all|fix_D1,     #'limit_D1' : (0., 20.),
+               'D2' : initial_D2,     'error_D2' : 1.0,   'fix_D2' : args.fix_all|fix_D2,     #'limit_D2' : (0., 20.),
                }
 
-s_kwargs = {'n'  : initial_n,       'error_n' : 1.0,    'fix_n' : fix_all|fix_n,       'limit_n' : (-2., 10.),
-            'k1' : initial_k1,      'error_k1' : 0.001, 'fix_k1' : fix_all|fix_k1,     'limit_k1' : (0., 0.1),
+s_kwargs = {'n'  : initial_n,       'error_n' : 1.0,    'fix_n' : args.fix_all|fix_n,       'limit_n' : (-2., 10.),
+            'k1' : initial_k1,      'error_k1' : 0.001, 'fix_k1' : args.fix_all|fix_k1,     'limit_k1' : (0., 0.1),
             }
 
-other_kwargs = {'R'  : initial_R,    'error_R' : 1.0,   'fix_R' : fix_all|fix_R,       'limit_R' : (0., 1000.),
-                'a_v': initial_a_v,  'error_a_v' : 0.1, 'fix_a_v' : fix_all|fix_a_v,   'limit_a_v' : (0., 2.0),
+other_kwargs = {'R'  : initial_R,    'error_R' : 1.0,   'fix_R' : args.fix_all|fix_R,       'limit_R' : (0., 1000.),
+                'a_v': initial_a_v,  'error_a_v' : 0.1, 'fix_a_v' : args.fix_all|fix_a_v,   'limit_a_v' : (0., 2.0),
                 'return_measurements'  : False,    'fix_return_measurements' : True,
                 'errordef'             : 1,
                 }
@@ -255,7 +257,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,texp,D0,D1,D2,n,k1,R_kms,a_v,RSD_weight
 
     #Make a pixel object from it.
     data = simulation_data.SimulationData.get_gaussian_skewers_object(filename,None,'gaussian_colore',IVAR_cutoff=args.lambda_rest_max)
-    #print('{:3.2f} checkpoint sim_dat'.format(time.time()-t))
+    print('{:3.2f} checkpoint sim_dat'.format(time.time()-t))
     t = time.time()
 
     #Get the transformation for the current set of input parameters.
@@ -285,7 +287,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,texp,D0,D1,D2,n,k1,R_kms,a_v,RSD_weight
     generator = np.random.RandomState(seed)
     data.add_small_scale_gaussian_fluctuations(args.cell_size,generator,white_noise=False,lambda_min=0.0,IVAR_cutoff=args.lambda_rest_max,use_transformation=True,remove_P1D_data=remove_P1D_data)
 
-    #print('{:3.2f} checkpoint extra power'.format(time.time()-t))
+    print('{:3.2f} checkpoint extra power'.format(time.time()-t))
     t = time.time()
 
     #Copmute the physical skewers
@@ -293,13 +295,16 @@ def measure_pixel_segment(pixel,C0,C1,C2,texp,D0,D1,D2,n,k1,R_kms,a_v,RSD_weight
 
     #Compute the tau skewers and add RSDs
     data.compute_tau_skewers(data.lya_absorber)
-    #print('{:3.2f} checkpoint tau'.format(time.time()-t))
+    print('{:3.2f} checkpoint tau'.format(time.time()-t))
     t = time.time()
+
+    #Copmute and store the transmission skewers
+    data.store_all_transmission_skewers()
 
     if prep:
         data.compute_RSD_weights(thermal=False)
 
-        #print(pixel,'{:3.2f} checkpoint RSD weights measured'.format(time.time()-t))
+        print(pixel,'{:3.2f} checkpoint RSD weights measured'.format(time.time()-t))
         t = time.time()
 
         #b_eta_weights_dict = data.get_bias_eta_RSD_weights(args.z_values,d=d_eta,z_width=args.z_width,lambda_buffer=lambda_buffer)
@@ -314,7 +319,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,texp,D0,D1,D2,n,k1,R_kms,a_v,RSD_weight
         bias_eta_weights = bias_eta_weights_dict[pixel]
         data.add_all_RSDs(thermal=False,weights=RSD_weights)
 
-        #print('{:3.2f} checkpoint RSDs'.format(time.time()-t))
+        print('{:3.2f} checkpoint RSDs'.format(time.time()-t))
         t = time.time()
 
         measurements = []
@@ -341,8 +346,8 @@ def measure_pixel_segment(pixel,C0,C1,C2,texp,D0,D1,D2,n,k1,R_kms,a_v,RSD_weight
             times_m[5] += time.time() - t_m
             measurements += [measurement]
 
-        #print('{:3.2f} checkpoint measurements'.format(time.time()-t))
-        #print('--> measurement_times: {:3.2f}, {:3.2f}, {:3.2f}, {:3.2f}, {:3.2f}, {:3.2f}'.format(times_m[0],times_m[1],times_m[2],times_m[3],times_m[4],times_m[5]))
+        print('{:3.2f} checkpoint measurements'.format(time.time()-t))
+        print('--> measurement_times: {:3.2f}, {:3.2f}, {:3.2f}, {:3.2f}, {:3.2f}, {:3.2f}'.format(times_m[0],times_m[1],times_m[2],times_m[3],times_m[4],times_m[5]))
 
         return measurements
 
@@ -445,7 +450,7 @@ def f(C0,C1,C2,texp,D0,D1,D2,n,k1,R,a_v,return_measurements=False):
 
 minuit = Minuit(f,**tau0_kwargs,**texp_kwargs,**seps_kwargs,**s_kwargs,**other_kwargs)
 
-if not fix_all:
+if not args.fix_all:
     minuit.print_param()
     minuit.migrad() #ncall=20
     minuit.print_param()

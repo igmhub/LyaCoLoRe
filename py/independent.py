@@ -34,10 +34,11 @@ def get_gaussian_fields(generator,N_cells,z=0.0,dv_kms=10.0,N_skewers=1,white_no
     P_kms = power_kms(z,k_kms,dv_kms,white_noise=white_noise,n=n,k1=k1,A0=A0,R_kms=R_kms,smooth=True,norm=norm)
     #P_kms = alternative_power_kms(z,k_kms,dv_kms,A0=A0,k0=k1,E1=n,E2=-0.1,R1=R1,smooth=True)
 
+    # If desired, remove P1D data from the one calculated above.
     if remove_P1D_data is not None:
         k_rem = remove_P1D_data['k']
         Pk_rem = remove_P1D_data['Pk']
-        Pk_rem = np.interp(k_kms,k_rem,Pk_rem)
+        Pk_rem = np.interp(k_kms,k_rem,Pk_rem,right=0)
         P_kms -= Pk_rem/remove_P1D_amp
 
     times += [time.time()]
