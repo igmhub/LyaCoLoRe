@@ -429,25 +429,25 @@ def make_lya_aa_auto_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix='f
                   }
 
     if rmin >= 21:
-        fix_SiIII1207_bias = 'fixed'
+        fix_SiIII1207_bias_eta = 'fixed'
         print('SiIII(1207) bias fixed to DR12 value as rmin is too large to fit it')
     else:
-        fix_SiIII1207_bias = 'free'
+        fix_SiIII1207_bias_eta = 'free'
     if rmin >= 56:
-        fix_SiII1193_bias = 'fixed'
+        fix_SiII1193_bias_eta = 'fixed'
         print('SiII(1193) bias fixed to DR12 value as rmin is too large to fit it')
     else:
-        fix_SiII1193_bias = 'free'
+        fix_SiII1193_bias_eta = 'free'
     if rmin >= 64:
-        fix_SiII1190_bias = 'fixed'
+        fix_SiII1190_bias_eta = 'fixed'
         print('SiII(1190) bias fixed to DR12 value as rmin is too large to fit it')
     else:
-        fix_SiII1190_bias = 'free'
+        fix_SiII1190_bias_eta = 'free'
     if rmin >= 111:
-        fix_SiII1260_bias = 'fixed'
+        fix_SiII1260_bias_eta = 'fixed'
         print('SiII(1260) bias fixed to DR12 value as rmin is too large to fit it')
     else:
-        fix_SiII1260_bias = 'free'
+        fix_SiII1260_bias_eta = 'free'
 
     parameters_dict = {'ap':                            '1.     0.1     0.8     1.2     {}'.format(afix),
                        'at':                            '1.     0.1     0.8     1.2     {}'.format(afix),
@@ -462,21 +462,18 @@ def make_lya_aa_auto_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix='f
                        'per binsize LYA(LYA)xLYA(LYA)': '4      0.      None    None    fixed',
                        'par_sigma_smooth':              '2.     2.      None    None    free',
                        'per_sigma_smooth':              '2.     2.      None    None    free',
-                       'bias_eta_SiII(1260)':           '-0.15E-3   0.01    None    None    {}'.format(fix_SiII1260_bias),
+                       'bias_eta_SiII(1260)':           '-0.780E-3   0.01    None    None    {}'.format(fix_SiII1260_bias_eta),
                        'beta_SiII(1260)':               '0.5        0.      None    None    fixed',
                        'alpha_SiII(1260)':              '1.0        0.      None    None    fixed',
-                       'bias_eta_SiIII(1207)':          '-0.33E-3   0.01    None    None    {}'.format(fix_SiIII1207_bias),
+                       'bias_eta_SiIII(1207)':          '-1.716E-3   0.01    None    None    {}'.format(fix_SiIII1207_bias_eta),
                        'beta_SiIII(1207)':              '0.5        0.      None    None    fixed',
                        'alpha_SiIII(1207)':             '1.0        0.      None    None    fixed',
-                       'bias_eta_SiII(1193)':           '-0.35E-3   0.01    None    None    {}'.format(fix_SiII1193_bias),
+                       'bias_eta_SiII(1193)':           '-1.820E-3   0.01    None    None    {}'.format(fix_SiII1193_bias_eta),
                        'beta_SiII(1193)':               '0.5        0.      None    None    fixed',
                        'alpha_SiII(1193)':              '1.0        0.      None    None    fixed',
-                       'bias_eta_SiII(1190)':           '-0.44E-3   0.01    None    None    {}'.format(fix_SiII1190_bias),
+                       'bias_eta_SiII(1190)':           '-2.288E-3   0.01    None    None    {}'.format(fix_SiII1190_bias_eta),
                        'beta_SiII(1190)':               '0.5        0.      None    None    fixed',
                        'alpha_SiII(1190)':              '1.0        0.      None    None    fixed',
-                       'bias_eta_LYB':                  '-0.47E-3   0.01    None    None    free',
-                       'beta_LYB':                      '0.5        0.      None    None    fixed',
-                       'alpha_LYB':                     '1.0        0.      None    None    fixed',
                        }
 
     metals_dict = {'filename':      '{}/data/additional_data/metal_dmat_z_0_10.fits.gz\n'.format(args.base_dir),
