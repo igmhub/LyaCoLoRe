@@ -17,7 +17,8 @@ save_plot = True
 filename = 'corr_plot_systematics.pdf'
 basedir = '/project/projectdirs/desi/users/jfarr/LyaCoLoRe_paper/'
 
-filename = 'lya_qso_cross_vs_rp.pdf'
+"""
+filename = 'lya_qso_cross_vs_rp_singlebin.pdf'
 figsize = (12,6)
 subplots = {}
 subplots[(0,0)] =  {'location':         basedir+'/analysis/correlation_functions/stack/measurements/lya_qso_cross/',
@@ -25,9 +26,10 @@ subplots[(0,0)] =  {'location':         basedir+'/analysis/correlation_functions
                     'result_location':  basedir+'/analysis/correlation_functions/stack/fits/lya_auto__lya_qso_cross/',
                     'result_name':      'result_lya_auto__lya_qso_cross_rmin40.0_rmax160.0_afree.h5',
                     'corr_name':        'LYA(LYA)xQSO',
-                    'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
+                    'rt_bins':          [(0.0,4.0)],
+                    #'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
                     #'rt_bins':          [(0.0,4.0),(20.0,24.0),(40.0,44.0)],
-                    'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
+                    'rt_bin_colours':   ['k','C1','C2','C3','C4'],
                     'plot_data':        {'r_power': 0, 'nr': 40},
                     'plot_picca_fit':   True,
                     'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
@@ -36,40 +38,43 @@ subplots[(0,0)] =  {'location':         basedir+'/analysis/correlation_functions
                     'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': None, 'leg_loc': 'shared'},
                     }
 """
-filename = 'corr_plot_vs_rp_lya_hcd_cross_1real.pdf'
+filename = 'corr_plot_vs_rp_lya_hcd_cross_stack_cbf.pdf'
 figsize = (12,6)
 subplots = {}
-subplots[(0,0)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_053/picca_00281/',
-                    'filename':         'xcf_exp_randoms.fits.gz',
-                    'result_location':  basedir+'/analysis/correlation_functions/stack/fits/lya_auto__lya_dla_cross/',
-                    'result_name':      'result_lya_auto__lya_dla_cross_rmin40.0_rmax160.0_afree.h5',
-                    'corr_name':        'LYA(LYA)xDLA',
-                    #'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
-                    'rt_bins':          [(0.0,4.0),(20.0,24.0),(40.0,44.0)],
-                    'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
-                    'plot_data':        {'r_power': 0, 'nr': 40},
-                    'plot_picca_fit':   True,
-                    'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
-                    'plot_manual_fit':  False,
-                    'manual_fit_data':  {'b1': -0.119, 'b2': 2.0, 'beta1': 1.6, 'beta2': 0.48},
-                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': r'$\lambda_{r,\rm{DLA}}<\lambda_{\rm{Ly}\alpha}$', 'leg_loc': 'shared'},
-                    }
-subplots[(0,1)] =  {'location':         basedir+'/analysis/correlation_functions/v9.0.0/measurements/lya_dla_cross/',
+subplots[(0,0)] =  {'location':         basedir+'/analysis/correlation_functions/stack/measurements/lya_dla_cross/',
                     'filename':         '/correlations/xcf_exp_lya_dla_cross_norandoms.fits.gz',
                     'result_location':  basedir+'/analysis/correlation_functions/stack/fits/lya_auto__lya_dla_cross/',
                     'result_name':      'result_lya_auto__lya_dla_cross_rmin40.0_rmax160.0_afree.h5',
                     'corr_name':        'LYA(LYA)xDLA',
                     #'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
                     'rt_bins':          [(0.0,4.0),(20.0,24.0),(40.0,44.0)],
-                    'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
+                    #'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
+                    'rt_bin_colours':   ['#F5793A','#A95AA1','#85C0F9','#0F2080'],
                     'plot_data':        {'r_power': 0, 'nr': 40},
                     'plot_picca_fit':   True,
                     'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
                     'plot_manual_fit':  False,
                     'manual_fit_data':  {'b1': -0.119, 'b2': 2.0, 'beta1': 1.6, 'beta2': 0.48},
-                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': r'$\lambda_{r,\rm{DLA}}<1100\ \rm{\AA}$', 'leg_loc': 'shared'},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': r'$\lambda_{r,\rm{HCD}}<1100\ \rm{\AA}$', 'leg_loc': 'shared'},
                     }
-"""
+subplots[(0,1)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_053/picca_00281/',
+#subplots[(0,1)] =  {'location':         '/global/cscratch1/sd/jfarr/picca_output/picca_analysis_054/picca_00286/',
+                    'filename':         'xcf_exp_randoms.fits.gz',
+                    'result_location':  basedir+'/analysis/correlation_functions/stack/fits/lya_auto__lya_dla_cross/',
+                    'result_name':      'result_lya_auto__lya_dla_cross_rmin40.0_rmax160.0_afree.h5',
+                    'corr_name':        'LYA(LYA)xDLA',
+                    #'rt_bins':          [(0.0,4.0),(4.0,8.0),(8.0,12.0)],
+                    'rt_bins':          [(0.0,4.0),(20.0,24.0),(40.0,44.0)],
+                    #'rt_bin_colours':   ['C0','C1','C2','C3','C4'],
+                    'rt_bin_colours':   ['#F5793A','#A95AA1','#85C0F9','#0F2080'],
+                    'plot_data':        {'r_power': 0, 'nr': 40},
+                    'plot_picca_fit':   True,
+                    'picca_fit_data':   {'rmin': 40., 'rmax': 160., 'afix': 'free'},
+                    'plot_manual_fit':  False,
+                    'manual_fit_data':  {'b1': -0.119, 'b2': 2.0, 'beta1': 1.6, 'beta2': 0.48},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': r'$\lambda_{r,\rm{HCD}}<\lambda_{\rm{Ly}\alpha}$', 'leg_loc': 'shared'},
+#                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'title': r'$\lambda_{r,\rm{HCD}}<1200\ \rm{\AA}$', 'leg_loc': 'shared'},
+                    }
 """
 filename = 'lya_dla_cross_shuffled_forests.pdf'
 figsize=(16,8)
