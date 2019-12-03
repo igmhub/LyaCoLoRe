@@ -10,11 +10,10 @@ lya = utils.lya_rest
 basedir = "/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v9/v9.0.0_all_files/"
 N_side = 16
 pixel = 0
-#i_skewer = 11
-i_skewers = list(range(24,100))
 fontsize = 16
 figsize = (12,15)
 dpi = 80
+y_buffer = 0.1
 
 #Set style options everywhere.
 #plt.rc('text', usetex=True)
@@ -33,13 +32,15 @@ plot_types = ['skewer']
 lambda_min = 3800. #Angstroms
 lambda_max = 3900. #Angstroms
 
-style_dict = {'picca-gaussian-colorecell': {'c': 'C0', 'ls': '--'},
-              'picca-gaussian':            {'c': 'C0', 'ls': '-'},
-              'picca-density':             {'c': 'C1', 'ls': '-'},
-              'picca-tau-noRSD-notnorm':   {'c': 'C2', 'ls': ':'},
-              'picca-tau-notnorm':         {'c': 'C2', 'ls': '-'},
-              'picca-flux-noRSD-notnorm':  {'c': 'C3', 'ls': ':'},
-              'picca-flux-notnorm':        {'c': 'C3', 'ls': '-'},
+colours = ['#F5793A','#A95AA1','#85C0F9','#0F2080']
+
+style_dict = {'picca-gaussian-colorecell': {'c': colours[0], 'ls': '--'},
+              'picca-gaussian':            {'c': colours[0], 'ls': '-'},
+              'picca-density':             {'c': colours[1], 'ls': '-'},
+              'picca-tau-noRSD-notnorm':   {'c': colours[2], 'ls': ':'},
+              'picca-tau-notnorm':         {'c': colours[2], 'ls': '-'},
+              'picca-flux-noRSD-notnorm':  {'c': colours[3], 'ls': ':'},
+              'picca-flux-notnorm':        {'c': colours[3], 'ls': '-'},
               }
 
 #Deduced variables.
@@ -52,26 +53,29 @@ files_2 = []
 for i in range(N_stages):
     filename = utils.get_file_name(dirname,stages_1[i],N_side,pixel,compressed=True)
     h = fits.open(filename)
-    files_1 += h
+    files_1 += [h]
     if stages_2[i] is not None:
         filename = utils.get_file_name(dirname,stages_2[i],N_side,pixel,compressed=True)
         h = fits.open(filename)
-        files_2 += h
+        files_2 += [h]
     else:
         files_2 += [None]
 
-mockids = files_1[0][1].data['THING_ID']
+mockids = files_1[0][3].data['THING_ID']
+#mockids = [64347,110595,110963,111104]
+mockids = [64347]
 
-def plot_skewer(ax,h,mockid,c,ls):
+def plot_skewer(ax,h,mockid,label,c,ls,add_one=False):
     lambdas = 10**h[2].data
     try:
-        i_skewer = np.where(h[3].data['THING_ID']==mockid_1)[0][0]
+        i_skewer = np.where(h[3].data['THING_ID']==mockid)[0][0]
         skewer = h[0].data[:,i_skewer]
-        ax.plot(lambdas,skewer,label=label_1[i],color=c,linestyle=ls)
+        if add_one:
+            skewer += 1
+        ax.plot(lambdas,skewer,label=label,color=c,linestyle=ls)
         return lambdas,skewer
     except:
         print('Skewer',mockid,'not found')
-        skewer = np.empty(lambdas.shape)
         return lambdas,None
 
 
@@ -83,20 +87,9 @@ for mockid in mockids:
     fig, axs = plt.subplots(N_stages, N_types, sharex=True, figsize=figsize, dpi=dpi, facecolor='w', edgecolor='k')
 
     for i in range(N_stages):
-        lambdas,skewer = plot_skewer(axs[i],files_1[i],mockid,style_dict[stages_1[i]]['c'],style_dict[stages_1[i]]['ls'])
+        lambdas,skewer = plot_skewer(axs[i],files_1[i],mockid,label_1[i],style_dict[stages_1[i]]['c'],style_dict[stages_1[i]]['ls'],add_one=add_one[i])
         if stages_2[i] is not None:
-            lambdas_2,skewer_2 = plot_skewer(axs[i],files_2[i],mockid,style_dict[stages_2[i]]['c'],style_dict[stages_2[i]]['ls'])
-            if 'RSD' in stages_2[i]:
-                filename = utils.get_file_name(dirname,'gaussian-colore',N_side,pixel,compressed=True)
-                h_col = fits.open(filename)
-                lambdas_vel = lya*(1+h_col[4].data['Z'][:])
-                try:
-                    i_col = np.where(h_col[1].data['MOCKID']==mockid)[0][0]
-                    vel = h[3].data[i_col,:]
-                    axs[i].plot(lambdas_vel,vel*5000,label='vel*5000',color='grey',linestyle=style_dict[stages_2[i]]['ls'])
-                except:
-                    print('Skewer',mockid,'not found')
-        print(' ')
+            lambdas_2,skewer_2 = plot_skewer(axs[i],files_2[i],mockid,label_2[i],style_dict[stages_2[i]]['c'],style_dict[stages_2[i]]['ls'],add_one=add_one[i])
 
         #Scale the axes nicely given the x axis limits.
         j_min = np.searchsorted(lambdas,lambda_min)
@@ -106,8 +99,8 @@ for mockid in mockids:
             y_min = np.min(skewer[j_min:j_max])
             y_max = np.max(skewer[j_min:j_max])
             y_range = y_max - y_min
-            y_low_lim = y_min - y_range*0.1
-            y_upp_lim = y_max + y_range*0.1
+            y_low_lim = y_min - y_range*y_buffer
+            y_upp_lim = y_max + y_range*y_buffer
             if symmetrical[i]:
                 y_low_lim = -np.max((abs(y_low_lim),abs(y_upp_lim)))
                 y_upp_lim = np.max((abs(y_low_lim),abs(y_upp_lim)))
@@ -115,6 +108,32 @@ for mockid in mockids:
         axs[i].tick_params(which='both')
         axs[i].set_ylabel(axis_label[i],rotation=90)
         axs[i].yaxis.set_label_coords(-0.1, 0.5)
+
+        """
+        if stages_2[i] is not None:
+            if 'RSD' in stages_2[i]:
+                filename = utils.get_file_name(dirname,'gaussian-colore',N_side,pixel,compressed=True)
+                h_col = fits.open(filename)
+                lambdas_vel = lya*(1+h_col[4].data['Z'][:])
+                try:
+                    i_col = np.where(h_col[1].data['MOCKID']==mockid)[0][0]
+                    vel = h_col[3].data[i_col,:]
+                    ax2 = axs[i].twinx()
+                    ax2.plot(lambdas_vel,vel,label=r'$\rm{d}z_{\rm{RSD}}$',color='grey',linestyle=style_dict[stages_2[i]]['ls'])
+                    j_min_vel = np.searchsorted(lambdas_vel,lambda_min)
+                    j_max_vel = np.searchsorted(lambdas_vel,lambda_max)
+                    y_min_vel = np.min(vel[j_min_vel:j_max_vel])
+                    y_max_vel = np.max(vel[j_min_vel:j_max_vel])
+                    y_range_vel = y_max_vel - y_min_vel
+                    y_low_lim_vel = y_min_vel - y_range_vel*y_buffer
+                    y_upp_lim_vel = y_max_vel + y_range_vel*y_buffer
+                    y_low_lim_vel = -np.max((abs(y_low_lim_vel),abs(y_upp_lim_vel)))
+                    y_upp_lim_vel = np.max((abs(y_low_lim_vel),abs(y_upp_lim_vel)))
+                    y_upp_lim_vel = y_low_lim_vel*y_upp_lim/y_low_lim
+                    ax2.set_ylim(y_low_lim_vel,y_upp_lim_vel)
+                except IndexError:
+                    print('Skewer',mockid,'not found')
+        """
 
         #Add a stage number/section reference:
         #axs[i].text(lambda_min+lambda_range*0.05, y_max-y_range*0.05, 'Stage {}'.format(i), bbox={'facecolor': 'gray', 'alpha': 1.0, 'pad': 4}, verticalalignment='top', horizontalalignment='left')
@@ -135,21 +154,13 @@ for mockid in mockids:
     plt.xlabel(r'$\lambda\ [\mathrm{\AA}]$')
     #fig.align_ylabels()
 
+    #Add a top axis with the distance in Mpc/h
     m = fits.open(basedir+'/master.fits')
     l = (1+m['COSMO_EXP'].data['Z'])*utils.lya_rest
     r = m['COSMO_EXP'].data['R']
     r_to_l = interp1d(l,r)
     l_to_r = interp1d(r,l)
     topax = axs[0].twiny()
-
-    """
-    print(l[:5])
-    print(r[:5])
-    print(' ')
-    print(l[5:10])
-    print(r[5:10])
-    print(' ')
-    """
 
     topax_values = [3940,3980,4020,4060]
     topax_locations = r_to_l(topax_values)
@@ -165,7 +176,7 @@ for mockid in mockids:
 
     fig.tight_layout()
     fig.subplots_adjust(hspace=0)
-    plt.savefig('skewers.pdf')
+    plt.savefig('skewers_{}.pdf'.format(mockid))
     plt.show()
 
 
