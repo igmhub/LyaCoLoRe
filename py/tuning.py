@@ -144,7 +144,7 @@ class Transformation:
             return np.exp(np.interp(np.log(z),np.log(z_values),np.log(texp_values)))
         def f_seps_z(z):
             return np.exp(np.interp(np.log(z),np.log(z_values),np.log(seps_values)))
-        add_zdep_parameters_from_functions(f_tau0_z,f_texp_z,f_seps_z)
+        self.add_zdep_parameters_from_functions(f_tau0_z,f_texp_z,f_seps_z)
 
         # Add each of the single-value parameters to the object.
         self.add_singval_parameters(n=n,k1=k1,R_kms=R_kms,a_v=a_v)

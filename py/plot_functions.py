@@ -125,7 +125,7 @@ class picca_correlation:
         r = r[cut]
         xi_wed = xi_wed[cut]
         err_wed = err_wed[cut]
-        ar = ax.errorbar(r,(r**r_power) * xi_wed,yerr=(r**r_power) * err_wed,fmt='o',label=plot_label)
+        ar = ax.errorbar(r,(r**r_power) * xi_wed,yerr=(r**r_power) * err_wed,fmt='o',label=plot_label,color=colour)
 
         return ar, plot_label
 
@@ -326,7 +326,7 @@ class picca_correlation:
         #TEMP haCK
         #xi_grid = self.fit['xi_grid'].reshape((100,50))[:,:self.nt].reshape((self.np,self.nt))
 
-        #xi_grid = self.fit['xi_grid'].reshape((self.np,self.nt))
+        xi_grid = self.fit['xi_grid'].reshape((self.np,self.nt))
         xi = np.average(xi_grid,weights=weights_grid,axis=1)
 
         #Define the variables to plot, and plot them.

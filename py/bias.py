@@ -9,7 +9,7 @@ lya = utils.lya_rest
 #Function to get the bias of delta at various z values from a sim data object.
 #Assumes that the object already has tau calculated and RSDs applied.
 def get_bias_delta(data,z_values,weights=None,d=0.001,z_width=0.2):
-
+    
     t = time.time()
     betas = data.transformation.get_texp(data.Z)
 
@@ -27,6 +27,7 @@ def get_bias_delta(data,z_values,weights=None,d=0.001,z_width=0.2):
     #overdensity.compute_all_tau_skewers()
     overdensity.lya_absorber.tau *= np.exp(betas*overdensity.D*d)
     overdensity.add_all_RSDs()
+    overdensity.store_all_transmission_skewers()
 
     #Subtract small extra delta to Gaussian skewers to simulate underdensity
     underdensity = copy.deepcopy(data)
@@ -35,8 +36,9 @@ def get_bias_delta(data,z_values,weights=None,d=0.001,z_width=0.2):
     #underdensity.compute_all_tau_skewers()
     underdensity.lya_absorber.tau /= np.exp(betas*underdensity.D*d)
     underdensity.add_all_RSDs()
+    underdensity.store_all_transmission_skewers()
 
-    print('{:3.2f} checkpoint over/under'.format(time.time()-t))
+    #print('{:3.2f} checkpoint over/under'.format(time.time()-t))
     t = time.time()
 
     #Don't think this is quite valid as D(r_j) != D(s_j)
@@ -54,7 +56,7 @@ def get_bias_delta(data,z_values,weights=None,d=0.001,z_width=0.2):
         mean_F_under = underdensity.get_mean_quantity('flux',z_value=z_value,z_width=z_width,single_value=False,power=1)
         mean_F = data.get_mean_quantity('flux',z_value=z_value,z_width=z_width,single_value=False,power=1)
         
-        print(' -> {:3.2f} checkpoint means'.format(time.time()-t))
+        #print(' -> {:3.2f} checkpoint means'.format(time.time()-t))
         t = time.time()
 
         #Get relevant values of D to scale by
@@ -158,18 +160,17 @@ def get_bias_eta(data,z_values,weights_dict=None,d=0.0,z_width=0.2,include_therm
     biases = np.array(biases)
     """
 
-    """
     #Method 3:
     #Scale tau by /(1-d)
 
     #Add small extra grad to velocity skewers.
     grad_increase = copy.deepcopy(data)
-    grad_increase.R *= (1-d)
+    #grad_increase.R *= (1-d)
     grad_increase.lya_absorber.tau /= (1-d)
 
     #Subtract small extra grad to velocity skewers.
     grad_decrease = copy.deepcopy(data)
-    grad_decrease.R *= (1+d)
+    #grad_decrease.R *= (1+d)
     grad_decrease.lya_absorber.tau /= (1+d)
 
     #Calculate mean fluxes in under and overdensities, as well as normal
@@ -190,8 +191,8 @@ def get_bias_eta(data,z_values,weights_dict=None,d=0.0,z_width=0.2,include_therm
         biases += [bias]
 
     biases = np.array(biases)
-    """
 
+    """
     #Method 4:
     #Whilst moving cells in RSD, add in a shift in r
 
@@ -244,6 +245,7 @@ def get_bias_eta(data,z_values,weights_dict=None,d=0.0,z_width=0.2,include_therm
         biases += [bias]
 
     biases = np.array(biases)
+    """
 
     """
     z_min = np.min(z_values) - 0.5*z_width
