@@ -147,16 +147,17 @@ elif args.start_from_random:
     iminuit_initial =
 """
 
+
 # Choose tuning parameter initial values.
-initial_C0 = 1.482229863221668
+initial_C0 = 1.7237287571956472
 initial_C1 = 4.5
 initial_C2 = 0.0
 initial_texp = 1.65
-initial_D0 = 6.018308640829534
-initial_D1 = 0.2756162052010332
+initial_D0 = 6.206920131924637
+initial_D1 = 0.33898934748868426
 initial_D2 = 0.0
-initial_n = 0.7318824370864454
-initial_k1 = 0.0341049400675243
+initial_n = 0.4645843248857737
+initial_k1 = 0.004839043001860566
 initial_R = 25.0 #kms-1
 initial_a_v = 1.3
 
@@ -246,6 +247,7 @@ def log_error(retval):
 
 # TODO: want to move this to tuning.py eventually
 def measure_pixel_segment(pixel,C0,C1,C2,texp,D0,D1,D2,n,k1,R_kms,a_v,RSD_weights,prep=False):
+
     t = time.time()
     seed = int(pixel * 10**5 + args.seed)
 
@@ -257,7 +259,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,texp,D0,D1,D2,n,k1,R_kms,a_v,RSD_weight
 
     #Make a pixel object from it.
     data = simulation_data.SimulationData.get_gaussian_skewers_object(filename,None,'gaussian_colore',IVAR_cutoff=args.lambda_rest_max)
-    print('{:3.2f} checkpoint sim_dat'.format(time.time()-t))
+    #print('{:3.2f} checkpoint sim_dat'.format(time.time()-t))
     t = time.time()
 
     #Get the transformation for the current set of input parameters.
@@ -287,7 +289,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,texp,D0,D1,D2,n,k1,R_kms,a_v,RSD_weight
     generator = np.random.RandomState(seed)
     data.add_small_scale_gaussian_fluctuations(args.cell_size,generator,white_noise=False,lambda_min=0.0,IVAR_cutoff=args.lambda_rest_max,use_transformation=True,remove_P1D_data=remove_P1D_data)
 
-    print('{:3.2f} checkpoint extra power'.format(time.time()-t))
+    #print('{:3.2f} checkpoint extra power'.format(time.time()-t))
     t = time.time()
 
     #Copmute the physical skewers
@@ -295,16 +297,13 @@ def measure_pixel_segment(pixel,C0,C1,C2,texp,D0,D1,D2,n,k1,R_kms,a_v,RSD_weight
 
     #Compute the tau skewers and add RSDs
     data.compute_tau_skewers(data.lya_absorber)
-    print('{:3.2f} checkpoint tau'.format(time.time()-t))
+    #print('{:3.2f} checkpoint tau'.format(time.time()-t))
     t = time.time()
-
-    #Copmute and store the transmission skewers
-    data.store_all_transmission_skewers()
 
     if prep:
         data.compute_RSD_weights(thermal=False)
 
-        print(pixel,'{:3.2f} checkpoint RSD weights measured'.format(time.time()-t))
+        #print(pixel,'{:3.2f} checkpoint RSD weights measured'.format(time.time()-t))
         t = time.time()
 
         #b_eta_weights_dict = data.get_bias_eta_RSD_weights(args.z_values,d=d_eta,z_width=args.z_width,lambda_buffer=lambda_buffer)
@@ -319,7 +318,10 @@ def measure_pixel_segment(pixel,C0,C1,C2,texp,D0,D1,D2,n,k1,R_kms,a_v,RSD_weight
         bias_eta_weights = bias_eta_weights_dict[pixel]
         data.add_all_RSDs(thermal=False,weights=RSD_weights)
 
-        print('{:3.2f} checkpoint RSDs'.format(time.time()-t))
+        #Compute and store the transmission skewers
+        data.store_all_transmission_skewers()
+
+        #print('{:3.2f} checkpoint RSDs'.format(time.time()-t))
         t = time.time()
 
         measurements = []
@@ -346,8 +348,8 @@ def measure_pixel_segment(pixel,C0,C1,C2,texp,D0,D1,D2,n,k1,R_kms,a_v,RSD_weight
             times_m[5] += time.time() - t_m
             measurements += [measurement]
 
-        print('{:3.2f} checkpoint measurements'.format(time.time()-t))
-        print('--> measurement_times: {:3.2f}, {:3.2f}, {:3.2f}, {:3.2f}, {:3.2f}, {:3.2f}'.format(times_m[0],times_m[1],times_m[2],times_m[3],times_m[4],times_m[5]))
+        #print('{:3.2f} checkpoint measurements'.format(time.time()-t))
+        #print('--> measurement_times: {:3.2f}, {:3.2f}, {:3.2f}, {:3.2f}, {:3.2f}, {:3.2f}'.format(times_m[0],times_m[1],times_m[2],times_m[3],times_m[4],times_m[5]))
 
         return measurements
 
