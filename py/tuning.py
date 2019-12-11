@@ -7,6 +7,114 @@ from . import bias, convert, Pk1D, utils
 
 lya = utils.lya_rest
 
+# Not yet implemented.
+"""
+def load_tuning(f,mode='parameters'):
+
+    tuning_dict = {}
+
+    #Open the tuning file and extract the lognormal/FGPA transformation parameters.
+    h = fits.open(tuning_file)
+    tuning_dict['z'] = h[1].data['z']
+    try:
+        tuning_dict['tau0_of_z'] = h[1].data['tau0_of_z']
+    except:
+        tuning_dict['tau0_of_z'] = h[1].data['alpha']
+    try:
+        tuning_dict['texp_of_z'] = h[1].data['texp_of_z']
+    except:
+        tuning_dict['texp_of_z'] = h[1].data['beta']
+    try:
+        tuning_dict['seps_of_z'] = h[1].data['seps_of_z']
+    except:
+        tuning_dict['seps_of_z'] = h[1].data['sigma_G']
+
+    #Extract additional parameters from the file's header.
+    try:
+        tuning_dict['tau0_A0'] = h[1].header['C0']
+    except:
+        tuning_dict['tau0_A0'] = h[1].header['C0']
+    try:
+        tuning_dict['tau0_A1'] = h[1].header['C1']
+    except:
+        tuning_dict['tau0_A1'] = h[1].header['C1']
+    try:
+        tuning_dict['tau0_A2'] = h[1].header['C2']
+    except:
+        tuning_dict['tau0_A2'] = h[1].header['C2']
+
+    try:
+        tuning_dict['texp_A0'] = h[1].header['D0']
+    except:
+        tuning_dict['texp_A0'] = h[1].header['D0']
+    try:
+        tuning_dict['texp_A1'] = h[1].header['D1']
+    except:
+        tuning_dict['texp_A1'] = h[1].header['D1']
+    try:
+        tuning_dict['texp_A2'] = h[1].header['D2']
+    except:
+        tuning_dict['texp_A2'] = h[1].header['D2']
+
+    try:
+        tuning_dict['seps_A0'] = h[1].header['D0']
+    except:
+        tuning_dict['seps_A0'] = h[1].header['D0']
+    try:
+        tuning_dict['seps_A1'] = h[1].header['D1']
+    except:
+        tuning_dict['seps_A1'] = h[1].header['D1']
+    try:
+        tuning_dict['seps_A2'] = h[1].header['D2']
+    except:
+        tuning_dict['seps_A2'] = h[1].header['D2']
+
+    tuning_dict['n'] = h[1].header['n']
+    tuning_dict['k1'] = h[1].header['k1']
+    try:
+        tuning_dict['R_kms'] = h[1].header['R_kms']
+    except:
+        tuning_dict['R_kms'] = h[1].header['R']
+    try:
+        tuning_dict['a_v'] = h[1].header['a_v']
+    except:
+        tuning_dict['a_v'] = h[1].header['vb']
+
+    #Close the file.
+    h.close()
+
+    return tuning_dict
+
+def iminuit_input_from_tuning_file(filepath):
+
+    td = load_tuning(filepath)
+
+    a_kwargs = {'C0' : td['tau0_A0'],      'error_C0' : 1.0,   'fix_C0' : fix_all|fix_C0,     'limit_C0' : (0., 100.),
+                'C1' : td['tau0_A1'],      'error_C1' : 1.0,   'fix_C1' : fix_all|fix_C1,     #'limit_C1' : (0., 20.),
+                'C2' : td['tau0_A2'],      'error_C2' : 1.0,   'fix_C2' : fix_all|fix_C2,     #'limit_C2' : (0., 20.),
+                }
+
+    b_kwargs = {'beta' : td['texp_A0'],  'error_beta' : 1.0, 'fix_beta' : fix_all|fix_beta, 'limit_beta' : (0.,5.)
+                }
+
+    sG_kwargs = {'D0' : td['seps_A0'],     'error_D0' : 1.0,   'fix_D0' : fix_all|fix_D0,     'limit_D0' : (0., 100.),
+                 'D1' : td['seps_A1'],     'error_D1' : 0.2,   'fix_D1' : fix_all|fix_D1,     #'limit_D1' : (0., 20.),
+                 'D2' : td['seps_A2'],     'error_D2' : 1.0,   'fix_D2' : fix_all|fix_D2,     #'limit_D2' : (0., 20.),
+                 }
+
+    s_kwargs = {'n'  : td['n'],       'error_n' : 1.0,    'fix_n' : fix_all|fix_n,       'limit_n' : (-2., 10.),
+                'k1' : td['k1'],      'error_k1' : 0.001, 'fix_k1' : fix_all|fix_k1,     'limit_k1' : (0., 0.1),
+                }
+
+    other_kwargs = {'R'  : td,    'error_R' : 1.0,   'fix_R' : fix_all|fix_R,       'limit_R' : (0., 1000.),
+                    'a_v': td,  'error_a_v' : 0.1, 'fix_a_v' : fix_all|fix_a_v,   'limit_a_v' : (0., 2.0),
+                    'return_measurements'  : False,    'fix_return_measurements' : True,
+                    'errordef'             : 1,
+                    }
+
+
+    return iminuit_initial
+"""
 ################################################################################
 """
 Below: new tuning, measurement based
@@ -14,40 +122,83 @@ Below: new tuning, measurement based
 
 #Object to store the transformation used to go from CoLoRe's Gaussian skewers to
 #flux skewers. Stores functions of redshift.
-class transformation:
+class Transformation:
     def __init__(self):
         return
 
+    @classmethod
+    def make_transformation_from_file(cls,filepath):
+        # Initiate the transformation object.
+        transformation = cls()
+        # Add parameters from the filepath,
+        transformation.add_parameters_from_file(filepath)
+        return transformation
+
     #Function to add the transformation functions by interpolating data.
-    def add_parameters_from_data(self,z_values,tau0_values,texp_values,seps_values):
+    def add_parameters_from_data(self,z_values,tau0_values,texp_values,seps_values,n,k1,R_kms,a_v):
+        # For each of the redshift-dependent parameters, define a function which
+        # interpolates the data given and add it to the object.
         def f_tau0_z(z):
             return np.exp(np.interp(np.log(z),np.log(z_values),np.log(tau0_values)))
-        self.f_tau0_z = f_tau0_z
         def f_texp_z(z):
             return np.exp(np.interp(np.log(z),np.log(z_values),np.log(texp_values)))
-        self.f_texp_z = f_texp_z
         def f_seps_z(z):
             return np.exp(np.interp(np.log(z),np.log(z_values),np.log(seps_values)))
-        self.f_seps_z = f_seps_z
+        self.add_zdep_parameters_from_functions(f_tau0_z,f_texp_z,f_seps_z)
+
+        # Add each of the single-value parameters to the object.
+        self.add_singval_parameters(n=n,k1=k1,R_kms=R_kms,a_v=a_v)
+
         return
 
     # TODO: UPDATE TUNING FILE COLUMN NAMES
     #Function to add the transformation functions by interpolating data from a
     #given tuning file.
     def add_parameters_from_file(self,filepath):
+        # Open the file.
         h = fits.open(filepath)
+
+        # Get the redshift-dependent parameter arrays.
         z = h[1].data['z']
-        tau0 = h[1].data['alpha']
-        texp = h[1].data['beta']
-        seps = h[1].data['sigma_G']
-        self.add_parameters_from_data(z,tau0,texp,seps)
+        try:
+            tau0 = h[1].data['tau0']
+        except:
+            tau0 = h[1].data['alpha']
+        try:
+            texp = h[1].data['texp']
+        except:
+            texp = h[1].data['beta']
+        try:
+            seps = h[1].data['seps']
+        except:
+            seps = h[1].data['sigma_G']
+
+        # Get the single-value parameters from the header.
+        n = h[1].header['n']
+        k1 = h[1].header['k1']
+        R_kms = h[1].header['R']
+        try:
+            a_v = h[1].header['a_v']
+        except:
+            a_v = h[1].header['vb']
+
+        self.add_parameters_from_data(z,tau0,texp,seps,n,k1,R_kms,a_v)
+
         return
 
-    #Function to add the transformation functions by given the functions.
-    def add_parameters_from_functions(self,f_tau0_z,f_texp_z,f_seps_z):
+    #Function to add the z dependent parameter functions by giving the functions.
+    def add_zdep_parameters_from_functions(self,f_tau0_z,f_texp_z,f_seps_z):
         self.f_tau0_z = f_tau0_z
         self.f_texp_z = f_texp_z
         self.f_seps_z = f_seps_z
+        return
+
+    #Function to add the single value parameters to the object.
+    def add_singval_parameters(self,n=0.7,k1=0.001,R_kms=25.,a_v=1.):
+        self.n = n
+        self.k1 = k1
+        self.R_kms = R_kms
+        self.a_v = a_v
         return
 
     #Function to evaluate tau0, the normalisation of the FGPA.
@@ -218,18 +369,18 @@ class function_measurement:
         self.sigma_F_chi2 = np.sum(((self.sigma_F - model_sigma_F)**2)/denom)
         return
 
-    def add_bias_delta_chi2(self,eps=0.1,model='BOSS'):
+    def add_bias_delta_chi2(self,eps=0.1,model='BOSS_DR12_joint'):
         #Calculate the "model" value and weight.
-        model_bias_delta = get_bias_delta_model(self.z_value,model=model)
+        model_bias_delta, model_bias_eta = get_model_biases(self.z_value,model=model)
         denom = (eps * model_bias_delta)**2
 
         #Add the chi2 to the measurment object.
         self.bias_delta_chi2 = np.sum(((self.bias_delta - model_bias_delta)**2)/denom)
         return
 
-    def add_bias_eta_chi2(self,eps=0.1,model='BOSS'):
+    def add_bias_eta_chi2(self,eps=0.1,model='BOSS_DR12_joint'):
         #Calculate the "model" value and weight.
-        model_bias_eta = get_bias_eta_model(self.z_value,model=model)
+        model_bias_delta, model_bias_eta = get_model_biases(self.z_value,model=model)
         denom = (eps * model_bias_eta)**2
 
         #Add the chi2 to the measurment object.
@@ -762,299 +913,49 @@ def get_sigma_dF_P1D(z,l_hMpc=0.25,Om=0.3147):
 
     return sigma_dF
 
-#BOSS data.
-#DR12 combined auto+cross data, from du Mas des Bourboux et all (2017)
-data_z = np.array([2.4])
-data_beta = np.array([1.650])
-data_beta_err = np.array([0.081])
-data_bias_delta_1plusbeta = np.array([-0.3544])
-data_bias_delta_1plusbeta_err = np.array([0.0038])
 
-data_f = 0.9625
-data_bias_delta_z_evol_exponent = 2.9
-#Not sure about this?
-data_bias_eta_z_evol_exponent = 2.9
+def get_model_biases(z,model='BOSS_DR12_joint'):
 
-data_bias_delta = data_bias_delta_1plusbeta / (1 + data_beta)
-data_bias_eta = data_beta * data_bias_delta / data_f
+    if model == 'BOSS_DR12_joint':
+        #BOSS DR12 combined auto+cross data, from du Mas des Bourboux et all (2017)
+        data_z = np.array([2.4])
+        data_beta = np.array([1.650])
+        data_beta_err = np.array([0.081])
+        data_bias_delta_1plusbeta = np.array([-0.3544])
+        data_bias_delta_1plusbeta_err = np.array([0.0038])
 
-"""
+        data_f = 0.9625
+        data_bias_delta_z_evol_exponent = 2.9
+        # TODO: Improve on this - need to calculate f with the same parameters as in the relevant paper.
+        data_bias_eta_z_evol_exponent = 2.9
 
-#eBOSS data.
-#DR14 combined auto+cross data, from de Saintie Agathe et al. (2019)
-data_z = np.array([2.34])
-data_beta = np.array([1.994])
-data_beta_err = np.array([0.099])
-data_bias_eta = np.array([-0.214])
-data_bias_eta_err = np.array([0.004])
+        data_bias_delta = data_bias_delta_1plusbeta / (1 + data_beta)
+        data_bias_eta = data_beta * data_bias_delta / data_f
 
-data_f = 0.96612
-data_bias_delta_z_evol_exponent = 2.9
-#Not sure about this?
-data_bias_eta_z_evol_exponent = 2.9
+    elif model == 'eBOSS_DR14_joint':
+        #eBOSS DR14 combined auto+cross data, from de Saintie Agathe et al. (2019)
+        data_z = np.array([2.34])
+        data_beta = np.array([1.994])
+        data_beta_err = np.array([0.099])
+        data_bias_eta = np.array([-0.214])
+        data_bias_eta_err = np.array([0.004])
 
-data_bias_delta = (data_f * data_bias_eta) / data_beta
-"""
+        data_f = 0.96612
+        data_bias_delta_z_evol_exponent = 2.9
+        # TODO: Improve on this - need to calculate f with the same parameters as in the relevant paper.
+        data_bias_eta_z_evol_exponent = 2.9
 
-def get_bias_delta_model(z,model='BOSS'):
+        data_bias_delta = (data_f * data_bias_eta) / data_beta
 
-    z_evol = ((1 + z)/(1 + data_z))**data_bias_delta_z_evol_exponent
-    bias_delta_model = data_bias_delta * z_evol
+    z_evol_bias_delta = ((1 + z)/(1 + data_z))**data_bias_delta_z_evol_exponent
+    bias_delta_model = data_bias_delta * z_evol_bias_delta
 
-    return bias_delta_model
+    z_evol_bias_eta = ((1 + z)/(1 + data_z))**data_bias_eta_z_evol_exponent
+    bias_eta_model = data_bias_eta * z_evol_bias_eta
 
-def get_bias_eta_model(z,model='BOSS'):
-
-    z_evol = ((1 + z)/(1 + data_z))**data_bias_eta_z_evol_exponent
-    bias_eta_model = data_bias_eta * z_evol
-
-    return bias_eta_model
+    return bias_delta_model, bias_eta_model
 
 
-################################################################################
-"""
-#Unused?
-def fit_function_to_data(x,y,new_x):
-
-    from iminuit import Minuit
-
-    def fitting_function(x,A0,A1,A2):
-        return A0 * (x ** A1) + A2
-
-    def least_squares(A0,A1,A2):
-        return np.sum((y - fitting_function(x,A0,A1,A2))**2)
-
-    m = Minuit(least_squares,A0=1.,A1=1.,A2=1.,error_A0=0.1,error_A1=0.1,error_A2=0.1,errordef=1)
-    fmin,param = m.migrad()
-
-    new_y = fitting_function(new_x,**m.values)
-
-    return new_y
-
-#Unused?
-def get_analytical_mean(quantity,z,a,b,sG,D,N_pow=3):
-    #Make y an array, with 1 dimension for z.
-    y = np.linspace(-10.,10.,10**N_pow)
-    y = np.add.outer(y,0*z)
-    #Helpful variables
-    y_ones = np.ones_like(y)
-    #Define F and integrate
-    p = (1/(np.sqrt(2*np.pi)))*np.exp(-0.5*(y**2))
-    ln = lognormal_transform(y,sG,D)
-    tau = convert.density_to_tau(ln,a,b)
-    if quantity == 'tau':
-        return np.trapz(p*tau,y,axis=0)
-    elif quantity == 'flux':
-        F = np.exp(-tau)
-        return np.trapz(p*F,y,axis=0)
-
-#Unused
-class measurement:
-    def __init__(self,parameter_ID,z_value,z_width,N_skewers,n,k1,alpha,beta,sigma_G,pixels=[],mean_F=None,k_kms=None,Pk_kms=None,sigma_F=None,cf=None):
-        self.parameter_ID = parameter_ID
-        self.z_value = z_value
-        self.z_width = z_width
-        self.N_skewers = N_skewers
-
-        self.n = n
-        self.k1 = k1
-        self.alpha = alpha
-        self.beta = beta
-        self.sigma_G = sigma_G
-
-        self.pixels = pixels
-
-        self.mean_F = mean_F
-        self.k_kms = k_kms
-        self.Pk_kms = Pk_kms
-        self.sigma_F = sigma_F
-        self.cf = cf
-        return
-    def get_details(self):
-        details = (self.z_value,self.z_width,self.N_skewers,
-                self.n,self.k1,self.alpha,self.beta,self.sigma_G,self.pixels)
-        return details
-    def add_Pk1D_measurement(self,pixel_object):
-        F = pixel_object.lya_absorber.transmission()
-        mean_F = np.average(F)
-        delta_F = F/mean_F - 1
-        IVAR = pixel_object.IVAR_rows
-        R = pixel_object.R
-        dr_hMpc = (R[-1] - R[0])/(R.shape[0] - 1)
-        z = pixel_object.Z
-        k_kms, Pk_kms, var_kms = Pk1D.get_Pk1D(delta_F,IVAR,dr_hMpc,z,z_value=self.z_value,z_width=self.z_width)
-        self.k_kms = k_kms
-        self.Pk_kms = Pk_kms
-        return
-    def add_mean_F_measurement(self,pixel_object):
-        self.mean_F = pixel_object.get_mean_flux(pixel_object.lya_absorber,z_value=self.z_value,z_width=self.z_width)
-        return
-    def add_sigma_F_measurement(self,pixel_object):
-        sF = pixel_object.get_sigma_dF(pixel_object.lya_absorber,z_value=self.z_value,z_width=self.z_width)
-
-        Om = 0.3147
-        l_hMpc = 0.25
-        E_z = np.sqrt(Om*(1+self.z_value)**3 + (1-Om))
-        dkms_dhMpc = 100. * E_z / (1+self.z_value)
-
-        # transform to h/Mpc
-        k_hMpc = self.k_kms * dkms_dhMpc
-        Pk_hMpc = self.Pk_kms / dkms_dhMpc
-
-        # compute Fourier transform of Top-Hat filter of size l_hMpc
-        #W_hMpc = np.sinc((k_hMpc*l_hMpc)/(2*np.pi))
-
-        self.sigma_F = np.sqrt((1/np.pi)*np.trapz(Pk_hMpc,k_hMpc)) #(W_hMpc**2)*
-        #print('cells: {:2.4f}, hMpc: {:2.4f}, kms: {:2.4f}'.format(sF,self.sigma_F,np.sqrt((1/np.pi)*np.trapz((W_hMpc**2)*self.Pk_kms,self.k_kms))))
-        return
-    def add_Pk1D_chi2(self,min_k=None,max_k=None,denom="krange10"):
-        model_Pk_kms = P1D_z_kms_PD2013(self.z_value,self.k_kms)
-        if min_k:
-            min_j = max(np.searchsorted(self.k_kms,min_k) - 1,0)
-        else:
-            min_j = 0
-            min_k = 0.
-        if max_k:
-            max_j = np.searchsorted(self.k_kms,max_k)
-        else:
-            max_j = -1
-            max_k = self.k_kms[-1]
-        A = 10**6
-        if denom == "uniform5":
-            denom = (0.05 * model_Pk_kms)**2
-        elif denom == "uniform10":
-            denom = (0.10 * model_Pk_kms)**2
-        elif denom == "krange5":
-            eps = A * np.ones(self.k_kms.shape)
-            eps[min_j:max_j] *= 0.05 / A
-            denom = (eps * model_Pk_kms)**2
-        elif denom == "krange10":
-            eps = A * np.ones(self.k_kms.shape)
-            eps[min_j:max_j] *= 0.1 / A
-            denom = (eps * model_Pk_kms)**2
-        elif denom == "krange10_smooth":
-            eps = A * np.ones(self.k_kms.shape)
-            eps[min_j:max_j] *= 0.1 / A
-            smooth_width = (max_k - min_k)/0.01
-            lower_smooth = A + (0.1 - A)*np.exp(-((self.k_kms - min_k)**2)/(2*smooth_width**2))
-            upper_smooth = A + (0.1 - A)*np.exp(-((self.k_kms - max_k)**2)/(2*smooth_width**2))
-            eps[:min_j] = lower_smooth[:min_j]
-            eps[max_j:] = upper_smooth[max_j:]
-            denom = (eps * model_Pk_kms)**2
-        elif denom == "npower":
-            k0 = 0.005
-            n = 2.
-            eps = 0.1 * ((1 + (self.k_kms/k0)**n))
-            denom = (eps * model_Pk_kms)**2
-        self.Pk_kms_chi2_eps = eps
-        chi2 = np.sum(((self.Pk_kms - model_Pk_kms)**2)/denom)
-        self.Pk_kms_chi2 = chi2
-        return
-    def add_mean_F_chi2(self,min_k=None,max_k=None,eps=0.1,mean_F_model='Becker13'):
-        model_mean_F = get_mean_F_model(self.z_value,model=mean_F_model)
-        denom = (eps * model_mean_F)**2
-        chi2 = np.sum(((self.mean_F - model_mean_F)**2)/denom)
-        self.mean_F_chi2 = chi2
-        return
-    def add_sigma_F_chi2(self,min_k=None,max_k=None,eps=0.1,l_hMpc=0.25):
-        model_sigma_F = get_sigma_dF_P1D(self.z_value,l_hMpc=l_hMpc)
-        denom = (eps * model_sigma_F)**2
-        chi2 = np.sum(((self.sigma_F - model_sigma_F)**2)/denom)
-        self.sigma_F_chi2 = chi2
-        #print(self.z_value,model_sigma_F,self.sigma_F)
-        return
-    def add_total_chi2(self):
-        chi2 = self.Pk_kms_chi2 + self.mean_F_chi2
-        self.total_chi2 = chi2
-        return
-    @classmethod
-    def combine_measurements(cls,m1,m2):
-        if utils.confirm_identical(m1.parameter_ID,m2.parameter_ID,item_name='parameter_ID'):
-            parameter_ID = m1.parameter_ID
-            n = m1.n
-            k1 = m1.k1
-            alpha = m1.alpha
-            beta = m1.beta
-            sigma_G = m1.sigma_G
-        if utils.confirm_identical(m1.z_value,m2.z_value,item_name='z_value'):
-            z_value = m1.z_value
-        if utils.confirm_identical(m1.z_width,m2.z_width,item_name='z_width'):
-            z_width = m1.z_width
-        N_skewers = m1.N_skewers + m2.N_skewers
-        pixels = m1.pixels + m2.pixels
-        mean_F = (m1.mean_F*m1.N_skewers + m2.mean_F*m2.N_skewers)/(m1.N_skewers + m2.N_skewers)
-        k_kms_check = True
-        if utils.confirm_identical(m1.k_kms,m2.k_kms,item_name='k_kms',array=True):
-            k_kms = m1.k_kms
-        Pk_kms = (m1.Pk_kms*m1.N_skewers + m2.Pk_kms*m2.N_skewers)/(m1.N_skewers + m2.N_skewers)
-        sigma_F = np.sqrt(((m1.sigma_F**2)*m1.N_skewers + (m2.sigma_F**2)*m2.N_skewers)/(m1.N_skewers + m2.N_skewers))
-        #May need to work on this?
-        cf = None
-        return measurement(parameter_ID,z_value,z_width,N_skewers,n,k1,alpha,beta,sigma_G,pixels=pixels,mean_F=mean_F,k_kms=k_kms,Pk_kms=Pk_kms,sigma_F=sigma_F,cf=cf)
-    @classmethod
-    def load_measurement(cls,hdu):
-        parameter_ID = hdu.header['param_ID']
-        z_value = hdu.header['z_value']
-        z_width = hdu.header['z_width']
-        N_skewers = hdu.header['N_skw']
-
-        n = hdu.header['n']
-        k1 = hdu.header['k1']
-        alpha = hdu.header['alpha']
-        beta = hdu.header['beta']
-        sigma_G = hdu.header['sigma_G']
-
-        #Not sure how to do this...
-        N_pix = hdu.header['N_pix']
-        if hdu.header['pixels'] == 'multiple':
-            pixels = ['']*N_pix
-        else:
-            pixels = [hdu.header['pixels']]
-
-        mean_F = hdu.header['mean_F']
-        k_kms = hdu.data['k_kms']
-        Pk_kms = hdu.data['Pk_kms']
-        cf = hdu.header['cf']
-        return cls(parameter_ID,z_value,z_width,N_skewers,n,k1,alpha,beta,sigma_G,pixels=pixels,mean_F=mean_F,k_kms=k_kms,Pk_kms=Pk_kms,cf=cf)
-    def make_HDU(self):
-        header = fits.Header()
-        header['param_ID'] = self.parameter_ID
-        header['z_value'] = self.z_value
-        header['z_width'] = self.z_width
-        header['N_skw'] = self.N_skewers
-        header['n'] = self.n
-        header['k1'] = self.k1
-        header['alpha'] = self.alpha
-        header['beta'] = self.beta
-        header['sigma_G'] = self.sigma_G
-        header['N_pix'] = len(self.pixels)
-        if len(self.pixels) > 1:
-            header['pixels'] = 'multiple'
-        else:
-            header['pixels'] = self.pixels[0]
-        header['mean_F'] = self.mean_F
-        header['cf'] = self.cf
-
-        Pk_data = list(zip(self.k_kms,self.Pk_kms))
-        dtype = [('k_kms', 'f8'), ('Pk_kms', 'f8')]
-        measurement_1 = np.array(Pk_data,dtype=dtype)
-        cols = fits.ColDefs(measurement_1)
-        hdu = fits.BinTableHDU.from_columns(cols,header=header,name='Pk1D')
-        return hdu
-    # TODO: functions to make plots
-
-class tuning_parameters:
-
-    def __init__(self,):
-        return
-
-    @classmethod
-    def add_parameter(name,value):
-
-
-
-        return cls()
-"""
 ################################################################################
 """
 Below: old tuning, no-RSD, theoretical based Method

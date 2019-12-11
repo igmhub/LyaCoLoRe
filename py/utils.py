@@ -8,12 +8,14 @@ import gzip
 
 lya_rest = 1215.67
 
+#Function to get the file name using a defined structure.
 def get_file_name(base_dir,base_name,nside,pixel,compressed=False):
     if compressed:
         return base_dir+'/{}-{}-{}.fits.gz'.format(base_name,nside,pixel)
     else:
         return base_dir+'/{}-{}-{}.fits'.format(base_name,nside,pixel)
 
+#Function to get the directory name using a defined structure.
 def get_dir_name(base_dir,pixel):
     return base_dir+'/{}/{}/'.format(pixel//100,pixel)
 

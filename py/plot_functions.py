@@ -125,7 +125,7 @@ class picca_correlation:
         r = r[cut]
         xi_wed = xi_wed[cut]
         err_wed = err_wed[cut]
-        ar = ax.errorbar(r,(r**r_power) * xi_wed,yerr=(r**r_power) * err_wed,fmt='o',label=plot_label)
+        ar = ax.errorbar(r,(r**r_power) * xi_wed,yerr=(r**r_power) * err_wed,fmt='o',label=plot_label,color=colour)
 
         return ar, plot_label
 

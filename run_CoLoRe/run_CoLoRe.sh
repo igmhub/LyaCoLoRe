@@ -96,10 +96,12 @@ umask 0002
 export OMP_NUM_THREADS=64
 
 date
-srun -n $NODES -c 64 $COLORE_PATH/CoLoRe $PARAM_FILE  
+srun -n $NODES -c 64 ${COLORE_PATH}/CoLoRe $PARAM_FILE  
 date
 
 EOF
 
 sbatch $RUN_FILE
 
+# we copy the param file to the output directory
+cp $RUN_FILE $OUTPUT_PATH

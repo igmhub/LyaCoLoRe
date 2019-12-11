@@ -3,7 +3,7 @@ from astropy.io import fits
 from scipy.interpolate import interp1d
 import time
 
-from . import utils, read_files, bias, convert, RSD, DLA, independent, absorber, absorber_data, stats
+from . import absorber, absorber_data, bias, convert, DLA, independent, read_files, RSD, stats, tuning, utils
 
 lya = utils.lya_rest
 
@@ -336,8 +336,71 @@ class SimulationData:
 
         return
 
+    # Function to add transformation to the object formally.
+    def add_transformation(self,transformation):
+        self.transformation = transformation
+        return
+
+    # Function to add transformation to the object formally from a filepath.
+    def add_transformation_from_file(self,filepath):
+        transformation = tuning.Transformation.make_transformation_from_file(filepath)
+        self.transformation = transformation
+        return
+
+    # Function to scale the velocities in the skewers up.
+    def scale_velocities(self,use_transformation=True,a_v=None):
+
+        if use_transformation and a_v != None:
+            print('WARNING: asked to use transformation and specified a_v.\n -> Using transformation.')
+            try:
+                self.VEL_rows *= self.transformation.a_v
+            except AttributeError:
+                print('WARNING: No tranformation found.\n -> Using specified value of a_v.')
+                self.VEL_rows *= a_v
+
+        elif use_transformation:
+            try:
+                self.VEL_rows *= self.transformation.a_v
+            except AttributeError:
+                print('WARNING: No tranformation found.\n -> Using a_v=1.')
+
+        elif a_v == None:
+            print('WARNING: Not asked to use tranformation and no value of a_v specified.\n -> Using a_v=1.')
+
+        return
+
     #Function to add small scale gaussian fluctuations.
-    def add_small_scale_gaussian_fluctuations(self,cell_size,generator,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n=0.7,k1=0.001,A0=58.6,R_kms=25.0):
+    def add_small_scale_gaussian_fluctuations(self,cell_size,generator,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,use_transformation=True,n=None,k1=None,A0=None,R_kms=None,remove_P1D_data=None,remove_P1D_z=2.5):
+
+        if use_transformation and n != None:
+            print('WARNING: asked to use transformation and specified parameter values.\n -> Using transformation.')
+            try:
+                n = self.transformation.n
+                k1 = self.transformation.k1
+                R_kms = self.transformation.R_kms
+                A0 = 58.6
+            except AttributeError:
+                print('WARNING: No tranformation found.\n -> Using specified values of parameters.')
+
+        elif use_transformation:
+            try:
+                n = self.transformation.n
+                k1 = self.transformation.k1
+                R_kms = self.transformation.R_kms
+                A0 = 58.6
+            except AttributeError:
+                print('WARNING: No tranformation found.\n -> Using default parameter values.')
+                n = 0.7
+                k1 = 0.001
+                R_kms = 25.0
+                A0 = 58.6
+
+        elif n == None:
+            print('WARNING: Not asked to use tranformation and no parameter values specified.\n -> Using default parameter values.')
+            n = 0.7
+            k1 = 0.001
+            R_kms = 25.0
+            A0 = 58.6
 
         #Define the new R grid. Ensure that we include the entire range of R.
         old_R = self.R
@@ -383,7 +446,8 @@ class SimulationData:
         #Generate extra variance, either white noise or correlated.
         dkms_dhMpc = utils.get_dkms_dhMpc(0.)
         dv_kms = cell_size * dkms_dhMpc
-        extra_var = independent.get_gaussian_fields(generator,self.N_cells,dv_kms=dv_kms,N_skewers=self.N_qso,white_noise=white_noise,n=n,k1=k1,A0=A0,R_kms=R_kms,norm=True)
+        remove_P1D_amp = self.transformation.get_seps(remove_P1D_z)**2
+        extra_var = independent.get_gaussian_fields(generator,self.N_cells,dv_kms=dv_kms,N_skewers=self.N_qso,white_noise=white_noise,n=n,k1=k1,A0=A0,R_kms=R_kms,norm=True,remove_P1D_data=remove_P1D_data,remove_P1D_amp=remove_P1D_amp)
         extra_var *= extra_sigma_G
 
         #Add the extra fluctuations to the expanded rows.
@@ -452,6 +516,32 @@ class SimulationData:
         if self.metals is not None:
             for metal in iter(self.metals.values()):
                 self.compute_tau_skewers(metal)
+
+        return
+
+    # Function to store the transmission skewers for 1 absorber (rather than 
+    # compute them on the fly each time required).
+    def store_transmission_skewers(self,absorber):
+
+        absorber.transmission(store=True)
+        
+        return
+
+    # Function to store the transmission skewers for all absorbers (rather than
+    # compute them on the fly each time required).
+    def store_all_transmission_skewers(self):
+        
+        # Store Lya transmission skewers.
+        self.store_transmission_skewers(self.lya_absorber)
+        
+        # Store Lyb transmission skewers if needed.
+        if self.lyb_absorber is not None:
+            self.store_transmission_skewers(self.lyb_absorber)
+
+        # Store metal transmission skewers if needed.
+        if self.metals is not None:
+            for metal in iter(self.metals.values()):
+                self.store_transmission_skewers(metal)
 
         return
 
@@ -530,10 +620,15 @@ class SimulationData:
                         metal_skewers = interp1d(metal_lam,metal.tau,axis=1,fill_value=(0.,0.),bounds_error=False)(10**self.LOGLAM_MAP)
                         #Add tau contribution and rest wavelength to header.
                         skewer_rows += metal_skewers
-            skewer_rows = skewer_rows ** power
+            if power != 1.:
+                skewer_rows = skewer_rows ** power
 
         elif quantity == 'flux':
-            skewer_rows = self.lya_absorber.transmission()
+            try:
+                skewer_rows = self.lya_absorber.transmission_rows
+            except AttributeError:
+                skewer_rows = self.lya_absorber.transmission()
+
             if all_absorbers:
                 if self.lyb_absorber is not None:
                     #Shift the skewers according to absorber rest wavelength.
@@ -548,7 +643,8 @@ class SimulationData:
                         metal_skewers = interp1d(metal_lam,metal.transmission(),axis=1,fill_value=(1.,1.),bounds_error=False)(10**self.LOGLAM_MAP)
                         #Add tau contribution and rest wavelength to header.
                         skewer_rows *= metal_skewers
-            skewer_rows = skewer_rows ** power
+            if power != 1.:
+                skewer_rows = skewer_rows ** power
 
         elif quantity == 'FlnF':
             #Use that ln(F)=-tau so FlnF = -F*tau
@@ -568,7 +664,6 @@ class SimulationData:
         #Else if there's no width, compute the mean of the cells neighbouring the z_value.
         elif not z_width:
             j_value_upper = np.searchsorted(self.Z,z_value)
-
             j_value_lower = max(j_value_upper - 1,0)
             relevant_rows = [i for i in range(self.N_qso) if np.sum(self.IVAR_rows[j_value_lower,j_value_upper]) == 2]
 
@@ -588,13 +683,12 @@ class SimulationData:
 
         #Else, compute the mean of the chunk of width z_width centred on z_value.
         else:
-            j_value_upper = np.searchsorted(self.Z,z_value + z_width/2.) - 1
-            j_value_lower = np.max([0,np.searchsorted(self.Z,z_value - z_width/2.)])
+            w = (abs(self.Z-z_value)<z_width/2.)
 
             if single_value:
-                mean = np.average(skewer_rows[:,j_value_lower:j_value_upper+1],weights=self.IVAR_rows[:,j_value_lower:j_value_upper+1])
+                mean = np.average(skewer_rows[:,w],weights=self.IVAR_rows[:,w])
             else:
-                mean = np.average(skewer_rows[:,j_value_lower:j_value_upper+1],weights=self.IVAR_rows[:,j_value_lower:j_value_upper+1],axis=0)
+                mean = np.average(skewer_rows[:,w],weights=self.IVAR_rows[:,w],axis=0)
 
         return mean
 

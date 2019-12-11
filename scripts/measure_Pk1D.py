@@ -134,7 +134,8 @@ if np.log2(N_side)-int(np.log2(N_side)) != 0:
 else:
     N_pix = 12*N_side**2
 
-colours = ['C0','C1','C2','C3','C4','C5','C6','C7','C8','C9'] * 2
+#colours = ['C0','C1','C2','C3','C4','C5','C6','C7','C8','C9'] * 2
+colours = ['#F5793A','#A95AA1','#85C0F9','#0F2080'] * 2
 fontsize = 16
 figsize = (12, 6)
 dpi = 80
@@ -301,8 +302,8 @@ def plot_P1D_values(Pk1D_results,show_plot=True):
     z_values.sort()
 
     #Set up to record the max/min values of P so we can set axis scales well.
-    plot_model_min = 10**10.
-    plot_model_max = 0.
+    plot_min = 10**10.
+    plot_max = 0.
 
     #For each z value, plot Pk1D and a model line.
     data_plots = {}
@@ -363,13 +364,21 @@ def plot_P1D_values(Pk1D_results,show_plot=True):
                 to_plot_upper = to_plot_model * (1 + args.add_model_interval_lines)
                 ax.plot(k,to_plot_upper,color=colour,linestyle=':',zorder=1)
                 ax.plot(k,to_plot_lower,color=colour,linestyle=':',zorder=1)
-            plot_model_min = np.minimum(plot_model_min,np.min(to_plot_model[k_rel]))
-            plot_model_max = np.maximum(plot_model_max,np.max(to_plot_model[k_rel]))
+        
+        #Determine the minimum and maximum values plotted.
+        #If we're plotting flux, use the model values for this.
+        #Otherwise use the data values.
+        if 'flux' in quantity:
+            plot_min = np.minimum(plot_min,np.min(to_plot_model[k_rel]))
+            plot_max = np.maximum(plot_max,np.max(to_plot_model[k_rel]))
+        else:
+            plot_min = np.minimum(plot_min,np.min(to_plot_data[k_rel]))
+            plot_max = np.maximum(plot_max,np.max(to_plot_data[k_rel]))
 
     #Set the axis spacing correctly.
     space = 0.3
-    ylim_lower = plot_model_min * (1 - space)
-    ylim_upper = plot_model_max * (1 + space)
+    ylim_lower = plot_min * (1 - space)
+    ylim_upper = plot_max * (1 + space)
     ax.set_xlim(args.k_min_plot,args.k_max_plot)
     ax.set_ylim(ylim_lower,ylim_upper)
 
@@ -389,7 +398,8 @@ def plot_P1D_values(Pk1D_results,show_plot=True):
         elif args.add_model_interval_areas is not None:
             err_i = ax.fill_between([0], [0], [0], color='gray', alpha=0.2, label=r'DR9 $\pm$ 10%')
         descriptor_plots['error'] = err
-        descriptor_plots['error_interval'] = err_i
+        if args.add_model_interval_lines is not None or args.add_model_interval_areas is not None:
+            descriptor_plots['error_interval'] = err_i
 
     #Add vertical line, and shade if desired.
     if args.add_vline is not None:
@@ -409,9 +419,10 @@ def plot_P1D_values(Pk1D_results,show_plot=True):
     #Add a legend, ensuring everything is in the right order.
     legend_items = []
     legend_labels = []
-    for z_value in np.sort(z_values):
-        legend_items += [data_plots[z_value]]
-        legend_labels += [data_plots[z_value].get_label()]
+    for z_value in np.sort(z_values)[::-1]:
+        d = data_plots[z_value]
+        legend_items += [d]
+        legend_labels += [d.get_label()]
     for key in descriptor_plots.keys():
         legend_items += [descriptor_plots[key]]
         if type(descriptor_plots[key]) == list:

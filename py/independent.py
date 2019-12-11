@@ -19,7 +19,7 @@ def get_gaussian_skewers(generator,N_cells,sigma_G=1.0,N_skewers=1):
 
 #Function to generate random Gaussian fields at a given redshift.
 #From lya_mock_functions
-def get_gaussian_fields(generator,N_cells,z=0.0,dv_kms=10.0,N_skewers=1,white_noise=False,n=0.7,k1=0.001,A0=58.6,R_kms=25.0,norm=True):
+def get_gaussian_fields(generator,N_cells,z=0.0,dv_kms=10.0,N_skewers=1,white_noise=False,n=0.7,k1=0.001,A0=58.6,R_kms=25.0,norm=True,remove_P1D_data=None,remove_P1D_amp=None):
     #print(generator,N_cells,z,dv_kms,N_skewers,white_noise,n,k1,A0)
 
     times = []
@@ -33,6 +33,13 @@ def get_gaussian_fields(generator,N_cells,z=0.0,dv_kms=10.0,N_skewers=1,white_no
     # get power evaluated at each k_kms
     P_kms = power_kms(z,k_kms,dv_kms,white_noise=white_noise,n=n,k1=k1,A0=A0,R_kms=R_kms,smooth=True,norm=norm)
     #P_kms = alternative_power_kms(z,k_kms,dv_kms,A0=A0,k0=k1,E1=n,E2=-0.1,R1=R1,smooth=True)
+
+    # If desired, remove P1D data from the one calculated above.
+    if remove_P1D_data is not None:
+        k_rem = remove_P1D_data['k']
+        Pk_rem = remove_P1D_data['Pk']
+        Pk_rem = np.interp(k_kms,k_rem,Pk_rem,right=0)
+        P_kms -= Pk_rem/remove_P1D_amp
 
     times += [time.time()]
     # generate random Fourier modes

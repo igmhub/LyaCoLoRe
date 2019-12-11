@@ -19,7 +19,7 @@ basedir = '/project/projectdirs/desi/users/jfarr/LyaCoLoRe_paper/'
 
 """
 #Main method correlations plot.
-figsize = (12,6)
+figsize = (12,6.25)
 filename = 'corr_plot_rmin40_joint.pdf'
 subplots = {}
 subplots[(0,0)] =  {'location':         basedir+'/analysis/correlation_functions/stack/measurements/lya_auto/',
@@ -31,13 +31,14 @@ subplots[(0,0)] =  {'location':         basedir+'/analysis/correlation_functions
                     'corr_name':        'LYA(LYA)xLYA(LYA)',
                     'abs_mu':           True,
                     'mu_bins':          [(0.0,0.5),(0.5,0.8),(0.8,0.95),(0.95,1.0)],
-                    'mu_bin_colours':   ['C0','C1','C2','C3'],
+                    #'mu_bin_colours':   ['C0','C1','C2','C3'],
+                    'mu_bin_colours':   ['#F5793A','#A95AA1','#85C0F9','#0F2080'],
                     'plot_data':        {'r_power': 2, 'nr': 40, 'rmax_plot': 200.0},
                     'plot_picca_fit':   True,
                     'picca_fit_data':   {'rmin': 40., 'rmax':160., 'afix': 'free'},
                     'plot_manual_fit':  False,
                     'manual_fit_data':  {'b1': -0.1049, 'b2': -0.1049, 'beta1': 1.3783, 'beta2': 1.3783},
-                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'leg_loc': 'shared'},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'leg_loc': 'shared', 'title': r'Ly$\alpha$ auto-correlation'},
                     }
 subplots[(0,1)] =  {'location':         basedir+'/analysis/correlation_functions/stack/measurements/lya_qso_cross/',
                     'filename':         '/correlations/xcf_exp_lya_qso_cross.fits.gz',
@@ -48,17 +49,17 @@ subplots[(0,1)] =  {'location':         basedir+'/analysis/correlation_functions
                     'corr_name':        'LYA(LYA)xQSO',
                     'abs_mu':           True,
                     'mu_bins':          [(0.0,0.5),(0.5,0.8),(0.8,0.95),(0.95,1.0)],
-                    'mu_bin_colours':   ['C0','C1','C2','C3'],
+                    #'mu_bin_colours':   ['C0','C1','C2','C3'],
+                    'mu_bin_colours':   ['#F5793A','#A95AA1','#85C0F9','#0F2080'],
                     'plot_data':        {'r_power': 2, 'nr': 40, 'rmax_plot': 200.0},
                     'plot_picca_fit':   True,
                     'picca_fit_data':   {'rmin': 40., 'rmax':160., 'afix': 'free'},
                     'plot_manual_fit':  False,
                     'manual_fit_data':  {'b1': -0.133, 'b2': 2.0, 'beta1': 1.4, 'beta2': 0.79},
-                    'format':           {'legend': False, 'xlabel': True, 'ylabel': True, 'leg_loc': 'shared'},
+                    'format':           {'legend': False, 'xlabel': True, 'ylabel': True, 'leg_loc': 'shared', 'title': r'Ly$\alpha$-QSO cross-correlation'},
                     }
 """
-"""
-figsize = (12,6)
+figsize = (12,6.25)
 filename = 'corr_plot_systematics_rmin40.pdf'
 subplots = {}
 subplots[(0,0)] =  {'location':         basedir+'/analysis/correlation_functions/stack/measurements/lya_aa_auto/',
@@ -68,14 +69,15 @@ subplots[(0,0)] =  {'location':         basedir+'/analysis/correlation_functions
                     'corr_name':        'LYA(LYA)xLYA(LYA)',
                     'abs_mu':           True,
                     'mu_bins':          [(0.0,0.5),(0.5,0.8),(0.8,0.95),(0.95,1.0)],
-                    'mu_bin_colours':   ['C0','C1','C2','C3'],
+                    #'mu_bin_colours':   ['C0','C1','C2','C3'],
+                    'mu_bin_colours':   ['#F5793A','#A95AA1','#85C0F9','#0F2080'],
                     'plot_data':        {'r_power': 2, 'nr': 40, 'rmax_plot': 200.0},
                     'plot_picca_fit':   True,
                     'picca_fit_data':   {'rmin': 40., 'rmax':160., 'afix': 'free'},
                     'plot_manual_fit':  False,
                     'manual_fit_data':  {'b1': -0.1049, 'b2': -0.1049, 'beta1': 1.3783, 'beta2': 1.3783},
                     'fit_plot_data':    {'r_power': 2, 'nr': 40, 'rmax_plot': 200.0},
-                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'leg_loc': 'shared'},
+                    'format':           {'legend': True, 'xlabel': True, 'ylabel': True, 'leg_loc': 'shared', 'title': r'Ly$\alpha$ auto-correlation with metals'},
                     }
 subplots[(0,1)] =  {'location':         basedir+'/analysis/correlation_functions/stack/measurements/lya_dla_cross/',
                     'filename':         '/correlations/xcf_exp_lya_dla_cross.fits.gz',
@@ -84,16 +86,16 @@ subplots[(0,1)] =  {'location':         basedir+'/analysis/correlation_functions
                     'corr_name':        'LYA(LYA)xDLA',
                     'abs_mu':           True,
                     'mu_bins':          [(0.0,0.5),(0.5,0.8),(0.8,0.95),(0.95,1.0)],
-                    'mu_bin_colours':   ['C0','C1','C2','C3'],
+                    #'mu_bin_colours':   ['C0','C1','C2','C3'],
+                    'mu_bin_colours':   ['#F5793A','#A95AA1','#85C0F9','#0F2080'],
                     'plot_data':        {'r_power': 2, 'nr': 40, 'rmax_plot': 200.0},
                     'plot_picca_fit':   True,
                     'picca_fit_data':   {'rmin': 40., 'rmax':160., 'afix': 'free'},
                     'plot_manual_fit':  False,
                     'manual_fit_data':  {'b1': -0.133, 'b2': 2.0, 'beta1': 1.4, 'beta2': 0.79},
                     'fit_plot_data':    {'r_power': 2, 'nr': 40, 'rmax_plot': 200.0},
-                    'format':           {'legend': False, 'xlabel': True, 'ylabel': True, 'leg_loc': 'shared'},
+                    'format':           {'legend': False, 'xlabel': True, 'ylabel': True, 'leg_loc': 'shared', 'title': r'Ly$\alpha$-HCD cross-correlation'},
                     }
-"""
 """
 figsize = (12,6)
 filename = 'corr_plot_qso_auto_rmin40.pdf'
@@ -105,7 +107,8 @@ subplots[(0,0)] =  {'location':         basedir+'/analysis/correlation_functions
                     'corr_name':        'QSOxQSO',
                     'abs_mu':           True,
                     'mu_bins':          [(0.0,0.5),(0.5,0.8),(0.8,1.0)],
-                    'mu_bin_colours':   ['C0','C1','C2','C3'],
+                    #'mu_bin_colours':   ['C0','C1','C2','C3'],
+                    'mu_bin_colours':   ['#F5793A','#A95AA1','#85C0F9','#0F2080'],
                     'plot_data':        {'r_power': 2, 'nr': 40, 'rmax_plot': 200.0},
                     'plot_picca_fit':   True,
                     'picca_fit_data':   {'rmin': 40., 'rmax':160., 'afix': 'free'},
@@ -118,6 +121,7 @@ subplots[(0,0)] =  {'location':         basedir+'/analysis/correlation_functions
 
 
 
+"""
 figsize = (12,6)
 filename = 'lya_qso_cross_isotropic.pdf'
 subplots = {}
@@ -138,6 +142,7 @@ subplots[(0,0)] =  {'location':         basedir+'/analysis/correlation_functions
                     'manual_fit_data':  {'b1': -0.133, 'b2': 2.0, 'beta1': 1.4, 'beta2': 0.79},
                     'format':           {'legend': False, 'xlabel': True, 'ylabel': True, 'leg_loc': 'shared'},
                     }
+"""
 """
 figsize = (12,6)
 filename = 'compare_lya_qso_cross_covariances_stack.pdf'

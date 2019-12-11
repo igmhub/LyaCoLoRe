@@ -1,3 +1,5 @@
+
+################################################################################
 # clear out the old example data
 rm -r $LYACOLORE_PATH/example_data/lya_skewers/*
 
@@ -29,7 +31,7 @@ TRANS_LMAX=6500.0
 TRANS_DL=0.2
 
 # specify process flags
-MM_FLAGS="--overwrite --pixels $PIXELsS"
+MM_FLAGS="--overwrite --pixels $PIXELS"
 MT_FLAGS="--add-DLAs --add-RSDs --add-small-scale-fluctuations --overwrite --compress --transmission-only"
 MS_FLAGS="--overwrite --compress --transmission-only --compressed-input"
 
