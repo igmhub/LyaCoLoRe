@@ -299,7 +299,7 @@ class picca_correlation:
         xi_err_plot = xi_err*(r**r_power)
         xi_plot = xi*(r**r_power)
         ar = ax.errorbar(rp,xi_plot,yerr=xi_err_plot,label=r'${:3.1f}<r_\perp<{:3.1f}$'.format(rtmin,rtmax),fmt='o',color=colour)
-
+        
         #Hack to plot residual
         #xi_model_grid = self.fit['xi_grid'].reshape((self.np,self.nt))
         #xi_model = np.average(xi_model_grid,weights=weights_grid,axis=1)

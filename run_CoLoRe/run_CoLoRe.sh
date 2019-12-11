@@ -20,20 +20,25 @@ GAUSSIAN="true"
 COLORE_PATH="/global/homes/j/jfarr/Programs/CoLoRe_PAR_GAUSS/"
 
 # full path to folder where output will be written
-OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/whole_box/whole_box_seed${SEED}/"
+OUTPUT_PATH=$3
 echo "output will written to "$OUTPUT_PATH
 mkdir $OUTPUT_PATH
 
+# if it does not exist already, make a run_files directory
+if [ ! -d $OUTPUT_PATH/run_files ] ; then
+    mkdir -p $OUTPUT_PATH/run_files
+fi
+
 # we will create this parameter file
-PARAM_FILE="${LYACOLORE_PATH}/run_CoLoRe/run_files/param_seed${SEED}.cfg"
+PARAM_FILE="${LYACOLORE_PATH}/run_CoLoRe/run_files/param_seed${SEED}_${NGRID}.cfg"
 echo "parameter file "$PARAM_FILE
 
 cat > $PARAM_FILE <<EOF
 global = {
   prefix_out = "${OUTPUT_PATH}/out"
   output_format = "FITS"
-  output_density = true
-  pk_filename = "${LYACOLORE_PATH}/input_files/PlanckDR12_kmax_matterpower_z0.dat"
+  output_density = false
+  pk_filename = "${LYACOLORE_PATH}/run_CoLoRe/input_files/PlanckDR12_kmax_matterpower_z0.dat"
   z_min = 1.6
   z_max = 3.79
   seed = ${SEED}
@@ -72,7 +77,7 @@ EOF
 cp $PARAM_FILE $OUTPUT_PATH
 
 # we will create this script
-RUN_FILE="${LYACOLORE_PATH}/run_CoLoRe/run_files/run_colore_v5_seed${SEED}.sh"
+RUN_FILE="${LYACOLORE_PATH}/run_CoLoRe/run_files/run_colore_seed${SEED}_${NGRID}.sh"
 echo "run file "$RUN_FILE
 
 cat > $RUN_FILE <<EOF

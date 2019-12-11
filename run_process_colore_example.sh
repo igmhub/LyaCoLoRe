@@ -1,3 +1,12 @@
+
+################################################################################
+# clear out the old example data
+rm -r $LYACOLORE_PATH/example_data/lya_skewers/*
+
+# choose which pixels to run on
+# note, only pixels xxx to yyy are included in the example data
+PIXELS=`seq 0 10`
+
 # specify number of cores to use
 NCORES=1
 
@@ -22,8 +31,9 @@ TRANS_LMAX=6500.0
 TRANS_DL=0.2
 
 # specify process flags
-MM_FLAGS="--overwrite"
-MT_FLAGS="--add-DLAs --add-RSDs --add-small-scale-fluctuations --overwrite --compress"
+MM_FLAGS="--overwrite --pixels $PIXELS"
+MT_FLAGS="--add-DLAs --add-RSDs --add-small-scale-fluctuations --overwrite --compress --transmission-only"
+MS_FLAGS="--overwrite --compress --transmission-only --compressed-input"
 
 # specify details of colore output
 COLORE_NGRID=4096
@@ -41,11 +51,6 @@ INPUT_FILES=`ls -1 ${INPUT_PATH}/out_srcs_*.fits`
 NFILES=`echo $INPUT_FILES | wc -w`
 echo "${NFILES} input files have been found"
 
-# code version
-V_CODE_MAJ="7"
-V_CODE_MIN="0"
-V_REALISATION="0"
-
 # full path to folder where output will be written
 OUTPUT_PATH="${LYACOLORE_PATH}/example_data/lya_skewers/"
 echo "output will written to "$OUTPUT_PATH
@@ -62,7 +67,7 @@ TUNING_PATH="${LYACOLORE_PATH}/input_files/tuning_data_with_bias_vel1.3_b1.65_lr
 
 # make master file and new file structure
 echo "making master file"
-command="${PROCESS_PATH}/make_master.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} --nside ${NSIDE} --nproc ${NCORES} --min-cat-z ${MIN_CAT_Z} ${MM_FLAGS} --footprint ${FOOTPRINT}"
+command="${PROCESS_PATH}/make_master.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} --nside ${NSIDE} --nproc ${NCORES} --min-cat-z ${MIN_CAT_Z} ${MM_FLAGS} --footprint ${FOOTPRINT} --pixels ${PIXELS}"
 $command
 
 PIXDIRS=`ls -tr1d ${OUTPUT_PATH}/[0-9]*/*`
@@ -82,5 +87,6 @@ command="${PROCESS_PATH}/make_transmission.py --in-dir ${INPUT_PATH} --out-dir $
 $command
 
 echo "producing analysis pixels"
-command="${PROCESS_PATH}/make_summaries.py --base-dir ${OUTPUT_PATH} --nproc ${NCORES} --pixels ${PIXELS} --overwrite --picca-N-merge-values 1 10"
+command="${PROCESS_PATH}/make_summaries.py --base-dir ${OUTPUT_PATH} --nproc ${NCORES} --pixels ${PIXELS} --overwrite --picca-N-merge-values 1 10 --compressed-input --compress ${MS_FLAGS}"
 $command
+
