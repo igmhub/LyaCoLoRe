@@ -1,6 +1,3 @@
-# path to LyaCoLoRe
-LYACOLORE_PATH="/Users/James//Projects/LyaCoLoRe/"
-
 # specify number of cores to use
 NCORES=1
 
@@ -25,7 +22,7 @@ TRANS_LMAX=6500.0
 TRANS_DL=0.2
 
 # specify process flags
-MM_FLAGS="--overwrite --pixels 0"
+MM_FLAGS="--overwrite"
 MT_FLAGS="--add-DLAs --add-RSDs --add-small-scale-fluctuations --overwrite --compress"
 
 # specify details of colore output
