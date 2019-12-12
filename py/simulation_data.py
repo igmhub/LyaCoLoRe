@@ -152,104 +152,6 @@ class SimulationData:
         MJD = np.zeros(N_qso)
         FIBER = np.zeros(N_qso)
 
-        """
-        #Get data about the catalog and cosmology.
-        h_MOCKID = read_files.get_MOCKID(h,file_format,file_number)
-        h_R, h_Z, h_D, h_V = read_files.get_COSMO(h,file_format)
-        h_lya_lambdas = read_files.get_lya_lambdas(h,file_format)
-        h_lya_lambdas_edges = utils.get_edges(h_lya_lambdas)
-
-        #Work out which rows in the hdulist we are interested in.
-        if MOCKIDs is not None:
-            rows = []
-            s = set(MOCKIDs)
-            for i, qso in enumerate(h_MOCKID):
-                if qso in s:
-                    rows += [i]
-        else:
-            rows = list(range(h_MOCKID.shape[0]))
-
-        #Calculate the first_relevant_cell.
-        first_relevant_cell = np.searchsorted(h_lya_lambdas_edges[1:],lambda_min)
-
-        if input_format == 'physical_colore':
-
-            #Extract data from the HDUlist.
-            TYPE = h[1].data['TYPE'][rows]
-            RA = h[1].data['RA'][rows]
-            DEC = h[1].data['DEC'][rows]
-            Z_QSO = h[1].data['Z_COSMO'][rows]
-            DZ_RSD = h[1].data['DZ_RSD'][rows]
-            DENSITY_DELTA_rows = h[2].data[rows,:][:,first_relevant_cell:]
-            VEL_rows = h[3].data[rows,:][:,first_relevant_cell:]
-            Z = h[4].data['Z'][first_relevant_cell:]
-            R = h[4].data['R'][first_relevant_cell:]
-            D = h[4].data['D'][first_relevant_cell:]
-            V = h[4].data['V'][first_relevant_cell:]
-
-            #Derive the number of quasars and cells in the file.
-            N_qso = RA.shape[0]
-            N_cells = Z.shape[0]
-            if SIGMA_G == None:
-                SIGMA_G = h[4].header['SIGMA_G']
-
-            #Derive the MOCKID and LOGLAM_MAP.
-            MOCKID = read_files.get_MOCKID(h,input_format,file_number)
-            LOGLAM_MAP = np.log10(lya*(1+Z))
-
-            #Calculate the Gaussian skewers.
-            GAUSSIAN_DELTA_rows = None
-
-            #Make binary IVAR_rows for picca.
-            IVAR_rows = utils.make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP)
-
-            #Insert placeholder values for remaining variables.
-            DENSITY_DELTA_rows = None
-            PLATE = MOCKID
-            MJD = np.zeros(N_qso)
-            FIBER = np.zeros(N_qso)
-
-        elif input_format == 'gaussian_colore':
-
-            #Extract data from the HDUlist.
-            TYPE = h[1].data['TYPE'][rows]
-            RA = h[1].data['RA'][rows]
-            DEC = h[1].data['DEC'][rows]
-            Z_QSO = h[1].data['Z_COSMO'][rows]
-            DZ_RSD = h[1].data['DZ_RSD'][rows]
-            GAUSSIAN_DELTA_rows = h[2].data[rows,:][:,first_relevant_cell:]
-            VEL_rows = h[3].data[rows,:][:,first_relevant_cell:]
-            Z = h[4].data['Z'][first_relevant_cell:]
-            R = h[4].data['R'][first_relevant_cell:]
-            D = h[4].data['D'][first_relevant_cell:]
-            V = h[4].data['V'][first_relevant_cell:]
-
-            #Derive the number of quasars and cells in the file.
-            N_qso = RA.shape[0]
-            N_cells = Z.shape[0]
-            if SIGMA_G == None:
-                SIGMA_G = h[4].header['SIGMA_G']
-
-            #Derive the MOCKID and LOGLAM_MAP.
-            if MOCKIDs != None:
-                MOCKID = MOCKIDs
-            else:
-                MOCKID = read_files.get_MOCKID(h,input_format,file_number)
-            LOGLAM_MAP = np.log10(lya*(1+Z))
-
-            #Make binary IVAR_rows for picca.
-            IVAR_rows = utils.make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP)
-
-            #Insert placeholder values for remaining variables.
-            DENSITY_DELTA_rows = None
-            PLATE = MOCKID
-            MJD = np.zeros(N_qso)
-            FIBER = np.zeros(N_qso)
-        else:
-            print('Input format not recognised: current options are "colore" and "picca".')
-            print('Please choose one of these options and try again.')
-        """
-
         h.close()
 
         return cls(N_qso,N_cells,SIGMA_G,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,R,Z,D,V,LOGLAM_MAP)
@@ -925,8 +827,8 @@ class SimulationData:
         #Choose the right skewers according to input quantity.
         if quantity == 'gaussian':
             colore_2 = self.GAUSSIAN_DELTA_rows
-        elif quantity == 'density':
-            colore_2 = self.DENSITY_DELTA_rows + 1
+        elif quantity == 'physical':
+            colore_2 = self.DENSITY_DELTA_rows
         elif quantity == 'tau':
             colore_2 == self.lya_absorber.tau
         elif quantity == 'flux':
