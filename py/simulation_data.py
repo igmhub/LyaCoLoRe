@@ -8,7 +8,7 @@ from . import absorber, absorber_data, bias, convert, DLA, independent, read_fil
 lya = utils.lya_rest
 
 #Function to create a SimulationData object given a specific pixel, information about the complete simulation, and the filenames.
-def make_gaussian_pixel_object(pixel,base_filename,input_format,MOCKID_lookup,lambda_min=0,IVAR_cutoff=lya):
+def make_pixel_object(pixel,base_filename,file_format,skewer_type,MOCKID_lookup,lambda_min=0,IVAR_cutoff=lya):
 
     #Determine which file numbers we need to look at for the current pixel.
     relevant_keys = [key for key in MOCKID_lookup.keys() if key[1]==pixel]
@@ -25,7 +25,7 @@ def make_gaussian_pixel_object(pixel,base_filename,input_format,MOCKID_lookup,la
         #We use SimulationData.get_reduced_data to avoid loading all of the file's data into the object.
         if N_relevant_qso > 0:
             filename = base_filename+'{}.fits'.format(file_number)
-            working = SimulationData.get_gaussian_skewers_object(filename,file_number,input_format,MOCKIDs=relevant_MOCKIDs,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff)
+            working = SimulationData.get_skewers_object(filename,file_number,file_format,skewer_type,MOCKIDs=relevant_MOCKIDs,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff)
 
         #Combine the data from the working file with that from the files already looked at.
         if files_included > 0:
@@ -102,14 +102,61 @@ class SimulationData:
 
     #Method to extract reduced data from an input file of a given format, with a given list of MOCKIDs.
     @classmethod
-    def get_gaussian_skewers_object(cls,filename,file_number,input_format,MOCKIDs=None,lambda_min=0,IVAR_cutoff=lya,SIGMA_G=None):
+    def get_skewers_object(cls,filename,file_number,file_format,skewer_type,MOCKIDs=None,lambda_min=0.,IVAR_cutoff=lya,SIGMA_G=None):
 
+        ## Open the file
         h = fits.open(filename)
 
+        ## Make an array of MOCKIDS and a wavelength array in order to apply
+        ## cuts specified in input.
+        h_MOCKIDs = read_files.get_MOCKID(h,file_format,file_number)
+        h_lya_lambdas = read_files.get_lya_lambdas(h,file_format)
+        if MOCKIDs is not None:
+            MOCKIDs = h_MOCKIDs
+        wqso = np.in1d(h_MOCKIDs,MOCKIDs)
+        wcell = h_lya_lambdas>lamdba_min
+
+        ## Calculate the number of cells and number of QSOs.
+        N_qso = wqso.sum()
+        N_cells = wcell.sum()
+
+        ## If not provided in input, read SIGMA_G from file.
+        if SIGMA_G == None:
+            SIGMA_G = read_files.get_SIGMA_G(h,file_format)
+
+        ## Load the data from the file, applying the cuts as we go.
+        TYPE, RA, DEC, Z_QSO, DZ_RSD = read_files.get_QSO_data(h,file_format,wqso=wqso)
+
+        ## Load the skewer data from file.
+        if skewer_type == 'physical':
+            GAUSSIAN_DELTA_rows = None
+            DENSITY_DELTA_rows = read_files.get_skewer_rows(h,file_format,wqso=wqso,wcell=wcell)
+        elif skewer_type == 'gaussian':
+            GAUSSIAN_DELTA_rows = read_files.get_skewer_rows(h,file_format,wqso=wqso,wcell=wcell)
+
+        ## Load the velocity data from file.
+        VEL_rows = read_files.get_velocity_rows(h,file_format,wqso=wqso,wcell=wcell)
+
+        ## Load cosmological data from file.
+        R, Z, D, V = read_files.get_COSMO(h,file_format,wcell=wcell)
+
+        ## Make MOCKIDs.
+        MOCKIDs = read_files.get_MOCKID(h,file_format,file_number,wqso=wqso)
+
+        #Make LOGLAM_MAP and binary IVAR_rows for picca.
+        LOGLAM_MAP = np.log10(lya*(1+Z))
+        IVAR_rows = utils.make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP)
+
+        ## Make additional data that is required but is not used.
+        PLATE = MOCKID
+        MJD = np.zeros(N_qso)
+        FIBER = np.zeros(N_qso)
+
+        """
         #Get data about the catalog and cosmology.
-        h_MOCKID = read_files.get_MOCKID(h,input_format,file_number)
-        h_R, h_Z, h_D, h_V = read_files.get_COSMO(h,input_format)
-        h_lya_lambdas = read_files.get_lya_lambdas(h,input_format)
+        h_MOCKID = read_files.get_MOCKID(h,file_format,file_number)
+        h_R, h_Z, h_D, h_V = read_files.get_COSMO(h,file_format)
+        h_lya_lambdas = read_files.get_lya_lambdas(h,file_format)
         h_lya_lambdas_edges = utils.get_edges(h_lya_lambdas)
 
         #Work out which rows in the hdulist we are interested in.
@@ -151,7 +198,7 @@ class SimulationData:
             LOGLAM_MAP = np.log10(lya*(1+Z))
 
             #Calculate the Gaussian skewers.
-            GAUSSIAN_DELTA_rows = convert.lognormal_delta_to_gaussian(DENSITY_DELTA_rows,SIGMA_G,D)
+            GAUSSIAN_DELTA_rows = None
 
             #Make binary IVAR_rows for picca.
             IVAR_rows = utils.make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP)
@@ -201,6 +248,7 @@ class SimulationData:
         else:
             print('Input format not recognised: current options are "colore" and "picca".')
             print('Please choose one of these options and try again.')
+        """
 
         h.close()
 
@@ -252,7 +300,8 @@ class SimulationData:
         self.MJD = self.MJD[relevant_QSOs]
         self.FIBER = self.FIBER[relevant_QSOs]
 
-        self.GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows[relevant_QSOs,:]
+        if self.GAUSSIAN_DELTA_rows is not None:
+            self.GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows[relevant_QSOs,:]
         if self.DENSITY_DELTA_rows is not None:
             self.DENSITY_DELTA_rows = self.DENSITY_DELTA_rows[relevant_QSOs,:]
         self.VEL_rows = self.VEL_rows[relevant_QSOs,:]
@@ -276,7 +325,8 @@ class SimulationData:
         #Now trim the skewers of the remaining QSOs.
         self.N_cells = last_relevant_cell - first_relevant_cell + 1
 
-        self.GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows[:,first_relevant_cell:last_relevant_cell + 1]
+        if self.GAUSSIAN_DELTA_rows is not None:
+            self.GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows[:,first_relevant_cell:last_relevant_cell + 1]
         if self.DENSITY_DELTA_rows is not None:
             self.DENSITY_DELTA_rows = self.DENSITY_DELTA_rows[:,first_relevant_cell:last_relevant_cell + 1]
         self.VEL_rows = self.VEL_rows[:,first_relevant_cell:last_relevant_cell + 1]
@@ -450,19 +500,48 @@ class SimulationData:
         extra_var = independent.get_gaussian_fields(generator,self.N_cells,dv_kms=dv_kms,N_skewers=self.N_qso,white_noise=white_noise,n=n,k1=k1,A0=A0,R_kms=R_kms,norm=True,remove_P1D_data=remove_P1D_data,remove_P1D_amp=remove_P1D_amp)
         extra_var *= extra_sigma_G
 
-        #Add the extra fluctuations to the expanded rows.
-        expanded_GAUSSIAN_DELTA_rows += extra_var
-
-        #Mask beyond the QSOs.
+        ## Make mask to remove information from beyond QSOs.
         new_Z_ledges = new_Z_edges[:-1]
         LOGLAM_ledges = np.log10(lya*(1+new_Z_ledges))
         lya_lr_mask = utils.make_IVAR_rows(lya,self.Z_QSO,LOGLAM_ledges)
-        expanded_GAUSSIAN_DELTA_rows *= lya_lr_mask
+
+        ## Mask the velocity and ivar beyond the QSOs.
         expanded_VEL_rows *= lya_lr_mask
         expanded_IVAR_rows *= lya_lr_mask
 
-        #Assign the new skewers.
-        self.GAUSSIAN_DELTA_rows = expanded_GAUSSIAN_DELTA_rows
+        ## If we have Gaussian skewrs, add the small scale fluctuations there.
+        if self.GAUSSIAN_DELTA_rows is not None:
+            ## Expand the skewers.
+            expanded_GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows[:,NGPs]
+
+            #Add the extra fluctuations to the expanded rows.
+            expanded_GAUSSIAN_DELTA_rows += extra_var
+
+            #Mask beyond the QSOs.
+            expanded_GAUSSIAN_DELTA_rows *= lya_lr_mask
+
+            #Assign the new Gaussian skewers.
+            self.GAUSSIAN_DELTA_rows = expanded_GAUSSIAN_DELTA_rows
+
+        ## Otherwise, convert the extra fluctuations to lognormal fluctuations,
+        ## and add them there.
+        elif self.DENSITY_DELTA_rows is not None:
+            density_extra_var = convert.gaussian_to_lognormal_delta(extra_var,extra_sigma_G,D)
+
+            ## Expand the skewers.
+            expanded_DENSITY_DELTA_rows = self.DENSITY_DELTA_rows[:,NGPs]
+
+            #Add the extra fluctuations to the expanded rows.
+            expanded_DENSITY_DELTA_rows += density_extra_var
+
+            #Mask beyond the QSOs.
+            expanded_DENSITY_DELTA_rows *= lya_lr_mask
+
+            #Assign the new Gaussian skewers.
+            self.DENSITY_DELTA_rows = expanded_DENSITY_DELTA_rows
+
+
+        ## Assign the new skewers to velocity/ivar, and compute sigma_G.
         self.VEL_rows = expanded_VEL_rows
         self.IVAR_rows = expanded_IVAR_rows
         self.SIGMA_G = np.sqrt(extra_sigma_G**2 + (self.SIGMA_G)**2)
@@ -519,21 +598,21 @@ class SimulationData:
 
         return
 
-    # Function to store the transmission skewers for 1 absorber (rather than 
+    # Function to store the transmission skewers for 1 absorber (rather than
     # compute them on the fly each time required).
     def store_transmission_skewers(self,absorber):
 
         absorber.transmission(store=True)
-        
+
         return
 
     # Function to store the transmission skewers for all absorbers (rather than
     # compute them on the fly each time required).
     def store_all_transmission_skewers(self):
-        
+
         # Store Lya transmission skewers.
         self.store_transmission_skewers(self.lya_absorber)
-        
+
         # Store Lyb transmission skewers if needed.
         if self.lyb_absorber is not None:
             self.store_transmission_skewers(self.lyb_absorber)

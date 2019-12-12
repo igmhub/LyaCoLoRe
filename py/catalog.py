@@ -4,7 +4,7 @@ from astropy.io import fits
 from lyacolore import utils, read_files
 
 #Function to extract data suitable for making ID files from a set of colore or picca format files.
-def get_ID_data(filename,file_number,input_format,N_side,minimum_z=0.0,downsampling=1.0,QSO_filter=None,pixel_list=None):
+def get_ID_data(filename,file_number,file_format,skewer_type,N_side,minimum_z=0.0,downsampling=1.0,QSO_filter=None,pixel_list=None):
 
     ID_data = []
     cosmology = []
@@ -14,12 +14,9 @@ def get_ID_data(filename,file_number,input_format,N_side,minimum_z=0.0,downsampl
     h = fits.open(filename)
 
     #Extract the component parts of the master file's data from h.
-    RA = read_files.get_RA(h,input_format)
-    DEC = read_files.get_DEC(h,input_format)
-    Z_QSO_NO_RSD = read_files.get_Z_QSO(h,input_format)
-    DZ_RSD = read_files.get_DZ_RSD(h,input_format)
-    MOCKID = read_files.get_MOCKID(h,input_format,file_number)
-    h_R, h_Z, h_D, h_V = read_files.get_COSMO(h,input_format)
+    _, RA, DEC, Z_QSO_NO_RSD, DZ_RSD = read_files.get_QSO_data(h,file_format)
+    MOCKID = read_files.get_MOCKID(h,file_format,file_number)
+    h_R, h_Z, h_D, h_V = read_files.get_COSMO(h,file_format)
     h.close()
 
     #Construct the remaining component parts of the master file's data.

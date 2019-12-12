@@ -11,14 +11,6 @@ import glob
 
 from lyacolore import utils, catalog
 
-try:
-    from desimodel.footprint import tiles2pix, is_point_in_desi
-    desimodel_installed = True
-except ModuleNotFoundError:
-    import warnings
-    warnings.warn('desimodel is not installed; footprint pixel data will be read from file.')
-    desimodel_installed = False
-
 ################################################################################
 
 #Script to produce a master file from CoLoRe's output files.
@@ -43,6 +35,14 @@ parser.add_argument('--in-dir', type = str, default = None, required=True,
 
 parser.add_argument('--out-dir', type = str, default = None, required=True,
                     help = 'output data directory')
+
+parser.add_argument('--file-format', type = str, default = 'colore', required=False,
+                    choices=['colore'],
+                    help = 'input file type')
+
+parser.add_argument('--skewer-type', type = str, default = 'gaussian', required=False,
+                    choices=['gaussian','physical'],
+                    help = 'type of skewer in input file')
 
 parser.add_argument('--nproc', type = int, default = 1, required=False,
                     help = 'number of processes to use')
@@ -80,7 +80,7 @@ parser.add_argument('--overwrite', action="store_true", default = False, require
 args = parser.parse_args()
 
 #Define global variables.
-original_file_location = args.in_dir
+args.in_dir = args.in_dir
 new_base_file_location = args.out_dir
 N_side = args.nside
 min_catalog_z = args.min_cat_z
@@ -103,21 +103,15 @@ else:
 
 #Define the original file structure
 input_filename_structure = 'out_srcs_s1_{}.fits' #file_number
-input_files = glob.glob(original_file_location+input_filename_structure.format('*'))
-file_numbers = utils.get_file_numbers(original_file_location,input_filename_structure,input_files)
-input_format = 'gaussian_colore'
+input_files = glob.glob(args.in_dir+input_filename_structure.format('*'))
+file_numbers = utils.get_file_numbers(args.in_dir,input_filename_structure,input_files)
 
 #Set file structure
 new_file_structure = '{}/{}/'               #pixel number//100, pixel number
 new_filename_structure = '{}-{}-{}.fits'    #file type, nside, pixel number
 
 #Get the simulation parameters from the parameter file.
-simulation_parameters = utils.get_simulation_parameters(original_file_location,parameter_filename)
-
-# TODO: Modify this to accomodate other density types.
-#If density type is not lognormal, then crash.
-if simulation_parameters['dens_type'] != 0:
-    error('Density is not lognormal. Non-lognormal densities are not currently supported.')
+simulation_parameters = utils.get_simulation_parameters(args.in_dir,parameter_filename)
 
 ################################################################################
 
@@ -155,14 +149,14 @@ start = time.time()
 QSO_filter = utils.make_QSO_filter(footprint,N_side=N_side)
 
 #Define the process to make the master data.
-def make_master_data(file_name,file_number,input_format,N_side,minimum_z=min_catalog_z):
+def make_master_data(file_name,file_number,file_format,skewer_type,N_side,minimum_z=min_catalog_z):
 
-    file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element = catalog.get_ID_data(file_name,file_number,input_format,N_side,minimum_z=min_catalog_z,downsampling=downsampling,QSO_filter=QSO_filter,pixel_list=pixel_list)
+    file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element = catalog.get_ID_data(file_name,file_number,file_format,skewer_type,N_side,minimum_z=min_catalog_z,downsampling=downsampling,QSO_filter=QSO_filter,pixel_list=pixel_list)
 
     return [file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element]
 
 #Set up the multiprocessing pool parameters and make a list of tasks.
-tasks = [(input_files[i],file_number,input_format,N_side) for i,file_number in enumerate(file_numbers)]
+tasks = [(input_files[i],file_number,args.file_format,args.skewer_type,N_side) for i,file_number in enumerate(file_numbers)]
 
 #Run the multiprocessing pool
 if __name__ == '__main__':
