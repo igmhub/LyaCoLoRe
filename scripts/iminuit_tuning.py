@@ -60,7 +60,7 @@ def measure_pixel_segment(pixel,z_value,alpha,beta,sigma_G_required,n,k1,A0):
     gaussian_filename = new_filename_structure.format('gaussian-colore',N_side,pixel)
 
     #Make a pixel object from it.
-    data = simulation_data.SimulationData.get_gaussian_skewers_object(location+gaussian_filename,None,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
+    data = simulation_data.SimulationData.get_skewers_object(location+gaussian_filename,None,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
 
     #print('CoLoRe Gaussian 0:',data.GAUSSIAN_DELTA_rows[0,:])
     #print('CoLoRe Gaussian 1:',data.GAUSSIAN_DELTA_rows[1,:])

@@ -39,7 +39,7 @@ pixel = 0
 dirname = utils.get_dir_name(base_dir,pixel)
 gaussian_filename = utils.get_file_name(dirname,'gaussian-colore',N_side,pixel)
 file_number = None
-pixel_object = simulation_data.SimulationData.get_gaussian_skewers_object(gaussian_filename,file_number,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
+pixel_object = simulation_data.SimulationData.get_skewers_object(gaussian_filename,file_number,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
 
 tuning_filename = tuning_files[0]
 #Get tuning data
@@ -137,4 +137,3 @@ plt.plot(data_z_val.Z,mean_F,label='original')
 plt.plot(grad_decrease.Z,mean_F_decrease,label='decrease')
 plt.xlim(2.30,2.32)
 plt.legend();plt.grid();plt.show()
-

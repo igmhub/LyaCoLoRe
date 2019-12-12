@@ -97,7 +97,7 @@ def pixel_tuning_bias(pixel,tuning_filename,z_values,d=0.001,z_width=0.2):
     dirname = utils.get_dir_name(base_dir,pixel)
     gaussian_filename = utils.get_file_name(dirname,'gaussian-colore',N_side,pixel)[:-3]
     file_number = None
-    pixel_object = simulation_data.SimulationData.get_gaussian_skewers_object(gaussian_filename,file_number,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
+    pixel_object = simulation_data.SimulationData.get_skewers_object(gaussian_filename,file_number,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
     bins = np.linspace(0.,1.,N_bins+1)
 
     histograms = pdf_tuning(pixel_object,tuning_filename,z_values,z_width=z_width,bins=bins)

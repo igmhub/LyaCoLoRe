@@ -258,7 +258,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,texp,D0,D1,D2,n,k1,R_kms,a_v,RSD_weight
     filename = utils.get_file_name(location,'gaussian-colore',args.nside,pixel,compressed=args.compressed_input)
 
     #Make a pixel object from it.
-    data = simulation_data.SimulationData.get_gaussian_skewers_object(filename,None,'gaussian_colore',IVAR_cutoff=args.lambda_rest_max)
+    data = simulation_data.SimulationData.get_skewers_object(filename,None,'gaussian_colore',IVAR_cutoff=args.lambda_rest_max)
     #print('{:3.2f} checkpoint sim_dat'.format(time.time()-t))
     t = time.time()
 
