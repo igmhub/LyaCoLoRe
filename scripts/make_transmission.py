@@ -156,23 +156,6 @@ if not args.pixels:
 
 zero_mean_delta = False
 
-args.add_RSDs = args.add_RSDs
-args.add_Lyb = args.add_Lyb
-args.add_metals = args.add_metals
-picca_all_absorbers = args.picca_all_absorbers
-include_thermal_effects = args.include_thermal_effects
-tuning_file = args.tuning_file
-transmission_only = args.transmission_only
-N_skewers = args.nskewers
-global_seed = args.seed
-overwrite = args.overwrite
-add_QSO_RSDs = args.add_QSO_RSDs
-trans_lmin = args.transmission_lambda_min
-trans_lmax = args.transmission_lambda_max
-trans_dl = args.transmission_delta_lambda
-transmission_format = args.transmission_format
-compress = args.compress
-
 # TODO: print to confirm the arguments. e.g. "DLAs will be added"
 
 if np.log2(args.nside)-int(np.log2(args.nside)) != 0:
@@ -248,10 +231,10 @@ print('\nWorking on per-HEALPix pixel initial skewer files...')
 start_time = time.time()
 
 #Define the pixelisation process.
-def pixelise_colore_output(pixel,colore_base_filename,z_min,args.out_dir,N_side):
+def pixelise_colore_output(pixel,colore_base_filename,z_min,out_dir,N_side):
 
     #Define the output directory the pixel, according to the new file structure.
-    location = utils.get_dir_name(args.out_dir,pixel)
+    location = utils.get_dir_name(out_dir,pixel)
 
     #Make file into an object
     pixel_object = simulation_data.make_pixel_object(pixel,colore_base_filename,args.file_format,args.skewer_type,shared_MOCKID_lookup,IVAR_cutoff=args.IVAR_cut)
@@ -266,7 +249,7 @@ def pixelise_colore_output(pixel,colore_base_filename,z_min,args.out_dir,N_side)
 
     ## Save the pixelised colore file.
     filename = utils.get_file_name(location,'{}-colore'.format(args.skewer_type),N_side,pixel)
-    pixel_object.save_as_colore(args.skewer_type,filename,header,overwrite=overwrite,compress=compress)
+    pixel_object.save_as_colore(args.skewer_type,filename,header,overwrite=args.overwrite,compress=args.compress)
 
     if args.skewer_type == 'gaussian':
         pixel_object.compute_SIGMA_G(type='single_value',lr_max=args.IVAR_cut)
@@ -317,7 +300,7 @@ if args.skewer_type == 'gaussian':
 
     def modify_header(pixel):
         location = utils.get_dir_name(args.out_dir,pixel)
-        filename = utils.get_file_name(location,'gaussian-colore',args.nside,pixel,compressed=compress)
+        filename = utils.get_file_name(location,'gaussian-colore',args.nside,pixel,compressed=args.compress)
         h = fits.open(filename)
         for HDU in h[1:]:
             HDU.header['SIGMA_G'] = SIGMA_G_global
@@ -361,11 +344,11 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,t
     t = time.time()
 
     # Define a random seed for use in this pixel.
-    seed = int(pixel * 10**5 + global_seed)
+    seed = int(pixel * 10**5 + args.seed)
 
     #We work from the gaussian colore files made in 'pixelise gaussian skewers'.
     location = utils.get_dir_name(base_out_dir,pixel)
-    gaussian_filename = utils.get_file_name(location,'{}-colore'.format(args.skewer_type),N_side,pixel,compressed=compress)
+    gaussian_filename = utils.get_file_name(location,'{}-colore'.format(args.skewer_type),N_side,pixel,compressed=args.compress)
 
     # Make a pixel object from it.
     file_number = None
@@ -397,11 +380,11 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,t
         header['SIGMA_G'] = pixel_object.SIGMA_G
 
     #Save CoLoRe format files.
-    if transmission_only == False:
+    if args.transmission_only == False:
         if args.skewer_type == 'gaussian':
             pixel_object.compute_physical_skewers()
         filename = utils.get_file_name(location,'density-colore',N_side,pixel)
-        pixel_object.save_as_colore('density',filename,header,overwrite=overwrite,compress=compress)
+        pixel_object.save_as_colore('density',filename,header,overwrite=args.overwrite,compress=args.compress)
 
     #Trim the skewers (remove low lambda cells). Exit if no QSOs are left.
     #We don't cut too tightly on the low lambda to allow for RSDs.
@@ -412,13 +395,13 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,t
         return pixel
 
     #Save picca format files without adding small scale power.
-    if transmission_only == False:
+    if args.transmission_only == False:
         if args.skewer_type == 'gaussian':
             filename = utils.get_file_name(location,'picca-gaussian-colorecell',N_side,pixel)
-            pixel_object.save_as_picca_delta('gaussian',filename,header,overwrite=overwrite,add_QSO_RSDs=add_QSO_RSDs,compress=compress)
+            pixel_object.save_as_picca_delta('gaussian',filename,header,overwrite=args.overwrite,add_QSO_RSDs=args.add_QSO_RSDs,compress=args.compress)
 
         filename = utils.get_file_name(location,'picca-density-colorecell',N_side,pixel)
-        pixel_object.save_as_picca_delta('density',filename,header,overwrite=overwrite,add_QSO_RSDs=add_QSO_RSDs,compress=compress)
+        pixel_object.save_as_picca_delta('density',filename,header,overwrite=args.overwrite,add_QSO_RSDs=args.add_QSO_RSDs,compress=args.compress)
 
     print('{:3.2f} checkpoint colore files'.format(time.time()-t)); t = time.time()
 
@@ -450,37 +433,37 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,t
         pixel_object.compute_physical_skewers()
     pixel_object.compute_all_tau_skewers()
 
-    if transmission_only == False:
+    if args.transmission_only == False:
 
         if args.skewer_type == 'gaussian':
             #Picca Gaussian, small cells
             filename = utils.get_file_name(location,'picca-gaussian',N_side,pixel)
-            pixel_object.save_as_picca_delta('gaussian',filename,header,overwrite=overwrite,add_QSO_RSDs=add_QSO_RSDs,compress=compress)
+            pixel_object.save_as_picca_delta('gaussian',filename,header,overwrite=args.overwrite,add_QSO_RSDs=args.args.add_QSO_RSDs,compress=args.compress)
 
         #Picca density
         filename = utils.get_file_name(location,'picca-density',N_side,pixel)
-        pixel_object.save_as_picca_delta('density',filename,header,overwrite=overwrite,add_QSO_RSDs=add_QSO_RSDs,compress=compress)
+        pixel_object.save_as_picca_delta('density',filename,header,overwrite=args.overwrite,add_QSO_RSDs=args.add_QSO_RSDs,compress=args.compress)
 
         #Picca tau
         filename = utils.get_file_name(location,'picca-tau-noRSD-notnorm',N_side,pixel)
-        pixel_object.save_as_picca_delta('tau',filename,header,notnorm=True,overwrite=overwrite,add_QSO_RSDs=add_QSO_RSDs,compress=compress,all_absorbers=picca_all_absorbers)
+        pixel_object.save_as_picca_delta('tau',filename,header,notnorm=True,overwrite=args.overwrite,add_QSO_RSDs=args.add_QSO_RSDs,compress=args.compress,all_absorbers=args.picca_all_absorbers)
 
         #Picca flux
         filename = utils.get_file_name(location,'picca-flux-noRSD-notnorm',N_side,pixel)
-        pixel_object.save_as_picca_delta('flux',filename,header,notnorm=True,overwrite=overwrite,add_QSO_RSDs=add_QSO_RSDs,compress=compress,all_absorbers=picca_all_absorbers)
+        pixel_object.save_as_picca_delta('flux',filename,header,notnorm=True,overwrite=args.overwrite,add_QSO_RSDs=args.add_QSO_RSDs,compress=args.compress,all_absorbers=args.picca_all_absorbers)
 
         """
         ## Disable this for the moment.
         #Save the no RSD statistics file for this pixel.
         filename = utils.get_file_name(location,'statistics-noRSD',N_side,pixel)
-        statistics = pixel_object.save_statistics(filename,overwrite=overwrite,compress=compress,all_absorbers=picca_all_absorbers)
+        statistics = pixel_object.save_statistics(filename,overwrite=args.overwrite,compress=args.compress,all_absorbers=args.picca_all_absorbers)
         """
 
     print('{:3.2f} checkpoint noRSD files'.format(time.time()-t)); t = time.time()
 
     #Add RSDs from the velocity skewers provided by CoLoRe.
     if args.add_RSDs == True:
-        pixel_object.add_all_RSDs(thermal=include_thermal_effects)
+        pixel_object.add_all_RSDs(thermal=args.include_thermal_effects)
 
     print('{:3.2f} checkpoint RSDs'.format(time.time()-t)); t = time.time()
 
@@ -496,22 +479,22 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,t
 
     #Save the transmission file.
     filename = utils.get_file_name(location,'transmission',N_side,pixel)
-    pixel_object.save_as_transmission(filename,header,overwrite=overwrite,wave_min=trans_lmin,wave_max=trans_lmax,wave_step=trans_dl,fmt=transmission_format,add_QSO_RSDs=add_QSO_RSDs,compress=compress)
+    pixel_object.save_as_transmission(filename,header,overwrite=args.overwrite,wave_min=args.transmission_lambda_min,wave_max=args.transmission_lambda_max,wave_step=args.transmission_delta_lambda,fmt=args.transmission_format,add_QSO_RSDs=args.add_QSO_RSDs,compress=args.compress)
 
-    if transmission_only == False and args.add_RSDs == True:
+    if args.transmission_only == False and args.add_RSDs == True:
         #Picca tau
         filename = utils.get_file_name(location,'picca-tau-notnorm',N_side,pixel)
-        pixel_object.save_as_picca_delta('tau',filename,header,notnorm=True,overwrite=overwrite,add_QSO_RSDs=add_QSO_RSDs,compress=compress,all_absorbers=picca_all_absorbers)
+        pixel_object.save_as_picca_delta('tau',filename,header,notnorm=True,overwrite=args.overwrite,add_QSO_RSDs=args.add_QSO_RSDs,compress=args.compress,all_absorbers=args.picca_all_absorbers)
 
         #Picca flux
         filename = utils.get_file_name(location,'picca-flux-notnorm',N_side,pixel)
-        pixel_object.save_as_picca_delta('flux',filename,header,notnorm=True,overwrite=overwrite,add_QSO_RSDs=add_QSO_RSDs,compress=compress,all_absorbers=picca_all_absorbers)
+        pixel_object.save_as_picca_delta('flux',filename,header,notnorm=True,overwrite=args.overwrite,add_QSO_RSDs=args.add_QSO_RSDs,compress=args.compress,all_absorbers=args.picca_all_absorbers)
 
         """
         ## Disable this for the moment.
         #Save the final statistics file for this pixel.
         filename = utils.get_file_name(location,'statistics',N_side,pixel)
-        statistics = pixel_object.save_statistics(filename,overwrite=overwrite,compress=compress,all_absorbers=picca_all_absorbers)
+        statistics = pixel_object.save_statistics(filename,overwrite=args.overwrite,compress=args.compress,all_absorbers=args.picca_all_absorbers)
         """
     else:
         #If transmission_only is not False, remove the gaussian-colore file.
@@ -522,7 +505,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,t
     return new_cosmology
 
 #define the tasks
-tasks = [(args.out_dir,pixel,args.nside,zero_mean_delta,args.nside,tuning_file) for pixel in pixel_list]
+tasks = [(args.out_dir,pixel,args.nside,zero_mean_delta,args.nside,args.tuning_file) for pixel in pixel_list]
 
 #Run the multiprocessing pool
 if __name__ == '__main__':
