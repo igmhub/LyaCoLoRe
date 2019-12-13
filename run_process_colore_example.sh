@@ -49,9 +49,7 @@ COLORE_SEED=1003
 PROCESS_PATH="${LYACOLORE_PATH}/scripts/"
 
 # full path to folder where input will be taken from
-#INPUT_PATH="${LYACOLORE_PATH}/example_data/raw_colore_1000/"
-INPUT_PATH="${LYACOLORE_PATH}/example_data/test/"
-
+INPUT_PATH="${LYACOLORE_PATH}/example_data/raw_colore_1000/"
 echo "input will be taken from "$INPUT_PATH
 INPUT_FILES=`ls -1 ${INPUT_PATH}/out_srcs_*.fits`
 NFILES=`echo $INPUT_FILES | wc -w`
