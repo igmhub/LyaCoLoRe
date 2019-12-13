@@ -151,7 +151,7 @@ QSO_filter = utils.make_QSO_filter(footprint,N_side=N_side)
 #Define the process to make the master data.
 def make_master_data(file_name,file_number,file_format,skewer_type,N_side,minimum_z=min_catalog_z):
 
-    file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element = catalog.get_ID_data(file_name,file_number,file_format,skewer_type,N_side,minimum_z=min_catalog_z,downsampling=downsampling,QSO_filter=QSO_filter,pixel_list=pixel_list)
+    file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element = catalog.get_ID_data(file_name,file_number,file_format,skewer_type,N_side,minimum_z=minimum_z,downsampling=downsampling,QSO_filter=QSO_filter,pixel_list=pixel_list)
 
     return [file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element]
 

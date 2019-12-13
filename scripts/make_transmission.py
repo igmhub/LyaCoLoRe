@@ -204,11 +204,6 @@ small = 10**-10
 #Get the simulation parameters from the parameter file.
 simulation_parameters = utils.get_simulation_parameters(base_in_dir,parameter_filename)
 
-# TODO: Modify this to accomodate other density types.
-#If density type is not lognormal, then crash.
-if simulation_parameters['dens_type'] != 0:
-    error('Density is not lognormal. Non-lognormal densities are not currently supported.')
-
 ################################################################################
 
 """
@@ -392,7 +387,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,t
     #Scale the velocities.
     pixel_object.scale_velocities(use_transformation=True)
 
-    print('{:3.2f} checkpoint object'.format(time.time()-t)); t = time.time()
+    #print('{:3.2f} checkpoint object'.format(time.time()-t)); t = time.time()
 
     #Add Lyb and metal absorbers if needed.
     if add_Lyb:
@@ -433,7 +428,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,t
         filename = utils.get_file_name(location,'picca-density-colorecell',N_side,pixel)
         pixel_object.save_as_picca_delta('density',filename,header,overwrite=overwrite,add_QSO_RSDs=add_QSO_RSDs,compress=compress)
 
-    print('{:3.2f} checkpoint colore files'.format(time.time()-t)); t = time.time()
+    #print('{:3.2f} checkpoint colore files'.format(time.time()-t)); t = time.time()
 
     #Add a table with DLAs in to the pixel object.
     # TODO: in future, we want DLAs all the way down to z=0.
@@ -445,7 +440,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,t
     if add_DLAs:
         pixel_object.add_DLA_table(seed,dla_bias=dla_bias,evol=dla_bias_evol,method=dla_bias_method)
     """
-    print('{:3.2f} checkpoint DLAs'.format(time.time()-t)); t = time.time()
+    #print('{:3.2f} checkpoint DLAs'.format(time.time()-t)); t = time.time()
 
     #Add small scale power to the gaussian skewers:
     if add_ssf:
@@ -456,7 +451,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,t
             #Remove the 'SIGMA_G' header as SIGMA_G now varies with z, so can't be stored in a header.
             del header['SIGMA_G']
 
-    print('{:3.2f} checkpoint SSF'.format(time.time()-t)); t = time.time()
+    #print('{:3.2f} checkpoint SSF'.format(time.time()-t)); t = time.time()
 
     #Recompute physical skewers, and then the tau skewers.
     if args.skewer_type == 'gaussian':
@@ -489,13 +484,13 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,t
         statistics = pixel_object.save_statistics(filename,overwrite=overwrite,compress=compress,all_absorbers=picca_all_absorbers)
         """
 
-    print('{:3.2f} checkpoint noRSD files'.format(time.time()-t)); t = time.time()
+    #print('{:3.2f} checkpoint noRSD files'.format(time.time()-t)); t = time.time()
 
     #Add RSDs from the velocity skewers provided by CoLoRe.
     if add_RSDs == True:
         pixel_object.add_all_RSDs(thermal=include_thermal_effects)
 
-    print('{:3.2f} checkpoint RSDs'.format(time.time()-t)); t = time.time()
+    #print('{:3.2f} checkpoint RSDs'.format(time.time()-t)); t = time.time()
 
     #Trim the skewers (remove low lambda cells). Exit if no QSOs are left.
     #We now cut hard at lambda min as RSDs have been implemented.
@@ -530,7 +525,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,t
         #If transmission_only is not False, remove the gaussian-colore file.
         os.remove(gaussian_filename)
 
-    print('{:3.2f} checkpoint RSD files'.format(time.time()-t)); t = time.time()
+    #print('{:3.2f} checkpoint RSD files'.format(time.time()-t)); t = time.time()
 
     return new_cosmology
 
