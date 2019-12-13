@@ -63,7 +63,7 @@ pixel_object.trim_skewers(lambda_min-lambda_buffer,min_catalog_z,extra_cells=1)
 
 #Add small scale power to the gaussian skewers:
 generator = np.random.RandomState(seed)
-pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,generator,white_noise=False,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff,n=n,k1=k1,R_kms=R_kms)
+pixel_object.add_small_scale_fluctuations(final_cell_size,generator,white_noise=False,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff,n=n,k1=k1,R_kms=R_kms)
 
 #Recompute physical skewers.
 pixel_object.compute_physical_skewers()

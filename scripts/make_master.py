@@ -41,7 +41,7 @@ parser.add_argument('--file-format', type = str, default = 'colore', required=Fa
                     help = 'input file type')
 
 parser.add_argument('--skewer-type', type = str, default = 'gaussian', required=False,
-                    choices=['gaussian','physical'],
+                    choices=['gaussian','density'],
                     help = 'type of skewer in input file')
 
 parser.add_argument('--nproc', type = int, default = 1, required=False,

@@ -287,7 +287,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,texp,D0,D1,D2,n,k1,R_kms,a_v,RSD_weight
 
     #Add small scale fluctuations to the skewers.
     generator = np.random.RandomState(seed)
-    data.add_small_scale_gaussian_fluctuations(args.cell_size,generator,white_noise=False,lambda_min=0.0,IVAR_cutoff=args.lambda_rest_max,use_transformation=True,remove_P1D_data=remove_P1D_data)
+    data.add_small_scale_fluctuations(args.cell_size,generator,white_noise=False,lambda_min=0.0,IVAR_cutoff=args.lambda_rest_max,use_transformation=True,remove_P1D_data=remove_P1D_data)
 
     #print('{:3.2f} checkpoint extra power'.format(time.time()-t))
     t = time.time()

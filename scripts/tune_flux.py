@@ -197,7 +197,7 @@ def measure_pixel_segment(pixel,z_value,ID,lookup):
     #add small scale fluctuations
     seed = int(str(N_side) + str(pixel))
     generator = np.random.RandomState(seed)
-    data.add_small_scale_gaussian_fluctuations(cell_size,data.Z,np.ones(data.Z.shape[0])*extra_sigma_G,generator,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n=n,k1=k1) #n=0.7, k1=0.001 default
+    data.add_small_scale_fluctuations(cell_size,data.Z,np.ones(data.Z.shape[0])*extra_sigma_G,generator,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n=n,k1=k1) #n=0.7, k1=0.001 default
 
     #Convert to flux
     data.compute_physical_skewers()

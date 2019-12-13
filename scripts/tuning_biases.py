@@ -78,7 +78,7 @@ def bias_tuning(pixel_object,tuning_filename,z_values,d_delta=10**-9,d_eta=10**-
 
     #Add small scale power to the gaussian skewers:
     generator = np.random.RandomState(seed)
-    pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,generator,white_noise=False,lambda_min=0.0,IVAR_cutoff=IVAR_cutoff,use_transformation=True)
+    pixel_object.add_small_scale_fluctuations(final_cell_size,generator,white_noise=False,lambda_min=0.0,IVAR_cutoff=IVAR_cutoff,use_transformation=True)
     #Recompute physical skewers.
     pixel_object.compute_physical_skewers()
 

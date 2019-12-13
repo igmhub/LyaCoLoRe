@@ -8,7 +8,10 @@ lya = utils.lya_rest
 def get_SIGMA_G(h,file_format):
 
     if file_format == 'colore':
-        SIGMA_G = h[4].header['SIGMA_G']
+        try:
+            SIGMA_G = h[4].header['SIGMA_G']
+        except KeyError:
+            SIGMA_G = None
     elif file_format == 'picca':
         print('INFO: picca does not store SIGMA_G.')
         SIGMA_G = None

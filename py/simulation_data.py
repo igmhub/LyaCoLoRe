@@ -8,7 +8,7 @@ from . import absorber, absorber_data, bias, convert, DLA, independent, read_fil
 lya = utils.lya_rest
 
 #Function to create a SimulationData object given a specific pixel, information about the complete simulation, and the filenames.
-def make_pixel_object(pixel,base_filename,file_format,skewer_type,MOCKID_lookup,lambda_min=0,IVAR_cutoff=lya):
+def make_pixel_object(pixel,base_filename,file_format,skewer_type,MOCKID_lookup,lambda_min=0.,IVAR_cutoff=lya):
 
     #Determine which file numbers we need to look at for the current pixel.
     relevant_keys = [key for key in MOCKID_lookup.keys() if key[1]==pixel]
@@ -111,10 +111,10 @@ class SimulationData:
         ## cuts specified in input.
         h_MOCKIDs = read_files.get_MOCKID(h,file_format,file_number)
         h_lya_lambdas = read_files.get_lya_lambdas(h,file_format)
-        if MOCKIDs is not None:
+        if MOCKIDs is None:
             MOCKIDs = h_MOCKIDs
         wqso = np.in1d(h_MOCKIDs,MOCKIDs)
-        wcell = h_lya_lambdas>lamdba_min
+        wcell = h_lya_lambdas>lambda_min
 
         ## Calculate the number of cells and number of QSOs.
         N_qso = wqso.sum()
@@ -128,11 +128,12 @@ class SimulationData:
         TYPE, RA, DEC, Z_QSO, DZ_RSD = read_files.get_QSO_data(h,file_format,wqso=wqso)
 
         ## Load the skewer data from file.
-        if skewer_type == 'physical':
+        if skewer_type == 'density':
             GAUSSIAN_DELTA_rows = None
             DENSITY_DELTA_rows = read_files.get_skewer_rows(h,file_format,wqso=wqso,wcell=wcell)
         elif skewer_type == 'gaussian':
             GAUSSIAN_DELTA_rows = read_files.get_skewer_rows(h,file_format,wqso=wqso,wcell=wcell)
+            DENSITY_DELTA_rows = None
 
         ## Load the velocity data from file.
         VEL_rows = read_files.get_velocity_rows(h,file_format,wqso=wqso,wcell=wcell)
@@ -148,13 +149,13 @@ class SimulationData:
         IVAR_rows = utils.make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP)
 
         ## Make additional data that is required but is not used.
-        PLATE = MOCKID
+        PLATE = MOCKIDs
         MJD = np.zeros(N_qso)
         FIBER = np.zeros(N_qso)
 
         h.close()
 
-        return cls(N_qso,N_cells,SIGMA_G,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKID,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,R,Z,D,V,LOGLAM_MAP)
+        return cls(N_qso,N_cells,SIGMA_G,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKIDs,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,R,Z,D,V,LOGLAM_MAP)
 
     #Function to trim skewers according to a minimum value of lambda. QSOs with no relevant cells are removed.
     def trim_skewers(self,lambda_min=0.,min_catalog_z=0.,extra_cells=0,lambda_max=None,whole_lambda_range=False,remove_irrelevant_QSOs=False):
@@ -254,7 +255,7 @@ class SimulationData:
         self.D = self.D[first_relevant_cell:last_relevant_cell + 1]
         self.V = self.V[first_relevant_cell:last_relevant_cell + 1]
         self.LOGLAM_MAP = self.LOGLAM_MAP[first_relevant_cell:last_relevant_cell + 1]
-        if not isinstance(self.SIGMA_G,float):
+        if (not isinstance(self.SIGMA_G,float)) and (self.SIGMA_G is not None):
             self.SIGMA_G = self.SIGMA_G[first_relevant_cell:last_relevant_cell + 1]
         if hasattr(self,'sample_SIGMA_G'):
             self.sample_SIGMA_G = self.sample_SIGMA_G[first_relevant_cell:last_relevant_cell + 1]
@@ -322,7 +323,7 @@ class SimulationData:
         return
 
     #Function to add small scale gaussian fluctuations.
-    def add_small_scale_gaussian_fluctuations(self,cell_size,generator,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,use_transformation=True,n=None,k1=None,A0=None,R_kms=None,remove_P1D_data=None,remove_P1D_z=2.5):
+    def add_small_scale_fluctuations(self,cell_size,generator,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,use_transformation=True,n=None,k1=None,A0=None,R_kms=None,remove_P1D_data=None,remove_P1D_z=2.5):
 
         if use_transformation and n != None:
             print('WARNING: asked to use transformation and specified parameter values.\n -> Using transformation.')
@@ -387,8 +388,7 @@ class SimulationData:
         self.V = interp1d(new_R_edges,new_V_edges,fill_value='extrapolate')(new_R)
         self.LOGLAM_MAP = np.log10(lya*(1+self.Z))
 
-        #Expand the skewers.
-        expanded_GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows[:,NGPs]
+        #Expand the other skewers.
         expanded_VEL_rows = self.VEL_rows[:,NGPs]
         expanded_IVAR_rows = self.IVAR_rows[:,NGPs]
 
@@ -413,10 +413,8 @@ class SimulationData:
 
         ## If we have Gaussian skewrs, add the small scale fluctuations there.
         if self.GAUSSIAN_DELTA_rows is not None:
-            ## Expand the skewers.
+            ## Expand the skewers and add the extra fluctuations to the expanded rows.
             expanded_GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows[:,NGPs]
-
-            #Add the extra fluctuations to the expanded rows.
             expanded_GAUSSIAN_DELTA_rows += extra_var
 
             #Mask beyond the QSOs.
@@ -428,13 +426,14 @@ class SimulationData:
         ## Otherwise, convert the extra fluctuations to lognormal fluctuations,
         ## and add them there.
         elif self.DENSITY_DELTA_rows is not None:
-            density_extra_var = convert.gaussian_to_lognormal_delta(extra_var,extra_sigma_G,D)
-
             ## Expand the skewers.
             expanded_DENSITY_DELTA_rows = self.DENSITY_DELTA_rows[:,NGPs]
 
+            ## Compute the small scale density fluctuations
+            density_extra_var = convert.gaussian_to_lognormal_delta(extra_var,extra_sigma_G,self.D)
+
             #Add the extra fluctuations to the expanded rows.
-            expanded_DENSITY_DELTA_rows += density_extra_var
+            expanded_DENSITY_DELTA_rows += density_extra_var + 1
 
             #Mask beyond the QSOs.
             expanded_DENSITY_DELTA_rows *= lya_lr_mask
@@ -442,11 +441,11 @@ class SimulationData:
             #Assign the new Gaussian skewers.
             self.DENSITY_DELTA_rows = expanded_DENSITY_DELTA_rows
 
-
         ## Assign the new skewers to velocity/ivar, and compute sigma_G.
         self.VEL_rows = expanded_VEL_rows
         self.IVAR_rows = expanded_IVAR_rows
-        self.SIGMA_G = np.sqrt(extra_sigma_G**2 + (self.SIGMA_G)**2)
+        if self.SIGMA_G is not None:
+            self.SIGMA_G = np.sqrt(extra_sigma_G**2 + (self.SIGMA_G)**2)
 
         return
 
@@ -739,6 +738,27 @@ class SimulationData:
 
         return hist,edges
 
+    # Function to measure sigma_G.
+    def compute_SIGMA_G(self,type='single_value',lr_max=1200.):
+
+        ## Compute weights.
+        weights = utils.make_IVAR_rows(lr_max,self.Z_QSO,self.LOGLAM_MAP).astype('float64')
+
+        if type == 'single_value':
+            mean = np.average(self.GAUSSIAN_DELTA_rows,weights=weights)
+            sigma = np.sqrt(np.average((self.GAUSSIAN_DELTA_rows-mean)**2,weights=weights))
+
+        if type == 'array':
+            mean = np.zeros(self.N_cells)
+            sigma = np.zeros(self.N_cells)
+            w = (np.sum(weights,axis=0))>0
+            mean[w] = np.average(self.GAUSSIAN_DELTA_rows[:,w],weights=weights[:,w],axis=0)
+            sigma[w] = np.sqrt(np.average((self.GAUSSIAN_DELTA_rows[:,w]-mean[None,w])**2,weights=weights[:,w]))
+
+        self.SIGMA_G = sigma
+
+        return
+
     #Function to measure sigma dF.
     def get_sigma_dF(self,absorber,z_value=None,z_width=None,mean_F=None):
 
@@ -827,7 +847,7 @@ class SimulationData:
         #Choose the right skewers according to input quantity.
         if quantity == 'gaussian':
             colore_2 = self.GAUSSIAN_DELTA_rows
-        elif quantity == 'physical':
+        elif quantity == 'density':
             colore_2 = self.DENSITY_DELTA_rows
         elif quantity == 'tau':
             colore_2 == self.lya_absorber.tau
@@ -1179,9 +1199,10 @@ class SimulationData:
         #For each cell, determine the number of skewers for which it is relevant.
         N_skewers = np.sum(self.IVAR_rows,axis=0)
 
-        #Calculate the mean in each cell of the gaussian delta and its square.
-        GM = self.get_mean_quantity('gaussian',all_absorbers=all_absorbers)
-        GSM = self.get_mean_quantity('gaussian',power=2.,all_absorbers=all_absorbers)
+        if self.GAUSSIAN_DELTA_rows is not None:
+            #Calculate the mean in each cell of the gaussian delta and its square.
+            GM = self.get_mean_quantity('gaussian',all_absorbers=all_absorbers)
+            GSM = self.get_mean_quantity('gaussian',power=2.,all_absorbers=all_absorbers)
 
         #Calculate the mean in each cell of the density delta and its square.
         DM = self.get_mean_quantity('density',all_absorbers=all_absorbers)

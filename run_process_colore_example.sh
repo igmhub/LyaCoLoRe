@@ -14,7 +14,7 @@ NCORES=1
 
 # specify input file information
 FILE_FORMAT='colore'
-SKEWER_TYPE='gaussian'
+SKEWER_TYPE='density'
 
 # specify process parameters
 NSIDE=16
@@ -36,8 +36,8 @@ TRANS_DL=0.2
 
 # specify process flags
 MM_FLAGS="--overwrite --pixels $PIXELS"
-MT_FLAGS="--add-DLAs --add-RSDs --add-small-scale-fluctuations --overwrite --compress --transmission-only"
-MS_FLAGS="--overwrite --compress --transmission-only --compressed-input"
+MT_FLAGS="--add-DLAs --add-RSDs --add-small-scale-fluctuations --overwrite --compress"
+MS_FLAGS="--overwrite --compress --compressed-input"
 
 # specify details of colore output
 COLORE_NGRID=4096
@@ -49,7 +49,9 @@ COLORE_SEED=1003
 PROCESS_PATH="${LYACOLORE_PATH}/scripts/"
 
 # full path to folder where input will be taken from
-INPUT_PATH="${LYACOLORE_PATH}/example_data/raw_colore_1000/"
+#INPUT_PATH="${LYACOLORE_PATH}/example_data/raw_colore_1000/"
+INPUT_PATH="${LYACOLORE_PATH}/example_data/test/"
+
 echo "input will be taken from "$INPUT_PATH
 INPUT_FILES=`ls -1 ${INPUT_PATH}/out_srcs_*.fits`
 NFILES=`echo $INPUT_FILES | wc -w`
@@ -88,7 +90,7 @@ PIXELS=${PIXELS[@]:0:$NPIXELS}
 
 echo "looking at pixels: ${NODE_PIXELS}"
 command="${PROCESS_PATH}/make_transmission.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH}  --file-format ${FILE_FORMAT} --skewer-type ${SKEWER_TYPE} ${MT_FLAGS} --pixels ${PIXELS} --tuning-file ${TUNING_PATH} --nside ${NSIDE} --nproc ${NCORES} --IVAR-cut ${IVAR_CUT} --cell-size ${CELL_SIZE} --lambda-min ${LAMBDA_MIN} --seed ${LYACOLORE_SEED} --DLA-bias ${DLA_BIAS} --DLA-bias-evol ${DLA_BIAS_EVOL} --DLA-bias-method ${DLA_BIAS_METHOD} --transmission-lambda-min ${TRANS_LMIN} --transmission-lambda-max ${TRANS_LMAX} --transmission-delta-lambda ${TRANS_DL}"
-#$command
+$command
 
 echo "producing analysis pixels"
 command="${PROCESS_PATH}/make_summaries.py --base-dir ${OUTPUT_PATH} --nproc ${NCORES} --pixels ${PIXELS} --overwrite --picca-N-merge-values 1 10 --compressed-input --compress ${MS_FLAGS}"
