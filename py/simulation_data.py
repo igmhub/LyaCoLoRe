@@ -433,7 +433,7 @@ class SimulationData:
             density_extra_var = convert.gaussian_to_lognormal_delta(extra_var,extra_sigma_G,self.D)
 
             #Add the extra fluctuations to the expanded rows.
-            expanded_DENSITY_DELTA_rows += density_extra_var + 1
+            expanded_DENSITY_DELTA_rows = (1 + expanded_DENSITY_DELTA_rows)*(1 + density_extra_var) - 1
 
             #Mask beyond the QSOs.
             expanded_DENSITY_DELTA_rows *= lya_lr_mask
@@ -1058,23 +1058,30 @@ class SimulationData:
         return
 
     #Compute transmission for a particular absorber, on a particular grid
-    def compute_grid_transmission(self,absorber,wave_grid):
+    def compute_grid_quantity(self,absorber,wave_grid,quantity='flux'):
 
         #Get data from the absorber.
-        F_skewer = absorber.transmission()
+        if quantity == 'gaussian':
+            skewers = self.GAUSSIAN_DELTA_rows
+        elif quantity == 'density':
+            skewers = self.DENSITY_DELTA_rows
+        elif quantity == 'tau':
+            skewers = absorber.tau
+        elif quantity == 'flux':
+            skewers =absorber.transmission()
         rest_wave = absorber.rest_wave
         wave_skewer = rest_wave*(1+self.Z)
 
         #Create the F_grid.
-        N_los = F_skewer.shape[0]
+        N_los = skewers.shape[0]
         N_w = wave_grid.shape[0]
-        F_grid = np.empty([N_los,N_w])
+        skewer_grid = np.empty([N_los,N_w])
 
         #Interpolate the skewers.
         for i in range(N_los):
-            F_grid[i,] = np.interp(wave_grid,wave_skewer,F_skewer[i],left=1.0,right=1.0)
+            skewer_grid[i,] = np.interp(wave_grid,wave_skewer,skewers[i],left=1.0,right=1.0)
 
-        return F_grid
+        return skewer_grid
 
     #Function to save data as a transmission file.
     def save_as_transmission(self,filename,header,overwrite=False,wave_min=3550.,wave_max=6500.,wave_step=0.2,fmt='final',add_QSO_RSDs=True,compress=True):
@@ -1085,7 +1092,7 @@ class SimulationData:
         wave_grid = np.arange(wave_min,wave_max,wave_step).astype('float32')
 
         # compute Lyman alpha transmission on grid of wavelengths
-        F_grid_Lya = self.compute_grid_transmission(self.lya_absorber,wave_grid).astype('float32')
+        F_grid_Lya = self.compute_grid_quantity(self.lya_absorber,wave_grid,quantity='flux').astype('float32')
 
         #construct quasar catalog HDU
         if add_QSO_RSDs:
@@ -1115,11 +1122,11 @@ class SimulationData:
             F_grid = F_grid_Lya
             if self.lyb_absorber is not None:
                 abs_header[self.lyb_absorber.HDU_name] = self.lyb_absorber.rest_wave
-                F_grid *= self.compute_grid_transmission(self.lyb_absorber,wave_grid).astype('float32')
+                F_grid *= self.compute_grid_quantity(self.lyb_absorber,wave_grid,quantity='flux').astype('float32')
             if self.metals is not None:
                 for metal in iter(self.metals.values()):
                     abs_header[metal.HDU_name] = metal.rest_wave
-                    F_grid *= self.compute_grid_transmission(metal,wave_grid).astype('float32')
+                    F_grid *= self.compute_grid_quantity(metal,wave_grid,quantity='flux').astype('float32')
             hdu_F = fits.ImageHDU(data=F_grid,header=abs_header,name='F')
             list_hdu += [hdu_F]
 
@@ -1132,7 +1139,7 @@ class SimulationData:
 
             # compute Lyman beta transmission on grid of wavelengths
             if self.lyb_absorber is not None:
-                F_grid_Lyb = self.compute_grid_transmission(self.lyb_absorber,wave_grid).astype('float32')
+                F_grid_Lyb = self.compute_grid_quantity(self.lyb_absorber,wave_grid).astype('float32')
                 HDU_name = 'F_'+self.lyb_absorber.HDU_name
                 lyb_header = header.copy()
                 lyb_header[self.lyb_absorber.HDU_name] = self.lyb_absorber.rest_wave
@@ -1144,7 +1151,7 @@ class SimulationData:
                 met_header = header.copy()
                 # compute metals' transmission on grid of wavelengths
                 for metal in iter(self.metals.values()):
-                    F_grid_all_metals *= self.compute_grid_transmission(metal,wave_grid).astype('float32')
+                    F_grid_all_metals *= self.compute_grid_quantity(metal,wave_grid,quantity='flux').astype('float32')
                     met_header[metal.HDU_name] = metal.rest_wave
                 HDU_name = 'F_METALS'
                 list_hdu += [fits.ImageHDU(data=F_grid_all_metals,header=met_header,name=HDU_name)]
@@ -1158,7 +1165,7 @@ class SimulationData:
 
             # compute Lyman beta transmission on grid of wavelengths
             if self.lyb_absorber is not None:
-                F_grid_Lyb = self.compute_grid_transmission(self.lyb_absorber,wave_grid).astype('float32')
+                F_grid_Lyb = self.compute_grid_quantity(self.lyb_absorber,wave_grid,quantity='flux').astype('float32')
                 HDU_name = 'F_'+self.lyb_absorber.HDU_name
                 lyb_header = header.copy()
                 lyb_header[self.lyb_absorber.HDU_name] = self.lyb_absorber.rest_wave
@@ -1168,7 +1175,7 @@ class SimulationData:
             if self.metals is not None:
                 # compute metals' transmission on grid of wavelengths
                 for metal in iter(self.metals.values()):
-                    F_grid_metal = self.compute_grid_transmission(metal,wave_grid).astype('float32')
+                    F_grid_metal = self.compute_grid_quantity(metal,wave_grid,quantity='flux').astype('float32')
                     HDU_name = 'F_'+metal.HDU_name
                     met_header = header.copy()
                     met_header[metal.HDU_name] = metal.rest_wave
