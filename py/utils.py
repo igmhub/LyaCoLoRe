@@ -201,7 +201,7 @@ def make_QSO_filter(footprint,N_side=16,pixel_list=None):
     else:
         print('Footprint not recognised; no filter applied.')
         def QSO_filter(RA,DEC):
-            return np.ones(RA.shape)
+            return np.ones(RA.shape).astype('bool')
 
     return QSO_filter
 
