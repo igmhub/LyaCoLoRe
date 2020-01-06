@@ -10,6 +10,7 @@ import time
 import glob
 from iminuit import Minuit
 import argparse
+import json
 
 from lyacolore import convert, Pk1D, utils, independent, tuning, simulation_data
 
@@ -24,6 +25,14 @@ parser.add_argument('--tuning-file-out', type = str, default = None, required=Tr
 
 parser.add_argument('--plot-dir-out', type = str, default = None, required=False,
                     help = 'Out directory for the plots')
+
+parser.add_argument('--file-format', type = str, default = 'colore', required=False,
+                    choices=['colore'],
+                    help = 'input file type')
+
+parser.add_argument('--skewer-type', type = str, default = 'gaussian', required=False,
+                    choices=['gaussian','density'],
+                    help = 'type of skewer in input file')
 
 # Computational options.
 parser.add_argument('--nproc', type = int, default = 1, required=False,
@@ -195,7 +204,6 @@ s_kwargs = {'n'  : initial_n,       'error_n' : 1.0,    'fix_n' : args.fix_all|f
 other_kwargs = {'R'  : initial_R,    'error_R' : 1.0,   'fix_R' : args.fix_all|fix_R,       'limit_R' : (0., 1000.),
                 'a_v': initial_a_v,  'error_a_v' : 0.1, 'fix_a_v' : args.fix_all|fix_a_v,   'limit_a_v' : (0., 2.0),
                 'return_measurements'  : False,    'fix_return_measurements' : True,
-                'errordef'             : 1,
                 }
 
 #Colours for the plot
@@ -258,7 +266,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,texp,D0,D1,D2,n,k1,R_kms,a_v,RSD_weight
     filename = utils.get_file_name(location,'gaussian-colore',args.nside,pixel,compressed=args.compressed_input)
 
     #Make a pixel object from it.
-    data = simulation_data.SimulationData.get_skewers_object(filename,None,'gaussian_colore',IVAR_cutoff=args.lambda_rest_max)
+    data = simulation_data.SimulationData.get_skewers_object(filename,None,args.file_format,args.skewer_type,IVAR_cutoff=args.lambda_rest_max)
     #print('{:3.2f} checkpoint sim_dat'.format(time.time()-t))
     t = time.time()
 
