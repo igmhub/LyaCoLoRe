@@ -14,7 +14,7 @@ NCORES=1
 
 # specify input file information
 FILE_FORMAT='colore'
-SKEWER_TYPE='density'
+SKEWER_TYPE='gaussian'
 
 # specify process parameters
 NSIDE=16
@@ -36,7 +36,7 @@ TRANS_DL=0.2
 
 # specify process flags
 MM_FLAGS="--overwrite --pixels $PIXELS"
-MT_FLAGS="--add-DLAs --add-RSDs --add-small-scale-fluctuations --overwrite --compress"
+MT_FLAGS="--add-DLAs --add-RSDs --add-small-scale-fluctuations --overwrite --compress --add-Lyb --add-metals"
 MS_FLAGS="--overwrite --compress --compressed-input"
 
 # specify details of colore output

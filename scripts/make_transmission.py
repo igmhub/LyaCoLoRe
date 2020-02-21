@@ -433,7 +433,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,t
         if args.skewer_type == 'gaussian':
             #Picca Gaussian, small cells
             filename = utils.get_file_name(location,'picca-gaussian',N_side,pixel)
-            pixel_object.save_as_picca_delta('gaussian',filename,header,overwrite=args.overwrite,add_QSO_RSDs=args.args.add_QSO_RSDs,compress=args.compress)
+            pixel_object.save_as_picca_delta('gaussian',filename,header,overwrite=args.overwrite,add_QSO_RSDs=args.add_QSO_RSDs,compress=args.compress)
 
         #Picca density
         filename = utils.get_file_name(location,'picca-density',N_side,pixel)
