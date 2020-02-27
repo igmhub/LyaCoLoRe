@@ -65,7 +65,7 @@ parser.add_argument('--add-picca-drqs', action="store_true", default = False, re
 parser.add_argument('--pixels', type = int, default = None, required=False,
                     help = 'which pixel numbers to work on', nargs='*')
 
-parser.add_argument('--footprint', type = str, default = None, required = False,
+parser.add_argument('--footprint', type = str, default = 'full_sky', required = False,
                     choices=['full_sky','desi','desi_pixel','desi_pixel_plus'],
                     help = 'name of footprint to use')
 
