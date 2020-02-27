@@ -260,7 +260,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,texp,D0,D1,D2,n,k1,R_kms,a_v,RSD_weight
     t = time.time()
     seed = int(pixel * 10**5 + args.seed)
 
-    print('start pixel {} at {}'.format(pixel,time.ctime()))
+    #print('start pixel {} at {}'.format(pixel,time.ctime()))
 
     #Get the filename of the gaussian skewer.
     location = utils.get_dir_name(args.base_dir,pixel)
@@ -268,7 +268,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,texp,D0,D1,D2,n,k1,R_kms,a_v,RSD_weight
 
     #Make a pixel object from it.
     data = simulation_data.SimulationData.get_skewers_object(filename,None,args.file_format,args.skewer_type,IVAR_cutoff=args.lambda_rest_max)
-    print('{:3.2f} checkpoint sim_dat'.format(time.time()-t))
+    #print('{:3.2f} checkpoint sim_dat'.format(time.time()-t))
     t = time.time()
 
     #Get the transformation for the current set of input parameters.
@@ -298,7 +298,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,texp,D0,D1,D2,n,k1,R_kms,a_v,RSD_weight
     generator = np.random.RandomState(seed)
     data.add_small_scale_fluctuations(args.cell_size,generator,white_noise=False,lambda_min=0.0,IVAR_cutoff=args.lambda_rest_max,use_transformation=True,remove_P1D_data=remove_P1D_data)
 
-    print('{:3.2f} checkpoint extra power'.format(time.time()-t))
+    #print('{:3.2f} checkpoint extra power'.format(time.time()-t))
     t = time.time()
 
     #If needed, compute the physical skewers
@@ -307,13 +307,13 @@ def measure_pixel_segment(pixel,C0,C1,C2,texp,D0,D1,D2,n,k1,R_kms,a_v,RSD_weight
 
     #Compute the tau skewers and add RSDs
     data.compute_tau_skewers(data.lya_absorber)
-    print('{:3.2f} checkpoint tau'.format(time.time()-t))
+    #print('{:3.2f} checkpoint tau'.format(time.time()-t))
     t = time.time()
 
     if prep:
         data.compute_RSD_weights(thermal=False)
 
-        print(pixel,'{:3.2f} checkpoint RSD weights measured'.format(time.time()-t))
+        #print(pixel,'{:3.2f} checkpoint RSD weights measured'.format(time.time()-t))
         t = time.time()
 
         #b_eta_weights_dict = data.get_bias_eta_RSD_weights(args.z_values,d=d_eta,z_width=args.z_width,lambda_buffer=lambda_buffer)
