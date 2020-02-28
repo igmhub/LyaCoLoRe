@@ -5,6 +5,8 @@ import os
 import healpy as hp
 import shutil
 import gzip
+import sys
+import warnings
 
 lya_rest = 1215.67
 
@@ -543,3 +545,14 @@ def get_zeff(z,rp,rt,weights,rmin=80.,rmax=120.):
     zeff = np.average(z[cells],weights=weights[cells])
 
     return zeff
+
+class Quiet:
+    def __enter__(self):
+        self._original_stdout = sys.stdout
+        sys.stdout = open(os.devnull, 'w')
+        warnings.filterwarnings('ignore', category=UserWarning)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        sys.stdout.close()
+        sys.stdout = self._original_stdout
+        warnings.filterwarnings('default', category=UserWarning)
