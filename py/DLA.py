@@ -12,8 +12,10 @@ import time
 from lyacolore import utils
 
 try:
-    from pyigm.fN.fnmodel import FNModel
-    fN_default = FNModel.default_model(cosmo=Planck15)
+    ## Use Quiet class to stop pyigm from printing output.
+    with utils.Quiet():
+        from pyigm.fN.fnmodel import FNModel
+        fN_default = FNModel.default_model(cosmo=Planck15)
     fN_default.zmnx = (0.5,5.)
     fN_cosmo = fN_default.cosmo
     use_pyigm = True
