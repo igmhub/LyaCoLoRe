@@ -4,7 +4,7 @@ from astropy.io import fits
 from lyacolore import utils, read_files
 
 #Function to extract data suitable for making ID files from a set of colore or picca format files.
-def get_ID_data(filename,file_number,file_format,skewer_type,N_side,minimum_z=0.0,downsampling=1.0,QSO_filter=None,pixel_list=None):
+def get_ID_data(filename,file_number,file_format,skewer_type,N_side,minimum_z=0.0,downsampling=1.0,QSO_filter=None,pixel_list=None,seed=0):
 
     ID_data = []
     cosmology = []
@@ -65,7 +65,8 @@ def get_ID_data(filename,file_number,file_format,skewer_type,N_side,minimum_z=0.
         #Downsample if we want.
         if downsampling < 1.0:
             final_N_qso = round(N_qso*downsampling)
-            random_QSOs = np.sort(np.random.choice(N_qso,size=final_N_qso,replace=False))
+            gen = np.random.RandomState(seed=seed)
+            random_QSOs = np.sort(gen.choice(N_qso,size=final_N_qso,replace=False))
             ID_sort = ID_sort[random_QSOs]
 
         #Make file-pixel map element and MOCKID lookup.

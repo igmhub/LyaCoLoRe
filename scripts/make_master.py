@@ -75,6 +75,9 @@ parser.add_argument('--downsampling', type = float, default = 1.0, required=Fals
 parser.add_argument('--overwrite', action="store_true", default = False, required=False,
                     help = 'overwrite existing files')
 
+parser.add_argument('--seed', type = int, default = 123, required=False,
+                    help = 'specify seed to generate random numbers')
+
 ################################################################################
 
 args = parser.parse_args()
@@ -137,7 +140,8 @@ QSO_filter = utils.make_QSO_filter(args.footprint,N_side=args.nside)
 #Define the process to make the master data.
 def make_master_data(file_name,file_number,file_format,skewer_type,N_side,minimum_z=args.min_cat_z):
 
-    file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element = catalog.get_ID_data(file_name,file_number,file_format,skewer_type,N_side,minimum_z=minimum_z,downsampling=args.downsampling,QSO_filter=QSO_filter,pixel_list=args.pixels)
+    seed = args.seed*10**5 + file_number
+    file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element = catalog.get_ID_data(file_name,file_number,file_format,skewer_type,N_side,minimum_z=minimum_z,downsampling=args.downsampling,QSO_filter=QSO_filter,pixel_list=args.pixels,seed=seed)
 
     return [file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element]
 
