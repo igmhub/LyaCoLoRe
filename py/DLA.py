@@ -206,9 +206,16 @@ def get_DLA_table(object,dla_bias=2.0,dla_bias_z=2.25,extrapolate_z_down=None,NH
         raise ValueError('DLA bias evol not recognised.')
 
     #Figure out cells that could host a DLA, based on Gaussian fluctuation
-    nu_arr = nu_of_bDs(b_D_sigma0)
-    deltas = object.GAUSSIAN_DELTA_rows
-    flagged_cells = flag_DLA(z_qso,z_cell,deltas,nu_arr,sigma_g)
+    if object.GAUSSIAN_DELTA_rows is not None:
+        nu_arr = nu_of_bDs(b_D_sigma0)
+        deltas = object.GAUSSIAN_DELTA_rows
+        flagged_cells = flag_DLA(z_qso,z_cell,deltas,nu_arr,sigma_g)
+    elif object.DENSITY_DELTA_rows is not None:
+        nu_arr = nu_of_bDs(b_D_sigma0/(sigma_g*D_cell))
+        deltas = object.DENSITY_DELTA_rows
+        flagged_cells = flag_DLA(z_qso,z_cell,deltas,nu_arr,sigma_g)
+    else:
+        raise ValueError('Cannot find Gaussian or density delta skewers when flagging cells for DLAs')
 
     #Mean of the poisson is the mean number of DLAs with redshift scaled up by
     #the proportion of expected flagged cells.
