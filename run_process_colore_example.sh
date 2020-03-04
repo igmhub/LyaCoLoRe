@@ -25,14 +25,15 @@ DLA_BIAS_METHOD='global'
 DOWNSAMPLING=1.0
 FOOTPRINT='full_sky'
 
-# specify transmission file wavelength grid
+# specify transmission file properties
 TRANS_LMIN=3470.0
 TRANS_LMAX=6500.0
 TRANS_DL=0.2
+TRANS_FORMAT='develop'
 
 # specify process flags
 MM_FLAGS="--overwrite --pixels $PIXELS"
-MT_FLAGS="--add-DLAs --add-RSDs --add-small-scale-fluctuations --overwrite --compress --transmission-only"
+MT_FLAGS="--add-DLAs --add-RSDs --add-small-scale-fluctuations --overwrite --compress --transmission-only --add-metals"
 MS_FLAGS="--overwrite --compress --transmission-only --compressed-input"
 
 # specify details of colore output
@@ -83,7 +84,7 @@ done
 PIXELS=${PIXELS[@]:0:$NPIXELS}
 
 echo "looking at pixels: ${NODE_PIXELS}"
-command="${PROCESS_PATH}/make_transmission.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} ${MT_FLAGS} --pixels ${PIXELS} --tuning-file ${TUNING_PATH} --nside ${NSIDE} --nproc ${NCORES} --IVAR-cut ${IVAR_CUT} --cell-size ${CELL_SIZE} --lambda-min ${LAMBDA_MIN} --seed ${LYACOLORE_SEED} --DLA-bias ${DLA_BIAS} --DLA-bias-evol ${DLA_BIAS_EVOL} --DLA-bias-method ${DLA_BIAS_METHOD} --transmission-lambda-min ${TRANS_LMIN} --transmission-lambda-max ${TRANS_LMAX} --transmission-delta-lambda ${TRANS_DL}"
+command="${PROCESS_PATH}/make_transmission.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} ${MT_FLAGS} --pixels ${PIXELS} --tuning-file ${TUNING_PATH} --nside ${NSIDE} --nproc ${NCORES} --IVAR-cut ${IVAR_CUT} --cell-size ${CELL_SIZE} --lambda-min ${LAMBDA_MIN} --seed ${LYACOLORE_SEED} --DLA-bias ${DLA_BIAS} --DLA-bias-evol ${DLA_BIAS_EVOL} --DLA-bias-method ${DLA_BIAS_METHOD} --transmission-lambda-min ${TRANS_LMIN} --transmission-lambda-max ${TRANS_LMAX} --transmission-delta-lambda ${TRANS_DL} --transmission-format ${TRANS_FORMAT}"
 $command
 
 echo "producing analysis pixels"
