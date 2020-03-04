@@ -37,19 +37,10 @@ def get_ID_data(filename,file_number,file_format,skewer_type,N_side,minimum_z=0.
     ID_sort = np.sort(ID, order=['PIXNUM','MOCKID'])
 
     #Filter out QSOs that we don't want, either from a list of pixels or a Boolean function on (RA,DEC).
-    if isinstance(QSO_filter,np.ndarray):
-        for pix in set(pixel_ID):
-            if pix not in QSO_filter:
-                ID_sort = ID_sort[ID_sort['PIXNUM'] != pix]
-    elif callable(QSO_filter):
+    if QSO_filter is not None:
         QSOs = QSO_filter(ID_sort['RA'],ID_sort['DEC'])
         ID_sort = ID_sort[QSOs]
-
-        #ID = np.array([QSO for QSO in ID_sort if QSO_filter(QSO['RA'],QSO['DEC'])],dtype=dtype)
-        #ID_sort = np.sort(ID, order=['PIXNUM','MOCKID'])
-
-    #Filter out QSOs that are not in pixels included in an initial list..
-    if pixel_list:
+    if pixel_list is not None:
         for pix in set(pixel_ID):
             if pix not in pixel_list:
                 ID_sort = ID_sort[ID_sort['PIXNUM'] != pix]
