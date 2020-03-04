@@ -101,6 +101,9 @@ parser.add_argument('--fill-right-vline', action="store_true", default = False, 
 parser.add_argument('--ysubs', type = float, default = None, required=False,
                     help = 'multiples of integer powers of 10 at which to place y ticks', nargs='*')
 
+parser.add_argument('--save-suffix', type = str, default = None, required=False,
+                    help = 'suffix to add onto save names for plots and data')
+
 ################################################################################
 
 print('setup arguments from parser')
@@ -110,29 +113,21 @@ args = parser.parse_args()
 #Define global variables.
 lya = utils.lya_rest
 
-base_dir = args.base_dir
-N_side = args.nside
-pixels = args.pixels
-if not pixels:
-    pixels = list(range(12*N_side**2))
-N_pixels = len(pixels)
-N_processes = args.nproc
-z_values = np.array(args.z_values)
-z_width = args.z_width
-file_type = args.file_type
-quantity = args.quantity
-units = args.units
-show_plot = args.show_plot
-save_data = args.save_data
-smoothing_radius = args.smoothing_radius
-overwrite = args.overwrite
+if not args.pixels:
+    args.pixels = list(range(12*args.nside**2))
+N_pixels = len(args.pixels)
+
+if args.save_suffix is not None:
+    suffix = '_{}'.format(args.save_suffix)
+else:
+    suffix = ''
 
 # TODO: print to confirm the arguments. e.g. "DLAs will be added"
 
-if np.log2(N_side)-int(np.log2(N_side)) != 0:
+if np.log2(args.nside)-int(np.log2(args.nside)) != 0:
     print('nside must be a power of 2!')
 else:
-    N_pix = 12*N_side**2
+    N_pix = 12*args.nside**2
 
 #colours = ['C0','C1','C2','C3','C4','C5','C6','C7','C8','C9'] * 2
 colours = ['#F5793A','#A95AA1','#85C0F9','#0F2080'] * 2
@@ -172,8 +167,8 @@ if args.Pk1D_data is None:
     print('Getting Pk1D from each pixel...')
 
     #Get z and R along the skewers.
-    m = fits.open(base_dir+'/master.fits')
-    if 'colorecell' in quantity:
+    m = fits.open(args.base_dir+'/master.fits')
+    if 'colorecell' in args.quantity:
         z = m['COSMO_COL'].data['Z']
         R = m['COSMO_COL'].data['R']
     else:
@@ -182,38 +177,38 @@ if args.Pk1D_data is None:
     m.close()
 
     #Determine if we're looking at the Gaussian skewers.
-    gaussian = ('colorecell' in quantity)
+    gaussian = ('colorecell' in args.quantity)
 
     dr_hMpc = (R[-1] - R[0])/(R.shape[0] - 1)
 
     #Function to get deltas and ivar from each pixel.
     def get_pixel_P1D(pixel,file_type='image'):
         if file_type == 'image':
-            dirname = utils.get_dir_name(base_dir,pixel)
-            filename = utils.get_file_name(dirname,'picca-'+quantity,N_side,pixel,compressed=args.compressed_input)
+            dirname = utils.get_dir_name(args.base_dir,pixel)
+            filename = utils.get_file_name(dirname,'picca-'+args.quantity,args.nside,pixel,compressed=args.compressed_input)
             h = fits.open(filename)
             delta_rows = h[0].data.T
             ivar_rows = h[1].data.T
             z = 10**(h[2].data)/lya - 1
             h.close()
         elif file_type == 'delta':
-            filename = base_dir + '/delta-{}.fits.gz'.format(pixel)
+            filename = args.base_dir + '/delta-{}.fits.gz'.format(pixel)
             h = fits.open(filename)
             for hdu in h[1:]:
                 delta_rows = None
         Pk1D_results = {}
-        for z_value in z_values:
+        for z_value in args.z_values:
             k, Pk, var = Pk1D.get_Pk1D(delta_rows,ivar_rows,dr_hMpc,z,z_value=z_value
-                                    ,z_width=z_width,units=units,R1=smoothing_radius
+                                    ,z_width=args.z_width,units=args.units,R1=args.smoothing_radius
                                     ,gaussian=gaussian)
             Pk1D_results[z_value] = {'k':k, 'Pk':Pk, 'var':var}
         return (pixel,Pk1D_results)
 
-    tasks = [(pixel,) for pixel in pixels]
+    tasks = [(pixel,args.file_type) for pixel in args.pixels]
 
     #Run the multiprocessing pool
     if __name__ == '__main__':
-        pool = Pool(processes = N_processes)
+        pool = Pool(processes = args.nproc)
         results = []
         start_time = time.time()
 
@@ -224,7 +219,7 @@ if args.Pk1D_data is None:
         pool.join()
 
     #Combine the results from each pixel.
-    for z_value in z_values:
+    for z_value in args.z_values:
         #This assumes each pixel has the same weight. Ideally would have different weights for each k-mode from each pixel.
         N = 1
         P_sum = results[0][1][z_value]['Pk']
@@ -243,7 +238,7 @@ else:
     N_pixels = Pk1D_data[0].header['N_pixels']
     for hdu in Pk1D_data[1:]:
         z_value = float(hdu.name)
-        if z_value in z_values:
+        if z_value in args.z_values:
             Pk1D_results[float(hdu.name)] = {'k':hdu.data['k'], 'Pk':hdu.data['Pk'], 'var':hdu.data['var']}
 
 ################################################################################
@@ -255,8 +250,8 @@ Save the data.
 def save_P1D_values(Pk1D_results):
 
     header = fits.Header()
-    header['units'] = units
-    header['N_side'] = N_side
+    header['units'] = args.units
+    header['N_side'] = args.nside
     header['N_pixels'] = N_pixels
 
     prihdu = fits.PrimaryHDU(header=header)
@@ -276,13 +271,13 @@ def save_P1D_values(Pk1D_results):
 
     #Combine the HDUs into an HDUlist and save as a new file. Close the HDUlist.
     hdulist = fits.HDUList(hdus)
-    filename = 'Pk1D_data_{}_{}.fits'.format(quantity,N_pixels)
-    hdulist.writeto(filename,overwrite=overwrite)
+    filename = 'Pk1D_data_{}_{}{}.fits'.format(args.quantity,N_pixels,suffix)
+    hdulist.writeto(filename,overwrite=args.overwrite)
     hdulist.close
 
     return
 
-if save_data:
+if args.save_data:
     save_P1D_values(Pk1D_results)
 
 ################################################################################
@@ -351,7 +346,7 @@ def plot_P1D_values(Pk1D_results,show_plot=True):
         data_plots[z_value] = d
 
         #If we are plotting flux, add BOSS DR9 fitting function results.
-        if 'flux' in quantity:
+        if 'flux' in args.quantity:
             model_Pk_kms = tuning.P1D_z_kms_PD2013(z_value,k)
             to_plot_model = model_Pk_kms * (k ** args.k_plot_power)
             plt.plot(k,to_plot_model,c=colour,linestyle='--',zorder=2)
@@ -364,11 +359,11 @@ def plot_P1D_values(Pk1D_results,show_plot=True):
                 to_plot_upper = to_plot_model * (1 + args.add_model_interval_lines)
                 ax.plot(k,to_plot_upper,color=colour,linestyle=':',zorder=1)
                 ax.plot(k,to_plot_lower,color=colour,linestyle=':',zorder=1)
-        
+
         #Determine the minimum and maximum values plotted.
         #If we're plotting flux, use the model values for this.
         #Otherwise use the data values.
-        if 'flux' in quantity:
+        if 'flux' in args.quantity:
             plot_min = np.minimum(plot_min,np.min(to_plot_model[k_rel]))
             plot_max = np.maximum(plot_max,np.max(to_plot_model[k_rel]))
         else:
@@ -391,7 +386,7 @@ def plot_P1D_values(Pk1D_results,show_plot=True):
     descriptor_plots['data'] = d
 
     #Add blank elements to describe model/fit/intervals plot types in legend.
-    if 'flux' in quantity:
+    if 'flux' in args.quantity:
         err, = ax.plot([0], [0], color='gray', linestyle='--', label=r'BOSS DR9')
         if args.add_model_interval_lines is not None:
             err_i, = ax.plot([0], [0], color='gray', linestyle=':', label=r'DR9 $\pm$ 10%')
@@ -449,17 +444,17 @@ def plot_P1D_values(Pk1D_results,show_plot=True):
     else:
         ylabel = r'$P_{1\mathrm{D}}\ [\mathrm{km\ s}^{{-1}}]$'
     ax.set_ylabel(ylabel,fontsize=fontsize)
-    if units == 'km/s':
+    if args.units == 'km/s':
         ax.set_xlabel(r'$k\ [\mathrm{s\ km}^{-1}]$',fontsize=fontsize)
-    elif units == 'Mpc/h':
+    elif args.units == 'Mpc/h':
         ax.set_xlabel(r'$k\ [h\ \mathrm{Mpc}^{-1}]$',fontsize=fontsize)
-    filename = 'Pk1D_{}_{}.pdf'.format(quantity,N_pixels)
-    plt.savefig('Pk1D_k{}_vs_k_{}.pdf'.format(int(args.k_plot_power),quantity))
+    filename = 'Pk1D_{}_{}.pdf'.format(args.quantity,N_pixels)
+    plt.savefig('Pk1D_k{}_vs_k_{}{}.pdf'.format(int(args.k_plot_power),args.quantity,suffix))
     if show_plot:
         plt.show()
     return
 
-plot_P1D_values(Pk1D_results,show_plot=show_plot)
+plot_P1D_values(Pk1D_results,show_plot=args.show_plot)
 
 ################################################################################
 """
