@@ -80,7 +80,7 @@ parser.add_argument('--DLA-bias-evol', type = str, default = 'b_const', required
                     choices=['b_const','bD_const'],
                     help = 'choose DLA bias evolution with redshift')
 
-parser.add_argument('--DLA-bias-method', type = str, default = 'SG', required=False,
+parser.add_argument('--DLA-bias-method', type = str, default = 'global', required=False,
                     choices=['global','sample'],
                     help = 'choose whether the DLA bias is determined by the global or sample value of sigma_G')
 

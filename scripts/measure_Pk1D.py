@@ -343,7 +343,7 @@ def plot_P1D_values(Pk1D_results,show_plot=True):
             d = ax.plot(k,to_plot_data,label='z={}'.format(z_value),c=colour,zorder=3)
 
         #Add the plotted data to the dictionary.
-        data_plots[z_value] = d
+        data_plots[z_value] = d[0]
 
         #If we are plotting flux, add BOSS DR9 fitting function results.
         if 'flux' in args.quantity:
