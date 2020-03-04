@@ -88,7 +88,7 @@ parser.add_argument('--DLA-bias-evol', type = str, default = 'b_const', required
                     choices=['b_const','bD_const'],
                     help = 'choose DLA bias evolution with redshift')
 
-parser.add_argument('--DLA-bias-method', type = str, default = 'SG', required=False,
+parser.add_argument('--DLA-bias-method', type = str, default = 'global', required=False,
                     choices=['global','sample'],
                     help = 'choose whether the DLA bias is determined by the global or sample value of sigma_G')
 
@@ -405,11 +405,9 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,t
     #That means we need to store skewers all the way down to z=0.
     #May need to adjust how many nodes are used when running.
 
-    """
-    ## At the moment, DLAs rely on having Gaussian skewers to ensure the right bias.
     if args.add_DLAs:
-        pixel_object.add_DLA_table(seed,dla_bias=args.DLA_bias,evol=args.dla_bias_evol,method=args.dla_bias_method)
-    """
+        pixel_object.add_DLA_table(seed,dla_bias=args.DLA_bias,evol=args.DLA_bias_evol,method=args.DLA_bias_method)
+    
     #print('{:3.2f} checkpoint DLAs'.format(time.time()-t)); t = time.time()
 
     #Add small scale power to the gaussian skewers:
@@ -500,7 +498,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,t
     return new_cosmology
 
 #define the tasks
-tasks = [(args.out_dir,pixel,args.nside,zero_mean_delta,args.nside,args.tuning_file) for pixel in pixel_list]
+tasks = [(args.out_dir,pixel,args.nside,zero_mean_delta,args.lambda_min,args.tuning_file) for pixel in pixel_list]
 
 #Run the multiprocessing pool
 if __name__ == '__main__':
