@@ -22,15 +22,23 @@ try:
 except:
     use_pyigm = False
 
-def nu_of_bDs(bDs):
-    """ Compute the Gaussian field threshold for a given bias"""
+def get_threshold(b2f):
+    """ Compute the field threshold for a given bias
+    Arguments:
+     - b2f (array): the bias of DLAs relative to the field of interest
+
+    Outputs:
+     - threshold (array): for each input bias value, the threshold value of
+     the field
+    """
     nu = np.linspace(-10,100,500) # Generous range to interpolate
     p_nu = norm.pdf(nu)
     galaxy_mean = 1.0-norm.cdf(nu)
     bDs_nu = np.zeros(nu.shape)
     bDs_nu[galaxy_mean!=0] = p_nu[galaxy_mean!=0]/galaxy_mean[galaxy_mean!=0]
     y = interp1d(bDs_nu,nu)
-    return y(bDs)
+    threshold = y(b2f)
+    return threshold
 
 def get_bias_z(fname,dla_bias):
     """ Given a path, read the z array there and return a bias inversely
@@ -197,25 +205,38 @@ def get_DLA_table(object,dla_bias=2.0,dla_bias_z=2.25,extrapolate_z_down=None,NH
 
     #Setup bias as a function of redshift: either b constant with z, or b*D constant with z.
     y = interp1d(z_cell,D_cell)
-    sigma_g = get_sigma_g(object,mode=method)
-    if evol == "b_const":
-        b_D_sigma0 = dla_bias*D_cell*sigma_g
-    elif evol == "bD_const":
-        b_D_sigma0 = dla_bias*y(dla_bias_z)*sigma_g*np.ones(z.shape)
-    else:
-        raise ValueError('DLA bias evol not recognised.')
 
-    #Figure out cells that could host a DLA, based on Gaussian fluctuation
+    ## Determine the threshold above which to flag cells as potential DLA
+    ## locations. This depends on the skewer type and the DLA bias evolution.
     if object.GAUSSIAN_DELTA_rows is not None:
-        nu_arr = nu_of_bDs(b_D_sigma0)
+        sigma_g = get_sigma_g(object,mode=method)
+        if evol == "b_const":
+            b2f = dla_bias*D_cell*sigma_g
+        elif evol == "bD_const":
+            b2f = dla_bias*y(dla_bias_z)*sigma_g*np.ones(z.shape)
+        else:
+            raise ValueError('DLA bias evol not recognised.')
         deltas = object.GAUSSIAN_DELTA_rows
-        flagged_cells = flag_DLA(z_qso,z_cell,deltas,nu_arr,sigma_g)
+
     elif object.DENSITY_DELTA_rows is not None:
-        nu_arr = nu_of_bDs(b_D_sigma0/(sigma_g*D_cell))
+        """
+        ## Also need the pdf pf the skewers.
+        ## For now, just raise an error.
+        if evol == "b_const":
+            b2f = dla_bias
+        elif evol == "bD_const":
+            b2f = dla_bias*y(dla_bias_z)*np.ones(z.shape)/D_cell
+        else:
+            raise ValueError('DLA bias evol not recognised.')
         deltas = object.DENSITY_DELTA_rows
-        flagged_cells = flag_DLA(z_qso,z_cell,deltas,nu_arr,sigma_g)
+        """
+        raise ValueError('Adding DLAs without Gaussian skewers is not implemented as yet.')
+
     else:
         raise ValueError('Cannot find Gaussian or density delta skewers when flagging cells for DLAs')
+
+    nu_arr = get_threshold(b2f)
+    flagged_cells = flag_DLA(z_qso,z_cell,deltas,nu_arr,sigma_g)
 
     #Mean of the poisson is the mean number of DLAs with redshift scaled up by
     #the proportion of expected flagged cells.
