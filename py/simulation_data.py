@@ -29,7 +29,7 @@ def make_pixel_object(pixel,base_filename,file_format,skewer_type,MOCKID_lookup,
 
         #Combine the data from the working file with that from the files already looked at.
         if files_included > 0:
-            combined = SimulationData.combine_files(combined,working,gaussian_only=True)
+            combined = SimulationData.combine_files(combined,working,gaussian_only=(skewer_type=='gaussian'))
             files_included += 1
         else:
             combined = working
@@ -813,7 +813,12 @@ class SimulationData:
         MJD = np.concatenate((object_A.MJD,object_B.MJD),axis=0)
         FIBER = np.concatenate((object_A.FIBER,object_B.FIBER),axis=0)
 
-        GAUSSIAN_DELTA_rows = np.concatenate((object_A.GAUSSIAN_DELTA_rows,object_B.GAUSSIAN_DELTA_rows),axis=0)
+        if object_A.GAUSSIAN_DELTA_rows is not None and object_B.GAUSSIAN_DELTA_rows is not None:
+            GAUSSIAN_DELTA_rows = np.concatenate((object_A.GAUSSIAN_DELTA_rows,object_B.GAUSSIAN_DELTA_rows),axis=0)
+        elif object_A.GAUSSIAN_DELTA_rows is None and object_B.GAUSSIAN_DELTA_rows is None:
+            GAUSSIAN_DELTA_rows = None
+        else:
+            raise ValueError('one object has gaussian skewers, one does not: cannot proceed')
         VEL_rows = np.concatenate((object_A.VEL_rows,object_B.VEL_rows),axis=0)
         IVAR_rows = np.concatenate((object_A.IVAR_rows,object_B.IVAR_rows),axis=0)
         if gaussian_only:
