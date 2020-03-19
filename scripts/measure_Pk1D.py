@@ -130,7 +130,7 @@ else:
     N_pix = 12*args.nside**2
 
 #colours = ['C0','C1','C2','C3','C4','C5','C6','C7','C8','C9'] * 2
-colours = ['#F5793A','#A95AA1','#85C0F9','#0F2080'] * 2
+colours = ['#F5793A','#A95AA1','#85C0F9','#0F2080'] * 4
 fontsize = 16
 figsize = (12, 6)
 dpi = 80
