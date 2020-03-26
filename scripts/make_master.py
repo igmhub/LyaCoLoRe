@@ -106,7 +106,7 @@ else:
 
 #Define the original file structure
 input_filename_structure = 'out_srcs_s1_{}.fits' #file_number
-input_files = glob.glob(original_file_location+input_filename_structure.format('*'))
+input_files = glob.glob(original_file_location+'/'+input_filename_structure.format('*'))
 file_numbers = utils.get_file_numbers(original_file_location,input_filename_structure,input_files)
 input_format = 'gaussian_colore'
 
