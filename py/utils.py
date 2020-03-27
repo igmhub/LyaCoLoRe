@@ -178,22 +178,19 @@ def make_QSO_filter(footprint,N_side=16,pixel_list=None):
             print('desimodel not installed; loading pixel footprints from file...')
             if footprint=='desi':
                 print('desi footprint not possible without desimodel: using desi_pixel instead...')
-                valid_pixels = np.loadtxt('input_files/DESI_pixels.txt',dtype=int)
+                valid_pixels = np.loadtxt('input_files/pixel_footprints/DESI_pixels.txt',dtype=int)
             elif footprint=='desi_pixel':
-                valid_pixels = np.loadtxt('input_files/DESI_pixels.txt',dtype=int)
+                valid_pixels = np.loadtxt('input_files/pixel_footprints/DESI_pixels.txt',dtype=int)
             elif footprint=='desi_pixel_plus':
-                valid_pixels = np.loadtxt('input_files/DESI_pixels_plus.txt',dtype=int)
+                valid_pixels = np.loadtxt('input_files/pixel_footprints/DESI_pixels_plus.txt',dtype=int)
 
         #With a list of valid pixels, we now can make a filter.
         def QSO_filter(RA,DEC):
             theta = (np.pi/180.0)*(90.0-DEC)
             phi = (np.pi/180.0)*RA
             pix = hp.ang2pix(N_side,theta,phi,nest=True)
-            fil = np.zeros(pix.shape)
-            for p in valid_pixels:
-                fil += (pix == p)
-            fil = fil.astype('bool')
-            return fil
+            w = np.in1d(pix,valid_pixels)
+            return w
 
     #Else if we don't want to filter at all, set the filter to "None".
     elif footprint=='full_sky':
