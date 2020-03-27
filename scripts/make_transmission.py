@@ -1,27 +1,25 @@
 #!/usr/bin/env python
 
-import numpy as np
-from astropy.io import fits
-import matplotlib.pyplot as plt
-from multiprocessing import Pool
-import multiprocessing
-from scipy.interpolate import interp1d
-import sys
-import time
-import os
 import argparse
+import multiprocessing
+import numpy as np
+import os
+import time
 
-from lyacolore import utils, independent, stats, convert, simulation_data, DLA, RSD, tuning
+from astropy.io import fits
+from multiprocessing import Pool
+from scipy.interpolate import interp1d
+
+from lyacolore import simulation_data, utils
 
 ################################################################################
 
 #Script to make a transmission file for a given pixel, given a
 
-# TODO: Make 'input parameters' and 'output parameters' objects? Currently passing loads of arguments to multiprocessing functions which is messy
-# TODO: option to reduce the number of skewers for test purposes?
-# TODO: use args to pass things like file structures around neatly?
 # TODO: Get rid of the need to specify file numbers?
-# TODO: implement number of skewers.
+# TODO: Set up option to specify exactly which meatls we want
+# TODO: Tidy up measuring of SIGMA_G and subsequent DLA method.
+# TODO: Exchange lambda_min for z_min for cells.
 
 ################################################################################
 
@@ -102,9 +100,6 @@ parser.add_argument('--include-thermal-effects', action="store_true", default = 
 
 parser.add_argument('--transmission-only', action="store_true", default = False, required=False,
                     help = 'save only the transmission file')
-
-parser.add_argument('--nskewers', type = int, default = None, required=False,
-                    help = 'number of skewers to process')
 
 parser.add_argument('--seed', type = int, default = 123, required=False,
                     help = 'specify seed to generate random numbers')

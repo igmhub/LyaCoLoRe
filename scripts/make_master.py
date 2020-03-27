@@ -1,32 +1,19 @@
 #!/usr/bin/env python
 
-import numpy as np
-from astropy.io import fits
-import matplotlib.pyplot as plt
-from multiprocessing import Pool
-import multiprocessing
-import time
 import argparse
 import glob
+import numpy as np
+import time
+
+from astropy.io import fits
+from multiprocessing import Pool
 
 from lyacolore import utils, catalog
-
-try:
-    from desimodel.footprint import tiles2pix, is_point_in_desi
-    desimodel_installed = True
-except ModuleNotFoundError:
-    import warnings
-    warnings.warn('desimodel is not installed; footprint pixel data will be read from file.')
-    desimodel_installed = False
 
 ################################################################################
 
 #Script to produce a master file from CoLoRe's output files.
 
-# TODO: Make 'input parameters' and 'output parameters' objects? Currently passing loads of arguments to multiprocessing functions which is messy
-# TODO: option to reduce the number of skewers for test purposes?
-# TODO: update the master file's cosmology once ssgf have been added
-# TODO: use args to pass things like file structures around neatly?
 # TODO: Get rid of the need to specify file numbers?
 
 ################################################################################
@@ -56,9 +43,6 @@ parser.add_argument('--min-cat-z', type = float, default = 1.8, required=False,
 parser.add_argument('--param-file', type = str, default = 'out_params.cfg', required=False,
                     help = 'output parameter file name')
 
-parser.add_argument('--nskewers', type = int, default = None, required=False,
-                    help = 'number of skewers to process')
-
 parser.add_argument('--add-picca-drqs', action="store_true", default = False, required=False,
                     help = 'save picca format drq files')
 
@@ -83,7 +67,6 @@ parser.add_argument('--seed', type = int, default = 123, required=False,
 args = parser.parse_args()
 
 # TODO: print to confirm the arguments. e.g. "DLAs will be added"
-# TODO: implement nskewers
 
 #Check the value of N_side required is a power of 2.
 if np.log2(args.nside)-int(np.log2(args.nside)) != 0:
