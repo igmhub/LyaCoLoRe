@@ -114,31 +114,27 @@ class SimulationData:
 
         #Work out which rows in the hdulist we are interested in.
         if MOCKIDs is not None:
-            rows = []
-            s = set(MOCKIDs)
-            for i, qso in enumerate(h_MOCKID):
-                if qso in s:
-                    rows += [i]
+            w_rows = np.in1d(h_MOCKID,MOCKIDs)
         else:
-            rows = list(range(h_MOCKID.shape[0]))
+            w_rows = np.ones(h_MOCKID.shape).astype('bool')
 
-        #Calculate the first_relevant_cell.
-        first_relevant_cell = np.searchsorted(h_lya_lambdas_edges[1:],lambda_min)
+        #Calculate the first relevant cell (frc).
+        frc = np.searchsorted(h_lya_lambdas_edges[1:],lambda_min)
 
         if input_format == 'physical_colore':
 
             #Extract data from the HDUlist.
-            TYPE = h[1].data['TYPE'][rows]
-            RA = h[1].data['RA'][rows]
-            DEC = h[1].data['DEC'][rows]
-            Z_QSO = h[1].data['Z_COSMO'][rows]
-            DZ_RSD = h[1].data['DZ_RSD'][rows]
-            DENSITY_DELTA_rows = h[2].data[rows,:][:,first_relevant_cell:]
-            VEL_rows = h[3].data[rows,:][:,first_relevant_cell:]
-            Z = h[4].data['Z'][first_relevant_cell:]
-            R = h[4].data['R'][first_relevant_cell:]
-            D = h[4].data['D'][first_relevant_cell:]
-            V = h[4].data['V'][first_relevant_cell:]
+            TYPE = h[1].data['TYPE'][w_rows]
+            RA = h[1].data['RA'][w_rows]
+            DEC = h[1].data['DEC'][w_rows]
+            Z_QSO = h[1].data['Z_COSMO'][w_rows]
+            DZ_RSD = h[1].data['DZ_RSD'][w_rows]
+            DENSITY_DELTA_rows = h[2].data[w_rows,:][:,frc:]
+            VEL_rows = h[3].data[w_rows,:][:,frc:]
+            Z = h[4].data['Z'][frc:]
+            R = h[4].data['R'][frc:]
+            D = h[4].data['D'][frc:]
+            V = h[4].data['V'][frc:]
 
             #Derive the number of quasars and cells in the file.
             N_qso = RA.shape[0]
@@ -165,17 +161,17 @@ class SimulationData:
         elif input_format == 'gaussian_colore':
 
             #Extract data from the HDUlist.
-            TYPE = h[1].data['TYPE'][rows]
-            RA = h[1].data['RA'][rows]
-            DEC = h[1].data['DEC'][rows]
-            Z_QSO = h[1].data['Z_COSMO'][rows]
-            DZ_RSD = h[1].data['DZ_RSD'][rows]
-            GAUSSIAN_DELTA_rows = h[2].data[rows,:][:,first_relevant_cell:]
-            VEL_rows = h[3].data[rows,:][:,first_relevant_cell:]
-            Z = h[4].data['Z'][first_relevant_cell:]
-            R = h[4].data['R'][first_relevant_cell:]
-            D = h[4].data['D'][first_relevant_cell:]
-            V = h[4].data['V'][first_relevant_cell:]
+            TYPE = h[1].data['TYPE'][w_rows]
+            RA = h[1].data['RA'][w_rows]
+            DEC = h[1].data['DEC'][w_rows]
+            Z_QSO = h[1].data['Z_COSMO'][w_rows]
+            DZ_RSD = h[1].data['DZ_RSD'][w_rows]
+            GAUSSIAN_DELTA_rows = h[2].data[w_rows,:][:,frc:]
+            VEL_rows = h[3].data[w_rows,:][:,frc:]
+            Z = h[4].data['Z'][frc:]
+            R = h[4].data['R'][frc:]
+            D = h[4].data['D'][frc:]
+            V = h[4].data['V'][frc:]
 
             #Derive the number of quasars and cells in the file.
             N_qso = RA.shape[0]
@@ -213,22 +209,22 @@ class SimulationData:
         #We make sure to include all frequencies within (lambda_min,lambda_max).
         lambdas = 10**(self.LOGLAM_MAP)
         lambda_edges = utils.get_edges(lambdas)
-        first_relevant_cell = np.searchsorted(lambda_edges[1:],lambda_min)
+        frc = np.searchsorted(lambda_edges[1:],lambda_min)
         if lambda_max:
-            last_relevant_cell = np.searchsorted(lambda_edges[1:],lambda_max) - 1
+            lrc = np.searchsorted(lambda_edges[1:],lambda_max) - 1
         else:
-            last_relevant_cell = -1 % self.N_cells
+            lrc = -1 % self.N_cells
 
         #Calculate the actual values of lambda min and max.
-        actual_lambda_min = lambda_edges[:-1][first_relevant_cell]
-        actual_lambda_max = lambda_edges[:-1][last_relevant_cell]
+        actual_lambda_min = lambda_edges[:-1][frc]
+        actual_lambda_max = lambda_edges[:-1][lrc]
 
-        #If we want to keep any extra_cells, we subtract from the first_relevant_cell.
+        #If we want to keep any extra_cells, we subtract from the first relevant cell (frc).
         #If we cannot add enough extra cells, then we just set the first relevant cell to 0.
-        if first_relevant_cell>extra_cells:
-            first_relevant_cell -= extra_cells
+        if frc>extra_cells:
+            frc -= extra_cells
         else:
-            first_relevant_cell = 0
+            frc = 0
 
         #Determine which QSOs have any relevant cells to keep.
         relevant_QSOs = (self.Z_QSO>min_catalog_z)
@@ -237,7 +233,7 @@ class SimulationData:
 
         #If we want the entirety of the lambda range to be relevant (i.e. with IVAR=1), we must remove skewers that do not have this
         if whole_lambda_range:
-            relevant_QSOs *= (self.IVAR_rows[:,first_relevant_cell] == 1) * (self.IVAR_rows[:,last_relevant_cell] == 1)
+            relevant_QSOs *= (self.IVAR_rows[:,frc] == 1) * (self.IVAR_rows[:,lrc] == 1)
 
         #Remove QSOs no longer needed.
         self.N_qso = np.sum(relevant_QSOs)
@@ -274,38 +270,38 @@ class SimulationData:
                     metal.tau_noRSD = metal.tau_noRSD[relevant_QSOs,:]
 
         #Now trim the skewers of the remaining QSOs.
-        self.N_cells = last_relevant_cell - first_relevant_cell + 1
+        self.N_cells = lrc - frc + 1
 
-        self.GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows[:,first_relevant_cell:last_relevant_cell + 1]
+        self.GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows[:,frc:lrc + 1]
         if self.DENSITY_DELTA_rows is not None:
-            self.DENSITY_DELTA_rows = self.DENSITY_DELTA_rows[:,first_relevant_cell:last_relevant_cell + 1]
-        self.VEL_rows = self.VEL_rows[:,first_relevant_cell:last_relevant_cell + 1]
-        self.IVAR_rows = self.IVAR_rows[:,first_relevant_cell:last_relevant_cell + 1]
+            self.DENSITY_DELTA_rows = self.DENSITY_DELTA_rows[:,frc:lrc + 1]
+        self.VEL_rows = self.VEL_rows[:,frc:lrc + 1]
+        self.IVAR_rows = self.IVAR_rows[:,frc:lrc + 1]
         if self.lya_absorber.tau_computed():
-            self.lya_absorber.tau = self.lya_absorber.tau[:,first_relevant_cell:last_relevant_cell + 1]
+            self.lya_absorber.tau = self.lya_absorber.tau[:,frc:lrc + 1]
         if self.lya_absorber.RSDs_applied:
-            self.lya_absorber.tau_noRSD = self.lya_absorber.tau_noRSD[:,first_relevant_cell:last_relevant_cell + 1]
+            self.lya_absorber.tau_noRSD = self.lya_absorber.tau_noRSD[:,frc:lrc + 1]
         if self.lyb_absorber:
             if self.lyb_absorber.tau_computed():
-                self.lyb_absorber.tau = self.lyb_absorber.tau[:,first_relevant_cell:last_relevant_cell + 1]
+                self.lyb_absorber.tau = self.lyb_absorber.tau[:,frc:lrc + 1]
             if self.lyb_absorber.RSDs_applied:
-                self.lyb_absorber.tau_noRSD = self.lyb_absorber.tau_noRSD[:,first_relevant_cell:last_relevant_cell + 1]
+                self.lyb_absorber.tau_noRSD = self.lyb_absorber.tau_noRSD[:,frc:lrc + 1]
         if self.metals:
             for metal in iter(self.metals.values()):
                 if metal.tau_computed():
-                    metal.tau = metal.tau[:,first_relevant_cell:last_relevant_cell + 1]
+                    metal.tau = metal.tau[:,frc:lrc + 1]
                 if metal.RSDs_applied:
-                    metal.tau_noRSD = metal.tau_noRSD[:,first_relevant_cell:last_relevant_cell + 1]
+                    metal.tau_noRSD = metal.tau_noRSD[:,frc:lrc + 1]
 
-        self.R = self.R[first_relevant_cell:last_relevant_cell + 1]
-        self.Z = self.Z[first_relevant_cell:last_relevant_cell + 1]
-        self.D = self.D[first_relevant_cell:last_relevant_cell + 1]
-        self.V = self.V[first_relevant_cell:last_relevant_cell + 1]
-        self.LOGLAM_MAP = self.LOGLAM_MAP[first_relevant_cell:last_relevant_cell + 1]
+        self.R = self.R[frc:lrc + 1]
+        self.Z = self.Z[frc:lrc + 1]
+        self.D = self.D[frc:lrc + 1]
+        self.V = self.V[frc:lrc + 1]
+        self.LOGLAM_MAP = self.LOGLAM_MAP[frc:lrc + 1]
         if not isinstance(self.SIGMA_G,float):
-            self.SIGMA_G = self.SIGMA_G[first_relevant_cell:last_relevant_cell + 1]
+            self.SIGMA_G = self.SIGMA_G[frc:lrc + 1]
         if hasattr(self,'sample_SIGMA_G'):
-            self.sample_SIGMA_G = self.sample_SIGMA_G[first_relevant_cell:last_relevant_cell + 1]
+            self.sample_SIGMA_G = self.sample_SIGMA_G[frc:lrc + 1]
 
         #Modify the RSD weights to remove QSOs and cut off cells simultaneously
         if self.RSD_weights:
@@ -317,8 +313,8 @@ class SimulationData:
                     weights = self.RSD_weights[i]
 
                     #Trim in both dimensions.
-                    weights = weights[first_relevant_cell:last_relevant_cell + 1,:]
-                    weights = weights[:,first_relevant_cell:last_relevant_cell + 1]
+                    weights = weights[frc:lrc + 1,:]
+                    weights = weights[:,frc:lrc + 1]
 
                     #Add the new weights to a new dictionary.
                     trimmed_RSD_weights[k] = weights
@@ -519,21 +515,21 @@ class SimulationData:
 
         return
 
-    # Function to store the transmission skewers for 1 absorber (rather than 
+    # Function to store the transmission skewers for 1 absorber (rather than
     # compute them on the fly each time required).
     def store_transmission_skewers(self,absorber):
 
         absorber.transmission(store=True)
-        
+
         return
 
     # Function to store the transmission skewers for all absorbers (rather than
     # compute them on the fly each time required).
     def store_all_transmission_skewers(self):
-        
+
         # Store Lya transmission skewers.
         self.store_transmission_skewers(self.lya_absorber)
-        
+
         # Store Lyb transmission skewers if needed.
         if self.lyb_absorber is not None:
             self.store_transmission_skewers(self.lyb_absorber)
@@ -837,9 +833,7 @@ class SimulationData:
         t = time.time()
 
         #Organise the catalog data into a colore-format array.
-        colore_1_data = []
-        for i in range(self.N_qso):
-            colore_1_data += [(self.TYPE[i],self.RA[i],self.DEC[i],self.Z_QSO[i],self.DZ_RSD[i],self.MOCKID[i])]
+        colore_1_data = list(zip(self.TYPE,self.RA,self.DEC,self.Z_QSO,self.DZ_RSD,self.MOCKID))
         dtype = [('TYPE', 'f4'), ('RA', 'f4'), ('DEC', 'f4'), ('Z_COSMO', 'f4'), ('DZ_RSD', 'f4'), ('MOCKID', int)]
         colore_1 = np.array(colore_1_data,dtype=dtype)
 
@@ -856,9 +850,7 @@ class SimulationData:
 
         #Add the velocity skewers and cosmology data
         colore_3 = self.VEL_rows.astype('float32')
-        colore_4_data = []
-        for i in range(self.N_cells):
-            colore_4_data += [(self.R[i],self.Z[i],self.D[i],self.V[i])]
+        colore_4_data = list(zip(self.R,self.Z,self.D,self.V))
         dtype = [('R', 'f4'), ('Z', 'f4'), ('D', 'f4'), ('V', 'f4')]
         colore_4 = np.array(colore_4_data,dtype=dtype)
 
@@ -1002,7 +994,7 @@ class SimulationData:
                 #Normalise to get deltas
                 skewer_rows[:,cells] = skewer_rows[:,cells]/mean[cells] - 1
 
-        #Determine the relevant QSOs: those that have relevant cells (IVAR > 0) beyond the first_relevant_cell.
+        #Determine the relevant QSOs: those that have relevant cells (IVAR > 0) beyond the frc.
         #We impose a minimum number of cells per skewer here to avoid problems with picca.
         relevant_QSOs = []
         for i in range(self.N_qso):
@@ -1245,349 +1237,3 @@ class SimulationData:
         self.DLA_table = DLA_table
 
         return
-
-
-    ####
-    """
-    Obsolete functions
-
-    #Function to save data as a Gaussian colore file.
-    def save_as_gaussian_colore(self,filename,header,overwrite=False):
-
-        #Organise the data into colore-format arrays.
-        colore_1_data = []
-        for i in range(self.N_qso):
-            colore_1_data += [(self.TYPE[i],self.RA[i],self.DEC[i],self.Z_QSO[i],self.DZ_RSD[i],self.MOCKID[i])]
-
-        dtype = [('TYPE', 'f8'), ('RA', 'f8'), ('DEC', 'f8'), ('Z_COSMO', 'f8'), ('DZ_RSD', 'f8'), ('MOCKID', int)]
-        colore_1 = np.array(colore_1_data,dtype=dtype)
-        colore_2 = self.GAUSSIAN_DELTA_rows
-        colore_3 = self.VEL_rows
-
-        colore_4_data = []
-        for i in range(self.N_cells):
-            colore_4_data += [(self.R[i],self.Z[i],self.D[i],self.V[i])]
-
-        dtype = [('R', 'f8'), ('Z', 'f8'), ('D', 'f8'), ('V', 'f8')]
-        colore_4 = np.array(colore_4_data,dtype=dtype)
-
-        #Construct HDUs from the data arrays.
-        prihdr = fits.Header()
-        prihdu = fits.PrimaryHDU(header=prihdr)
-        cols_CATALOG = fits.ColDefs(colore_1)
-        hdu_CATALOG = fits.BinTableHDU.from_columns(cols_CATALOG,header=header,name='CATALOG')
-        hdu_GAUSSIAN = fits.ImageHDU(data=colore_2,header=header,name='GAUSSIAN_DELTA')
-        hdu_VEL = fits.ImageHDU(data=colore_3,header=header,name='VELOCITY')
-        cols_COSMO = fits.ColDefs(colore_4)
-        hdu_COSMO = fits.BinTableHDU.from_columns(cols_COSMO,header=header,name='COSMO')
-
-        #Combine the HDUs into an HDUlist and save as a new file. Close the HDUlist.
-        hdulist = fits.HDUList([prihdu, hdu_CATALOG, hdu_GAUSSIAN, hdu_VEL, hdu_COSMO])
-        hdulist.writeto(filename,overwrite=overwrite)
-        hdulist.close
-
-        return
-
-    #Function to save data as a picca density file.
-    def save_as_picca_gaussian(self,filename,header,overwrite=False,zero_mean_delta=False,min_number_cells=2,mean_DELTA=None):
-
-        lya_lambdas = 10**self.LOGLAM_MAP
-
-        #Determine the relevant QSOs: those that have relevant cells (IVAR > 0) beyond the first_relevant_cell.
-        #We impose a minimum number of cells per skewer here to avoid problems with picca.
-        relevant_QSOs = []
-        for i in range(self.N_qso):
-            if np.sum(self.IVAR_rows[i,:]) >= min_number_cells:
-                relevant_QSOs += [i]
-
-        #Trim data according to the relevant cells and QSOs.
-        relevant_GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows[relevant_QSOs,:]
-        relevant_IVAR_rows = self.IVAR_rows[relevant_QSOs,:]
-        relevant_LOGLAM_MAP = self.LOGLAM_MAP[:]
-
-        #If desired, enforce that the Delta rows have zero mean.
-        if zero_mean_delta == True:
-            relevant_GAUSSIAN_DELTA_rows = utils.normalise_deltas(relevant_GAUSSIAN_DELTA_rows,mean_DELTA)
-
-        #Organise the data into picca-format arrays.
-        picca_0 = relevant_GAUSSIAN_DELTA_rows.T
-        picca_1 = relevant_IVAR_rows.T
-        picca_2 = relevant_LOGLAM_MAP
-
-        picca_3_data = []
-        for i in range(self.N_qso):
-            if i in relevant_QSOs:
-                picca_3_data += [(self.RA[i],self.DEC[i],self.Z_QSO[i],self.PLATE[i],self.MJD[i],self.FIBER[i],self.MOCKID[i])]
-
-        dtype = [('RA', 'f8'), ('DEC', 'f8'), ('Z', 'f8'), ('PLATE', int), ('MJD', 'f8'), ('FIBER', int), ('THING_ID', int)]
-        picca_3 = np.array(picca_3_data,dtype=dtype)
-
-        #Make the data into suitable HDUs.
-        hdu_DELTA = fits.PrimaryHDU(data=picca_0,header=header)
-        hdu_iv = fits.ImageHDU(data=picca_1,header=header,name='IV')
-        hdu_LOGLAM_MAP = fits.ImageHDU(data=picca_2,header=header,name='LOGLAM_MAP')
-        cols_CATALOG = fits.ColDefs(picca_3)
-        hdu_CATALOG = fits.BinTableHDU.from_columns(cols_CATALOG,header=header,name='CATALOG')
-
-        #Combine the HDUs into and HDUlist and save as a new file. Close the HDUlist.
-        hdulist = fits.HDUList([hdu_DELTA, hdu_iv, hdu_LOGLAM_MAP, hdu_CATALOG])
-        hdulist.writeto(filename,overwrite=overwrite)
-        hdulist.close()
-
-        return
-
-    #Function to save data as a Lognormal colore file.
-    def save_as_physical_colore(self,filename,header):
-
-        #Organise the data into colore-format arrays.
-        colore_1_data = []
-        for i in range(self.N_qso):
-            colore_1_data += [(self.TYPE[i],self.RA[i],self.DEC[i],self.Z_QSO[i],self.DZ_RSD[i],self.MOCKID[i])]
-
-        dtype = [('TYPE', 'f8'), ('RA', 'f8'), ('DEC', 'f8'), ('Z_COSMO', 'f8'), ('DZ_RSD', 'f8'), ('MOCKID', int)]
-        colore_1 = np.array(colore_1_data,dtype=dtype)
-
-        colore_2 = self.DENSITY_DELTA_rows
-        colore_3 = self.VEL_rows
-
-        colore_4_data = []
-        for i in range(self.N_cells):
-            colore_4_data += [(self.R[i],self.Z[i],self.D[i],self.V[i])]
-
-        dtype = [('R', 'f8'), ('Z', 'f8'), ('D', 'f8'), ('V', 'f8')]
-        colore_4 = np.array(colore_4_data,dtype=dtype)
-
-        #Construct HDUs from the data arrays.
-        prihdr = fits.Header()
-        prihdu = fits.PrimaryHDU(header=prihdr)
-        cols_CATALOG = fits.ColDefs(colore_1)
-        hdu_CATALOG = fits.BinTableHDU.from_columns(cols_CATALOG,header=header,name='CATALOG')
-        hdu_DELTA = fits.ImageHDU(data=colore_2,header=header,name='PHYSICAL_DELTA')
-        hdu_VEL = fits.ImageHDU(data=colore_3,header=header,name='VELOCITY')
-        cols_COSMO = fits.ColDefs(colore_4)
-        hdu_COSMO = fits.BinTableHDU.from_columns(cols_COSMO,header=header,name='COSMO')
-
-        #Combine the HDUs into an HDUlist and save as a new file. Close the HDUlist.
-        hdulist = fits.HDUList([prihdu, hdu_CATALOG, hdu_DELTA, hdu_VEL, hdu_COSMO])
-        hdulist.writeto(filename)
-        hdulist.close
-
-        return
-
-    #Function to save data as a picca density file.
-    def save_as_picca_density(self,filename,header,zero_mean_delta=False,min_number_cells=2,mean_DELTA=None):
-
-        lya_lambdas = 10**self.LOGLAM_MAP
-
-        #Determine the relevant QSOs: those that have relevant cells (IVAR > 0) beyond the first_relevant_cell.
-        #We impose a minimum number of cells per skewer here to avoid problems with picca.
-        relevant_QSOs = []
-        for i in range(self.N_qso):
-            if np.sum(self.IVAR_rows[i,:]) >= min_number_cells:
-                relevant_QSOs += [i]
-
-        #Trim data according to the relevant cells and QSOs.
-        relevant_DENSITY_DELTA_rows = self.DENSITY_DELTA_rows[relevant_QSOs,:]
-        relevant_IVAR_rows = self.IVAR_rows[relevant_QSOs,:]
-        relevant_LOGLAM_MAP = self.LOGLAM_MAP[:]
-
-        #If desired, enforce that the Delta rows have zero mean.
-        if zero_mean_delta == True:
-            relevant_DENSITY_DELTA_rows = utils.normalise_deltas(relevant_DENSITY_DELTA_rows,mean_DELTA)
-
-        #Organise the data into picca-format arrays.
-        picca_0 = relevant_DENSITY_DELTA_rows.T
-        picca_1 = relevant_IVAR_rows.T
-        picca_2 = relevant_LOGLAM_MAP
-
-        picca_3_data = []
-        for i in range(self.N_qso):
-            if i in relevant_QSOs:
-                picca_3_data += [(self.RA[i],self.DEC[i],self.Z_QSO[i],self.PLATE[i],self.MJD[i],self.FIBER[i],self.MOCKID[i])]
-
-        dtype = [('RA', 'f8'), ('DEC', 'f8'), ('Z', 'f8'), ('PLATE', int), ('MJD', 'f8'), ('FIBER', int), ('THING_ID', int)]
-        picca_3 = np.array(picca_3_data,dtype=dtype)
-
-        #Make the data into suitable HDUs.
-        hdu_DELTA = fits.PrimaryHDU(data=picca_0,header=header)
-        hdu_iv = fits.ImageHDU(data=picca_1,header=header,name='IV')
-        hdu_LOGLAM_MAP = fits.ImageHDU(data=picca_2,header=header,name='LOGLAM_MAP')
-        cols_CATALOG = fits.ColDefs(picca_3)
-        hdu_CATALOG = fits.BinTableHDU.from_columns(cols_CATALOG,header=header,name='CATALOG')
-
-        #Combine the HDUs into and HDUlist and save as a new file. Close the HDUlist.
-        hdulist = fits.HDUList([hdu_DELTA, hdu_iv, hdu_LOGLAM_MAP, hdu_CATALOG])
-        hdulist.writeto(filename)
-        hdulist.close()
-
-        return
-
-    #Function to save data as a picca density file.
-    def save_as_picca_tau(self,absorber,filename,header,overwrite=False,min_number_cells=2):
-
-        lya_lambdas = 10**self.LOGLAM_MAP
-
-        #Determine the relevant QSOs: those that have relevant cells (IVAR > 0) beyond the first_relevant_cell.
-        #We impose a minimum number of cells per skewer here to avoid problems with picca.
-        relevant_QSOs = []
-        for i in range(self.N_qso):
-            if np.sum(self.IVAR_rows[i,:]) >= min_number_cells:
-                relevant_QSOs += [i]
-
-        #Trim data according to the relevant cells and QSOs.
-        relevant_TAU_rows = absorber.tau[relevant_QSOs,:]
-        relevant_IVAR_rows = self.IVAR_rows[relevant_QSOs,:]
-        relevant_LOGLAM_MAP = self.LOGLAM_MAP[:]
-
-        #Organise the data into picca-format arrays.
-        picca_0 = relevant_TAU_rows.T
-        picca_1 = relevant_IVAR_rows.T
-        picca_2 = relevant_LOGLAM_MAP
-
-        picca_3_data = []
-        for i in range(self.N_qso):
-            if i in relevant_QSOs:
-                picca_3_data += [(self.RA[i],self.DEC[i],self.Z_QSO[i],self.PLATE[i],self.MJD[i],self.FIBER[i],self.MOCKID[i])]
-
-        dtype = [('RA', 'f8'), ('DEC', 'f8'), ('Z', 'f8'), ('PLATE', int), ('MJD', 'f8'), ('FIBER', int), ('THING_ID', int)]
-        picca_3 = np.array(picca_3_data,dtype=dtype)
-
-        #Make the data into suitable HDUs.
-        hdu_DELTA = fits.PrimaryHDU(data=picca_0,header=header)
-        hdu_iv = fits.ImageHDU(data=picca_1,header=header,name='IV')
-        hdu_LOGLAM_MAP = fits.ImageHDU(data=picca_2,header=header,name='LOGLAM_MAP')
-        cols_CATALOG = fits.ColDefs(picca_3)
-        hdu_CATALOG = fits.BinTableHDU.from_columns(cols_CATALOG,header=header,name='CATALOG')
-
-        #Combine the HDUs into and HDUlist and save as a new file. Close the HDUlist.
-        hdulist = fits.HDUList([hdu_DELTA, hdu_iv, hdu_LOGLAM_MAP, hdu_CATALOG])
-        hdulist.writeto(filename,overwrite=overwrite)
-        hdulist.close()
-
-        return
-
-    #Function to save data as a picca flux file.
-    def save_as_picca_flux(self,filename,header,min_number_cells=2,mean_F_data=None,rebin_size_hMpc=None):
-
-        lya_lambdas = 10**self.LOGLAM_MAP
-
-        #Determine the relevant QSOs: those that have relevant cells (IVAR > 0) beyond the first_relevant_cell.
-        #We impose a minimum number of cells per skewer here to avoid problems with picca.
-        relevant_QSOs = []
-        for i in range(self.N_qso):
-            if np.sum(self.IVAR_rows[i,:]) >= min_number_cells:
-                relevant_QSOs += [i]
-
-        # get Lya transmission
-        F = self.lya_absorber.transmission()
-
-        #Trim data according to the relevant cells and QSOs.
-        relevant_F = F[relevant_QSOs,:]
-        relevant_IVAR = self.IVAR_rows[relevant_QSOs,:]
-        relevant_LOGLAM_MAP = self.LOGLAM_MAP[:]
-        relevant_Z = self.Z[:]
-
-        #Calculate mean F as a function of z for the relevant cells, then delta_F.
-        try:
-            mean_F_z_values = mean_F_data[:,0]
-            mean_F = mean_F_data[:,1]
-            relevant_mean_F = np.interp(relevant_Z,mean_F_z_values,mean_F)
-        except ValueError:
-            #This is done with a 'hack' to avoid problems with weights summing to zero.
-            small = 1.0e-10
-            relevant_mean_F = np.average(relevant_F,weights=relevant_IVAR+small,axis=0)
-
-        relevant_delta_F = ((relevant_F)/relevant_mean_F - 1)*relevant_IVAR
-
-        if rebin_size_hMpc:
-            grid_start = self.R[0]
-            rebin_map = np.array((self.R - self.R[0])//rebin_size_hMpc,dtype='int')
-            new_relevant_delta_F = np.zeros((self.N_qso,max(rebin_map)))
-            new_relevant_IVAR = np.zeros((self.N_qso,max(rebin_map)))
-            new_Z = np.zeros(max(rebin_map))
-            for j in range(max(rebin_map)):
-                j_lo = np.argmax(rebin_map==j)
-                j_hi = np.argmin(rebin_map==j)
-                new_relevant_delta_F[:,j] = np.average(relevant_delta_F[:,j_lo:j_hi],axis=1)
-                new_relevant_IVAR[:,j] = (relevant_IVAR[:,j_lo:j_hi] == j_hi - j_lo)
-                new_Z[j] = np.average(self.Z[j_lo:j_hi])
-            new_relevant_LOGLAM_MAP = np.log(lya*(1+new_Z))
-
-            picca_0 = new_relevant_delta_F.T
-            picca_1 = new_relevant_IVAR.T
-            picca_2 = new_relevant_LOGLAM_MAP
-
-        else:
-            #Organise the data into picca-format arrays.
-            picca_0 = relevant_delta_F.T
-            picca_1 = relevant_IVAR.T
-            picca_2 = relevant_LOGLAM_MAP
-
-        picca_3_data = []
-        for i in range(self.N_qso):
-            if i in relevant_QSOs:
-                picca_3_data += [(self.RA[i],self.DEC[i],self.Z_QSO[i],self.PLATE[i],self.MJD[i],self.FIBER[i],self.MOCKID[i])]
-
-        dtype = [('RA', 'f8'), ('DEC', 'f8'), ('Z', 'f8'), ('PLATE', int), ('MJD', 'f8'), ('FIBER', int), ('THING_ID', int)]
-        picca_3 = np.array(picca_3_data,dtype=dtype)
-
-        #Make the data into suitable HDUs.
-        hdu_F = fits.PrimaryHDU(data=picca_0,header=header)
-        hdu_iv = fits.ImageHDU(data=picca_1,header=header,name='IV')
-        hdu_LOGLAM_MAP = fits.ImageHDU(data=picca_2,header=header,name='LOGLAM_MAP')
-        cols_CATALOG = fits.ColDefs(picca_3)
-        hdu_CATALOG = fits.BinTableHDU.from_columns(cols_CATALOG,header=header,name='CATALOG')
-
-        #Combine the HDUs into and HDUlist and save as a new file. Close the HDUlist.
-        hdulist = fits.HDUList([hdu_F, hdu_iv, hdu_LOGLAM_MAP, hdu_CATALOG])
-        hdulist.writeto(filename)
-        hdulist.close()
-
-        return
-
-    # TODO: Do we really want this? Does it make much sense?
-    #Function to save data as a picca velocity file.
-    def save_as_picca_velocity(self,filename,header,zero_mean_delta=False,min_number_cells=2,overwrite=False):
-
-        lya_lambdas = 10**self.LOGLAM_MAP
-
-        #Determine the relevant QSOs: those that have relevant cells (IVAR > 0) beyond the first_relevant_cell.
-        #We impose a minimum number of cells per skewer here to avoid problems with picca.
-        relevant_QSOs = []
-        for i in range(self.N_qso):
-            if np.sum(self.IVAR_rows[i,:]) >= min_number_cells:
-                relevant_QSOs += [i]
-
-        #Trim data according to the relevant cells and QSOs.
-        relevant_VEL = self.VEL_rows[relevant_QSOs,:]
-        relevant_IVAR = self.IVAR_rows[relevant_QSOs,:]
-        relevant_LOGLAM_MAP = self.LOGLAM_MAP[:]
-
-        #Organise the data into picca-format arrays.
-        picca_0 = relevant_VEL.T
-        picca_1 = relevant_IVAR.T
-        picca_2 = relevant_LOGLAM_MAP
-
-        picca_3_data = []
-        for i in range(self.N_qso):
-            if i in relevant_QSOs:
-                picca_3_data += [(self.RA[i],self.DEC[i],self.Z_QSO[i],self.PLATE[i],self.MJD[i],self.FIBER[i],self.MOCKID[i])]
-
-        dtype = [('RA', 'f8'), ('DEC', 'f8'), ('Z', 'f8'), ('PLATE', int), ('MJD', 'f8'), ('FIBER', int), ('THING_ID', int)]
-        picca_3 = np.array(picca_3_data,dtype=dtype)
-
-        #Make the data into suitable HDUs.
-        hdu_VEL = fits.PrimaryHDU(data=picca_0,header=header)
-        hdu_iv = fits.ImageHDU(data=picca_1,header=header,name='IV')
-        hdu_LOGLAM_MAP = fits.ImageHDU(data=picca_2,header=header,name='LOGLAM_MAP')
-        cols_CATALOG = fits.ColDefs(picca_3)
-        hdu_CATALOG = fits.BinTableHDU.from_columns(cols_CATALOG,header=header,name='CATALOG')
-
-        #Combine the HDUs into and HDUlist and save as a new file. Close the HDUlist.
-        hdulist = fits.HDUList([hdu_VEL, hdu_iv, hdu_LOGLAM_MAP, hdu_CATALOG])
-        hdulist.writeto(filename,overwrite=overwrite)
-        hdulist.close()
-
-        return
-
-    """
