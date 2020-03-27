@@ -149,6 +149,7 @@ def make_QSO_filter(footprint,N_side=16,pixel_list=None):
         from desimodel.io import load_tiles
         desimodel_installed = True
     except ModuleNotFoundError:
+        print('WARN: desimodel is not installed; footprint pixel data will be read from file.')
         desimodel_installed = False
 
     #If we have desimodel and want to replicate the footprint precisely, use
