@@ -23,7 +23,7 @@ DLA_BIAS=2.0
 DLA_BIAS_EVOL='b_const'
 DLA_BIAS_METHOD='global'
 DOWNSAMPLING=1.0
-FOOTPRINT='full_sky'
+FOOTPRINT='desi_pixel'
 
 # specify transmission file properties
 TRANS_LMIN=3470.0
@@ -64,7 +64,7 @@ if [ ! -d $OUTPUT_PATH/logs ] ; then
 fi
 
 # full path to file with tuning sigma_G data
-TUNING_PATH="${LYACOLORE_PATH}/input_files/tuning_data_with_bias_vel1.3_b1.65_lr1200.fits"
+TUNING_PATH="${LYACOLORE_PATH}/input_files/tuning_files/tuning_data_v9.0.fits"
 
 # make master file and new file structure
 echo "making master file"
@@ -90,4 +90,3 @@ $command
 echo "producing analysis pixels"
 command="${PROCESS_PATH}/make_summaries.py --base-dir ${OUTPUT_PATH} --nproc ${NCORES} --pixels ${PIXELS} --overwrite --picca-N-merge-values 1 10 --compressed-input --compress ${MS_FLAGS}"
 $command
-

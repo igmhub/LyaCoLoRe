@@ -51,8 +51,8 @@ R_SMOOTH=2.0
 
 ################################################################################
 ## Full path to the LyaCoLoRe scripts and the tuning file.
-PROCESS_PATH="/global/homes/j/jfarr/Projects/LyaCoLoRe/scripts/"
-TUNING_PATH="/global/homes/j/jfarr/Projects/LyaCoLoRe/input_files/tuning_data_with_bias_vel1.3_b1.65_lr1200.fits"
+PROCESS_PATH="${LYACOLORE_PATH}/scripts/"
+TUNING_PATH="${LYACOLORE_PATH}/input_files/tuning_files/tuning_data_v9.0.fits"
 
 ################################################################################
 ## Detail the seeds that will be used.
