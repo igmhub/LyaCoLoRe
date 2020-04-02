@@ -4,7 +4,7 @@ LyaCoLoRe takes the output files from CoLoRe as an input, carries out several st
 Also in the repository are tools to tune the parameters within LyaCoLoRe's transformation, and to measure the 1D power spectrum of output skewers quickly.
 
 ## Install
-To install, run
+To install, run:
 ```bash
 python setup.py install --user
 ```
@@ -13,9 +13,7 @@ You then need to include `LyaCoLoRe/py` in your `PYTHONPATH`, by adding:
 ```bash
 export PYTHONPATH=$PYTHONPATH:<path to LyaCoLoRe>/py
 ```
-
 to your .bashrc file. Then, you should add the path to LyaCoLoRe to your .bashrc file as follows:
-
 ```bash
 export LYACOLORE_PATH=<path to LyaCoLoRe>
 ```
@@ -50,7 +48,7 @@ The two main stages of LyaCoLoRe are:
 
 This is carried out by the script `scripts/make_master.py`. In order to run this script, use the following command:
 ```bash
-scripts/make_master.py --c <path to config file>
+scripts/make_master.py -c <path to config file>
 ```
 
 The input directory should contain all of the output files from CoLoRe, including
@@ -65,7 +63,7 @@ Further, arguments can also be set via the command line (e.g. `--nside 16`). The
 This is carried out by the script `scripts/make_transmission.py`.
 In order to run this script, use the following command:
 ```bash
-scripts/make_transmission.py --c <path to config file>
+scripts/make_transmission.py -c <path to config file>
 ```
 
 The same config file is used here as above, to ensure consistency.
