@@ -1,117 +1,67 @@
-################################################################################
-## Specify the range of random seeds to use for this set of realisations.
-## If you would only like 1 realisation, then set min and max to the same value.
-COLORE_SEED_START=1003
-LYACOLORE_SEED_START=123
-N_REALISATIONS=5
-V_REALISATION_START=62
+#!/bin/bash -l
 
 ################################################################################
-## Specify the queue to use for this set of realisations.
+## This is a script to run LyaCoLoRe across multiple nodes, useful for reducing
+## wall computing time.
+
+################################################################################
+## USER DEFINED PARAMS.
+
+# Set the config file that we want to point to. Look at the config files to get
+# some more detail on the arguments chosen, and  for instructions on how to find
+# out more about the options.
+CONFIG_FILE=./input_files/config_files/config_v9.0.ini
+
+# Set where your CoLoRe output is located, and where you would like your
+# LyaCoLoRe output to be located.
+COLORE_OUT_LOC=...
+LYACOLORE_OUT_LOC=...
+
+# Specify the queue to use for this set of realisations, and the number of
+# nodes/cores.
 QUEUE='debug'
 NNODES=32
 NCORES=32
 TIME="00:10:00" #hh:mm:ss
 
+# Specify the settings for LyaCoLoRe.
+RUN_FILE="${LYACOLORE_OUT_LOC}/run_lyacolore.sh"
+PARAM_FILE="${LYACOLORE_OUT_LOC}/input.param"
+
+## END OF USER DEFINED PARAMS.
 ################################################################################
-## Specify the LyaCoLoRe code version.
-V_CODE_MAJ="9"
-V_CODE_MIN="0"
+## Echo the settings and outputs chosen for each realisation.
 
-################################################################################
-## Specify the settings for LyaCoLoRe.
-# process parameters
-NSIDE=16
-IVAR_CUT=1200.0
-CELL_SIZE=0.25
-LAMBDA_MIN=3470.0
-MIN_CAT_Z=1.8
-DLA_BIAS=2.0
-DLA_BIAS_EVOL='b_const'
-DLA_BIAS_METHOD='global'
-DOWNSAMPLING=1.0
-FOOTPRINT='desi_pixel_plus'
-PIXELS=`echo {0..3071}`
-TRANSMISSION_FORMAT='final'
-
-# transmission file wavelength grid
-TRANS_LMIN=3470.0
-TRANS_LMAX=6500.0
-TRANS_DL=0.2
-
-# process flags
-MM_FLAGS="--overwrite"
-MT_FLAGS="--add-DLAs --add-RSDs --add-QSO-RSDs --add-small-scale-fluctuations --add-metals --add-Lyb --compress --transmission-only"
-
-################################################################################
-## Specify details of the CoLoRe output
-COLORE_NGRID=4096
-COLORE_NODES=32
-R_SMOOTH=2.0
-
-################################################################################
-## Full path to the LyaCoLoRe scripts and the tuning file.
-PROCESS_PATH="${LYACOLORE_PATH}/scripts/"
-TUNING_PATH="${LYACOLORE_PATH}/input_files/tuning_files/tuning_data_v9.0.fits"
-
-################################################################################
-## Detail the seeds that will be used.
 echo " "
 echo "################################################################################"
 echo " "
-echo "Generating ${N_REALISATIONS} realisations..."
-echo " -> CoLoRe seed will start at $COLORE_SEED_START and be incremented by 1 each time"
-echo " -> LyaCoLoRe seed will start at $LYACOLORE_SEED_START and be incremented by 1 each time"
-
-################################################################################
-## Cycle through each realisation that we want.
-for V_REALISATION in $(seq $V_REALISATION_START $(( $V_REALISATION_START + $N_REALISATIONS - 1 ))); do
-
-##############################################################################
-## Set the seeds.
-COLORE_SEED=$(( $COLORE_SEED_START + $V_REALISATION ))
-LYACOLORE_SEED=$(( $LYACOLORE_SEED_START + $V_REALISATION ))
-
-################################################################################
-## Specify the paths to the input data.
-#INPUT_PATH="/project/projectdirs/desi/mocks/lya_forest/develop/london/colore_raw/v5_seed${COLORE_SEED}/"
-INPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/cr_transfer/v5_seed${COLORE_SEED}/"
-COLORE_PARAM_PATH="${INPUT_PATH}/param_v5_seed${COLORE_SEED}.cfg"
+echo "CoLoRe input will be taken from "$COLORE_OUT_LOC
 INPUT_FILES=`ls -1 ${INPUT_PATH}/out_srcs_*.fits`
 NFILES=`echo $INPUT_FILES | wc -w`
-
-##############################################################################
-## Specify the settings for LyaCoLoRe.
-#OUTPUT_PATH="/global/cscratch1/sd/jfarr/LyaSkewers/CoLoRe_GAUSS/v${V_CODE_MAJ}/v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}/"
-OUTPUT_PATH="/project/projectdirs/desi/mocks/lya_forest/develop/london/v${V_CODE_MAJ}.${V_CODE_MIN}/v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}/"
-RUN_FILE="${OUTPUT_PATH}/run_lyacolore_v${V_CODE_MAJ}.${V_CODE_MIN}.${V_REALISATION}.sh"
-PARAM_FILE="${OUTPUT_PATH}/input.param"
-
-##############################################################################
-## Echo the settings and outputs chosen for each realisation.
-echo " "
-echo "################################################################################"
-echo " "
-echo "Using CoLoRe seed $COLORE_SEED and LyaCoLoRe seed $LYACOLORE_SEED"
-echo "CoLoRe input will be taken from "$INPUT_PATH
 echo " -> ${NFILES} input files have been found"
-echo "Tuning input will be taken from "$TUNING_PATH
-echo "Output will written to "$OUTPUT_PATH
-if [ ! -d $OUTPUT_PATH ] ; then
-    mkdir -p $OUTPUT_PATH
+echo "Using LyaCoLoRe seed $LYACOLORE_SEED"
+echo "Output will written to "$LYACOLORE_OUT_LOC
+if [ ! -d $LYACOLORE_OUT_LOC ] ; then
+    mkdir -p $LYACOLORE_OUT_LOC
 fi
-echo " -> Output logs will be saved to "$OUTPUT_PATH"/logs"
-if [ ! -d $OUTPUT_PATH/logs ] ; then
-    mkdir -p $OUTPUT_PATH/logs
+echo " -> Output logs will be saved to "$LYACOLORE_OUT_LOC"/logs"
+if [ ! -d $LYACOLORE_OUT_LOC/logs ] ; then
+    mkdir -p $LYACOLORE_OUT_LOC/logs
 fi
 
-##############################################################################
+################################################################################
 ## Make the master file, and the new file structure.
 echo " "
-${PROCESS_PATH}/make_master.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} --nside ${NSIDE} --nproc ${NCORES} --min-cat-z ${MIN_CAT_Z} ${MM_FLAGS} --downsampling ${DOWNSAMPLING} --footprint ${FOOTPRINT} --pixels ${PIXELS}
+echo "Starting LyaCoLoRe..."
+echo " "
+echo " 1. Make master file"
+echo " "
+${LYACOLORE_PATH}/scripts/make_master.py -c ${CONFIG_FILE} -i ${COLORE_OUT_LOC} -o ${LYACOLORE_OUT_LOC} --nproc ${NCORES}
 
-##############################################################################
+################################################################################
 ## Generate the run files.
+echo " "
+echo " 2. Make a slurm run file to make transmission skewers"
 echo " "
 echo "Run file will be written to "$RUN_FILE
 cat > $RUN_FILE <<EOF
@@ -120,16 +70,16 @@ cat > $RUN_FILE <<EOF
 #SBATCH --partition ${QUEUE}
 #SBATCH --nodes ${NNODES}
 #SBATCH --time ${TIME}
-#SBATCH --job-name process_colore
-#SBATCH --error "${OUTPUT_PATH}/process-colore-%j.err"
-#SBATCH --output "${OUTPUT_PATH}/process-colore-%j.out"
+#SBATCH --job-name lyacolore
+#SBATCH --error "${LYACOLORE_OUT_LOC}/lyacolore-%j.err"
+#SBATCH --output "${LYACOLORE_OUT_LOC}/lyacolore-%j.out"
 #SBATCH -C haswell
 #SBATCH -A desi
 
 umask 0002
 export OMP_NUM_THREADS=64
 
-PIXDIRS=\`\ls -tr1d ${OUTPUT_PATH}/[0-9]*/*\`
+PIXDIRS=\`\ls -tr1d ${LYACOLORE_OUT_LOC}/[0-9]*/*\`
 NPIXELS=\`echo \$PIXDIRS | wc -w\`
 PIXDIRS_list=(\$PIXDIRS)
 
@@ -151,10 +101,10 @@ for NODE in \`seq $NNODES\` ; do
 
     echo "looking at pixels: \${NODE_PIXELS}"
 
-    command="srun -N 1 -n 1 -c ${NCORES} ${PROCESS_PATH}/make_transmission.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} ${MT_FLAGS} --pixels \${NODE_PIXELS} --tuning-file ${TUNING_PATH} --nside ${NSIDE} --nproc ${NCORES} --IVAR-cut ${IVAR_CUT} --cell-size ${CELL_SIZE} --lambda-min ${LAMBDA_MIN} --seed ${LYACOLORE_SEED} --DLA-bias ${DLA_BIAS} --DLA-bias-evol ${DLA_BIAS_EVOL} --DLA-bias-method ${DLA_BIAS_METHOD} --transmission-lambda-min ${TRANS_LMIN} --transmission-lambda-max ${TRANS_LMAX} --transmission-delta-lambda ${TRANS_DL} --transmission-format ${TRANSMISSION_FORMAT}"
+    command="${LYACOLORE_PATH}/make_transmission.py -c ${CONFIG_FILE} -i ${COLORE_OUT_LOC} -o ${LYACOLORE_OUT_LOC} --nproc ${NCORES}"
 
     echo \$command
-    \$command >& ${OUTPUT_PATH}/logs/node-\${NODE}.log &
+    \$command >& ${LYACOLORE_OUT_LOC}/logs/node-\${NODE}.log &
 
     if (( \$FINAL_NODE == 1)) ; then
         echo "all pixels allocated, no more nodes needed"
@@ -175,52 +125,15 @@ date
 
 EOF
 
-# make the parameter file.
-echo "Parameter file will be written to "$PARAM_FILE
-cat > $PARAM_FILE <<EOF
-#LyaCoLoRe paths
-PROCESS_PATH=${PROCESS_PATH}
-INPUT_PATH=${INPUT_PATH}
-TUNING_PATH=${TUNING_PATH}
-OUTPUT_PATH=${OUTPUT_PATH}
-
-#LyaCoLoRe params
-NSIDE=${NSIDE}
-IVAR_CUT=${IVAR_CUT}
-CELL_SIZE=${CELL_SIZE}
-LAMBDA_MIN=${LAMBDA_MIN}
-MIN_CAT_Z=${MIN_CAT_Z}
-LYACOLORE_SEED=${LYACOLORE_SEED}
-DLA_BIAS=${DLA_BIAS}
-DLA_BIAS_METHOD=${DLA_BIAS_METHOD}
-DOWNSAMPLING=${DOWNSAMPLING}
-VEL_BOOST=${VEL_BOOST}
-TRANS_LMIN=${TRANS_LMIN}
-TRANS_LMAX=${TRANS_LMAX}
-TRANS_DL=${TRANS_DL}
-
-#LyaCoLoRe flags
-MM_FLAGS=${MM_FLAGS}
-MT_FLAGS=${MT_FLAGS}
-
-#CoLoRe params
-COLORE_PARAM_PATH=${COLORE_PARAM_PATH}
-EOF
-cat ${COLORE_PARAM_PATH} >> ${PARAM_FILE}
-
 ################################################################################
 ## Send the job to the queue.
+echo " "
+echo " 3. Send it to the queue"
+echo " "
 sbatch $RUN_FILE
-done
-
-################################################################################
-## Concluding message.
+echo " "
+echo "Done!"
 echo " "
 echo "################################################################################"
-echo " "
-echo "$N_REALISATIONS jobs sent to the queue. Enjoy!"
-echo " "
-echo "################################################################################"
-echo " "
 
 ################################################################################

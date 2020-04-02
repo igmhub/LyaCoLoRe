@@ -1,5 +1,7 @@
 #!/bin/bash -l
 
+################################################################################
+
 ## This is a simple script to run LyaCoLoRe on a small dataset of 1000 skewers
 ## from CoLoRe, included within the repository.
 
@@ -22,7 +24,6 @@ VERBOSE=1
 ################################################################################
 
 echo "Starting LyaCoLoRe..."
-echo " "
 
 # Make master file and new file structure
 echo " "
@@ -42,3 +43,9 @@ $command
 #echo "producing analysis pixels"
 #command="${PROCESS_PATH}/make_summaries.py --base-dir ${OUTPUT_PATH} --nproc ${NCORES} --pixels ${PIXELS} --overwrite --picca-N-merge-values 1 10 --compressed-input --compress ${MS_FLAGS}"
 #$command
+
+echo " "
+echo "Done!"
+echo " "
+
+################################################################################
