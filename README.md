@@ -40,7 +40,7 @@ You can find some other examples under `example_scripts/`. For instance, you can
 
 ## Main production of DESI mocks
 
-There are two main stages to processing the output files from a CoLoRe simulation, each with a separate script in LyaCoLoRe. These can be executed with the script `run_lyacolore_multi_node.sh` (see below for notes on parallisation).
+There are two main stages to processing the output files from a CoLoRe simulation, each with a separate script in LyaCoLoRe. These can be executed with the script `run_lyacolore.sh` (see below for notes on parallisation).
 
 The two main stages of LyaCoLoRe are:
 
