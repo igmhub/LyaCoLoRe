@@ -1,7 +1,7 @@
 # LyaCoLoRe
 Code development to use CoLoRe simulations for generating simulated Lyman alpha forest spectra.
-It is imortant to notice that the output files of CoLoRe are the input ones for LyaCoLoRe,
-and LyaCoLoRe's outputs will be the transmission files.
+LyaCoLoRe takes the output files from CoLoRe as an input, carries out several stages of processing, and produces realistic skewers of transmitted flux fraction as an output.
+Also in the repository are tools to tune the parameters within LyaCoLoRe's transformation, and to measure the 1D power spectrum of output skewers quickly.
 
 ## Install
 To install, run
@@ -9,22 +9,28 @@ To install, run
 python setup.py install --user
 ```
 
-Then you need to include `LyaCoLoRe/py` in your `PYTHONPATH`, with something like:
+You then need to include `LyaCoLoRe/py` in your `PYTHONPATH`, by adding:
 ```bash
 export PYTHONPATH=$PYTHONPATH:<path to LyaCoLoRe>/py
 ```
 
-and then add the path to LyaCoLoRe to your .bashrc file as follows:
+to your .bashrc file. Then, you should add the path to LyaCoLoRe to your .bashrc file as follows:
 
 ```bash
 export LYACOLORE_PATH=<path to LyaCoLoRe>
 ```
 
-If you would like to add DLAs using the best avaiable code, you'll need to install pyigm, the instructions for which are at https://github.com/pyigm/pyigm/blob/master/docs/install.rst.
-The code should be able to run without it, but the DLA distributions will be more basic.
+If you would like to add DLAs using the best avaiable code, you'll need to install pyigm, the instructions for which are at https://github.com/pyigm/pyigm/blob/master/docs/install.rst. The code will run without it, but the DLA distributions will be more basic.
+
+Other requirements can be installed via:
+```bash
+pip install requirements.txt
+```
 
 ## Examples
-You can find some examples under `example_scripts/`. For instance, you can:
+The simplest way to run LyaCoLoRe is using the bash script `run_lyacolore_example.sh`. This uses a small sample of CoLoRe output (stored within `example_data`), and transformation parameters stored in `input_files/config_files/example.ini`.
+
+You can find some other examples under `example_scripts/`. For instance, you can:
 
 *   `plot_colore_skewer.py`: plot a density skewer from CoLoRe
 
@@ -36,56 +42,51 @@ You can find some examples under `example_scripts/`. For instance, you can:
 
 ## Main production of DESI mocks
 
-There are two main stages to processing the output files from a CoLoRe simulation, each with a
-separate script in LyaCoLoRe. These are:
+There are two main stages to processing the output files from a CoLoRe simulation, each with a separate script in LyaCoLoRe. These can be executed with the script `run_lyacolore_multi_node.sh` (see below for notes on parallisation).
+
+The two main stages of LyaCoLoRe are:
 
 1. Making the master file, and creating the new file structure:
 
-This is carried out by the script `scripts/make_master.py`. In order to run this script, use
-the following command:
+This is carried out by the script `scripts/make_master.py`. In order to run this script, use the following command:
 ```bash
-scripts/make_master.py --in-dir example_data/raw_colore_1000/ --out-dir /path/to/output/directory/ --nside 16 --nproc 64
+scripts/make_master.py --c <path to config file>
 ```
 
 The input directory should contain all of the output files from CoLoRe, including
-the `out_params.cfg` file. The output directory should be empty. The option `--nside`
-specifies how fine a HEALPix pixelisation you would like to use (this should be a power of 2).
-The option `--nproc` specifies the number of processes for the computer to use
-(a single NERSC compute node can use 64) in order to ensure the script runs quickly.
+the ourput parameter file (named `out_params.cfg` normally). The output directory should be empty.
 
-Remember that the input directory is a file previously created with CoLoRe.
-To run this instruction, you should be in the directory where your LyaCoLoRe is cloned.
+Argument choices can be made via a config file, and there is a template file stored in `input_files/config_files/template.ini` which describes all of the options and gives the data type and units for each one. Default values for arguments (where applicable) are stored in `input_files/config_files/default.ini`.
 
+Further, arguments can also be set via the command line (e.g. `--nside 16`). These will override any arguments set via the config file.
 
 2. Creating the output files:
 
 This is carried out by the script `scripts/make_transmission.py`.
 In order to run this script, use the following command:
 ```bash
-scripts/make_transmission.py --in-dir example_data/raw_colore_1000/ --out-dir /path/to/output/directory/ --nside 16 --nproc 64
+scripts/make_transmission.py --c <path to config file>
 ```
 
-The options are as explained in part 1.
+The same config file is used here as above, to ensure consistency.
 
-
-Things to keep in mind:
-The input directory is a file previously created with CoLoRe. To run this instruction,
-you should be in the directory where your LyaCoLoRe is cloned. Input and output files
-are the same as the ones used in stage 1.
+## Useful options
 
 Other option of interest are:
 
 *   If you are only looking to run on a small number of skewers, the `--pixels` option
 allows you to specify pixel numbers to work on. For example adding `--pixels 0 1 2 3`
-would produce output files for pixels 0, 1, 2 and 3 and ignore all other pixels
+would produce output files for HEALPix pixels 0, 1, 2 and 3 (using the nested naming convention) and ignore all other pixels
 
-*   If you would only like to produce transmission files (and not Gaussian or Density files),
-then the option `--transmission-only` will do this
+*   If you would only like to produce transmission files (and not Gaussian or Density files), then the option `--transmission-only` will do this
 
 *   You probably want to add RSD to the flux skewers. If so, you'll need to add the
 flag `--add-RSDs`.
 
 *   The flags `--add-Lyb` and `--add-metals` will add these to the files.
 
-These two stages can be carried out in parallel using the script
-`run_process_colore_multi_node.sh`.
+## Parallelisation
+
+The entirety of the LyaCoLoRe process is broken up into per-HEALPix pixel actions. As such it is (almost) entirely embarassingly parallelised. Normally, this uses `multiprocessing` for parallelising across many cores on a single machine.
+
+If you would like to parallelise across multiple machines/nodes, then the script `run_lyacolore_multi_node.sh` can be used to do so. This runs LyaCoLoRe completely separately for groups of HEALPix pixels, each on a separate node. There is currently no communication between nodes, and is thus very slightly different to running all pixels on 1 node (some quantities are averaged across all pixels while computing the transmission files).
