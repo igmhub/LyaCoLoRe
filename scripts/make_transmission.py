@@ -174,6 +174,11 @@ small = 10**-10
 #Get the simulation parameters from the parameter file.
 simulation_parameters = utils.get_simulation_parameters(args.in_dir,args.param_file)
 
+#If we have density input skewers and want to add DLAs, then raise an error:
+#this functionality is not yet implemented.
+if (args.skewer_type=='density') & args.add_DLAs:
+    raise ValueError('Adding DLAs from density input skewers is not possible yet!')
+
 ################################################################################
 
 """
@@ -407,7 +412,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,t
 
     if args.add_DLAs:
         pixel_object.add_DLA_table(seed,dla_bias=args.DLA_bias,evol=args.DLA_bias_evol,method=args.DLA_bias_method)
-    
+
     #print('{:3.2f} checkpoint DLAs'.format(time.time()-t)); t = time.time()
 
     #Add small scale power to the gaussian skewers:
