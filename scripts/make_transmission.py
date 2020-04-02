@@ -1,16 +1,17 @@
 #!/usr/bin/env python
 
-import argparse
+import configargparse
 import multiprocessing
 import numpy as np
 import os
+import sys
 import time
 
 from astropy.io import fits
 from multiprocessing import Pool
 from scipy.interpolate import interp1d
 
-from lyacolore import simulation_data, utils
+from lyacolore import parse, simulation_data, utils
 
 ################################################################################
 
@@ -28,109 +29,9 @@ Set up the file locations and filename structures.
 Also define option preferences.
 """
 
-parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-
-parser.add_argument('--in-dir', type = str, default = None, required=True,
-                    help = 'input data directory')
-
-parser.add_argument('--out-dir', type = str, default = None, required=True,
-                    help = 'output data directory')
-
-parser.add_argument('--master-dir', type = str, default = None, required=False,
-                    help = 'directory containing the master file')
-
-parser.add_argument('--nproc', type = int, default = 1, required=False,
-                    help = 'number of processes to use')
-
-parser.add_argument('--nside', type = int, default = 16, required=False,
-                    help = 'HEALPix nside for output files (must be 2^n)')
-
-parser.add_argument('--pixels', type = int, default = None, required=False,
-                    help = 'which pixel numbers to work on', nargs='*')
-
-parser.add_argument('--IVAR-cut', type = float, default = 1200., required=False,
-                    help = 'maximum rest frame lambda for IVAR=1 (Å)')
-
-parser.add_argument('--cell-size', type = float, default = 0.25, required=False,
-                    help = 'size in Mpc/h of output cells')
-
-parser.add_argument('--lambda-min', type = float, default = 3550., required=False,
-                    help = 'minimum lambda in picca skewers (Å)')
-
-parser.add_argument('--min-cat-z', type = float, default = 1.8, required=False,
-                    help = 'minimum z of objects in catalog')
-
-parser.add_argument('--param-file', type = str, default = 'out_params.cfg', required=False,
-                    help = 'output parameter file name')
-
-parser.add_argument('--tuning-file', type = str, default = 'input_files/tuning_data_151118.fits', required=False,
-                    help = 'file name for data about tuning sigma_G/alpha')
-
-parser.add_argument('--add-small-scale-fluctuations', action="store_true", default = False, required=False,
-                    help = 'add small scale fluctuations to the Gaussian skewers')
-
-parser.add_argument('--add-DLAs', action="store_true", default = False, required=False,
-                    help = 'add DLAs to the transmission file')
-
-parser.add_argument('--DLA-bias', type = float, default = 2., required=False,
-                    help = 'bias of DLAs')
-
-parser.add_argument('--DLA-bias-evol', type = str, default = 'b_const', required=False,
-                    choices=['b_const','bD_const'],
-                    help = 'choose DLA bias evolution with redshift')
-
-parser.add_argument('--DLA-bias-method', type = str, default = 'global', required=False,
-                    choices=['global','sample'],
-                    help = 'choose whether the DLA bias is determined by the global or sample value of sigma_G')
-
-parser.add_argument('--add-RSDs', action="store_true", default = False, required=False,
-                    help = 'add linear RSDs to the transmission file')
-
-parser.add_argument('--add-Lyb', action="store_true", default = False, required=False,
-                    help = 'add Lyman-beta absorption to TRANSMISSION HDU')
-
-parser.add_argument('--add-metals', action="store_true", default = False, required=False,
-                    help = 'include metal absorbers in the transmission files')
-
-parser.add_argument('--picca-all-absorbers', action="store_true", default = False, required=False,
-                    help = 'combine all absorbers in the picca tau and flux files')
-
-parser.add_argument('--include-thermal-effects', action="store_true", default = False, required=False,
-                    help = 'add thermal RSDs to the transmission file')
-
-parser.add_argument('--transmission-only', action="store_true", default = False, required=False,
-                    help = 'save only the transmission file')
-
-parser.add_argument('--seed', type = int, default = 123, required=False,
-                    help = 'specify seed to generate random numbers')
-
-parser.add_argument('--overwrite', action="store_true", default = False, required=False,
-                    help = 'overwrite existing files')
-
-parser.add_argument('--add-QSO-RSDs', action="store_true", default = False, required=False,
-                    help = 'add QSO RSDs to the transmission file')
-
-parser.add_argument('--transmission-lambda-min', type = float, default = 3550., required=False,
-                    help = 'minimum wavelength stored in the transmission files')
-
-parser.add_argument('--transmission-lambda-max', type = float, default = 6500., required=False,
-                    help = 'maximum wavelength stored in the transmission files')
-
-parser.add_argument('--transmission-delta-lambda', type = float, default = 0.2, required=False,
-                    help = 'pixel size of transmission files wavelength grid')
-
-parser.add_argument('--transmission-format', type = str, default = "final", required=False,
-                    choices=['develop','final','single_HDU'],
-                    help = 'format of transmission files')
-
-parser.add_argument('--compress', action="store_true", default = False, required=False,
-                    help = 'compress output files to .fits.gz')
+args = parse.get_args(sys.argv)
 
 ################################################################################
-
-print('setup arguments from parser')
-
-args = parser.parse_args()
 
 #Define global variables.
 master_file = args.out_dir+'/master.fits'
@@ -222,7 +123,7 @@ def pixelise_gaussian_skewers(pixel,colore_base_filename,z_min,out_dir,N_side):
     input_format='gaussian_colore'
 
     #Make file into an object
-    pixel_object = simulation_data.make_gaussian_pixel_object(pixel,colore_base_filename,input_format,shared_MOCKID_lookup,IVAR_cutoff=args.IVAR_cut)
+    pixel_object = simulation_data.make_gaussian_pixel_object(pixel,colore_base_filename,input_format,shared_MOCKID_lookup,IVAR_cutoff=args.rest_frame_weights_cut)
 
     # TODO: These could be made beforehand and passed to the function? Or is there already enough being passed?
     #Make some useful headers
@@ -365,7 +266,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,lambda_min,global_measured_S
 
     # Make a pixel object from it.
     file_number = None
-    pixel_object = simulation_data.SimulationData.get_gaussian_skewers_object(gaussian_filename,file_number,input_format,SIGMA_G=global_measured_SIGMA_G,IVAR_cutoff=args.IVAR_cut)
+    pixel_object = simulation_data.SimulationData.get_gaussian_skewers_object(gaussian_filename,file_number,input_format,SIGMA_G=global_measured_SIGMA_G,IVAR_cutoff=args.rest_frame_weights_cut)
 
     # Make a transformation object and add it to the pixel object.
     pixel_object.add_transformation_from_file(tuning_file)
@@ -429,7 +330,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,lambda_min,global_measured_S
     #Add small scale power to the gaussian skewers:
     if args.add_small_scale_fluctuations:
         generator = np.random.RandomState(seed)
-        pixel_object.add_small_scale_gaussian_fluctuations(args.cell_size,generator,white_noise=False,lambda_min=lambda_min,IVAR_cutoff=args.IVAR_cut,use_transformation=True)
+        pixel_object.add_small_scale_gaussian_fluctuations(args.cell_size,generator,white_noise=False,lambda_min=lambda_min,IVAR_cutoff=args.rest_frame_weights_cut,use_transformation=True)
 
         #Remove the 'SIGMA_G' header as SIGMA_G now varies with z, so can't be stored in a header.
         del header['SIGMA_G']

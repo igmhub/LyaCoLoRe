@@ -1,14 +1,16 @@
 #!/usr/bin/env python
 
-import argparse
+import configargparse
 import glob
 import numpy as np
+import os
+import sys
 import time
 
 from astropy.io import fits
 from multiprocessing import Pool
 
-from lyacolore import utils, catalog
+from lyacolore import catalog, parse, utils
 
 ################################################################################
 
@@ -23,48 +25,9 @@ Set up the file locations and filename structures.
 Also define option preferences.
 """
 
-parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-
-parser.add_argument('--in-dir', type = str, default = None, required=True,
-                    help = 'input data directory')
-
-parser.add_argument('--out-dir', type = str, default = None, required=True,
-                    help = 'output data directory')
-
-parser.add_argument('--nproc', type = int, default = 1, required=False,
-                    help = 'number of processes to use')
-
-parser.add_argument('--nside', type = int, default = 16, required=False,
-                    help = 'HEALPix nside for output files (must be 2^n)')
-
-parser.add_argument('--min-cat-z', type = float, default = 1.8, required=False,
-                    help = 'minimum z of objects in catalog')
-
-parser.add_argument('--param-file', type = str, default = 'out_params.cfg', required=False,
-                    help = 'output parameter file name')
-
-parser.add_argument('--add-picca-drqs', action="store_true", default = False, required=False,
-                    help = 'save picca format drq files')
-
-parser.add_argument('--pixels', type = int, default = None, required=False,
-                    help = 'which pixel numbers to work on', nargs='*')
-
-parser.add_argument('--footprint', type = str, default = None, required = False,
-                    choices=['full_sky','desi','desi_pixel','desi_pixel_plus'],
-                    help = 'name of footprint to use')
-
-parser.add_argument('--downsampling', type = float, default = 1.0, required=False,
-                    help = 'fraction by which to subsample the CoLoRe output')
-
-parser.add_argument('--overwrite', action="store_true", default = False, required=False,
-                    help = 'overwrite existing files')
-
-parser.add_argument('--seed', type = int, default = 123, required=False,
-                    help = 'specify seed to generate random numbers')
+args = parse.get_args(sys.argv)
 
 ################################################################################
-
-args = parser.parse_args()
 
 # TODO: print to confirm the arguments. e.g. "DLAs will be added"
 
