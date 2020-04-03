@@ -9,10 +9,15 @@
 # Clear out the old example data.
 rm -r $LYACOLORE_PATH/example_data/lya_skewers/*
 
-# Set the config file that we want to point to. Look at the config files to get
-# some more detail on the arguments chosen, and  for instructions on how to find
-# out more about the options.
-CONFIG_FILE=./input_files/config_files/example.ini
+# Set the config file that we want to point to. There are 2 example config
+# files available:
+#  1. input_files/config_files/example_gaussian.ini
+#      - runs off Gaussian output skewers from CoLoRe
+#  2. input_files/config_files/example_2lpt.ini
+#      - runs off 2LPT output skewers from CoLoRe
+# Take a look at the config files to get some more detail on the arguments
+# chosen, and for instructions on how to find out more about the options.
+CONFIG_FILE=input_files/config_files/example_gaussian.ini
 
 # Specify number of cores to use.
 NCORES=1
@@ -44,7 +49,6 @@ $command
 #command="${PROCESS_PATH}/make_summaries.py --base-dir ${OUTPUT_PATH} --nproc ${NCORES} --pixels ${PIXELS} --overwrite --picca-N-merge-values 1 10 --compressed-input --compress ${MS_FLAGS}"
 #$command
 
-echo " "
 echo "Done!"
 echo " "
 
