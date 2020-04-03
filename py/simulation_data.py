@@ -255,7 +255,7 @@ class SimulationData:
         self.D = self.D[frc:lrc + 1]
         self.V = self.V[frc:lrc + 1]
         self.LOGLAM_MAP = self.LOGLAM_MAP[frc:lrc + 1]
-        if not isinstance(self.SIGMA_G,float):
+        if (not isinstance(self.SIGMA_G,float)) & (self.SIGMA_G is not None):
             self.SIGMA_G = self.SIGMA_G[frc:lrc + 1]
         if hasattr(self,'sample_SIGMA_G'):
             self.sample_SIGMA_G = self.sample_SIGMA_G[frc:lrc + 1]
