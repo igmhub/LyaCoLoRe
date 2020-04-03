@@ -15,89 +15,93 @@ def get_args(argv):
 
     ## Required arguments.
     parser.add('-i','--in-dir', type = str, required=True,
-                help = 'input data directory')
+                help = 'Input data directory.')
     parser.add('-o','--out-dir', type = str, required=True,
-                help = 'output data directory')
+                help = 'Output data directory.')
 
     ## Input arguments.
     parser.add('--param-file', type = str, required=False,
-                help = 'output parameter file name')
+                help = 'CoLoRe parameter file name.')
+    parser.add('--file-format', type = str, required=False,
+                choices=['colore'],
+                help = 'Format of the input data files.')
+    parser.add('--skewer-type', type = str, required=False,
+                choices=['gaussian','density'],
+                help = 'Quantity stored in input skewers.')
 
     ## Processing arguments: survey
     parser.add('--min-cat-z', type = float, required=False,
-                help = 'minimum z of objects in catalog')
+                help = 'Minimum z of objects in catalogue.')
     parser.add('--pixels', type = int, required=False,
-                help = 'which pixel numbers to work on', nargs='*')
+                help = 'List of HEALPix pixel numbers to work on.', nargs='*')
     parser.add('--footprint', type = str, required = False,
                 choices=['full_sky','desi','desi_pixel','desi_pixel_plus'],
-                help = 'name of footprint to use')
+                help = 'Choice of footprint of QSOs on sky.')
     parser.add('--downsampling', type = float, required=False,
-                help = 'fraction by which to subsample the CoLoRe output')
+                help = 'Proportion by which to downsample the CoLoRe output.')
 
     ## Processing arguments: skewers
     parser.add('--rest-frame-weights-cut', type = float, required=False,
-                help = 'maximum rest frame lambda for IVAR=1 (Å)')
+                help = 'Maximum rest-frame wavelength for pixels to have weight=1 (Angstroms).')
     parser.add('--cell-size', type = float, required=False,
-                help = 'size in Mpc/h of output cells')
+                help = 'Size of the LyaCoLoRe cells to use (Mpc/h).')
     parser.add('--lambda-min', type = float, required=False,
-                help = 'minimum lambda in picca skewers (Å)')
+                help = 'Minimum wavelength value in LyaCoLoRe skewers (Angstroms).')
     parser.add('--tuning-file', type = str, required=False,
-                help = 'file name for data about tuning sigma_G/alpha')
+                help = 'Name of file from which to load tuning parameters.')
     parser.add('--add-small-scale-fluctuations', action='store_true', required=False,
-                help = 'add small scale fluctuations to the Gaussian skewers')
-    parser.add('--add-RSDs', action='store_true', required=False,
-                help = 'add linear RSDs to the transmission file')
-    parser.add('--add-Lyb', action='store_true', required=False,
-                help = 'add Lyman-beta absorption to TRANSMISSION HDU')
-    parser.add('--add-metals', action='store_true', required=False,
-                help = 'include metal absorbers in the transmission files')
-    parser.add('--include-thermal-effects', action='store_true', required=False,
-                help = 'add thermal RSDs to the transmission file')
+                help = 'Choice to add small scale fluctuations or not.')
     parser.add('--add-QSO-RSDs', action='store_true', required=False,
-                help = 'add QSO RSDs to the transmission file')
+                help = 'Choice to add RSDs or not to our QSO redshifts.')
+    parser.add('--add-RSDs', action='store_true', required=False,
+                help = 'Choice to add RSDs or not to our pixels.')
+    parser.add('--include-thermal-effects', action='store_true', required=False,
+                help = 'Choice to include thermal effects in RSDs or not')
+    parser.add('--add-Lyb', action='store_true', required=False,
+                help = 'Choice to add Lyb absorption or not.')
+    parser.add('--add-metals', action='store_true', required=False,
+                help = 'Choice to add metal absorption or not.')
 
     ## Processing arguments: DLAs
     parser.add('--add-DLAs', action='store_true', required=False,
-                help = 'add DLAs to the transmission file')
+                help = 'Choice whether to add DLAs to the transmission file or not.')
     parser.add('--DLA-bias', type = float, required=False,
-                help = 'bias of DLAs')
+                help = 'Bias of DLAs relative to matter density field (no units).')
     parser.add('--DLA-bias-evol', type = str, required=False,
                 choices=['b_const','bD_const'],
-                help = 'choose DLA bias evolution with redshift')
+                help = 'DLA bias evolution with redshift.')
     parser.add('--DLA-bias-method', type = str, required=False,
                 choices=['global','sample'],
-                help = 'choose whether the DLA bias is determined by the global or sample value of sigma_G')
+                help = 'DLA bias is determined by the global or sample value of sigma_G.')
 
     ## Processing arguments: misc
     parser.add('--nproc', type = int, required=False,
-                help = 'number of processes to use')
+                help = 'Number of processes to use.')
     parser.add('--nside', type = int, required=False,
-                help = 'HEALPix nside for output files (must be 2^n)')
-    parser.add('--nskewers', type = int, required=False,
-                help = 'number of skewers to process')
-    parser.add('--overwrite', action='store_true', required=False,
-                help = 'overwrite existing files')
+                help = 'HEALPix nside for output files (must be 2^n).')
     parser.add('--seed', type = int, required=False,
-                help = 'specify seed to generate random numbers')
+                help = 'Seed from which to generate random numbers.')
 
     ## Output arguments
     parser.add('--add-picca-drqs', action='store_true', required=False,
-                help = 'save picca format drq files')
+                help = 'Choice whether to save picca format drq files or not.')
     parser.add('--picca-all-absorbers', action='store_true', required=False,
-                help = 'combine all absorbers in the picca tau and flux files')
+                help = 'Choice whether to add all absorbers to picca output files or not.')
     parser.add('--transmission-only', action='store_true', required=False,
-                help = 'save only the transmission file')
+                help = 'Choice whether to only save transmission files or not.')
     parser.add('--transmission-lambda-min', type = float, required=False,
-                help = 'minimum wavelength stored in the transmission files')
+                help = 'Minimum wavelength of skewers in transmission files (Angstroms).')
     parser.add('--transmission-lambda-max', type = float, required=False,
-                help = 'maximum wavelength stored in the transmission files')
+                help = 'Maximum wavelength of skewers in transmission files (Angstroms).')
     parser.add('--transmission-delta-lambda', type = float, required=False,
-                help = 'pixel size of transmission files wavelength grid')
+                help = 'Pixel size of transmission files\' wavelength grid (Angstroms).')
     parser.add('--transmission-format', type = str, required=False,
                 choices=['develop','final','single_HDU'],
-                help = 'format of transmission files')
+                help = 'Format of skewers in transmission files.')
+    parser.add('--overwrite', action='store_true', required=False,
+                help = 'Choice whether to overwrite existing files or not.')
     parser.add('--compress', action='store_true', required=False,
-                help = 'compress output files to .fits.gz')
+                help = 'Choice whether to compress the output files to .fits.gz or not.')
 
     args = parser.parse_args()
 
