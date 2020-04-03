@@ -119,7 +119,7 @@ def pixelise_colore_output(pixel,colore_base_filename,z_min,out_dir,N_side):
     location = utils.get_dir_name(out_dir,pixel)
 
     #Make file into an object
-    pixel_object = simulation_data.make_pixel_object(pixel,colore_base_filename,args.file_format,args.skewer_type,shared_MOCKID_lookup,IVAR_cutoff=args.IVAR_cut)
+    pixel_object = simulation_data.make_pixel_object(pixel,colore_base_filename,args.file_format,args.skewer_type,shared_MOCKID_lookup,IVAR_cutoff=args.rest_frame_weights_cut)
 
     # TODO: These could be made beforehand and passed to the function? Or is there already enough being passed?
     #Make some useful headers
@@ -134,7 +134,7 @@ def pixelise_colore_output(pixel,colore_base_filename,z_min,out_dir,N_side):
     pixel_object.save_as_colore(args.skewer_type,filename,header,overwrite=args.overwrite,compress=args.compress)
 
     if args.skewer_type == 'gaussian':
-        pixel_object.compute_SIGMA_G(type='single_value',lr_max=args.IVAR_cut)
+        pixel_object.compute_SIGMA_G(type='single_value',lr_max=args.rest_frame_weights_cut)
         header['SIGMA_G'] = pixel_object.SIGMA_G
         N = np.sum(pixel_object.IVAR_rows.astype('int'))
 
@@ -234,7 +234,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,lambda_min,tuning_file):
 
     # Make a pixel object from it.
     file_number = None
-    pixel_object = simulation_data.SimulationData.get_skewers_object(gaussian_filename,file_number,args.file_format,args.skewer_type,IVAR_cutoff=args.IVAR_cut)
+    pixel_object = simulation_data.SimulationData.get_skewers_object(gaussian_filename,file_number,args.file_format,args.skewer_type,IVAR_cutoff=args.rest_frame_weights_cut)
     if args.skewer_type == 'gaussian':
         pixel_object.SIGMA_G = SIGMA_G_global
 

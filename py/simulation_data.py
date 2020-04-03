@@ -229,7 +229,7 @@ class SimulationData:
         self.N_cells = lrc - frc + 1
 
         if self.GAUSSIAN_DELTA_rows is not None:
-            self.GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows[:,first_relevant_cell:last_relevant_cell + 1]
+            self.GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows[:,frc:lrc + 1]
         if self.DENSITY_DELTA_rows is not None:
             self.DENSITY_DELTA_rows = self.DENSITY_DELTA_rows[:,frc:lrc + 1]
         self.VEL_rows = self.VEL_rows[:,frc:lrc + 1]
