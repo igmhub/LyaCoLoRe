@@ -77,7 +77,7 @@ def flag_DLA(z_qso,z_cells,deltas,nu_arr,sigma_g):
 # Reading file from https://arxiv.org/pdf/astro-ph/0407378.pdf
 
 def dnHD_dz_cumlgN(z,logN):
-    tab = astropy.table.Table.read(os.path.abspath('example_data/zheng_cumulative.overz'),format='ascii')
+    tab = astropy.table.Table.read(os.environ('LYACOLORE_PATH')+'/input_files/dla_files/zheng_cumulative.overz',format='ascii')
     y = interp2d(tab['col1'],tab['col2'],tab['col3'],fill_value=None)
     return y(z,logN)
 
