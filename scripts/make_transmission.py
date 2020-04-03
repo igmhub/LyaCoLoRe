@@ -109,7 +109,7 @@ def log_error(retval):
 
 ################################################################################
 
-print('\nWorking on per-HEALPix pixel initial skewer files...')
+print('Working on per-HEALPix pixel initial skewer files...')
 start_time = time.time()
 
 #Define the pixelisation process.
@@ -162,8 +162,6 @@ if __name__ == '__main__':
     pool.close()
     pool.join()
 
-print('\nTime to make pixel files: {:4.0f}s.\n'.format(time.time()-start_time))
-
 ################################################################################
 
 """
@@ -177,7 +175,7 @@ if args.skewer_type == 'gaussian':
     sg_values = np.array([r[1] for r in results])
     SIGMA_G_global = np.sqrt(np.sum((sg_values**2)*N_values)/np.sum(N_values))
 
-    print('\nGaussian skewers have mean sigma {:2.4f}.'.format(SIGMA_G_global))
+    print('Gaussian skewers have mean sigma {:2.4f}.'.format(SIGMA_G_global))
     print('\nModifying header showing sigma_G in Gaussian CoLoRe files...')
 
     def modify_header(pixel):
@@ -218,7 +216,7 @@ We also save picca format delta files for running correlation function tests.
 Deltas are normalised using the global mean in 'make_summaries'
 """
 
-print('\nWorking on per-HEALPix pixel final skewer files...')
+print('Working on per-HEALPix pixel final skewer files...')
 start_time = time.time()
 
 def produce_final_skewers(base_out_dir,pixel,N_side,lambda_min,tuning_file):
@@ -397,8 +395,6 @@ if __name__ == '__main__':
 
     pool.close()
     pool.join()
-
-print('\nTime to make physical pixel files: {:4.0f}s.\n'.format(time.time()-start_time))
 
 ################################################################################
 """

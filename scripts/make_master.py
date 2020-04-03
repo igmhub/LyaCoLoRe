@@ -103,7 +103,7 @@ if __name__ == '__main__':
     pool.close()
     pool.join()
 
-print('\nSaving the master files...')
+print('Saving the master files...')
 
 #Join the multiprocessing results into 'master' and 'bad_coordinates' arrays.
 master_data, bad_coordinates_data, cosmology_data, file_pixel_map, MOCKID_lookup = catalog.join_ID_data(results,args.nside)
