@@ -78,7 +78,7 @@ def bias_tuning(pixel_object,tuning_filename,z_values,d_delta=10**-9,d_eta=10**-
 
     #Add small scale power to the gaussian skewers:
     generator = np.random.RandomState(seed)
-    pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,generator,white_noise=False,lambda_min=0.0,IVAR_cutoff=IVAR_cutoff,use_transformation=True)
+    pixel_object.add_small_scale_fluctuations(final_cell_size,generator,white_noise=False,lambda_min=0.0,IVAR_cutoff=IVAR_cutoff,use_transformation=True)
     #Recompute physical skewers.
     pixel_object.compute_physical_skewers()
 
@@ -107,7 +107,7 @@ def pixel_tuning_bias(pixel,tuning_filename,z_values,d_delta=10**-9,d_eta=10**-2
     dirname = utils.get_dir_name(base_dir,pixel)
     gaussian_filename = utils.get_file_name(dirname,'gaussian-colore',N_side,pixel,compressed=True)
     file_number = None
-    pixel_object = simulation_data.SimulationData.get_gaussian_skewers_object(gaussian_filename,file_number,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
+    pixel_object = simulation_data.SimulationData.get_skewers_object(gaussian_filename,file_number,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
 
     b,b_eta = bias_tuning(pixel_object,tuning_filename,z_values,d_delta=d_delta,d_eta=d_eta,z_width=z_width)
 
@@ -138,7 +138,7 @@ for tuning_filename in tuning_files:
     print(tuning_filename)
 
     final_bs = np.zeros((z_values.shape[0],3,d_values.shape[0]))
-    
+
     for i,d_value in enumerate(d_values):
         print(' ->',d_value)
 

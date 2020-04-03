@@ -37,6 +37,14 @@ parser.add_argument('--in-dir', type = str, default = None, required=True,
 parser.add_argument('--out-dir', type = str, default = None, required=True,
                     help = 'output data directory')
 
+parser.add_argument('--file-format', type = str, default = 'colore', required=False,
+                    choices=['colore'],
+                    help = 'input file type')
+
+parser.add_argument('--skewer-type', type = str, default = 'gaussian', required=False,
+                    choices=['gaussian','density'],
+                    help = 'type of skewer in input file')
+
 parser.add_argument('--master-dir', type = str, default = None, required=False,
                     help = 'directory containing the master file')
 
@@ -139,68 +147,37 @@ args = parser.parse_args()
 #Define global variables.
 lya = utils.lya_rest
 
-base_in_dir = args.in_dir
-base_out_dir = args.out_dir
 if args.master_dir:
     master_file = args.master_dir+'/master.fits'
 else:
-    master_file = base_out_dir+'/master.fits'
-N_side = args.nside
-pixels = args.pixels
-if not pixels:
-    pixels = list(range(12*N_side**2))
-min_catalog_z = args.min_cat_z
-lambda_min = args.lambda_min
+    master_file = args.out_dir+'/master.fits'
+if not args.pixels:
+    args.pixels = list(range(12*args.nside**2))
+
 zero_mean_delta = False
-IVAR_cutoff = args.IVAR_cut
-final_cell_size = args.cell_size
-N_processes = args.nproc
-parameter_filename = args.param_file
-add_ssf = args.add_small_scale_fluctuations
-add_DLAs = args.add_DLAs
-dla_bias = args.DLA_bias
-dla_bias_evol = args.DLA_bias_evol
-dla_bias_method = args.DLA_bias_method
-add_RSDs = args.add_RSDs
-add_Lyb = args.add_Lyb
-add_metals = args.add_metals
-picca_all_absorbers = args.picca_all_absorbers
-include_thermal_effects = args.include_thermal_effects
-tuning_file = args.tuning_file
-transmission_only = args.transmission_only
-N_skewers = args.nskewers
-global_seed = args.seed
-overwrite = args.overwrite
-add_QSO_RSDs = args.add_QSO_RSDs
-trans_lmin = args.transmission_lambda_min
-trans_lmax = args.transmission_lambda_max
-trans_dl = args.transmission_delta_lambda
-transmission_format = args.transmission_format
-compress = args.compress
 
 # TODO: print to confirm the arguments. e.g. "DLAs will be added"
 
-if np.log2(N_side)-int(np.log2(N_side)) != 0:
+if np.log2(args.nside)-int(np.log2(args.nside)) != 0:
     print('nside must be a power of 2!')
 else:
-    N_pix = 12*N_side**2
+    N_pix = 12*args.nside**2
 
 #colore skewers filename (except number that will be added later)
-colore_base_filename = base_in_dir+'/out_srcs_s1_'
+colore_base_filename = args.in_dir+'/out_srcs_s1_'
 
 #Calculate the minimum value of z that we are interested in.
 #i.e. the z value for which lambda_min cooresponds to the lya wavelength.
-z_min = lambda_min/lya - 1
+z_min = args.lambda_min/lya - 1
 small = 10**-10
 
 #Get the simulation parameters from the parameter file.
-simulation_parameters = utils.get_simulation_parameters(base_in_dir,parameter_filename)
+simulation_parameters = utils.get_simulation_parameters(args.in_dir,args.param_file)
 
-# TODO: Modify this to accomodate other density types.
-#If density type is not lognormal, then crash.
-if simulation_parameters['dens_type'] != 0:
-    error('Density is not lognormal. Non-lognormal densities are not currently supported.')
-input_format='gaussian_colore'
+#If we have density input skewers and want to add DLAs, then raise an error:
+#this functionality is not yet implemented.
+if (args.skewer_type=='density') & args.add_DLAs:
+    raise ValueError('Adding DLAs from density input skewers is not possible yet!')
 
 ################################################################################
 
@@ -214,7 +191,7 @@ master.close()
 
 #Make a MOCKID lookup.
 master_data_pixel_set = set(master_data['PIXNUM'])
-pixels_set = set(pixels)
+pixels_set = set(args.pixels)
 pixel_list = list(sorted(master_data_pixel_set.intersection(pixels_set)))
 
 MOCKID_lookup = {}
@@ -250,20 +227,17 @@ def log_error(retval):
 
 ################################################################################
 
-print('\nWorking on per-HEALPix pixel initial Gaussian skewer files...')
+print('\nWorking on per-HEALPix pixel initial skewer files...')
 start_time = time.time()
 
 #Define the pixelisation process.
-def pixelise_gaussian_skewers(pixel,colore_base_filename,z_min,base_out_dir,N_side):
+def pixelise_colore_output(pixel,colore_base_filename,z_min,out_dir,N_side):
 
     #Define the output directory the pixel, according to the new file structure.
-    location = utils.get_dir_name(base_out_dir,pixel)
-
-    #at some point we might want to read physical density
-    input_format='gaussian_colore'
+    location = utils.get_dir_name(out_dir,pixel)
 
     #Make file into an object
-    pixel_object = simulation_data.make_gaussian_pixel_object(pixel,colore_base_filename,input_format,shared_MOCKID_lookup,IVAR_cutoff=IVAR_cutoff)
+    pixel_object = simulation_data.make_pixel_object(pixel,colore_base_filename,args.file_format,args.skewer_type,shared_MOCKID_lookup,IVAR_cutoff=args.IVAR_cut)
 
     # TODO: These could be made beforehand and passed to the function? Or is there already enough being passed?
     #Make some useful headers
@@ -273,107 +247,79 @@ def pixelise_gaussian_skewers(pixel,colore_base_filename,z_min,base_out_dir,N_si
     header['HPXNEST'] = True
     header['LYA'] = lya
 
-    # TODO: MISLEADING
-    header['SIGMA_G'] = pixel_object.SIGMA_G
+    ## Save the pixelised colore file.
+    filename = utils.get_file_name(location,'{}-colore'.format(args.skewer_type),N_side,pixel)
+    pixel_object.save_as_colore(args.skewer_type,filename,header,overwrite=args.overwrite,compress=args.compress)
 
-    #Gaussian CoLoRe
-    filename = utils.get_file_name(location,'gaussian-colore',N_side,pixel)
-    pixel_object.save_as_colore('gaussian',filename,header,overwrite=overwrite,compress=compress)
+    if args.skewer_type == 'gaussian':
+        pixel_object.compute_SIGMA_G(type='single_value',lr_max=args.IVAR_cut)
+        header['SIGMA_G'] = pixel_object.SIGMA_G
+        N = np.sum(pixel_object.IVAR_rows.astype('int'))
 
-    #Calculate the means of the pixel's gaussian skewers away from the QSOs.
-    N = np.sum(pixel_object.IVAR_rows,axis=0)
-    mean_DG = np.average(pixel_object.get_mean_quantity('gaussian',power=1),weights=N)
-    mean_DGS = np.average(pixel_object.get_mean_quantity('gaussian',power=2),weights=N)
-    N = np.sum(N)
+        return (N,pixel_object.SIGMA_G)
 
-    #Calculate the cell-by-cell mean of the gaussian skewers up to the QSO cell.
-    R_edges = utils.get_edges(pixel_object.R)
-    Z_ledges = interp1d(pixel_object.R,pixel_object.Z,fill_value='extrapolate')(R_edges[:-1])
-    LOGLAM_ledges = np.log10(lya*(1+Z_ledges))
-    mean_DG_sample_weights = utils.make_IVAR_rows(lya,pixel_object.Z_QSO,LOGLAM_ledges)
-    N_sample = np.sum(mean_DG_sample_weights,axis=0)
-    Npos = (N_sample > 0)
-    mean_DG_sample = np.zeros(N_sample.shape)
-    mean_DGS_sample = np.zeros(N_sample.shape)
-    mean_DG_sample[Npos] = np.average(pixel_object.GAUSSIAN_DELTA_rows[:,Npos],weights=mean_DG_sample_weights[:,Npos],axis=0)
-    mean_DGS_sample[Npos] = np.average((pixel_object.GAUSSIAN_DELTA_rows**2)[:,Npos],weights=mean_DG_sample_weights[:,Npos],axis=0)
+    else:
 
-    return (N,mean_DG,mean_DGS,N_sample,mean_DG_sample,mean_DGS_sample)
+        return
 
 #Set up the multiprocessing pool parameters and make a list of tasks.
 #what's the sharing doing here?
 manager = multiprocessing.Manager()
 shared_MOCKID_lookup = manager.dict(MOCKID_lookup)
-tasks = [(pixel,colore_base_filename,z_min,base_out_dir,N_side) for pixel in pixel_list]
+tasks = [(pixel,colore_base_filename,z_min,args.out_dir,args.nside) for pixel in pixel_list]
 
 #Run the multiprocessing pool
 if __name__ == '__main__':
-    pool = Pool(processes = N_processes)
+    pool = Pool(processes = args.nproc)
     results = []
     start_time = time.time()
 
     for task in tasks:
-        pool.apply_async(pixelise_gaussian_skewers,task,callback=log_result,error_callback=log_error)
+        pool.apply_async(pixelise_colore_output,task,callback=log_result,error_callback=log_error)
 
     pool.close()
     pool.join()
 
-print('\nTime to make Gaussian pixel files: {:4.0f}s.\n'.format(time.time()-start_time))
+print('\nTime to make pixel files: {:4.0f}s.\n'.format(time.time()-start_time))
 
 ################################################################################
 
 """
-To correctly calculate the physical fields, we must measure sigma from the Gaussian skewers.
-We do so in two ways:
- - away from the QSOs, for use in the lognormal transformation
- - right up to the QSOs (as a vector), for use in DLA generation
+To correctly calculate the physical fields when using Gaussian input skewers, we
+must measure sigma from all skewers.
+Here, we combine the results from each pixel, to compute an overall value.
 """
 
-#Split the output from section 1 according to the two purposes.
-global_results = []
-sample_results = []
-for result in results:
-    global_results += [result[:3]]
-    sample_results += [result[3:]]
+if args.skewer_type == 'gaussian':
+    N_values = np.array([r[0] for r in results])
+    sg_values = np.array([r[1] for r in results])
+    SIGMA_G_global = np.sqrt(np.sum((sg_values**2)*N_values)/np.sum(N_values))
 
-#Calculate the mean and variance of the Gaussian skewers away from the QSOs.
-global_means_data_array = np.array(global_results)
-global_gaussian_mean = np.average(global_means_data_array[:,1],weights=global_means_data_array[:,0]+small)
-global_gaussian_squared_mean = np.average(global_means_data_array[:,2],weights=global_means_data_array[:,0]+small,axis=0)
-global_gaussian_variance = global_gaussian_squared_mean - global_gaussian_mean**2
-global_measured_SIGMA_G = np.sqrt(global_gaussian_variance)
+    print('\nGaussian skewers have mean sigma {:2.4f}.'.format(SIGMA_G_global))
+    print('\nModifying header showing sigma_G in Gaussian CoLoRe files...')
 
-#Calculate the variance of the Gaussian skewers as a vector, up to the QSOs.
-sample_means_data_array = np.array(sample_results)
-sample_gaussian_mean = np.average(sample_means_data_array[:,1,:],weights=sample_means_data_array[:,0,:]+small,axis=0)
-sample_gaussian_squared_mean = np.average(sample_means_data_array[:,2,:],weights=sample_means_data_array[:,0,:]+small,axis=0)
-sample_gaussian_variance = sample_gaussian_squared_mean - sample_gaussian_mean**2
-sample_measured_SIGMA_G = np.sqrt(sample_gaussian_variance)
+    def modify_header(pixel):
+        location = utils.get_dir_name(args.out_dir,pixel)
+        filename = utils.get_file_name(location,'gaussian-colore',args.nside,pixel,compressed=args.compress)
+        h = fits.open(filename)
+        for HDU in h[1:]:
+            HDU.header['SIGMA_G'] = SIGMA_G_global
+        h.writeto(filename,overwrite=True)
+        h.close()
+        return
 
-print('\nGaussian skewers have mean {:2.4f}, variance {:2.4f}.'.format(global_gaussian_mean,global_measured_SIGMA_G))
-print('\nModifying header showing sigma_G in Gaussian CoLoRe files...')
+    #Run the multiprocessing pool
+    if __name__ == '__main__':
+        pool = Pool(processes = args.nproc)
+        results = []
+        start_time = time.time()
 
-def modify_header(pixel):
-    location = utils.get_dir_name(base_out_dir,pixel)
-    filename = utils.get_file_name(location,'gaussian-colore',N_side,pixel,compressed=compress)
-    h = fits.open(filename)
-    for HDU in h[1:]:
-        HDU.header['SIGMA_G'] = global_measured_SIGMA_G
-    h.writeto(filename,overwrite=True)
-    h.close()
-    return
+        for pixel in pixel_list:
+            pool.apply_async(modify_header,(pixel,),callback=log_result,error_callback=log_error)
 
-#Run the multiprocessing pool
-if __name__ == '__main__':
-    pool = Pool(processes = N_processes)
-    results = []
-    start_time = time.time()
+        pool.close()
+        pool.join()
 
-    for pixel in pixel_list:
-        pool.apply_async(modify_header,(pixel,),callback=log_result,error_callback=log_error)
-
-    pool.close()
-    pool.join()
 
 ################################################################################
 
@@ -393,20 +339,22 @@ Deltas are normalised using the global mean in 'make_summaries'
 print('\nWorking on per-HEALPix pixel final skewer files...')
 start_time = time.time()
 
-def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,global_measured_SIGMA_G,sample_measured_SIGMA_G,tuning_file):
+def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,tuning_file):
 
     t = time.time()
 
     # Define a random seed for use in this pixel.
-    seed = int(pixel * 10**5 + global_seed)
+    seed = int(pixel * 10**5 + args.seed)
 
     #We work from the gaussian colore files made in 'pixelise gaussian skewers'.
     location = utils.get_dir_name(base_out_dir,pixel)
-    gaussian_filename = utils.get_file_name(location,'gaussian-colore',N_side,pixel,compressed=compress)
+    gaussian_filename = utils.get_file_name(location,'{}-colore'.format(args.skewer_type),N_side,pixel,compressed=args.compress)
 
     # Make a pixel object from it.
     file_number = None
-    pixel_object = simulation_data.SimulationData.get_gaussian_skewers_object(gaussian_filename,file_number,input_format,SIGMA_G=global_measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
+    pixel_object = simulation_data.SimulationData.get_skewers_object(gaussian_filename,file_number,args.file_format,args.skewer_type,IVAR_cutoff=args.IVAR_cut)
+    if args.skewer_type == 'gaussian':
+        pixel_object.SIGMA_G = SIGMA_G_global
 
     # Make a transformation object and add it to the pixel object.
     pixel_object.add_transformation_from_file(tuning_file)
@@ -414,15 +362,12 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,g
     #Scale the velocities.
     pixel_object.scale_velocities(use_transformation=True)
 
-    #Add the sample sigma G to the object.
-    pixel_object.sample_SIGMA_G = sample_measured_SIGMA_G
-
     #print('{:3.2f} checkpoint object'.format(time.time()-t)); t = time.time()
 
     #Add Lyb and metal absorbers if needed.
-    if add_Lyb:
+    if args.add_Lyb:
         pixel_object.setup_Lyb_absorber()
-    if add_metals:
+    if args.add_metals:
         pixel_object.setup_metal_absorbers()
 
     #Make some useful headers
@@ -431,30 +376,32 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,g
     header['HPXPIXEL'] = pixel
     header['HPXNEST'] = True
     header['LYA'] = lya
-    header['SIGMA_G'] = global_measured_SIGMA_G
+    if args.skewer_type == 'gaussian':
+        header['SIGMA_G'] = pixel_object.SIGMA_G
 
     #Save CoLoRe format files.
-    if transmission_only == False:
-        #lognorm CoLoRe
-        pixel_object.compute_physical_skewers()
-        filename = utils.get_file_name(location,'physical-colore',N_side,pixel)
-        pixel_object.save_as_colore('density',filename,header,overwrite=overwrite,compress=compress)
+    if args.transmission_only == False:
+        if args.skewer_type == 'gaussian':
+            pixel_object.compute_physical_skewers()
+        filename = utils.get_file_name(location,'density-colore',N_side,pixel)
+        pixel_object.save_as_colore('density',filename,header,overwrite=args.overwrite,compress=args.compress)
 
     #Trim the skewers (remove low lambda cells). Exit if no QSOs are left.
     #We don't cut too tightly on the low lambda to allow for RSDs.
     lambda_buffer = 100. #A
-    pixel_object.trim_skewers(lambda_min-lambda_buffer,min_catalog_z,extra_cells=1)
+    pixel_object.trim_skewers(lambda_min-lambda_buffer,args.min_cat_z,extra_cells=1)
     if pixel_object.N_qso == 0:
         print('\nwarning: no objects left in pixel {} after trimming.'.format(pixel))
         return pixel
 
     #Save picca format files without adding small scale power.
-    if transmission_only == False:
-        filename = utils.get_file_name(location,'picca-gaussian-colorecell',N_side,pixel)
-        pixel_object.save_as_picca_delta('gaussian',filename,header,overwrite=overwrite,add_QSO_RSDs=add_QSO_RSDs,compress=compress)
+    if args.transmission_only == False:
+        if args.skewer_type == 'gaussian':
+            filename = utils.get_file_name(location,'picca-gaussian-colorecell',N_side,pixel)
+            pixel_object.save_as_picca_delta('gaussian',filename,header,overwrite=args.overwrite,add_QSO_RSDs=args.add_QSO_RSDs,compress=args.compress)
 
         filename = utils.get_file_name(location,'picca-density-colorecell',N_side,pixel)
-        pixel_object.save_as_picca_delta('density',filename,header,overwrite=overwrite,add_QSO_RSDs=add_QSO_RSDs,compress=compress)
+        pixel_object.save_as_picca_delta('density',filename,header,overwrite=args.overwrite,add_QSO_RSDs=args.add_QSO_RSDs,compress=args.compress)
 
     #print('{:3.2f} checkpoint colore files'.format(time.time()-t)); t = time.time()
 
@@ -462,58 +409,65 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,g
     # TODO: in future, we want DLAs all the way down to z=0.
     #That means we need to store skewers all the way down to z=0.
     #May need to adjust how many nodes are used when running.
-    if add_DLAs:
-        pixel_object.add_DLA_table(seed,dla_bias=dla_bias,evol=dla_bias_evol,method=dla_bias_method)
+
+    if args.add_DLAs:
+        pixel_object.add_DLA_table(seed,dla_bias=args.DLA_bias,evol=args.DLA_bias_evol,method=args.DLA_bias_method)
 
     #print('{:3.2f} checkpoint DLAs'.format(time.time()-t)); t = time.time()
 
     #Add small scale power to the gaussian skewers:
-    if add_ssf:
+    if args.add_small_scale_fluctuations:
         generator = np.random.RandomState(seed)
-        pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,generator,white_noise=False,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff,use_transformation=True)
+        pixel_object.add_small_scale_fluctuations(args.cell_size,generator,white_noise=False,lambda_min=lambda_min,IVAR_cutoff=args.IVAR_cut,use_transformation=True)
 
-        #Remove the 'SIGMA_G' header as SIGMA_G now varies with z, so can't be stored in a header.
-        del header['SIGMA_G']
+        if args.skewer_type == 'gaussian':
+            #Remove the 'SIGMA_G' header as SIGMA_G now varies with z, so can't be stored in a header.
+            del header['SIGMA_G']
 
     #print('{:3.2f} checkpoint SSF'.format(time.time()-t)); t = time.time()
 
     #Recompute physical skewers, and then the tau skewers.
-    pixel_object.compute_physical_skewers()
+    if args.skewer_type == 'gaussian':
+        pixel_object.compute_physical_skewers()
     pixel_object.compute_all_tau_skewers()
 
-    if transmission_only == False:
+    if args.transmission_only == False:
 
-        #Picca Gaussian, small cells
-        filename = utils.get_file_name(location,'picca-gaussian',N_side,pixel)
-        pixel_object.save_as_picca_delta('gaussian',filename,header,overwrite=overwrite,add_QSO_RSDs=add_QSO_RSDs,compress=compress)
+        if args.skewer_type == 'gaussian':
+            #Picca Gaussian, small cells
+            filename = utils.get_file_name(location,'picca-gaussian',N_side,pixel)
+            pixel_object.save_as_picca_delta('gaussian',filename,header,overwrite=args.overwrite,add_QSO_RSDs=args.add_QSO_RSDs,compress=args.compress)
 
         #Picca density
         filename = utils.get_file_name(location,'picca-density',N_side,pixel)
-        pixel_object.save_as_picca_delta('density',filename,header,overwrite=overwrite,add_QSO_RSDs=add_QSO_RSDs,compress=compress)
+        pixel_object.save_as_picca_delta('density',filename,header,overwrite=args.overwrite,add_QSO_RSDs=args.add_QSO_RSDs,compress=args.compress)
 
         #Picca tau
         filename = utils.get_file_name(location,'picca-tau-noRSD-notnorm',N_side,pixel)
-        pixel_object.save_as_picca_delta('tau',filename,header,notnorm=True,overwrite=overwrite,add_QSO_RSDs=add_QSO_RSDs,compress=compress,all_absorbers=picca_all_absorbers)
+        pixel_object.save_as_picca_delta('tau',filename,header,notnorm=True,overwrite=args.overwrite,add_QSO_RSDs=args.add_QSO_RSDs,compress=args.compress,all_absorbers=args.picca_all_absorbers)
 
         #Picca flux
         filename = utils.get_file_name(location,'picca-flux-noRSD-notnorm',N_side,pixel)
-        pixel_object.save_as_picca_delta('flux',filename,header,notnorm=True,overwrite=overwrite,add_QSO_RSDs=add_QSO_RSDs,compress=compress,all_absorbers=picca_all_absorbers)
+        pixel_object.save_as_picca_delta('flux',filename,header,notnorm=True,overwrite=args.overwrite,add_QSO_RSDs=args.add_QSO_RSDs,compress=args.compress,all_absorbers=args.picca_all_absorbers)
 
+        """
+        ## Disable this for the moment.
         #Save the no RSD statistics file for this pixel.
         filename = utils.get_file_name(location,'statistics-noRSD',N_side,pixel)
-        statistics = pixel_object.save_statistics(filename,overwrite=overwrite,compress=compress,all_absorbers=picca_all_absorbers)
+        statistics = pixel_object.save_statistics(filename,overwrite=args.overwrite,compress=args.compress,all_absorbers=args.picca_all_absorbers)
+        """
 
     #print('{:3.2f} checkpoint noRSD files'.format(time.time()-t)); t = time.time()
 
     #Add RSDs from the velocity skewers provided by CoLoRe.
-    if add_RSDs == True:
-        pixel_object.add_all_RSDs(thermal=include_thermal_effects)
+    if args.add_RSDs == True:
+        pixel_object.add_all_RSDs(thermal=args.include_thermal_effects)
 
     #print('{:3.2f} checkpoint RSDs'.format(time.time()-t)); t = time.time()
 
     #Trim the skewers (remove low lambda cells). Exit if no QSOs are left.
     #We now cut hard at lambda min as RSDs have been implemented.
-    pixel_object.trim_skewers(lambda_min,min_catalog_z,extra_cells=1)
+    pixel_object.trim_skewers(lambda_min,args.min_cat_z,extra_cells=1)
     if pixel_object.N_qso == 0:
         print('\nwarning: no objects left in pixel {} after trimming.'.format(pixel))
         return pixel
@@ -523,21 +477,23 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,g
 
     #Save the transmission file.
     filename = utils.get_file_name(location,'transmission',N_side,pixel)
-    pixel_object.save_as_transmission(filename,header,overwrite=overwrite,wave_min=trans_lmin,wave_max=trans_lmax,wave_step=trans_dl,fmt=transmission_format,add_QSO_RSDs=add_QSO_RSDs,compress=compress)
+    pixel_object.save_as_transmission(filename,header,overwrite=args.overwrite,wave_min=args.transmission_lambda_min,wave_max=args.transmission_lambda_max,wave_step=args.transmission_delta_lambda,fmt=args.transmission_format,add_QSO_RSDs=args.add_QSO_RSDs,compress=args.compress)
 
-    if transmission_only == False and add_RSDs == True:
+    if args.transmission_only == False and args.add_RSDs == True:
         #Picca tau
         filename = utils.get_file_name(location,'picca-tau-notnorm',N_side,pixel)
-        pixel_object.save_as_picca_delta('tau',filename,header,notnorm=True,overwrite=overwrite,add_QSO_RSDs=add_QSO_RSDs,compress=compress,all_absorbers=picca_all_absorbers)
+        pixel_object.save_as_picca_delta('tau',filename,header,notnorm=True,overwrite=args.overwrite,add_QSO_RSDs=args.add_QSO_RSDs,compress=args.compress,all_absorbers=args.picca_all_absorbers)
 
         #Picca flux
         filename = utils.get_file_name(location,'picca-flux-notnorm',N_side,pixel)
-        pixel_object.save_as_picca_delta('flux',filename,header,notnorm=True,overwrite=overwrite,add_QSO_RSDs=add_QSO_RSDs,compress=compress,all_absorbers=picca_all_absorbers)
+        pixel_object.save_as_picca_delta('flux',filename,header,notnorm=True,overwrite=args.overwrite,add_QSO_RSDs=args.add_QSO_RSDs,compress=args.compress,all_absorbers=args.picca_all_absorbers)
 
+        """
+        ## Disable this for the moment.
         #Save the final statistics file for this pixel.
         filename = utils.get_file_name(location,'statistics',N_side,pixel)
-        statistics = pixel_object.save_statistics(filename,overwrite=overwrite,compress=compress,all_absorbers=picca_all_absorbers)
-
+        statistics = pixel_object.save_statistics(filename,overwrite=args.overwrite,compress=args.compress,all_absorbers=args.picca_all_absorbers)
+        """
     else:
         #If transmission_only is not False, remove the gaussian-colore file.
         os.remove(gaussian_filename)
@@ -547,11 +503,11 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,g
     return new_cosmology
 
 #define the tasks
-tasks = [(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,global_measured_SIGMA_G,sample_measured_SIGMA_G,tuning_file) for pixel in pixel_list]
+tasks = [(args.out_dir,pixel,args.nside,zero_mean_delta,args.lambda_min,args.tuning_file) for pixel in pixel_list]
 
 #Run the multiprocessing pool
 if __name__ == '__main__':
-    pool = Pool(processes = N_processes)
+    pool = Pool(processes = args.nproc)
     results = []
     start_time = time.time()
 
@@ -589,7 +545,7 @@ except IndexError:
 
     #Make an appropriate header.
     header = fits.Header()
-    header['NSIDE'] = N_side
+    header['NSIDE'] = args.nside
 
     #Make the data into tables.
     hdu_ID = fits.BinTableHDU.from_columns(master_catalog,header=header,name='CATALOG')

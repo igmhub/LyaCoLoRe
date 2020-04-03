@@ -10,6 +10,7 @@ import time
 import glob
 from iminuit import Minuit
 import argparse
+import json
 
 from lyacolore import convert, Pk1D, utils, independent, tuning, simulation_data
 
@@ -19,11 +20,19 @@ parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFo
 parser.add_argument('--base-dir', type = str, default = None, required=True,
                     help = 'Base directory for the input data')
 
-parser.add_argument('--tuning-file-out', type = str, default = None, required=True,
+parser.add_argument('--tuning-file-out', type = str, default = None, required=False,
                     help = 'Out file for the tuning data')
 
 parser.add_argument('--plot-dir-out', type = str, default = None, required=False,
                     help = 'Out directory for the plots')
+
+parser.add_argument('--file-format', type = str, default = 'colore', required=False,
+                    choices=['colore'],
+                    help = 'input file type')
+
+parser.add_argument('--skewer-type', type = str, default = 'gaussian', required=False,
+                    choices=['gaussian','density'],
+                    help = 'type of skewer in input file')
 
 # Computational options.
 parser.add_argument('--nproc', type = int, default = 1, required=False,
@@ -195,7 +204,6 @@ s_kwargs = {'n'  : initial_n,       'error_n' : 1.0,    'fix_n' : args.fix_all|f
 other_kwargs = {'R'  : initial_R,    'error_R' : 1.0,   'fix_R' : args.fix_all|fix_R,       'limit_R' : (0., 1000.),
                 'a_v': initial_a_v,  'error_a_v' : 0.1, 'fix_a_v' : args.fix_all|fix_a_v,   'limit_a_v' : (0., 2.0),
                 'return_measurements'  : False,    'fix_return_measurements' : True,
-                'errordef'             : 1,
                 }
 
 #Colours for the plot
@@ -207,9 +215,10 @@ def get_parameter(z,A0,A1,A2,z0=3.0):
     alpha = np.exp(utils.quadratic_log(x,A0,A1,A2))
     return alpha
 
-#Check that the output tuning file has the right extension.
-if (args.tuning_file_out[-8:] != '.fits.gz') and (args.tuning_file_out[-5:] != '.fits'):
-    raise NameError('Output tuning file is not .fits or .fits.gz')
+#If required, check that the output tuning file has the right extension.
+if save_tuning:
+    if (args.tuning_file_out[-8:] != '.fits.gz') and (args.tuning_file_out[-5:] != '.fits'):
+        raise NameError('Output tuning file is not .fits or .fits.gz')
 
 #Get the location to save the plots if none is given.
 if args.plot_dir_out is None:
@@ -255,10 +264,10 @@ def measure_pixel_segment(pixel,C0,C1,C2,texp,D0,D1,D2,n,k1,R_kms,a_v,RSD_weight
 
     #Get the filename of the gaussian skewer.
     location = utils.get_dir_name(args.base_dir,pixel)
-    filename = utils.get_file_name(location,'gaussian-colore',args.nside,pixel,compressed=args.compressed_input)
+    filename = utils.get_file_name(location,'{}-colore'.format(args.skewer_type),args.nside,pixel,compressed=args.compressed_input)
 
     #Make a pixel object from it.
-    data = simulation_data.SimulationData.get_gaussian_skewers_object(filename,None,'gaussian_colore',IVAR_cutoff=args.lambda_rest_max)
+    data = simulation_data.SimulationData.get_skewers_object(filename,None,args.file_format,args.skewer_type,IVAR_cutoff=args.lambda_rest_max)
     #print('{:3.2f} checkpoint sim_dat'.format(time.time()-t))
     t = time.time()
 
@@ -287,13 +296,14 @@ def measure_pixel_segment(pixel,C0,C1,C2,texp,D0,D1,D2,n,k1,R_kms,a_v,RSD_weight
 
     #Add small scale fluctuations to the skewers.
     generator = np.random.RandomState(seed)
-    data.add_small_scale_gaussian_fluctuations(args.cell_size,generator,white_noise=False,lambda_min=0.0,IVAR_cutoff=args.lambda_rest_max,use_transformation=True,remove_P1D_data=remove_P1D_data)
+    data.add_small_scale_fluctuations(args.cell_size,generator,white_noise=False,lambda_min=0.0,IVAR_cutoff=args.lambda_rest_max,use_transformation=True,remove_P1D_data=remove_P1D_data)
 
     #print('{:3.2f} checkpoint extra power'.format(time.time()-t))
     t = time.time()
 
-    #Copmute the physical skewers
-    data.compute_physical_skewers()
+    #If needed, compute the physical skewers
+    if args.skewer_type == 'gaussian':
+        data.compute_physical_skewers()
 
     #Compute the tau skewers and add RSDs
     data.compute_tau_skewers(data.lya_absorber)

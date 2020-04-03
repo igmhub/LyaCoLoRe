@@ -278,18 +278,17 @@ def get_simulation_parameters(location,filename):
     equality_format = ' = '
     N_parameters = len(parameters)
 
-    parameter_values = np.array([tuple([0]*N_parameters)],dtype=parameters)
-
+    param_dict = {}
     #For each parameter defined, find its value and put it into the output array.
-    for i, parameter in enumerate(parameters):
-        search_term = parameter[0] + equality_format
-        data_type = parameter[1]
+    for i, p in enumerate(parameters):
+        search_term = p[0] + equality_format
+        data_type = p[1]
         N_char = len(search_term)
 
         first_char = parameter_str.find(search_term)
-        parameter_values[0][i] = float(parameter_str[first_char+N_char:parameter_str.find(divider,first_char+N_char)])
+        param_dict[p[0]] = float(parameter_str[first_char+N_char:parameter_str.find(divider,first_char+N_char)])
 
-    return parameter_values
+    return param_dict
 
 #Function to normalise a set of delta skewer rows to zero mean according to given weights.
 #If all weights for a given cell are zero, then the output will be zero in that cell for all skewers.

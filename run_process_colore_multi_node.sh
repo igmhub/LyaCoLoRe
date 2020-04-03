@@ -33,6 +33,8 @@ DOWNSAMPLING=1.0
 FOOTPRINT='desi_pixel_plus'
 PIXELS=`echo {0..3071}`
 TRANSMISSION_FORMAT='final'
+INPU_FORMAT='colore'
+SKEWER_TYPE='gaussian'
 
 # transmission file wavelength grid
 TRANS_LMIN=3470.0
@@ -108,7 +110,7 @@ fi
 ##############################################################################
 ## Make the master file, and the new file structure.
 echo " "
-${PROCESS_PATH}/make_master.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} --nside ${NSIDE} --nproc ${NCORES} --min-cat-z ${MIN_CAT_Z} ${MM_FLAGS} --downsampling ${DOWNSAMPLING} --footprint ${FOOTPRINT} --pixels ${PIXELS}
+${PROCESS_PATH}/make_master.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} --nside ${NSIDE} --nproc ${NCORES} --min-cat-z ${MIN_CAT_Z} ${MM_FLAGS} --downsampling ${DOWNSAMPLING} --footprint ${FOOTPRINT} --pixels ${PIXELS} --file-format ${FILE_FORMAT} --skewer-type ${SKEWER_TYPE}
 
 ##############################################################################
 ## Generate the run files.
@@ -151,7 +153,7 @@ for NODE in \`seq $NNODES\` ; do
 
     echo "looking at pixels: \${NODE_PIXELS}"
 
-    command="srun -N 1 -n 1 -c ${NCORES} ${PROCESS_PATH}/make_transmission.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} ${MT_FLAGS} --pixels \${NODE_PIXELS} --tuning-file ${TUNING_PATH} --nside ${NSIDE} --nproc ${NCORES} --IVAR-cut ${IVAR_CUT} --cell-size ${CELL_SIZE} --lambda-min ${LAMBDA_MIN} --seed ${LYACOLORE_SEED} --DLA-bias ${DLA_BIAS} --DLA-bias-evol ${DLA_BIAS_EVOL} --DLA-bias-method ${DLA_BIAS_METHOD} --transmission-lambda-min ${TRANS_LMIN} --transmission-lambda-max ${TRANS_LMAX} --transmission-delta-lambda ${TRANS_DL} --transmission-format ${TRANSMISSION_FORMAT}"
+    command="srun -N 1 -n 1 -c ${NCORES} ${PROCESS_PATH}/make_transmission.py --in-dir ${INPUT_PATH} --out-dir ${OUTPUT_PATH} ${MT_FLAGS} --pixels \${NODE_PIXELS} --tuning-file ${TUNING_PATH} --nside ${NSIDE} --nproc ${NCORES} --IVAR-cut ${IVAR_CUT} --cell-size ${CELL_SIZE} --lambda-min ${LAMBDA_MIN} --seed ${LYACOLORE_SEED} --DLA-bias ${DLA_BIAS} --DLA-bias-evol ${DLA_BIAS_EVOL} --DLA-bias-method ${DLA_BIAS_METHOD} --transmission-lambda-min ${TRANS_LMIN} --transmission-lambda-max ${TRANS_LMAX} --transmission-delta-lambda ${TRANS_DL} --transmission-format ${TRANSMISSION_FORMAT} --file-format ${FILE_FORMAT} --skewer-type ${SKEWER_TYPE}"
 
     echo \$command
     \$command >& ${OUTPUT_PATH}/logs/node-\${NODE}.log &
