@@ -6,6 +6,8 @@
 ## from CoLoRe, included within the repository.
 
 ################################################################################
+## USER DEFINED PARAMS.
+
 # Clear out the old example data.
 rm -r $LYACOLORE_PATH/example_data/lya_skewers/*
 
@@ -26,6 +28,7 @@ NCORES=1
 # Set verbosity (1=on, 0=off) for explanation as LyaCoLoRe works.
 VERBOSE=1
 
+## END OF USER DEFINED PARAMS.
 ################################################################################
 
 echo "Starting LyaCoLoRe..."
