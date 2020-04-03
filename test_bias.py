@@ -39,7 +39,7 @@ pixel = 0
 dirname = utils.get_dir_name(base_dir,pixel)
 gaussian_filename = utils.get_file_name(dirname,'gaussian-colore',N_side,pixel)
 file_number = None
-pixel_object = simulation_data.SimulationData.get_gaussian_skewers_object(gaussian_filename,file_number,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
+pixel_object = simulation_data.SimulationData.get_skewers_object(gaussian_filename,file_number,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
 
 tuning_filename = tuning_files[0]
 #Get tuning data
@@ -63,7 +63,7 @@ pixel_object.trim_skewers(lambda_min-lambda_buffer,min_catalog_z,extra_cells=1)
 
 #Add small scale power to the gaussian skewers:
 generator = np.random.RandomState(seed)
-pixel_object.add_small_scale_gaussian_fluctuations(final_cell_size,generator,white_noise=False,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff,n=n,k1=k1,R_kms=R_kms)
+pixel_object.add_small_scale_fluctuations(final_cell_size,generator,white_noise=False,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff,n=n,k1=k1,R_kms=R_kms)
 
 #Recompute physical skewers.
 pixel_object.compute_physical_skewers()
@@ -137,4 +137,3 @@ plt.plot(data_z_val.Z,mean_F,label='original')
 plt.plot(grad_decrease.Z,mean_F_decrease,label='decrease')
 plt.xlim(2.30,2.32)
 plt.legend();plt.grid();plt.show()
-

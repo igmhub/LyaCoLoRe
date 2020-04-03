@@ -42,6 +42,9 @@ parser.add_argument('--compress', action="store_true", default = False, required
 parser.add_argument('--transmission-only', action="store_true", default = False, required=False,
                     help = 'save only the transmission file')
 
+parser.add_argument('--make-DLA-master', action="store_true", default = False, required=False,
+                    help = 'make a DLA master file')
+
 parser.add_argument('--add-picca-DLA-drqs', action="store_true", default = False, required=False,
                     help = 'save picca format drq files for DLAs')
 
@@ -90,43 +93,44 @@ def log_error(retval):
 Make the DLA master file.
 """
 
-print('Making the DLA master file...')
+if args.make_DLA_master:
+    print('Making the DLA master file...')
 
-def get_DLA_data(pixel):
-    dirname = utils.get_dir_name(base_dir,pixel)
-    filename = utils.get_file_name(dirname,'transmission',N_side,pixel,compressed=compressed_input)
-    DLA_data = DLA.get_DLA_data_from_transmission(pixel,filename)
-    return DLA_data
+    def get_DLA_data(pixel):
+        dirname = utils.get_dir_name(base_dir,pixel)
+        filename = utils.get_file_name(dirname,'transmission',N_side,pixel,compressed=compressed_input)
+        DLA_data = DLA.get_DLA_data_from_transmission(pixel,filename)
+        return DLA_data
 
-if args.footprint in ['desi','desi_pixel']:
-    footprint_pixels = np.loadtxt('/global/homes/j/jfarr/Projects/LyaCoLoRe/input_files/DESI_pixels.txt')
-elif args.footprint in ['desi_pixel_plus']:
-    footprint_pixels = np.loadtxt('/global/homes/j/jfarr/Projects/LyaCoLoRe/input_files/DESI_pixels_plus.txt')
-else:
-    footprint_pixels = np.array(list(range(12*args.nside*args.nside)))
+    if args.footprint in ['desi','desi_pixel']:
+        footprint_pixels = np.loadtxt('/global/homes/j/jfarr/Projects/LyaCoLoRe/input_files/DESI_pixels.txt')
+    elif args.footprint in ['desi_pixel_plus']:
+        footprint_pixels = np.loadtxt('/global/homes/j/jfarr/Projects/LyaCoLoRe/input_files/DESI_pixels_plus.txt')
+    else:
+        footprint_pixels = np.array(list(range(12*args.nside*args.nside)))
 
-tasks = [(pixel,) for pixel in pixels if pixel in footprint_pixels]
+    tasks = [(pixel,) for pixel in pixels if pixel in footprint_pixels]
 
-#Run the multiprocessing pool
-if __name__ == '__main__':
-    pool = Pool(processes = N_processes)
-    results = []
-    start_time = time.time()
+    #Run the multiprocessing pool
+    if __name__ == '__main__':
+        pool = Pool(processes = N_processes)
+        results = []
+        start_time = time.time()
 
-    for task in tasks:
-        pool.apply_async(get_DLA_data,task,callback=log_result,error_callback=log_error)
+        for task in tasks:
+            pool.apply_async(get_DLA_data,task,callback=log_result,error_callback=log_error)
 
-    pool.close()
-    pool.join()
+        pool.close()
+        pool.join()
 
-#Make the DLA master file
-filename = base_dir + '/master_DLA.fits'
-DLA.write_DLA_master(results,filename,N_side,overwrite=overwrite)
+    #Make the DLA master file
+    filename = base_dir + '/master_DLA.fits'
+    DLA.write_DLA_master(results,filename,N_side,overwrite=overwrite)
 
-#Write DLA data to picca DRQ format files if desired.
-if add_picca_DLA_drqs:
-    DLA.write_DLA_master(results,base_dir+'/master_DLA_picca_RSD.fits',N_side,overwrite=overwrite,picca_DRQ=True,add_DRQ_RSDs=True)
-    DLA.write_DLA_master(results,base_dir+'/master_DLA_picca_NO_RSD.fits',N_side,overwrite=overwrite,picca_DRQ=True,add_DRQ_RSDs=False)
+    #Write DLA data to picca DRQ format files if desired.
+    if add_picca_DLA_drqs:
+        DLA.write_DLA_master(results,base_dir+'/master_DLA_picca_RSD.fits',N_side,overwrite=overwrite,picca_DRQ=True,add_DRQ_RSDs=True)
+        DLA.write_DLA_master(results,base_dir+'/master_DLA_picca_NO_RSD.fits',N_side,overwrite=overwrite,picca_DRQ=True,add_DRQ_RSDs=False)
 
 ################################################################################
 """

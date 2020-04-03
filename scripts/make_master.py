@@ -39,9 +39,8 @@ else:
 
 #Define the original file structure
 input_filename_structure = 'out_srcs_s1_{}.fits' #file_number
-input_files = glob.glob(args.in_dir+'/'+input_filename_structure.format('*'))
+input_files = glob.glob(args.in_dir+input_filename_structure.format('*'))
 file_numbers = utils.get_file_numbers(args.in_dir,input_filename_structure,input_files)
-input_format = 'gaussian_colore'
 
 #Get the simulation parameters from the parameter file.
 simulation_parameters = utils.get_simulation_parameters(args.in_dir,args.param_file)
@@ -82,15 +81,15 @@ start = time.time()
 QSO_filter = utils.make_QSO_filter(args.footprint,N_side=args.nside)
 
 #Define the process to make the master data.
-def make_master_data(file_name,file_number,input_format,N_side,minimum_z=args.min_cat_z):
+def make_master_data(file_name,file_number,file_format,skewer_type,N_side,minimum_z=args.min_cat_z):
 
     seed = args.seed*10**5 + file_number
-    file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element = catalog.get_ID_data(file_name,file_number,input_format,args.nside,minimum_z=minimum_z,downsampling=args.downsampling,QSO_filter=QSO_filter,pixel_list=args.pixels,seed=seed)
+    file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element = catalog.get_ID_data(file_name,file_number,file_format,skewer_type,N_side,minimum_z=minimum_z,downsampling=args.downsampling,QSO_filter=QSO_filter,pixel_list=args.pixels,seed=seed)
 
     return [file_number, ID_data, cosmology, file_pixel_map_element, MOCKID_lookup_element]
 
 #Set up the multiprocessing pool parameters and make a list of tasks.
-tasks = [(input_files[i],file_number,input_format,args.nside) for i,file_number in enumerate(file_numbers)]
+tasks = [(input_files[i],file_number,args.file_format,args.skewer_type,args.nside) for i,file_number in enumerate(file_numbers)]
 
 #Run the multiprocessing pool
 if __name__ == '__main__':

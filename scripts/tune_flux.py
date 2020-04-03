@@ -180,7 +180,7 @@ def measure_pixel_segment(pixel,z_value,ID,lookup):
     gaussian_filename = new_filename_structure.format('gaussian-colore',N_side,pixel)
 
     #Make a pixel object from it.
-    data = simulation_data.SimulationData.get_gaussian_skewers_object(location+gaussian_filename,None,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
+    data = simulation_data.SimulationData.get_skewers_object(location+gaussian_filename,None,input_format,SIGMA_G=measured_SIGMA_G,IVAR_cutoff=IVAR_cutoff)
 
     #Determine the sigma_G to add
     extra_sigma_G = np.sqrt(sigma_G_required**2 - measured_SIGMA_G**2)
@@ -197,7 +197,7 @@ def measure_pixel_segment(pixel,z_value,ID,lookup):
     #add small scale fluctuations
     seed = int(str(N_side) + str(pixel))
     generator = np.random.RandomState(seed)
-    data.add_small_scale_gaussian_fluctuations(cell_size,data.Z,np.ones(data.Z.shape[0])*extra_sigma_G,generator,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n=n,k1=k1) #n=0.7, k1=0.001 default
+    data.add_small_scale_fluctuations(cell_size,data.Z,np.ones(data.Z.shape[0])*extra_sigma_G,generator,amplitude=1.0,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,n=n,k1=k1) #n=0.7, k1=0.001 default
 
     #Convert to flux
     data.compute_physical_skewers()
