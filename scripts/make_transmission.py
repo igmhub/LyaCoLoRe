@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import configargparse
 import multiprocessing
 import numpy as np
 import os
