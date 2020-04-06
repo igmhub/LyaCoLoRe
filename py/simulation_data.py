@@ -360,7 +360,7 @@ class SimulationData:
         old_R_edges = utils.get_edges(old_R)
         R_edge_min = old_R_edges[0]
         R_edge_max = old_R_edges[-1]
-        new_N_cells = (R_edge_max - R_edge_min) // cell_size + 1
+        new_N_cells = int((R_edge_max - R_edge_min) // cell_size + 1)
         R_edge_max = R_edge_min + cell_size * new_N_cells
         new_R_edges = np.linspace(R_edge_min,R_edge_max,new_N_cells+1)
         new_R = utils.get_centres(new_R_edges)
