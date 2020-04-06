@@ -176,9 +176,8 @@ def make_QSO_filter(footprint,N_side=16,pixel_list=None):
         #preferable to loading from file as the footprint could change, and
         #desimodel will be more up to date than the lists in this case.
         else:
-            print('desimodel not installed; loading pixel footprints from file...')
             if footprint=='desi':
-                print('desi footprint not possible without desimodel: using desi_pixel instead...')
+                print('WARN: desimodel is not installed; footprint pixel data will be read from file.')
                 valid_pixels = np.loadtxt('input_files/pixel_footprints/DESI_pixels.txt',dtype=int)
             elif footprint=='desi_pixel':
                 valid_pixels = np.loadtxt('input_files/pixel_footprints/DESI_pixels.txt',dtype=int)
