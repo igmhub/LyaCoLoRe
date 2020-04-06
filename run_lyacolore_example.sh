@@ -8,9 +8,6 @@
 ################################################################################
 ## USER DEFINED PARAMS.
 
-# Clear out the old example data.
-rm -r $LYACOLORE_PATH/example_data/lya_skewers/*
-
 # Set the config file that we want to point to. There are 2 example config
 # files available:
 #  1. input_files/config_files/example_gaussian.ini
@@ -32,6 +29,13 @@ VERBOSE=1
 ################################################################################
 
 echo "Starting LyaCoLoRe..."
+
+# Set up output directories if not already there.
+for t in gaussian 2lpt; do
+  if [ ! -d $LYACOLORE_PATH/example_data/$t/lyacolore_output ] ; then
+      mkdir -p $LYACOLORE_PATH/example_data/$t/lyacolore_output
+  fi
+done
 
 # Make master file and new file structure
 echo " "
