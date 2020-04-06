@@ -60,6 +60,9 @@ simulation_parameters = utils.get_simulation_parameters(args.in_dir,args.param_f
 if (args.skewer_type=='density') & args.add_DLAs:
     raise ValueError('Adding DLAs from density input skewers is not possible yet!')
 
+if (args.metals_selection is not None) and (args.metals_list is not None):
+    raise ValueError('Both a selection of metals and a list of metals have been provided: choose one!')
+
 ################################################################################
 
 """
@@ -247,7 +250,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,lambda_min,tuning_file):
     if args.add_Lyb:
         pixel_object.setup_Lyb_absorber()
     if args.add_metals:
-        pixel_object.setup_metal_absorbers()
+        pixel_object.setup_metal_absorbers(selection=args.metals_selection,metals_list=args.metals_list)
 
     #Make some useful headers
     header = fits.Header()

@@ -93,10 +93,10 @@ class SimulationData:
 
         return
 
-    def setup_metal_absorbers(self):
+    def setup_metal_absorbers(self,selection=None,metals_list=None):
 
         # get a dictionary with multiple absorbers, one for each metal line
-        self.metals = absorber_data.get_metal_dict()
+        self.metals = absorber_data.get_metal_dict(selection=selection,metals_list=metals_list)
 
         return
 

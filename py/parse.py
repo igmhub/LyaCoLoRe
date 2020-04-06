@@ -61,6 +61,11 @@ def get_args(argv):
                 help = 'Choice to add Lyb absorption or not.')
     parser.add('--add-metals', action='store_true', required=False,
                 help = 'Choice to add metal absorption or not.')
+    parser.add('--metals-selection', type=str, required=False,
+                choices = ['standard','full'],
+                help = 'Selection of metal absorbers to add to skewers.')
+    parser.add('--metals-list', type=str, required=False,
+                help = 'List of metal absorbers to add to skewers.', nargs='*')
 
     ## Processing arguments: DLAs
     parser.add('--add-DLAs', action='store_true', required=False,
@@ -106,3 +111,109 @@ def get_args(argv):
     args = parser.parse_args()
 
     return args
+
+
+
+"""
+def get_tuning_args(argv):
+
+    try:
+        parser = configargparse.ArgParser(default_config_files=[os.environ['LYACOLORE_PATH']+'/input_files/tuning_config_files/default.ini'])
+    except KeyError:
+        raise NameError('Environment variable "LYACOLORE_PATH" has not been defined.')
+
+
+    ## Required arguments
+
+# Data options.
+parser.add_argument('--base-dir', type = str, default = None, required=True,
+                    help = 'Base directory for the input data')
+
+parser.add_argument('--tuning-file-out', type = str, default = None, required=False,
+                    help = 'Out file for the tuning data')
+
+parser.add_argument('--plot-dir-out', type = str, default = None, required=False,
+                    help = 'Out directory for the plots')
+
+parser.add_argument('--file-format', type = str, default = 'colore', required=False,
+                    choices=['colore'],
+                    help = 'input file type')
+
+parser.add_argument('--skewer-type', type = str, default = 'gaussian', required=False,
+                    choices=['gaussian','density'],
+                    help = 'type of skewer in input file')
+
+# Computational options.
+parser.add_argument('--nproc', type = int, default = 1, required=False,
+                    help = 'number of processes to use')
+
+# Options for making skewers.
+parser.add_argument('--pixels', type = int, default = None, required=False,
+                    help = 'Which pixel numbers to use for input files', nargs='*')
+
+parser.add_argument('--N-pixels', type = int, default = None, required=False,
+                    help = 'Number of files to use as input')
+
+parser.add_argument('--nside', type = int, default = 16, required=False,
+                    help = 'HEALPix nside for output files (must be 2^n)')
+
+parser.add_argument('--min-cat-z', type = float, default = 1.8, required=False,
+                    help = 'minimum z of objects in catalog')
+
+parser.add_argument('--seed', type = int, default = 16, required=False,
+                    help = 'Random seed to use for the generation of random extra power.')
+
+parser.add_argument('--cell-size', type = float, default = 0.25, required=False,
+                    help = 'size in Mpc/h of output cells')
+
+parser.add_argument('--lambda-min', type = float, default = 3550., required=False,
+                    help = 'Minimum observed wavelength to use in the tuning process')
+
+parser.add_argument('--lambda-rest-max', type = float, default = 1200., required=False,
+                    help = 'Maximum rest-frame wavelength to use in the tuning process')
+
+# Tuning options.
+parser.add_argument('--z-values', type = float, default = [2.0,2.4,2.8,3.2], required=False,
+                    help = 'which z values to measure at', nargs='*')
+
+parser.add_argument('--z-width', type = float, default = 0.1, required=False,
+                    help = 'Width of z bins')
+
+parser.add_argument('--remove-P1D-file', type = str, default = None, required=False,
+                    help = 'P1D to remove from the added ssf while tuning')
+
+parser.add_argument('--remove-P1D-measure', action="store_true", default = False, required=False,
+                    help = 'Remove the measured P1D from the added ssf while tuning')
+
+parser.add_argument('--fix-all', action="store_true", default = False, required=False,
+                    help = 'Fix all parameters.')
+
+# Output options.
+parser.add_argument('--k-plot-max', type = float, default = 0.02, required=False,
+                    help = 'max value of z to plot')
+
+parser.add_argument('--overwrite', action="store_true", default = False, required=False,
+                    help = 'overwrite existing files')
+
+parser.add_argument('--compressed-input', action="store_true", default = False, required=False,
+                    help = 'input files in format .fits.gz')
+
+parser.add_argument('--show-plots', action="store_true", default = False, required=False,
+                    help = 'show plots')
+
+# TODO: Implement these.
+parser.add_argument('--start-from-file', type = str, default = None, required=False,
+                    help = 'Tuning data file to use as a start point')
+
+parser.add_argument('--start-from-random', action="store_true", default = False, required=False,
+                    help = 'Tuning data file to use as a start point')
+
+parser.add_argument('--nskewers', type = int, default = None, required=False,
+                    help = 'number of skewers to process')
+
+parser.add_argument('--downsampling', type = float, default = 1.0, required=False,
+                    help = 'fraction by which to subsample the CoLoRe output')
+
+
+    return args
+"""
