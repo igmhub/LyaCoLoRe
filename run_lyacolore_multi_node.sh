@@ -10,7 +10,7 @@
 # Set the config file that we want to point to. Look at the config files to get
 # some more detail on the arguments chosen, and  for instructions on how to find
 # out more about the options.
-CONFIG_FILE=./input_files/config_files/config_v9.0.ini
+CONFIG_FILE="./input_files/config_files/config_v9.0.ini"
 
 # Set where your CoLoRe output is located, and where you would like your
 # LyaCoLoRe output to be located.
@@ -26,7 +26,6 @@ TIME="00:10:00" #hh:mm:ss
 
 # Specify the settings for LyaCoLoRe.
 RUN_FILE="${LYACOLORE_OUT_LOC}/run_lyacolore.sh"
-PARAM_FILE="${LYACOLORE_OUT_LOC}/input.param"
 
 ## END OF USER DEFINED PARAMS.
 ################################################################################
@@ -135,5 +134,8 @@ echo " "
 echo "Done!"
 echo " "
 echo "################################################################################"
+
+# Copy the config file to the output location for clarity.
+cp $CONFIG_FILE $LYACOLORE_OUT_LOC
 
 ################################################################################

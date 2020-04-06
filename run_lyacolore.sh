@@ -44,4 +44,7 @@ echo " "
 echo "Done!"
 echo " "
 
+# Copy the config file to the output location for clarify.
+cp $CONFIG_FILE $LYACOLORE_OUT_LOC
+
 ################################################################################
