@@ -20,6 +20,7 @@ try:
     fN_cosmo = fN_default.cosmo
     use_pyigm = True
 except:
+    print('WARN: pyigm not found, DLA distributions will not be perfect!')
     use_pyigm = False
 
 def get_threshold(b2f):
@@ -77,7 +78,7 @@ def flag_DLA(z_qso,z_cells,deltas,nu_arr,sigma_g):
 # Reading file from https://arxiv.org/pdf/astro-ph/0407378.pdf
 
 def dnHD_dz_cumlgN(z,logN):
-    tab = astropy.table.Table.read(os.path.abspath('example_data/zheng_cumulative.overz'),format='ascii')
+    tab = astropy.table.Table.read(os.environ['LYACOLORE_PATH']+'/input_files/dla_files/zheng_cumulative.overz',format='ascii')
     y = interp2d(tab['col1'],tab['col2'],tab['col3'],fill_value=None)
     return y(z,logN)
 
@@ -91,9 +92,10 @@ def dndz(z, NHI_min=17.2, NHI_max=22.5):
         # convert dX to dz
         dXdz = fN_cosmo.abs_distance_integrand(z)
         dndz = dndX * dXdz
-        return dndz
     else:
-        return dnHD_dz_cumlgN(z,NHI_max)-dnHD_dz_cumlgN(z,NHI_min)
+        dndz = dnHD_dz_cumlgN(z,NHI_max)-dnHD_dz_cumlgN(z,NHI_min)
+ 
+    return dndz
 
 def get_NHI(z, NHI_min=17.2, NHI_max=22.5, NHI_nsamp=100):
     """ Get random column densities for a given z

@@ -1,26 +1,25 @@
 #!/usr/bin/env python
 
-import numpy as np
-from astropy.io import fits
-import matplotlib.pyplot as plt
-from multiprocessing import Pool
 import multiprocessing
-from scipy.interpolate import interp1d
+import numpy as np
+import os
 import sys
 import time
-import os
-import argparse
 
-from lyacolore import utils, independent, stats, convert, simulation_data, DLA, RSD, tuning
+from astropy.io import fits
+from multiprocessing import Pool
+from scipy.interpolate import interp1d
+
+from lyacolore import parse, simulation_data, utils
 
 ################################################################################
 
 #Script to make a transmission file for a given pixel, given a
 
-# TODO: Make 'input parameters' and 'output parameters' objects? Currently passing loads of arguments to multiprocessing functions which is messy
-# TODO: option to reduce the number of skewers for test purposes?
-# TODO: use args to pass things like file structures around neatly?
 # TODO: Get rid of the need to specify file numbers?
+# TODO: Set up option to specify exactly which meatls we want
+# TODO: Tidy up measuring of SIGMA_G and subsequent DLA method.
+# TODO: Exchange lambda_min for z_min for cells.
 
 ################################################################################
 
@@ -29,137 +28,19 @@ Set up the file locations and filename structures.
 Also define option preferences.
 """
 
-parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-
-parser.add_argument('--in-dir', type = str, default = None, required=True,
-                    help = 'input data directory')
-
-parser.add_argument('--out-dir', type = str, default = None, required=True,
-                    help = 'output data directory')
-
-parser.add_argument('--file-format', type = str, default = 'colore', required=False,
-                    choices=['colore'],
-                    help = 'input file type')
-
-parser.add_argument('--skewer-type', type = str, default = 'gaussian', required=False,
-                    choices=['gaussian','density'],
-                    help = 'type of skewer in input file')
-
-parser.add_argument('--master-dir', type = str, default = None, required=False,
-                    help = 'directory containing the master file')
-
-parser.add_argument('--nproc', type = int, default = 1, required=False,
-                    help = 'number of processes to use')
-
-parser.add_argument('--nside', type = int, default = 16, required=False,
-                    help = 'HEALPix nside for output files (must be 2^n)')
-
-parser.add_argument('--pixels', type = int, default = None, required=False,
-                    help = 'which pixel numbers to work on', nargs='*')
-
-parser.add_argument('--IVAR-cut', type = float, default = 1200., required=False,
-                    help = 'maximum rest frame lambda for IVAR=1 (Å)')
-
-parser.add_argument('--cell-size', type = float, default = 0.25, required=False,
-                    help = 'size in Mpc/h of output cells')
-
-parser.add_argument('--lambda-min', type = float, default = 3550., required=False,
-                    help = 'minimum lambda in picca skewers (Å)')
-
-parser.add_argument('--min-cat-z', type = float, default = 1.8, required=False,
-                    help = 'minimum z of objects in catalog')
-
-parser.add_argument('--param-file', type = str, default = 'out_params.cfg', required=False,
-                    help = 'output parameter file name')
-
-parser.add_argument('--tuning-file', type = str, default = 'input_files/tuning_data_151118.fits', required=False,
-                    help = 'file name for data about tuning sigma_G/alpha')
-
-parser.add_argument('--add-small-scale-fluctuations', action="store_true", default = False, required=False,
-                    help = 'add small scale fluctuations to the Gaussian skewers')
-
-parser.add_argument('--add-DLAs', action="store_true", default = False, required=False,
-                    help = 'add DLAs to the transmission file')
-
-parser.add_argument('--DLA-bias', type = float, default = 2., required=False,
-                    help = 'bias of DLAs')
-
-parser.add_argument('--DLA-bias-evol', type = str, default = 'b_const', required=False,
-                    choices=['b_const','bD_const'],
-                    help = 'choose DLA bias evolution with redshift')
-
-parser.add_argument('--DLA-bias-method', type = str, default = 'global', required=False,
-                    choices=['global','sample'],
-                    help = 'choose whether the DLA bias is determined by the global or sample value of sigma_G')
-
-parser.add_argument('--add-RSDs', action="store_true", default = False, required=False,
-                    help = 'add linear RSDs to the transmission file')
-
-parser.add_argument('--add-Lyb', action="store_true", default = False, required=False,
-                    help = 'add Lyman-beta absorption to TRANSMISSION HDU')
-
-parser.add_argument('--add-metals', action="store_true", default = False, required=False,
-                    help = 'include metal absorbers in the transmission files')
-
-parser.add_argument('--picca-all-absorbers', action="store_true", default = False, required=False,
-                    help = 'combine all absorbers in the picca tau and flux files')
-
-parser.add_argument('--include-thermal-effects', action="store_true", default = False, required=False,
-                    help = 'add thermal RSDs to the transmission file')
-
-parser.add_argument('--transmission-only', action="store_true", default = False, required=False,
-                    help = 'save only the transmission file')
-
-parser.add_argument('--nskewers', type = int, default = None, required=False,
-                    help = 'number of skewers to process')
-
-parser.add_argument('--seed', type = int, default = 123, required=False,
-                    help = 'specify seed to generate random numbers')
-
-parser.add_argument('--overwrite', action="store_true", default = False, required=False,
-                    help = 'overwrite existing files')
-
-parser.add_argument('--add-QSO-RSDs', action="store_true", default = False, required=False,
-                    help = 'add QSO RSDs to the transmission file')
-
-parser.add_argument('--transmission-lambda-min', type = float, default = 3550., required=False,
-                    help = 'minimum wavelength stored in the transmission files')
-
-parser.add_argument('--transmission-lambda-max', type = float, default = 6500., required=False,
-                    help = 'maximum wavelength stored in the transmission files')
-
-parser.add_argument('--transmission-delta-lambda', type = float, default = 0.2, required=False,
-                    help = 'pixel size of transmission files wavelength grid')
-
-parser.add_argument('--transmission-format', type = str, default = "final", required=False,
-                    choices=['develop','final','single_HDU'],
-                    help = 'format of transmission files')
-
-parser.add_argument('--compress', action="store_true", default = False, required=False,
-                    help = 'compress output files to .fits.gz')
+args = parse.get_args(sys.argv)
 
 ################################################################################
 
-print('setup arguments from parser')
-
-args = parser.parse_args()
-
 #Define global variables.
-lya = utils.lya_rest
-
-if args.master_dir:
-    master_file = args.master_dir+'/master.fits'
-else:
-    master_file = args.out_dir+'/master.fits'
-if not args.pixels:
+master_file = args.out_dir+'/master.fits'
+if args.pixels is None:
     args.pixels = list(range(12*args.nside**2))
-
-zero_mean_delta = False
 
 # TODO: print to confirm the arguments. e.g. "DLAs will be added"
 
 if np.log2(args.nside)-int(np.log2(args.nside)) != 0:
-    print('nside must be a power of 2!')
+    raise ValueError('nside must be a power of 2!')
 else:
     N_pix = 12*args.nside**2
 
@@ -168,7 +49,7 @@ colore_base_filename = args.in_dir+'/out_srcs_s1_'
 
 #Calculate the minimum value of z that we are interested in.
 #i.e. the z value for which lambda_min cooresponds to the lya wavelength.
-z_min = args.lambda_min/lya - 1
+z_min = args.lambda_min/utils.lya_rest - 1
 small = 10**-10
 
 #Get the simulation parameters from the parameter file.
@@ -178,6 +59,9 @@ simulation_parameters = utils.get_simulation_parameters(args.in_dir,args.param_f
 #this functionality is not yet implemented.
 if (args.skewer_type=='density') & args.add_DLAs:
     raise ValueError('Adding DLAs from density input skewers is not possible yet!')
+
+if (args.metals_selection is not None) and (args.metals_list is not None):
+    raise ValueError('Both a selection of metals and a list of metals have been provided: choose one!')
 
 ################################################################################
 
@@ -227,7 +111,7 @@ def log_error(retval):
 
 ################################################################################
 
-print('\nWorking on per-HEALPix pixel initial skewer files...')
+print('Working on per-HEALPix pixel initial skewer files...')
 start_time = time.time()
 
 #Define the pixelisation process.
@@ -237,7 +121,7 @@ def pixelise_colore_output(pixel,colore_base_filename,z_min,out_dir,N_side):
     location = utils.get_dir_name(out_dir,pixel)
 
     #Make file into an object
-    pixel_object = simulation_data.make_pixel_object(pixel,colore_base_filename,args.file_format,args.skewer_type,shared_MOCKID_lookup,IVAR_cutoff=args.IVAR_cut)
+    pixel_object = simulation_data.make_pixel_object(pixel,colore_base_filename,args.file_format,args.skewer_type,shared_MOCKID_lookup,IVAR_cutoff=args.rest_frame_weights_cut)
 
     # TODO: These could be made beforehand and passed to the function? Or is there already enough being passed?
     #Make some useful headers
@@ -245,14 +129,14 @@ def pixelise_colore_output(pixel,colore_base_filename,z_min,out_dir,N_side):
     header['HPXNSIDE'] = N_side
     header['HPXPIXEL'] = pixel
     header['HPXNEST'] = True
-    header['LYA'] = lya
+    header['LYA'] = utils.lya_rest
 
     ## Save the pixelised colore file.
     filename = utils.get_file_name(location,'{}-colore'.format(args.skewer_type),N_side,pixel)
     pixel_object.save_as_colore(args.skewer_type,filename,header,overwrite=args.overwrite,compress=args.compress)
 
     if args.skewer_type == 'gaussian':
-        pixel_object.compute_SIGMA_G(type='single_value',lr_max=args.IVAR_cut)
+        pixel_object.compute_SIGMA_G(type='single_value',lr_max=args.rest_frame_weights_cut)
         header['SIGMA_G'] = pixel_object.SIGMA_G
         N = np.sum(pixel_object.IVAR_rows.astype('int'))
 
@@ -280,8 +164,6 @@ if __name__ == '__main__':
     pool.close()
     pool.join()
 
-print('\nTime to make pixel files: {:4.0f}s.\n'.format(time.time()-start_time))
-
 ################################################################################
 
 """
@@ -295,7 +177,7 @@ if args.skewer_type == 'gaussian':
     sg_values = np.array([r[1] for r in results])
     SIGMA_G_global = np.sqrt(np.sum((sg_values**2)*N_values)/np.sum(N_values))
 
-    print('\nGaussian skewers have mean sigma {:2.4f}.'.format(SIGMA_G_global))
+    print('Gaussian skewers have mean sigma {:2.4f}.'.format(SIGMA_G_global))
     print('\nModifying header showing sigma_G in Gaussian CoLoRe files...')
 
     def modify_header(pixel):
@@ -336,10 +218,10 @@ We also save picca format delta files for running correlation function tests.
 Deltas are normalised using the global mean in 'make_summaries'
 """
 
-print('\nWorking on per-HEALPix pixel final skewer files...')
+print('Working on per-HEALPix pixel final skewer files...')
 start_time = time.time()
 
-def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,tuning_file):
+def produce_final_skewers(base_out_dir,pixel,N_side,lambda_min,tuning_file):
 
     t = time.time()
 
@@ -352,7 +234,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,t
 
     # Make a pixel object from it.
     file_number = None
-    pixel_object = simulation_data.SimulationData.get_skewers_object(gaussian_filename,file_number,args.file_format,args.skewer_type,IVAR_cutoff=args.IVAR_cut)
+    pixel_object = simulation_data.SimulationData.get_skewers_object(gaussian_filename,file_number,args.file_format,args.skewer_type,IVAR_cutoff=args.rest_frame_weights_cut)
     if args.skewer_type == 'gaussian':
         pixel_object.SIGMA_G = SIGMA_G_global
 
@@ -368,14 +250,14 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,t
     if args.add_Lyb:
         pixel_object.setup_Lyb_absorber()
     if args.add_metals:
-        pixel_object.setup_metal_absorbers()
+        pixel_object.setup_metal_absorbers(selection=args.metals_selection,metals_list=args.metals_list)
 
     #Make some useful headers
     header = fits.Header()
     header['HPXNSIDE'] = N_side
     header['HPXPIXEL'] = pixel
     header['HPXNEST'] = True
-    header['LYA'] = lya
+    header['LYA'] = utils.lya_rest
     if args.skewer_type == 'gaussian':
         header['SIGMA_G'] = pixel_object.SIGMA_G
 
@@ -409,7 +291,6 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,t
     # TODO: in future, we want DLAs all the way down to z=0.
     #That means we need to store skewers all the way down to z=0.
     #May need to adjust how many nodes are used when running.
-
     if args.add_DLAs:
         pixel_object.add_DLA_table(seed,dla_bias=args.DLA_bias,evol=args.DLA_bias_evol,method=args.DLA_bias_method)
 
@@ -418,7 +299,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,t
     #Add small scale power to the gaussian skewers:
     if args.add_small_scale_fluctuations:
         generator = np.random.RandomState(seed)
-        pixel_object.add_small_scale_fluctuations(args.cell_size,generator,white_noise=False,lambda_min=lambda_min,IVAR_cutoff=args.IVAR_cut,use_transformation=True)
+        pixel_object.add_small_scale_fluctuations(args.cell_size,generator,white_noise=False,lambda_min=lambda_min,IVAR_cutoff=args.rest_frame_weights_cut,use_transformation=True)
 
         if args.skewer_type == 'gaussian':
             #Remove the 'SIGMA_G' header as SIGMA_G now varies with z, so can't be stored in a header.
@@ -503,7 +384,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,zero_mean_delta,lambda_min,t
     return new_cosmology
 
 #define the tasks
-tasks = [(args.out_dir,pixel,args.nside,zero_mean_delta,args.lambda_min,args.tuning_file) for pixel in pixel_list]
+tasks = [(args.out_dir,pixel,args.nside,args.lambda_min,args.tuning_file) for pixel in pixel_list]
 
 #Run the multiprocessing pool
 if __name__ == '__main__':
@@ -516,8 +397,6 @@ if __name__ == '__main__':
 
     pool.close()
     pool.join()
-
-print('\nTime to make physical pixel files: {:4.0f}s.\n'.format(time.time()-start_time))
 
 ################################################################################
 """

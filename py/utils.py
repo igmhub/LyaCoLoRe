@@ -50,7 +50,7 @@ def progress_bar(N_complete,N_tasks,start_time):
     print(' -> current progress: {} {:4d} of {:4d} complete ({:3.0%}), {:4.0f}s elapsed, ~{:5.0f}s remaining'.format(progress_bar,N_complete,N_tasks,N_complete/N_tasks,time_elapsed,estimated_time_remaining),end="\r")
 
     if N_complete == N_tasks:
-        print('\nProcess complete!')
+        print('\nProcess complete!\n')
 
     return
 
@@ -149,6 +149,7 @@ def make_QSO_filter(footprint,N_side=16,pixel_list=None):
         from desimodel.io import load_tiles
         desimodel_installed = True
     except ModuleNotFoundError:
+        print('WARN: desimodel is not installed; footprint pixel data will be read from file.')
         desimodel_installed = False
 
     #If we have desimodel and want to replicate the footprint precisely, use
@@ -175,25 +176,21 @@ def make_QSO_filter(footprint,N_side=16,pixel_list=None):
         #preferable to loading from file as the footprint could change, and
         #desimodel will be more up to date than the lists in this case.
         else:
-            print('desimodel not installed; loading pixel footprints from file...')
             if footprint=='desi':
-                print('desi footprint not possible without desimodel: using desi_pixel instead...')
-                valid_pixels = np.loadtxt('input_files/DESI_pixels.txt',dtype=int)
+                print('WARN: desimodel is not installed; footprint pixel data will be read from file.')
+                valid_pixels = np.loadtxt('input_files/pixel_footprints/DESI_pixels.txt',dtype=int)
             elif footprint=='desi_pixel':
-                valid_pixels = np.loadtxt('input_files/DESI_pixels.txt',dtype=int)
+                valid_pixels = np.loadtxt('input_files/pixel_footprints/DESI_pixels.txt',dtype=int)
             elif footprint=='desi_pixel_plus':
-                valid_pixels = np.loadtxt('input_files/DESI_pixels_plus.txt',dtype=int)
+                valid_pixels = np.loadtxt('input_files/pixel_footprints/DESI_pixels_plus.txt',dtype=int)
 
         #With a list of valid pixels, we now can make a filter.
         def QSO_filter(RA,DEC):
             theta = (np.pi/180.0)*(90.0-DEC)
             phi = (np.pi/180.0)*RA
             pix = hp.ang2pix(N_side,theta,phi,nest=True)
-            fil = np.zeros(pix.shape)
-            for p in valid_pixels:
-                fil += (pix == p)
-            fil = fil.astype('bool')
-            return fil
+            w = np.in1d(pix,valid_pixels)
+            return w
 
     #Else if we don't want to filter at all, set the filter to "None".
     elif footprint=='full_sky':
