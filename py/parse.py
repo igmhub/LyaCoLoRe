@@ -78,6 +78,26 @@ def get_args(argv):
     parser.add('--DLA-bias-method', type = str, required=False,
                 choices=['global','sample'],
                 help = 'DLA bias is determined by the global or sample value of sigma_G.')
+    parser.add('--DLA-NHI-min', type = float, required=False,
+                help = 'Minimum value of NHI for DLAs.')
+    parser.add('--DLA-NHI-max', type = float, required=False,
+                help = 'Maximum value of NHI for DLAs.')
+
+    ## Processing arguments: randoms
+    parser.add('--rand-factor-QSO', type = float, required=False,
+                help = 'Multiplicative factor for number of QSO randoms.')
+    parser.add('--rand-method-QSO', type = str, required=False,
+                help = 'QSO randoms method.')
+    parser.add('--rand-mockid-start', type = int, required=False,
+                help = 'Number at which to start random QSO mockids.')
+    parser.add('--rand-factor-DLA', type = float, required=False,
+                help = 'Multiplicative factor for number of DLA randoms.')
+    parser.add('--rand-method-DLA', type = str, required=False,
+                help = 'DLA randoms method.')
+    parser.add('--add-rand-DLA-NHI', action='store_true', required=False,
+                help = 'Include NHI values in random DLAs (slower but more information).')
+    parser.add('--rand-dlaid-start', type = int, required=False,
+                help = 'Number at which to start random DLAIDs.')
 
     ## Processing arguments: misc
     parser.add('--nproc', type = int, required=False,
