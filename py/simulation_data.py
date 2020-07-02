@@ -3,7 +3,7 @@ from astropy.io import fits
 from scipy.interpolate import interp1d
 import time
 
-from . import absorber, absorber_data, bias, convert, DLA, independent, read_files, RSD, stats, tuning, utils
+from lyacolore import absorber, bias, convert, DLA, independent, read_files, RSD, stats, tuning, utils
 
 lya = utils.lya_rest
 
@@ -75,7 +75,7 @@ class SimulationData:
         self.V = V
 
         # these will store the absorbing fields (Lya, Lyb, metals...)
-        self.lya_absorber = absorber.AbsorberData(name='Lya',rest_wave=lya,flux_transform_m=1.0)
+        self.lya_absorber = absorber.Absorber(name='Lya',rest_wave=lya,flux_transform_m=1.0)
         self.lyb_absorber = None
         self.metals = None
 
@@ -89,14 +89,14 @@ class SimulationData:
 
     def setup_Lyb_absorber(self):
 
-        self.lyb_absorber = absorber_data.get_lyb_absorber()
+        self.lyb_absorber = absorber.get_lyb_absorber()
 
         return
 
     def setup_metal_absorbers(self,selection=None,metals_list=None):
 
         # get a dictionary with multiple absorbers, one for each metal line
-        self.metals = absorber_data.get_metal_dict(selection=selection,metals_list=metals_list)
+        self.metals = absorber.get_metal_dict(selection=selection,metals_list=metals_list)
 
         return
 
