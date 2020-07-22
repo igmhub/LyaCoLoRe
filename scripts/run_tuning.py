@@ -12,7 +12,7 @@ from iminuit import Minuit
 import argparse
 import json
 
-from lyacolore import convert, Pk1D, utils, independent, tuning, simulation_data
+from lyacolore import simulation_data, tuning, utils
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
@@ -109,8 +109,6 @@ parser.add_argument('--downsampling', type = float, default = 1.0, required=Fals
 ################################################################################
 
 args = parser.parse_args()
-
-lya = utils.lya_rest
 
 #Admin options
 save_plots = (args.plot_dir_out != None)
@@ -290,8 +288,8 @@ def measure_pixel_segment(pixel,C0,C1,C2,texp,D0,D1,D2,n,k1,R_kms,a_v,RSD_weight
     lambda_buffer = 100. #Angstroms
     z_lower_cut = np.min(args.z_values) - args.z_width/2.
     z_upper_cut = np.max(args.z_values) + args.z_width/2.
-    lambda_min_val = np.min([args.lambda_min,lya*(1 + z_lower_cut)]) - lambda_buffer
-    lambda_max_val = lya*(1 + z_upper_cut) + lambda_buffer
+    lambda_min_val = np.min([args.lambda_min,utils.lya_rest*(1 + z_lower_cut)]) - lambda_buffer
+    lambda_max_val = utils.lya_rest*(1 + z_upper_cut) + lambda_buffer
     data.trim_skewers(lambda_min_val,args.min_cat_z,lambda_max=lambda_max_val,whole_lambda_range=False)
 
     #Add small scale fluctuations to the skewers.
