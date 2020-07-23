@@ -263,7 +263,7 @@ def get_relevant_indices(minimum,values):
     return relevant_indices
 
 #Function to retrieve relevant simulation parameters from the param.cfg file.
-def get_simulation_parameters(location,filename):
+def get_simulation_parameters(location,filename,indent='  ',equality_format=' = '):
 
     #Create a string of the parameter file to search.
     parameter_str = open(location + '/' + filename,'r').read()
@@ -272,7 +272,6 @@ def get_simulation_parameters(location,filename):
     divider = '\n'
     #parameters = [('dens_type','int'),('r_smooth','f4'),('n_grid','int'),('gaussian_skewers','str'),('omega_M','f4'),('omega_L','f4'),('omega_B','f4'),('h','f4'),('w','f4'),('ns','f4'),('sigma_8','f4')]
     parameters = [('dens_type','int'),('r_smooth','f4'),('n_grid','int'),('omega_M','f4'),('omega_L','f4'),('omega_B','f4'),('h','f4'),('w','f4'),('ns','f4'),('sigma_8','f4')]
-    equality_format = ' = '
     N_parameters = len(parameters)
 
     param_dict = {}
@@ -282,7 +281,7 @@ def get_simulation_parameters(location,filename):
         data_type = p[1]
         N_char = len(search_term)
 
-        first_char = parameter_str.find(search_term)
+        first_char = parameter_str.find(indent+search_term) + len(indent)
         param_dict[p[0]] = float(parameter_str[first_char+N_char:parameter_str.find(divider,first_char+N_char)])
 
     return param_dict

@@ -9,64 +9,51 @@ lya = utils.lya_rest
 #Function to get the bias of delta at various z values from a sim data object.
 #Assumes that the object already has tau calculated and RSDs applied.
 def get_bias_delta(data,z_values,weights=None,d=0.001,z_width=0.2):
-    
-    t = time.time()
-    betas = data.transformation.get_texp(data.Z)
 
+    # Ensure z_values is an array.
     if isinstance(z_values, float):
         z_values = np.array([z_values])
 
+    # Ensure we have RSD weights.
     if not weights:
-        print('no weights dict provided to get_bias_delta. Calculating weights...')
+        print('WARN: no RSD weights dict provided to get_bias_delta. Calculating weights...')
         data.compute_RSD_weights()
 
-    #Add small extra delta to Gaussian skewers to simulate overdensity
+    # Get exponent of conversion to optical depth.
+    texp = data.transformation.get_texp(data.Z)
+
+    # Simulate adding small increase to delta field by rescaling optical depth.
     overdensity = copy.deepcopy(data)
-    #overdensity.GAUSSIAN_DELTA_rows += d
-    #overdensity.compute_physical_skewers()
-    #overdensity.compute_all_tau_skewers()
-    overdensity.lya_absorber.tau *= np.exp(betas*overdensity.D*d)
+    overdensity.lya_absorber.tau *= np.exp(texp*overdensity.D*d)
     overdensity.add_all_RSDs()
     overdensity.store_all_transmission_skewers()
 
-    #Subtract small extra delta to Gaussian skewers to simulate underdensity
+    # Simulate subtracting small increase to delta field by rescaling optical
+    # depth.
     underdensity = copy.deepcopy(data)
-    #underdensity.GAUSSIAN_DELTA_rows -= d
-    #underdensity.compute_physical_skewers()
-    #underdensity.compute_all_tau_skewers()
-    underdensity.lya_absorber.tau /= np.exp(betas*underdensity.D*d)
+    underdensity.lya_absorber.tau /= np.exp(texp*underdensity.D*d)
     underdensity.add_all_RSDs()
     underdensity.store_all_transmission_skewers()
 
-    #print('{:3.2f} checkpoint over/under'.format(time.time()-t))
-    t = time.time()
-
-    #Don't think this is quite valid as D(r_j) != D(s_j)
-    #i.e. RSDs muddle the cells in each skewer and so this scaling would need to be done before adding RSDs
-    #Same applies to the overdensity, of course
-    #underdensity.lya_absorber.tau /= np.exp(betas*underdensity.D*d)
-
-    #Calculate mean fluxes in under and overdensities, as well as normal
+    # Calculate mean fluxes in under and overdensities, as well as normal.
     biases = []
     for z_value in z_values:
 
-        #We get means across the z-chunk and combine once bias has been computed.
-        #This avoids overweighting the low end of the chunk.
+        # Get mean flux in each cell in the redshift chunk.
         mean_F_over = overdensity.get_mean_quantity('flux',z_value=z_value,z_width=z_width,single_value=False,power=1)
         mean_F_under = underdensity.get_mean_quantity('flux',z_value=z_value,z_width=z_width,single_value=False,power=1)
         mean_F = data.get_mean_quantity('flux',z_value=z_value,z_width=z_width,single_value=False,power=1)
-        
-        #print(' -> {:3.2f} checkpoint means'.format(time.time()-t))
-        t = time.time()
 
-        #Get relevant values of D to scale by
-        #(we have added d to the Gaussian field, not the density field)
+        # Get relevant values of D to scale by (we have added d to the Gaussian
+        # field, not the density field).
         w = (abs(data.Z-z_value)<z_width/2.)
         D_values = data.D[w]
 
+        # Compute bias as 1/mean_F * d(mean_F)/d(d)
         bias = np.average((1/mean_F) * (1/(2.*d*D_values)) * (mean_F_over - mean_F_under))
         biases += [bias]
 
+    # Convert to array to return.
     biases = np.array(biases)
 
     return biases
