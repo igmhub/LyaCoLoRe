@@ -34,8 +34,11 @@ parser.add_argument('--nproc', type = int, default = 1, required=False,
 parser.add_argument('--nside', type = int, default = 16, required=False,
                     help = 'HEALPix nside for output files (must be 2^n)')
 
-parser.add_argument('--make-zcats', action="store_true", default = False, required=False,
-                    help = 'whether to make new catalogs or not')
+parser.add_argument('--make-qso-zcat', action="store_true", default = False, required=False,
+                    help = 'whether to make QSO catalog or not')
+
+parser.add_argument('--make-dla-zcat', action="store_true", default = False, required=False,
+                    help = 'whether to make DLA catalog or not')
 
 parser.add_argument('--downsampling', type = float, default = 1.0, required=False,
                     help = 'proportion by which to downsample')
@@ -132,9 +135,9 @@ def log_error(retval):
     print('Error:',retval)
 
 ################################################################################
-#Make the zcat.
+#Make the zcats.
 
-def create_cat(args):
+def create_qso_cat(args):
 
     ### Make random generator
     state = sp.random.RandomState(args.downsampling_seed)
@@ -174,6 +177,10 @@ def create_cat(args):
     names = [ k for k in data.keys() if k not in ['PIX'] ]
     out.write(cols,names=names)
     out.close()
+
+    return
+
+def create_dla_cat(args):
 
     ### DLA data
     h = fitsio.FITS(args.in_dir+'/master_DLA.fits')
@@ -349,8 +356,11 @@ def create_cat(args):
 
     return
 
-if args.make_zcats:
-    create_cat(args)
+if args.make_qso_zcat:
+    create_qso_cat(args)
+
+if args.make_dla_zcat:
+    create_dla_cat(args)
 
 ################################################################################
 #Make the delta files.
