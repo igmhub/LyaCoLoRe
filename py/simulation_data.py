@@ -290,7 +290,7 @@ class SimulationData:
         return
 
     # Function to reduce the number of skewers.
-    def reduce_nskw(MOCKIDs=None,nskw=None):
+    def reduce_nskw(self,MOCKIDs=None,nskw=None):
 
         if (MOCKIDs is not None) and (nskw is not None) and (len(MOCKIDs != nskw)):
             raise ValueError('Inconsistent arguments provided:\n-> please specify one way to reduce the number of skewers only!')
