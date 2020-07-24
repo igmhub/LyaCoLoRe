@@ -289,6 +289,82 @@ class SimulationData:
 
         return
 
+    # Function to reduce the number of skewers.
+    def reduce_nskw(MOCKIDs=None,nskw=None):
+
+        if (MOCKIDs is not None) and (nskw is not None) and (len(MOCKIDs != nskw)):
+            raise ValueError('Inconsistent arguments provided:\n-> please specify one way to reduce the number of skewers only!')
+
+        if MOCKIDs is not None:
+            w = np.in1d(self.MOCKID,MOCKIDs)
+
+        elif nskw is not None:
+            MOCKIDs = np.random.choice(self.MOCKID,size=nskw,replace=False)
+            w = np.in1d(self.MOCKID,MOCKIDs)
+
+        else:
+            return
+
+        #Remove QSOs no longer needed.
+        self.N_qso = np.sum(w)
+
+        self.TYPE = self.TYPE[w]
+        self.RA = self.RA[w]
+        self.DEC = self.DEC[w]
+        self.Z_QSO = self.Z_QSO[w]
+        self.DZ_RSD = self.DZ_RSD[w]
+        self.MOCKID = self.MOCKID[w]
+        self.PLATE = self.PLATE[w]
+        self.MJD = self.MJD[w]
+        self.FIBER = self.FIBER[w]
+
+        if self.GAUSSIAN_DELTA_rows is not None:
+            self.GAUSSIAN_DELTA_rows = self.GAUSSIAN_DELTA_rows[w,:]
+        if self.DENSITY_DELTA_rows is not None:
+            self.DENSITY_DELTA_rows = self.DENSITY_DELTA_rows[w,:]
+        self.VEL_rows = self.VEL_rows[w,:]
+        self.IVAR_rows = self.IVAR_rows[w,:]
+        if self.lya_absorber.tau_computed():
+            self.lya_absorber.tau = self.lya_absorber.tau[w,:]
+        if self.lya_absorber.RSDs_applied:
+            self.lya_absorber.tau_noRSD = self.lya_absorber.tau_noRSD[w,:]
+        if self.lyb_absorber:
+            if self.lyb_absorber.tau_computed():
+                self.lyb_absorber.tau = self.lyb_absorber.tau[w,:]
+            if self.lyb_absorber.RSDs_applied:
+                self.lyb_absorber.tau_noRSD = self.lyb_absorber.tau_noRSD[w,:]
+        if self.metals:
+            for metal in iter(self.metals.values()):
+                if metal.tau_computed():
+                    metal.tau = metal.tau[w,:]
+                if metal.RSDs_applied:
+                    metal.tau_noRSD = metal.tau_noRSD[w,:]
+
+        #Modify the RSD weights to remove QSOs and cut off cells simultaneously
+        if self.RSD_weights:
+            trimmed_RSD_weights = {}
+            k = 0
+            for i in self.RSD_weights.keys():
+                if w[i]:
+                    #Extract the matrix from the old dictionary.
+                    weights = self.RSD_weights[i]
+
+                    #Add the new weights to a new dictionary.
+                    trimmed_RSD_weights[k] = weights
+                    k += 1
+
+            #Add the new dictionary to the object.
+            self.RSD_weights = trimmed_RSD_weights
+
+        #Remove DLAs that are no longer relevant, either because their QSO has
+        #been removed, or they are outside the wavelength range.
+        if self.DLA_table is not None:
+            DLA_lambdas = lya*(1+self.DLA_table['Z_DLA_NO_RSD'])
+            relevant_DLAs = [id for id in range(self.DLA_table['MOCKID'].shape[0]) if self.DLA_table['MOCKID'][id] in self.MOCKID]
+            self.DLA_table = self.DLA_table[relevant_DLAs]
+
+        return
+
     # Function to add transformation to the object formally.
     def add_transformation(self,transformation):
         self.transformation = transformation
