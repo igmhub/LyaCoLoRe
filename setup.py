@@ -1,4 +1,4 @@
-from distutils.core import setup
+from setuptools import setup
 
 setup(name='LyaCoLoRe',
       version='0.1',
@@ -7,5 +7,5 @@ setup(name='LyaCoLoRe',
       author_email='github.com/igmhub',
       url='https://github.com/igmhub/LyaCoLoRe',
       packages=['lyacolore'],
-      package_dir = {'lyacolore': 'py'},
+      package_dir = {'': 'py'},
      )
