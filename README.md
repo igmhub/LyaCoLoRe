@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/igmhub/LyaCoLoRe.svg?branch=master)](https://travis-ci.org/igmhub/LyaCoLoRe)
+
 # LyaCoLoRe
 Code development to use CoLoRe simulations for generating simulated Lyman alpha forest spectra.
 LyaCoLoRe takes the output files from CoLoRe as an input, carries out several stages of processing, and produces realistic skewers of transmitted flux fraction as an output.
