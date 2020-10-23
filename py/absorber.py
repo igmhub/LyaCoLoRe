@@ -1,6 +1,6 @@
 import numpy as np
 
-from lyaclore import utils
+from lyacolore import utils
 
 # Class storing information related to a particular absorber
 class Absorber:

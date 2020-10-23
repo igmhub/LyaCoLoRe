@@ -14,6 +14,61 @@ import json
 
 from lyacolore import simulation_data, tuning, utils
 
+################################################################################
+## Parse the input arguments.
+
+tuning_args, run_args = parse.get_tuning_args(sys.argv)
+
+################################################################################
+## Initialise the parameter values.
+params = tuning.tuning_file_to_minuit_input(
+    file=tuning_args.initial_parameter_file,
+    random=tuning_args.randomise_initial_parameter_values,
+    seed=tuning_args.seed)
+
+################################################################################
+"""
+Prepare the data.
+"""
+## Choose objects from data.
+master = fits.open(run_args.out_dir+'/master.fits')
+nobj_total = len(master[1].data)
+w = np.random.choice(range(nobj_total),tuning_args.n_skewers,replace=False)
+input_objects = master[1].data[w]
+master.close()
+
+## Load the CoLoRe input skewers.
+fnums = np.sort(list(set(input_objects['FILENUM'])))
+fpaths = {fnum:get_in_file_name(run_args.in_dir,run_args.in_file_prefix,fnum) for fnum in fnums}
+fmockids = {fnum:input_objects['MOCKID'][(input_objects['FILENUM']==fnum)] for filenum in filenums}
+tasks = [fpaths[fnum],fnum,run_args.file_format,run_args.skewer_type,filemockids[fnum],run_args.lambda_min,run_args.rest_frame_weights_cut,None]
+
+if __name__ == '__main__':
+    pool = Pool(processes = tuning_args.nproc)
+    results = []
+
+    for task in tasks:
+        pool.apply_async(simulation_data.get_skewers_object,task,callback=log_result,error_callback=log_error)
+
+    pool.close()
+    pool.join()
+
+# Calculate RSDs.
+
+
+################################################################################
+## Carry out the minimisation.
+
+################################################################################
+## Make plots.
+
+################################################################################
+## Save the tuning file.
+
+################################################################################
+
+
+
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 # Data options.
@@ -132,6 +187,8 @@ elif args.remove_P1D_file is not None:
     remove_P1D_data = h[1].data
 else:
     remove_P1D_data = None
+
+################################################################################
 
 # TODO: Enable tuning to be started from an ini file (needs a parser)
 # TODO: Enable tuning to be started from an existing tuning file (with large errors)

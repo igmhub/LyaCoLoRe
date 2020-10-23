@@ -10,6 +10,13 @@ import warnings
 
 lya_rest = 1215.67
 
+def get_in_file_name(basedir,basename,filenum,compressed=False):
+    if compressed:
+        return base_dir+'/{}-{}.fits.gz'.format(basename,pixel)
+    else:
+        return base_dir+'/{}-{}.fits'.format(basename,pixel)
+    return
+
 #Function to get the file name using a defined structure.
 def get_file_name(base_dir,base_name,nside,pixel,compressed=False):
     if compressed:
@@ -499,6 +506,10 @@ def renorm_rebin_picca_file(filepath,old_mean=None,new_mean=None,N_merge=None,IV
 #Function to produce values of a quadratic log functional form.
 def quadratic_log(x,A0,A1,A2):
     return np.log(A0) + A1*np.log(x) + A2*(np.log(x))**2
+
+#Function to produce the basic extra power shape.
+def basic_power(k_kms,n,k1_kms):
+    return (1 / (1.0+pow(k_kms/k1_kms,n)))
 
 #Function to extract file numbers from filenames given the location and format.
 def get_file_numbers(original_file_location,input_filename_structure,input_files):
