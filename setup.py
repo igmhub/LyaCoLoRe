@@ -1,4 +1,5 @@
 from distutils.core import setup
+import glob
 
 scripts = glob.glob('scripts/*')
 
