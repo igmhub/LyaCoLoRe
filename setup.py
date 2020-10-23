@@ -13,6 +13,6 @@ setup(name='LyaCoLoRe',
       package_dir = {'lyacolore': 'py'},
       install_requires=['numpy','scipy','iminuit','healpy','fitsio',
           'numba','future','setuptools','configargparse'],
-      test_suite='picca.test.test_cor',
+      test_suite='lyacolore.test.test_cor',
       scripts = scripts
      )
