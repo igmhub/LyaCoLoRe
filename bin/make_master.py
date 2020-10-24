@@ -5,6 +5,7 @@ import numpy as np
 import os
 import sys
 import time
+import tqdm
 
 from astropy.io import fits
 from multiprocessing import Pool
@@ -28,45 +29,14 @@ args = parse.get_args(sys.argv)
 
 ################################################################################
 
-# TODO: print to confirm the arguments. e.g. "DLAs will be added"
-
-#Check the value of N_side required is a power of 2.
-if np.log2(args.nside)-int(np.log2(args.nside)) != 0:
-    print('nside must be a power of 2!')
-else:
-    N_pix = 12*args.nside**2
-
 #Define the original file structure
-input_filename_structure = 'out_srcs_s1_{}.fits' #file_number
-input_files = glob.glob(args.in_dir+input_filename_structure.format('*'))
-file_numbers = utils.get_file_numbers(args.in_dir,input_filename_structure,input_files)
+input_files = glob.glob(os.path.join(args.in_dir,args.input_filename_prefix+'*'))
+file_numbers = utils.get_file_numbers(input_files,args.input_filename_prefix)
 
 #Get the simulation parameters from the parameter file.
 simulation_parameters = utils.get_simulation_parameters(args.in_dir,args.param_file)
 
 ################################################################################
-
-"""
-Define the multiprocessing tracking functions
-"""
-
-#Define a progress-tracking function.
-def log_result(retval):
-
-    results.append(retval)
-    N_complete = len(results)
-    N_tasks = len(tasks)
-    utils.progress_bar(N_complete,N_tasks,start_time)
-
-    return
-
-#Define an error-tracking function.
-def log_error(retval):
-    print('Error:',retval)
-    return
-
-################################################################################
-
 """
 Produce the data required to make a master file using multiprocessing (one task per original file).
 Join the outputs from the many processes together.
@@ -92,15 +62,7 @@ tasks = [(input_files[i],file_number,args.file_format,args.skewer_type,args.nsid
 
 #Run the multiprocessing pool
 if __name__ == '__main__':
-    pool = Pool(processes = args.nproc)
-    results = []
-    start_time = time.time()
-
-    for task in tasks:
-        pool.apply_async(make_master_data,task,callback=log_result,error_callback=log_error)
-
-    pool.close()
-    pool.join()
+    results = utils.run_multiprocessing(make_master_data,tasks,args.nproc)
 
 print('Saving the master files...')
 

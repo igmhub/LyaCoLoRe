@@ -92,25 +92,6 @@ for pixel in pixel_list:
 
 ################################################################################
 
-"""
-Define the multiprocessing tracking functions
-"""
-
-#Define a progress-tracking function.
-def log_result(retval):
-
-    results.append(retval)
-    N_complete = len(results)
-    N_tasks = len(tasks)
-
-    utils.progress_bar(N_complete,N_tasks,start_time)
-
-#Define an error-tracking function.
-def log_error(retval):
-    print('Error:',retval)
-
-################################################################################
-
 print('Working on per-HEALPix pixel initial skewer files...')
 start_time = time.time()
 
@@ -154,15 +135,7 @@ tasks = [(pixel,colore_base_filename,z_min,args.out_dir,args.nside) for pixel in
 
 #Run the multiprocessing pool
 if __name__ == '__main__':
-    pool = Pool(processes = args.nproc)
-    results = []
-    start_time = time.time()
-
-    for task in tasks:
-        pool.apply_async(pixelise_colore_output,task,callback=log_result,error_callback=log_error)
-
-    pool.close()
-    pool.join()
+    results = utils.run_multiprocessing(pixelise_colore_output,tasks,args.nproc)
 
 ################################################################################
 
@@ -191,17 +164,10 @@ if args.skewer_type == 'gaussian':
         return
 
     #Run the multiprocessing pool
+    tasks = [(pixel,) for pixel in pixel_list]
     if __name__ == '__main__':
-        pool = Pool(processes = args.nproc)
-        results = []
-        start_time = time.time()
-
-        for pixel in pixel_list:
-            pool.apply_async(modify_header,(pixel,),callback=log_result,error_callback=log_error)
-
-        pool.close()
-        pool.join()
-
+        results = utils.run_multiprocessing(modify_header,tasks,args.nproc)
+    print(' ')
 
 ################################################################################
 
@@ -271,7 +237,7 @@ def produce_final_skewers(base_out_dir,pixel,N_side,lambda_min,tuning_file):
     #Trim the skewers (remove low lambda cells). Exit if no QSOs are left.
     #We don't cut too tightly on the low lambda to allow for RSDs.
     lambda_buffer = 100. #A
-    pixel_object.trim_skewers(lambda_min-lambda_buffer,args.min_cat_z,extra_cells=1)
+    pixel_object.trim_skewers(lambda_min=lambda_min,min_catalog_z=args.min_cat_z,extra_cells=1,lambda_buffer=lambda_buffer)
     if pixel_object.N_qso == 0:
         print('\nwarning: no objects left in pixel {} after trimming.'.format(pixel))
         return pixel
@@ -388,15 +354,7 @@ tasks = [(args.out_dir,pixel,args.nside,args.lambda_min,args.tuning_file) for pi
 
 #Run the multiprocessing pool
 if __name__ == '__main__':
-    pool = Pool(processes = args.nproc)
-    results = []
-    start_time = time.time()
-
-    for task in tasks:
-        pool.apply_async(produce_final_skewers,task,callback=log_result,error_callback=log_error)
-
-    pool.close()
-    pool.join()
+    results = utils.run_multiprocessing(produce_final_skewers,tasks,args.nproc)
 
 ################################################################################
 """

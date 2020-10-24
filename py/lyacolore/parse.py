@@ -1,4 +1,5 @@
 import configargparse
+import numpy as np
 import os
 import sys
 
@@ -22,6 +23,8 @@ def get_args(argv):
     ## Input arguments.
     parser.add('--param-file', type=str, required=False,
                 help = 'CoLoRe parameter file name.')
+    parser.add('--input-filename-prefix', type=str, required=False,
+                help = 'Prefix for the CoLoRe files.')
     parser.add('--file-format', type=str, required=False,
                 choices=['colore'],
                 help = 'Format of the input data files.')
@@ -129,6 +132,10 @@ def get_args(argv):
                 help = 'Choice whether to compress the output files to .fits.gz or not.')
 
     args = parser.parse_args(args=argv[1:])
+
+    ## Carry out checks on arguments.
+    if np.log2(args.nside)-int(np.log2(args.nside)) != 0:
+        raise ValueError('nside must be a power of 2')
 
     return args
 

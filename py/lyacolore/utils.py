@@ -7,8 +7,52 @@ import shutil
 import gzip
 import sys
 import warnings
+import tqdm
+
+from multiprocessing import Pool
 
 lya_rest = 1215.67
+
+def run_multiprocessing(function,tasks,nproc):
+    """
+    Function to run a multiprocessing pool using apply_async for a given
+    function and set of input tasks.
+
+    Parameters
+    ----------
+    function : function
+        The function to be evaluated for each task.
+    tasks : list of tuples
+        The set of input arguments for the function above.
+    nproc : int
+        The number of processes to use in the multiprocessing pool.
+
+    Returns
+    -------
+    results : list
+        The outputs from applying the parameter 'function' to each of the tasks
+        in parameter 'tasks' in turn.
+    """
+
+    ## Set up the pool and add jobs to it.
+    pool = Pool(processes=nproc)
+    results = []
+    jobs = [pool.apply_async(function,task) for task in tasks]
+    pool.close()
+
+    ## Minor aesthetic fix to keep the progress bar always the same length.
+    new_r_bar = '| {n_fmt: >'
+    new_r_bar += str(len(str(len(tasks))))
+    new_r_bar += '}/{total_fmt} [{elapsed}<{remaining}, ' '{rate_fmt}{postfix}]'
+    bar_format = '{l_bar}{bar}' + new_r_bar
+
+    ## Extract results from the pool.
+    for job in tqdm.tqdm(jobs,ncols=80,desc='Progress',bar_format=bar_format):
+        results.append(job.get())
+    pool.join()
+
+    return results
+
 
 def get_in_file_name(basedir,basename,filenum,compressed=False):
     if compressed:
@@ -512,34 +556,38 @@ def basic_power(k_kms,n,k1_kms):
     return (1 / (1.0+pow(k_kms/k1_kms,n)))
 
 #Function to extract file numbers from filenames given the location and format.
-def get_file_numbers(original_file_location,input_filename_structure,input_files):
+def get_file_numbers(input_files,input_filename_prefix):
+    """
+    Takes a list of paths to files which are named numbered as '*_{i}.*' for a
+    set of numbers given by {i}, and returns just the set of numbers {i},
+    assuming that all files have the same prefix.
 
-    file_numbers = []
+    Parameters
+    ----------
+    input_files : list of strings
+        List of paths to files to extract numbers from.
+    input_filename_prefix : string
+        Prefix common to all filenames in list of input filenames.
 
-    #We assume that there is some filename structure before and after the file
-    #number. We find both before and after parts.
-    struc_before_number = input_filename_structure[:input_filename_structure.find('{')]
-    struc_after_number = input_filename_structure[input_filename_structure.find('}')+1:]
+    Returns
+    -------
+    file_numbers : list of ints
+        List of integer numbers extracted from the input files.
+    """
 
-    for infi in input_files:
-        #Strip the location.
-        infi = infi[len(original_file_location):]
+    ## Strip the directory structure and extension.
+    filenames = [os.path.basename(f) for f in input_files]
+    noext_filenames = [os.path.splitext(f)[0] for f in filenames]
 
-        #Get rid of any slashes if necessary.
-        if '/' in infi:
-            infi = infi[len(infi)-infi[::-1].find('/'):]
+    ## Extract a filenumber from each filename, checking that each file has
+    ## the given prefix.
+    filenumbers = []
+    for f in noext_filenames:
+        assert f[:len(input_filename_prefix)] == input_filename_prefix
+        filenum = int(f[len(input_filename_prefix)+1:])
+        filenumbers += [filenum]
 
-        #Strip the structure before the file number.
-        infi = infi[len(struc_before_number):]
-
-        #Strip the structure after the file number.
-        infi = infi[:len(infi)-len(struc_after_number)]
-
-        #Convert to a number and add to the list.
-        file_number = int(infi)
-        file_numbers += [file_number]
-
-    return file_numbers
+    return filenumbers
 
 def get_zeff(z,rp,rt,weights,rmin=80.,rmax=120.):
 

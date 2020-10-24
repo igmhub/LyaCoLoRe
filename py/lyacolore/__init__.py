@@ -1,2 +1,1 @@
-from . import *
-
+"""Top-level package for lyacolore."""

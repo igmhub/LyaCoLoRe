@@ -36,10 +36,8 @@ class Absorber:
         else:
             return np.exp(-self.tau)
 
-from . import absorber
-
 def get_lyb_absorber():
-    return absorber.Absorber('Lyb', 1025.72, 0.1901)
+    return Absorber('Lyb', 1025.72, 0.1901)
 
 def get_metal_dict(selection=None,metals_list=None):
 
@@ -54,7 +52,7 @@ def get_metal_dict(selection=None,metals_list=None):
 
     metals_dict = {}
     for m in metals_list:
-        metals_dict[m] = absorber.Absorber(m,
+        metals_dict[m] = Absorber(m,
                 metals_data[m]['rest_wave'],metals_data[m]['strength'],
                 metals_data[m]['HDU_name'])
 
@@ -62,9 +60,10 @@ def get_metal_dict(selection=None,metals_list=None):
 
 
 """
-This is a dictionary containing names of the added metals, their corresponding restframe wavelength, and optical depth.
-The values are taken as the ones used in desisim, and Si lines were chosen as in Bautista et al. 2017 https://arxiv.org/pdf/1702.00176.pdf
-Notice that the metals that are being considered are only those with wavelengths  close from Lya.
+This is a dictionary containing names of the added metals, their corresponding
+restframe wavelength, and optical depth. The values are taken as the ones used
+in desisim (https://github.com/desihub/desisim), and Si lines were chosen as in
+Bautista et al. 2017 https://arxiv.org/pdf/1702.00176.pdf.
 """
 metals_data = {
     ## The below metals form the "standard" selection.

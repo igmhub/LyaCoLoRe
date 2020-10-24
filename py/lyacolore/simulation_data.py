@@ -161,7 +161,7 @@ class SimulationData:
     def trim_skewers(self,lambda_min=0.,min_catalog_z=0.,extra_cells=0,lambda_max=None,whole_lambda_range=False,remove_irrelevant_QSOs=False,lambda_buffer=0.):
 
         # Apply the lambda buffer.
-        lambda_min = np.max(0.,lambda_min-lambda_buffer)
+        lambda_min = np.max([0.,lambda_min-lambda_buffer])
         if lambda_max is not None:
             lambda_max = lambda_max+lambda_buffer
 
