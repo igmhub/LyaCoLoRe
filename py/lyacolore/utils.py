@@ -13,7 +13,7 @@ from multiprocessing import Pool
 
 lya_rest = 1215.67
 
-def run_multiprocessing(function,tasks,nproc):
+def run_multiprocessing(function,tasks,nproc,show_progress=True):
     """
     Function to run a multiprocessing pool using apply_async for a given
     function and set of input tasks.
@@ -26,6 +26,8 @@ def run_multiprocessing(function,tasks,nproc):
         The set of input arguments for the function above.
     nproc : int
         The number of processes to use in the multiprocessing pool.
+    show_progress : bool, optional
+        Whether you would like a progress bar to be shown.
 
     Returns
     -------
@@ -40,15 +42,20 @@ def run_multiprocessing(function,tasks,nproc):
     jobs = [pool.apply_async(function,task) for task in tasks]
     pool.close()
 
-    ## Minor aesthetic fix to keep the progress bar always the same length.
-    new_r_bar = '| {n_fmt: >'
-    new_r_bar += str(len(str(len(tasks))))
-    new_r_bar += '}/{total_fmt} [{elapsed}<{remaining}, ' '{rate_fmt}{postfix}]'
-    bar_format = '{l_bar}{bar}' + new_r_bar
+    if show_progress:
+        ## Minor aesthetic fix to keep the progress bar always the same length.
+        new_r_bar = '| {n_fmt: >'
+        new_r_bar += str(len(str(len(tasks))))
+        new_r_bar += '}/{total_fmt} [{elapsed}<{remaining}, ' '{rate_fmt}{postfix}]'
+        bar_format = '{l_bar}{bar}' + new_r_bar
 
-    ## Extract results from the pool.
-    for job in tqdm.tqdm(jobs,ncols=80,desc='Progress',bar_format=bar_format):
-        results.append(job.get())
+        ## Extract results from the pool.
+        for job in tqdm.tqdm(jobs,ncols=80,desc='Progress',bar_format=bar_format):
+            results.append(job.get())
+    else:
+        for job in jobs:
+            results.append(job.get())
+
     pool.join()
 
     return results
