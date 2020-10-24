@@ -158,7 +158,7 @@ class SimulationData:
         return cls(N_qso,N_cells,SIGMA_G,TYPE,RA,DEC,Z_QSO,DZ_RSD,MOCKIDs,PLATE,MJD,FIBER,GAUSSIAN_DELTA_rows,DENSITY_DELTA_rows,VEL_rows,IVAR_rows,R,Z,D,V,LOGLAM_MAP)
 
     #Function to trim skewers according to a minimum value of lambda. QSOs with no relevant cells are removed.
-    def trim_skewers(self,lambda_min=0.,min_catalog_z=0.,extra_cells=0,lambda_max=None,whole_lambda_range=False,remove_irrelevant_QSOs=False,lambda_buffer):
+    def trim_skewers(self,lambda_min=0.,min_catalog_z=0.,extra_cells=0,lambda_max=None,whole_lambda_range=False,remove_irrelevant_QSOs=False,lambda_buffer=0.):
 
         # Apply the lambda buffer.
         lambda_min = np.max(0.,lambda_min-lambda_buffer)
