@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/igmhub/LyaCoLoRe.svg?branch=master)](https://travis-ci.org/igmhub/LyaCoLoRe)
+[![Build Status](https://travis-ci.org/igmhub/LyaCoLoRe.svg?branch=update_travis)](https://travis-ci.org/igmhub/LyaCoLoRe)
 
 # LyaCoLoRe
 Code development to use CoLoRe simulations for generating simulated Lyman alpha forest spectra.
