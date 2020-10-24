@@ -5,7 +5,7 @@ from scipy.sparse import dok_matrix,csc_matrix,csr_matrix
 import math
 import time
 
-from . import utils
+from lyacolore import utils
 
 #
 def get_sigma_kms(T_K):

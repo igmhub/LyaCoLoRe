@@ -3,7 +3,7 @@ from astropy.io import fits
 import matplotlib.pyplot as plt
 import glob
 
-from . import bias, convert, Pk1D, utils
+from lyacolore import bias, convert, Pk1D, utils
 
 lya = utils.lya_rest
 
