@@ -22,6 +22,10 @@ lRF_min=1040.
 lRF_max=1200.
 dll=0.0003
 
+#DLA wavelength range
+DLA_lRF_min=1040.
+DLA_lRF_max=1200.
+
 ################################################################################
 ## For each realisation, run script to make the deltas, once using only lya
 ## absorption, once using all absorbers.
@@ -52,9 +56,9 @@ cat > $RUN_FILE <<EOF
 umask 0002
 export OMP_NUM_THREADS=64
 
-python $LYACOLORE_PATH/scripts/make_picca_deltas_from_transmission.py --in-dir $INDIRNAME --out-dir $OUTDIRNAME --randoms-dir $RANDDIR --nproc $NPROC --downsampling $DS --downsampling-seed $r --randoms-downsampling $DS_RAND --randoms-downsampling-seed $(( $r + 1000 )) --min-cat-z $MIN_CAT_Z --transmission-lambda-min $lObs_min --transmission-lambda-max $lObs_max --transmission-lambda-rest-min $lRF_min --transmission-lambda-rest-max $lRF_max --make-zcats --make-randoms-zcats $FLAGS
+python $LYACOLORE_PATH/scripts/make_picca_deltas_from_transmission.py --in-dir $INDIRNAME --out-dir $OUTDIRNAME --randoms-dir $RANDDIR --nproc $NPROC --downsampling $DS --downsampling-seed $r --randoms-downsampling $DS_RAND --randoms-downsampling-seed $(( $r + 1000 )) --min-cat-z $MIN_CAT_Z --transmission-lambda-min $lObs_min --transmission-lambda-max $lObs_max --transmission-lambda-rest-min $lRF_min --transmission-lambda-rest-max $lRF_max --DLA-lambda-rest-min $DLA_lRF_min --DLA-lambda-rest-max $DLA_lRF_max --make-zcats --make-randoms-zcats $FLAGS
 
-python $LYACOLORE_PATH/scripts/make_picca_deltas_from_transmission.py --in-dir $INDIRNAME --out-dir $OUTDIRNAME --randoms-dir $RANDDIR --nproc $NPROC --downsampling $DS --downsampling-seed $r --randoms-downsampling $DS_RAND --randoms-downsampling-seed $(( $r + 1000 )) --min-cat-z $MIN_CAT_Z --transmission-lambda-min $lObs_min --transmission-lambda-max $lObs_max --transmission-lambda-rest-min $lRF_min --transmission-lambda-rest-max $lRF_max $FLAGS --add-Lyb --add-metals
+python $LYACOLORE_PATH/scripts/make_picca_deltas_from_transmission.py --in-dir $INDIRNAME --out-dir $OUTDIRNAME --randoms-dir $RANDDIR --nproc $NPROC --downsampling $DS --downsampling-seed $r --randoms-downsampling $DS_RAND --randoms-downsampling-seed $(( $r + 1000 )) --min-cat-z $MIN_CAT_Z --transmission-lambda-min $lObs_min --transmission-lambda-max $lObs_max --transmission-lambda-rest-min $lRF_min --transmission-lambda-rest-max $lRF_max --DLA-lambda-rest-min $DLA_lRF_min --DLA-lambda-rest-max $DLA_lRF_max $FLAGS --add-Lyb --add-metals
 
 wait
 date
@@ -66,4 +70,4 @@ EOF
 ## Send the job to the queue.
 sbatch $RUN_FILE
 
-################################################################################ 
+################################################################################
