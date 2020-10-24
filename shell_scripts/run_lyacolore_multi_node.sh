@@ -54,7 +54,7 @@ echo "Starting LyaCoLoRe..."
 echo " "
 echo " 1. Make master file"
 echo " "
-${LYACOLORE_PATH}/scripts/make_master.py -c ${CONFIG_FILE} -i ${COLORE_OUT_LOC} -o ${LYACOLORE_OUT_LOC} --nproc ${NCORES}
+make_master.py -c ${CONFIG_FILE} -i ${COLORE_OUT_LOC} -o ${LYACOLORE_OUT_LOC} --nproc ${NCORES}
 
 ################################################################################
 ## Generate the run files.
@@ -100,7 +100,7 @@ for NODE in \`seq $NNODES\` ; do
 
     echo "looking at pixels: \${NODE_PIXELS}"
 
-    command="${LYACOLORE_PATH}/scripts/make_transmission.py -c ${CONFIG_FILE} -i ${COLORE_OUT_LOC} -o ${LYACOLORE_OUT_LOC} --nproc ${NCORES} --pixels \${NODE_PIXELS}"
+    command="make_transmission.py -c ${CONFIG_FILE} -i ${COLORE_OUT_LOC} -o ${LYACOLORE_OUT_LOC} --nproc ${NCORES} --pixels \${NODE_PIXELS}"
 
     echo \$command
     \$command >& ${LYACOLORE_OUT_LOC}/logs/node-\${NODE}.log &

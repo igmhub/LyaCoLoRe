@@ -30,14 +30,14 @@ echo " "
 echo " "
 echo " 1. Make master file"
 echo " "
-command="${LYACOLORE_PATH}/scripts/make_master.py -c ${CONFIG_FILE} -i ${COLORE_OUT_LOC} -o ${LYACOLORE_OUT_LOC} --nproc ${NCORES}"
+command="make_master.py -c ${CONFIG_FILE} -i ${COLORE_OUT_LOC} -o ${LYACOLORE_OUT_LOC} --nproc ${NCORES}"
 $command
 
 # Make transmission files and other associated skewer files.
 echo " "
 echo " 2. Make transmission files"
 echo " "
-command="${LYACOLORE_PATH}/scripts/make_transmission.py -c ${CONFIG_FILE} -i ${COLORE_OUT_LOC} -o ${LYACOLORE_OUT_LOC} --nproc ${NCORES}"
+command="make_transmission.py -c ${CONFIG_FILE} -i ${COLORE_OUT_LOC} -o ${LYACOLORE_OUT_LOC} --nproc ${NCORES}"
 $command
 
 echo " "
