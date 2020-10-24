@@ -1,6 +1,6 @@
 import numpy as np
 
-from . import utils
+from lyacolore import utils
 
 def get_Pk1D(skewer_rows,IVAR_rows,dr_hMpc,z,z_value=0.0,z_width=None,R1=25.0,units='km/s',gaussian=False):
 

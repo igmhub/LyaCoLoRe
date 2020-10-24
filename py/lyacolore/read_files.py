@@ -1,6 +1,6 @@
 import numpy as np
 
-from . import utils
+from lyacolore import utils
 
 lya = utils.lya_rest
 
