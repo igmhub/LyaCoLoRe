@@ -60,6 +60,12 @@ parser.add_argument('--fid-Om', type=float, default=0.315, required=False,
 parser.add_argument('--fid-Or', type=float, default=0., required=False,
                     help='Omega_radiation(z=0) of fiducial LambdaCDM cosmology')
 
+parser.add_argument('--no-project', action="store_true", default = False, required=False,
+                    help = 'use the "no-project" option for Lya forests')
+
+parser.add_argument('--no-remove-mean-lambda-obs', action="store_true", default = False, required=False,
+                    help = 'use the "no-remove-mean-lambda-obs" option for Lya forest cross correlations')
+
 args = parser.parse_args()
 
 ################################################################################
@@ -76,7 +82,7 @@ if args.run_all:
 ################################################################################
 
 #Functions to construct the job info dictionaries.
-def make_lya_auto_job_info(meas_dir,zmin,zmax,deltas_dir,time=None):
+def make_lya_auto_job_info(meas_dir,zmin,zmax,deltas_dir,time=None,no_project=False):
 
     dir = meas_dir + '/lya_auto/'
     out_dir = dir + '/correlations/'
@@ -93,10 +99,12 @@ def make_lya_auto_job_info(meas_dir,zmin,zmax,deltas_dir,time=None):
 
     options = {'in-dir':        deltas_dir,
                'out':           out_dir+'/cf_lya_auto_{}_{}.fits.gz'.format(zmin,zmax),
-               'no-project':    '',
                'z-cut-min':     zmin,
                'z-cut-max':     zmax,
                }
+
+    if no_project:
+        options['no-project'] = ''
 
     lya_auto_job_info = {'dir':             dir,
                          'header_info':     header_info,
@@ -212,7 +220,7 @@ def make_dla_auto_job_info(meas_dir,zmin,zmax,zcat,zcat_rand,corr_type='DD',time
 
     return dla_auto_job_info
 
-def make_lya_qso_cross_job_info(meas_dir,zmin,zmax,deltas_dir,zcat,zcat_rand,cat_type='D',time=None):
+def make_lya_qso_cross_job_info(meas_dir,zmin,zmax,deltas_dir,zcat,zcat_rand,cat_type='D',time=None,no_project=False,no_remove_mean_lambda_obs=False):
 
     dir = meas_dir + '/lya_qso_cross/'
     out_dir = dir + '/correlations/'
@@ -240,9 +248,12 @@ def make_lya_qso_cross_job_info(meas_dir,zmin,zmax,deltas_dir,zcat,zcat_rand,cat
                'z-evol-obj':                1.44,
                'z-cut-min':                 zmin,
                'z-cut-max':                 zmax,
-               'no-project':                '',
-               'no-remove-mean-lambda-obs': '',
                }
+
+    if no_project:
+        options['no-project'] = ''
+    if no_remove_mean_lambda_obs:
+        options['no-remove-mean-lambda-obs'] = ''
 
     lya_qso_cross_job_info = {'dir':            dir,
                               'header_info':    header_info,
@@ -253,7 +264,7 @@ def make_lya_qso_cross_job_info(meas_dir,zmin,zmax,deltas_dir,zcat,zcat_rand,cat
 
     return lya_qso_cross_job_info
 
-def make_lya_dla_cross_job_info(meas_dir,zmin,zmax,deltas_dir,zcat,zcat_rand,cat_type='D',time=None):
+def make_lya_dla_cross_job_info(meas_dir,zmin,zmax,deltas_dir,zcat,zcat_rand,cat_type='D',time=None,no_project=False,no_remove_mean_lambda_obs=False):
 
     dir = meas_dir + '/lya_dla_cross/'
     out_dir = dir + '/correlations/'
@@ -281,9 +292,12 @@ def make_lya_dla_cross_job_info(meas_dir,zmin,zmax,deltas_dir,zcat,zcat_rand,cat
                'z-evol-obj':                0.0,
                'z-cut-min':                 zmin,
                'z-cut-max':                 zmax,
-               'no-project':                '',
-               'no-remove-mean-lambda-obs': '',
                }
+
+    if no_project:
+        options['no-project'] = ''
+    if no_remove_mean_lambda_obs:
+        options['no-remove-mean-lambda-obs'] = ''
 
     lya_dla_cross_job_info = {'dir':            dir,
                               'header_info':    header_info,
@@ -448,7 +462,7 @@ for zbin in cf_zbins:
     if args.run_lya_auto:
 
         time = job_time_dict['lya_auto'][zbin]
-        lya_auto_job_info = make_lya_auto_job_info(args.corr_dir,zmin,zmax,args.deltas_dir,time=time)
+        lya_auto_job_info = make_lya_auto_job_info(args.corr_dir,zmin,zmax,args.deltas_dir,time=time,no_project=args.no_project)
         submit_utils.run_picca_job(lya_auto_job_info,global_job_info['options'])
         njobs += 1
 
@@ -462,7 +476,7 @@ for zbin in xcf_zbins:
 
         for cat_type in ['D','R']:
             time = job_time_dict['lya_qso_cross'][cat_type][zbin]
-            lya_qso_cross_job_info = make_lya_qso_cross_job_info(args.corr_dir,zmin,zmax,args.deltas_dir,args.drq_qso,args.drq_qso_randoms,cat_type=cat_type,time=time)
+            lya_qso_cross_job_info = make_lya_qso_cross_job_info(args.corr_dir,zmin,zmax,args.deltas_dir,args.drq_qso,args.drq_qso_randoms,cat_type=cat_type,time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs)
             submit_utils.run_picca_job(lya_qso_cross_job_info,global_job_info['options'])
             njobs += 1
 
@@ -470,7 +484,7 @@ for zbin in xcf_zbins:
 
         for cat_type in ['D','R']:
             time = job_time_dict['lya_dla_cross'][cat_type][zbin]
-            lya_dla_cross_job_info = make_lya_dla_cross_job_info(args.corr_dir,zmin,zmax,args.deltas_dir,args.drq_dla,args.drq_dla_randoms,cat_type=cat_type,time=time)
+            lya_dla_cross_job_info = make_lya_dla_cross_job_info(args.corr_dir,zmin,zmax,args.deltas_dir,args.drq_dla,args.drq_dla_randoms,cat_type=cat_type,time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs))
             submit_utils.run_picca_job(lya_dla_cross_job_info,global_job_info['options'])
             njobs += 1
 
