@@ -484,7 +484,7 @@ for zbin in xcf_zbins:
 
         for cat_type in ['D','R']:
             time = job_time_dict['lya_dla_cross'][cat_type][zbin]
-            lya_dla_cross_job_info = make_lya_dla_cross_job_info(args.corr_dir,zmin,zmax,args.deltas_dir,args.drq_dla,args.drq_dla_randoms,cat_type=cat_type,time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs))
+            lya_dla_cross_job_info = make_lya_dla_cross_job_info(args.corr_dir,zmin,zmax,args.deltas_dir,args.drq_dla,args.drq_dla_randoms,cat_type=cat_type,time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs)
             submit_utils.run_picca_job(lya_dla_cross_job_info,global_job_info['options'])
             njobs += 1
 
