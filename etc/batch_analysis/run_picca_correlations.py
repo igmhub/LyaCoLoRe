@@ -66,6 +66,9 @@ parser.add_argument('--no-project', action="store_true", default = False, requir
 parser.add_argument('--no-remove-mean-lambda-obs', action="store_true", default = False, required=False,
                     help = 'use the "no-remove-mean-lambda-obs" option for Lya forest cross correlations')
 
+parser.add_argument('--no-submit', action="store_true", default = False, required=False,
+                    help = 'make the run scripts but do not submit the jobs')
+
 args = parser.parse_args()
 
 ################################################################################
@@ -463,7 +466,7 @@ for zbin in cf_zbins:
 
         time = job_time_dict['lya_auto'][zbin]
         lya_auto_job_info = make_lya_auto_job_info(args.corr_dir,zmin,zmax,args.deltas_dir,time=time,no_project=args.no_project)
-        submit_utils.run_picca_job(lya_auto_job_info,global_job_info['options'])
+        submit_utils.run_picca_job(lya_auto_job_info,global_job_info['options'],no_submit=args.no_submit)
         njobs += 1
 
 for zbin in xcf_zbins:
@@ -477,7 +480,7 @@ for zbin in xcf_zbins:
         for cat_type in ['D','R']:
             time = job_time_dict['lya_qso_cross'][cat_type][zbin]
             lya_qso_cross_job_info = make_lya_qso_cross_job_info(args.corr_dir,zmin,zmax,args.deltas_dir,args.drq_qso,args.drq_qso_randoms,cat_type=cat_type,time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs)
-            submit_utils.run_picca_job(lya_qso_cross_job_info,global_job_info['options'])
+            submit_utils.run_picca_job(lya_qso_cross_job_info,global_job_info['options'],no_submit=args.no_submit)
             njobs += 1
 
     if args.run_lya_dla_cross:
@@ -485,7 +488,7 @@ for zbin in xcf_zbins:
         for cat_type in ['D','R']:
             time = job_time_dict['lya_dla_cross'][cat_type][zbin]
             lya_dla_cross_job_info = make_lya_dla_cross_job_info(args.corr_dir,zmin,zmax,args.deltas_dir,args.drq_dla,args.drq_dla_randoms,cat_type=cat_type,time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs)
-            submit_utils.run_picca_job(lya_dla_cross_job_info,global_job_info['options'])
+            submit_utils.run_picca_job(lya_dla_cross_job_info,global_job_info['options'],no_submit=args.no_submit)
             njobs += 1
 
 for zbin in co_zbins:
@@ -499,7 +502,7 @@ for zbin in co_zbins:
         for corr_type in ['DD','RD','DR','RR']:
             time = job_time_dict['qso_auto'][corr_type][zbin]
             qso_auto_job_info = make_qso_auto_job_info(args.corr_dir,zmin,zmax,args.drq_qso,args.drq_qso_randoms,corr_type=corr_type,time=time)
-            submit_utils.run_picca_job(qso_auto_job_info,global_job_info['options'])
+            submit_utils.run_picca_job(qso_auto_job_info,global_job_info['options'],no_submit=args.no_submit)
             njobs += 1
 
     if args.run_dla_auto:
@@ -507,7 +510,7 @@ for zbin in co_zbins:
         for corr_type in ['DD','RD','DR','RR']:
             time = job_time_dict['dla_auto'][corr_type][zbin]
             dla_auto_job_info = make_dla_auto_job_info(args.corr_dir,zmin,zmax,args.drq_dla,args.drq_dla_randoms,corr_type=corr_type,time=time)
-            submit_utils.run_picca_job(dla_auto_job_info,global_job_info['options'])
+            submit_utils.run_picca_job(dla_auto_job_info,global_job_info['options'],no_submit=args.no_submit)
             njobs += 1
 
     if args.run_qso_dla_cross:
@@ -515,7 +518,7 @@ for zbin in co_zbins:
         for corr_type in ['DD','RD','DR','RR']:
             time = job_time_dict['qso_dla_cross'][corr_type][zbin]
             qso_dla_cross_job_info = make_qso_dla_cross_job_info(args.corr_dir,zmin,zmax,args.drq_qso,args.drq_qso_randoms,args.drq_dla,args.drq_dla_randoms,corr_type=corr_type,time=time)
-            submit_utils.run_picca_job(qso_dla_cross_job_info,global_job_info['options'])
+            submit_utils.run_picca_job(qso_dla_cross_job_info,global_job_info['options'],no_submit=args.no_submit)
             njobs += 1
 
 ################################################################################

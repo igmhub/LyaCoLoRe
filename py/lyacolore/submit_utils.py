@@ -55,7 +55,7 @@ def add_to_command(command,extra,ns=False):
 
 #Function to interpret the job information and global options, and submit a job
 #suitably to the queue.
-def run_picca_job(job_info,global_options):
+def run_picca_job(job_info,global_options,no_submit=False):
 
     dir = job_info['dir']
 
@@ -86,8 +86,9 @@ def run_picca_job(job_info,global_options):
     run_script.close()
     print(' -> -> job script written: {}'.format(job_info['run_script']))
 
-    #Send the run script.
-    retcode = call('sbatch {}'.format(run_script_path),shell=True)
+    if not no_submit:
+        #Send the run script.
+        retcode = call('sbatch {}'.format(run_script_path),shell=True)
 
     return
 
