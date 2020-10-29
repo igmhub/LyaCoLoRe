@@ -18,10 +18,10 @@ parser.add_argument('--drq-qso', type = str, default = None, required=False,
 parser.add_argument('--drq-dla', type = str, default = None, required=False,
                     help = 'dla catalogue')
 
-parser.add_argument('--drq-qso-randoms', type = str, default = None, required=False,
+parser.add_argument('--drq-qso-randoms', type = str, default = None, required=False, nargs='*',
                     help = 'qso randoms catalogue')
 
-parser.add_argument('--drq-dla-randoms', type = str, default = None, required=False,
+parser.add_argument('--drq-dla-randoms', type = str, default = None, required=False, nargs='*',
                     help = 'dla randoms catalogue')
 
 parser.add_argument('--corr-dir', type = str, default = None, required=False,
@@ -223,7 +223,7 @@ def make_dla_auto_job_info(meas_dir,zmin,zmax,zcat,zcat_rand,corr_type='DD',time
 
     return dla_auto_job_info
 
-def make_lya_qso_cross_job_info(meas_dir,zmin,zmax,deltas_dir,zcat,zcat_rand,cat_type='D',time=None,no_project=False,no_remove_mean_lambda_obs=False):
+def make_lya_qso_cross_job_info(meas_dir,zmin,zmax,deltas_dir,zcat,cat_type='D',time=None,no_project=False,no_remove_mean_lambda_obs=False):
 
     dir = meas_dir + '/lya_qso_cross/'
     out_dir = dir + '/correlations/'
@@ -238,14 +238,7 @@ def make_lya_qso_cross_job_info(meas_dir,zmin,zmax,deltas_dir,zcat,zcat_rand,cat
                    'out_file': 'lya_qso_cross_{}_{}_{}_%j.out'.format(cat_type,zmin,zmax),
                    }
 
-    if cat_type == 'D':
-        options = {'drq':           zcat,
-                   }
-    elif cat_type == 'R':
-        options = {'drq':           zcat_rand,
-                   }
-
-    options = {**options,
+    options = {'drq':                       zcat,
                'in-dir':                    deltas_dir,
                'out':                       out_dir+'xcf_lya_qso_cross_{}_{}_{}.fits.gz'.format(cat_type,zmin,zmax),
                'z-evol-obj':                1.44,
@@ -267,7 +260,7 @@ def make_lya_qso_cross_job_info(meas_dir,zmin,zmax,deltas_dir,zcat,zcat_rand,cat
 
     return lya_qso_cross_job_info
 
-def make_lya_dla_cross_job_info(meas_dir,zmin,zmax,deltas_dir,zcat,zcat_rand,cat_type='D',time=None,no_project=False,no_remove_mean_lambda_obs=False):
+def make_lya_dla_cross_job_info(meas_dir,zmin,zmax,deltas_dir,zcat,cat_type='D',time=None,no_project=False,no_remove_mean_lambda_obs=False):
 
     dir = meas_dir + '/lya_dla_cross/'
     out_dir = dir + '/correlations/'
@@ -282,14 +275,7 @@ def make_lya_dla_cross_job_info(meas_dir,zmin,zmax,deltas_dir,zcat,zcat_rand,cat
                    'out_file': 'lya_dla_cross_{}_{}_{}_%j.out'.format(cat_type,zmin,zmax),
                    }
 
-    if cat_type == 'D':
-        options = {'drq':   zcat,
-                   }
-    elif cat_type == 'R':
-        options = {'drq':   zcat_rand,
-                   }
-
-    options = {**options,
+    options = {'drq':                       zcat,
                'in-dir':                    deltas_dir,
                'out':                       out_dir+'xcf_lya_dla_cross_{}_{}_{}.fits.gz'.format(cat_type,zmin,zmax),
                'z-evol-obj':                0.0,
@@ -477,17 +463,29 @@ for zbin in xcf_zbins:
 
     if args.run_lya_qso_cross:
 
-        for cat_type in ['D','R']:
-            time = job_time_dict['lya_qso_cross'][cat_type][zbin]
-            lya_qso_cross_job_info = make_lya_qso_cross_job_info(args.corr_dir,zmin,zmax,args.deltas_dir,args.drq_qso,args.drq_qso_randoms,cat_type=cat_type,time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs)
+        time = job_time_dict['lya_qso_cross']['D'][zbin]
+        lya_qso_cross_job_info = make_lya_qso_cross_job_info(args.corr_dir,zmin,zmax,args.deltas_dir,args.drq_qso,cat_type='D',time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs)
+        submit_utils.run_picca_job(lya_qso_cross_job_info,global_job_info['options'],no_submit=args.no_submit)
+        njobs += 1
+
+        for i,randcat in enumerate(args.drq_qso_randoms):
+            cat_type = 'R{}'.format(i)
+            time = job_time_dict['lya_qso_cross']['R'][zbin]
+            lya_qso_cross_job_info = make_lya_qso_cross_job_info(args.corr_dir,zmin,zmax,args.deltas_dir,randcat,cat_type=cat_type,time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs)
             submit_utils.run_picca_job(lya_qso_cross_job_info,global_job_info['options'],no_submit=args.no_submit)
             njobs += 1
 
     if args.run_lya_dla_cross:
 
-        for cat_type in ['D','R']:
-            time = job_time_dict['lya_dla_cross'][cat_type][zbin]
-            lya_dla_cross_job_info = make_lya_dla_cross_job_info(args.corr_dir,zmin,zmax,args.deltas_dir,args.drq_dla,args.drq_dla_randoms,cat_type=cat_type,time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs)
+        time = job_time_dict['lya_dla_cross']['D'][zbin]
+        lya_dla_cross_job_info = make_lya_qso_cross_job_info(args.corr_dir,zmin,zmax,args.deltas_dir,args.drq_dla,cat_type='D',time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs)
+        submit_utils.run_picca_job(lya_dla_cross_job_info,global_job_info['options'],no_submit=args.no_submit)
+        njobs += 1
+
+        for i,randcat in enumerate(args.drq_dla_randoms):
+            cat_type = 'R{}'.format(i)
+            time = job_time_dict['lya_dla_cross']['R'][zbin]
+            lya_dla_cross_job_info = make_lya_dla_cross_job_info(args.corr_dir,zmin,zmax,args.deltas_dir,randcat,cat_type=cat_type,time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs)
             submit_utils.run_picca_job(lya_dla_cross_job_info,global_job_info['options'],no_submit=args.no_submit)
             njobs += 1
 
