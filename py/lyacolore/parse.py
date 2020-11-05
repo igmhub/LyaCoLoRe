@@ -151,9 +151,13 @@ def get_tuning_args(argv):
     parser.add('-c','--config', is_config_file=True, required=False,
                 help = 'config file')
 
-    ## Required arguments
+    ## Required arguments.
     parser.add('--run-config', type=str, required=True,
                 help = 'Config file for the LyaCoLoRe run.')
+
+    ## Data location.
+    parser.add('-i','--in-dir', type=str, required=False,
+                help = 'Input data directory.')
 
     ## Implementation arguments.
     parser.add('--n-skewers', type=int, required=False,
@@ -189,8 +193,14 @@ def get_tuning_args(argv):
 
     tuning_args = parser.parse_args()
 
+    ## Print an information line stating that any input directory from the run
+    ## config file has been superseded.
+    if tuning_args.in_dir is not None:
+        print('INFO: Using input directory as specified:\n{}'.format(tuning_args.in_dir))
+        print('INFO: Any input directory in the run-config will be ignored.')
+
     ## Parse the run config file.
-    run_args = get_args('-c {}'.format(args.run_config))
+    run_args = get_args('-c {} -i {} -o {}'.format(args.run_config,args.in_dir,None))
 
     return tuning_args, run_args
 
