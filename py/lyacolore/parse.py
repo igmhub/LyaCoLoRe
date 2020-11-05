@@ -200,7 +200,7 @@ def get_tuning_args(argv):
         print('INFO: Any input directory in the run-config will be ignored.')
 
     ## Parse the run config file.
-    run_args = get_args('-c {} -i {} -o {}'.format(args.run_config,args.in_dir,None))
+    run_args = get_args('-c {} -i {} -o {}'.format(tuning_args.run_config,tuning_args.in_dir,None))
 
     return tuning_args, run_args
 
