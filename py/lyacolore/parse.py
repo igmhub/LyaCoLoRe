@@ -3,7 +3,7 @@ import numpy as np
 import os
 import sys
 
-def get_args(argv):
+def get_args(argv,for_tuning=False):
 
     try:
         parser = configargparse.ArgParser(default_config_files=[os.environ['LYACOLORE_PATH']+'/input_files/config_files/default.ini'])
@@ -131,7 +131,10 @@ def get_args(argv):
     parser.add('--compress', action='store_true', required=False,
                 help = 'Choice whether to compress the output files to .fits.gz or not.')
 
-    args = parser.parse_args(args=argv[1:])
+    if not for_tuning:
+        args = parser.parse_args(args=argv[1:])
+    else:
+        args = parser.parse_args(args=argv)
 
     ## Carry out checks on arguments.
     if np.log2(args.nside)-int(np.log2(args.nside)) != 0:
@@ -200,7 +203,10 @@ def get_tuning_args(argv):
         print('INFO: Any input directory in the run-config will be ignored.')
 
     ## Parse the run config file.
-    run_args = get_args('-c {} -i {} -o {}'.format(tuning_args.run_config,tuning_args.in_dir,None))
+    run_args = get_args(
+        '-c {} -i {} -o {}'.format(tuning_args.run_config,tuning_args.in_dir,None),
+        for_tuning=True
+        )
 
     return tuning_args, run_args
 
