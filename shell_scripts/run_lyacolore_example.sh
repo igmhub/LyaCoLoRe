@@ -32,8 +32,9 @@ echo "Starting LyaCoLoRe..."
 
 # Set up output directories if not already there.
 for t in gaussian 2lpt; do
-  if [ ! -d $LYACOLORE_PATH/example_data/$t/lyacolore_output ] ; then
-      mkdir -p $LYACOLORE_PATH/example_data/$t/lyacolore_output
+  OUTPUT_PATH=$LYACOLORE_PATH/example_data/$t/lyacolore_output
+  if [ ! -d $OUTPUT_PATH ] ; then
+      mkdir -p $OUTPUT_PATH
   fi
 done
 
