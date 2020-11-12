@@ -140,6 +140,20 @@ def get_args(argv,for_tuning=False):
     if np.log2(args.nside)-int(np.log2(args.nside)) != 0:
         raise ValueError('nside must be a power of 2')
 
+    ## If we have density input skewers and want to add DLAs, then raise an
+    ## error: this functionality is not yet implemented.
+    if (args.skewer_type=='density') & args.add_DLAs:
+        raise ValueError('Adding DLAs from density input skewers is not possible yet!')
+
+    # TODO: maybe make this into one argument? just args.metals and then run checks to see what the input is?
+
+    ## If both a selection of metals and a list of metals is supplied then raise
+    ## an error: they may be inconsistent.
+    if (args.metals_selection is not None) and (args.metals_list is not None):
+        raise ValueError('Both a selection of metals and a list of metals have been provided: choose one!')
+
+    # TODO: print to confirm the arguments. e.g. "DLAs will be added"
+
     return args
 
 
@@ -157,10 +171,14 @@ def get_tuning_args(argv):
     ## Required arguments.
     parser.add('--run-config', type=str, required=True,
                 help = 'Config file for the LyaCoLoRe run.')
-
-    ## Data location.
-    parser.add('-i','--in-dir', type=str, required=False,
+    parser.add('-i','--in-dir', type=str, required=True,
                 help = 'Input data directory.')
+
+    ## Tuning initialisation arguments.
+    parser.add('--initial-parameter-file', type=str, required=False,
+                help = 'File which contains the initial parameter values to start the tuning from.')
+    parser.add('--randomise-initial-parameter-values', action='store_true', required=False,
+                help = 'Whether to randomise the initial parameter values.')
 
     ## Implementation arguments.
     parser.add('--n-skewers', type=int, required=False,
@@ -183,6 +201,8 @@ def get_tuning_args(argv):
                 help = 'Step size to use when calculating b_delta (no units).')
     parser.add('--d-eta', type=float, required=False,
                 help = 'Step size to use when calculating b_eta (no units).')
+    parser.add('--nproc', type=int, required=False,
+                help = 'Number of processes to use.')
 
     ## Plot arguments.
     parser.add('--k-plot-max', type=float, required=False,
@@ -191,7 +211,7 @@ def get_tuning_args(argv):
                 help = 'Directory to which the tuning plots should be saved.')
 
     ## Output arguments.
-    parser.add('--overwrite', type=bool, required=False,
+    parser.add('--overwrite', action='store_true', required=False,
                 help = 'Whether to overwrite an existing output file')
 
     tuning_args = parser.parse_args()

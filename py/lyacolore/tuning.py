@@ -2,138 +2,210 @@ import numpy as np
 from astropy.io import fits
 import matplotlib.pyplot as plt
 import glob
+import json
+from scipy.stats import truncnorm
 
-from lyacolore import bias, convert, Pk1D, utils
+from lyacolore import bias, convert, Pk1D, transformation, utils
 
-lya = utils.lya_rest
+def get_initial_transformation_and_minuit_input(filepath,random=False,seed=0):
 
-# Not yet implemented.
-"""
-def load_tuning(f,mode='parameters'):
+    t = transformation.Transformation.make_transformation_from_tuning_file(filepath,random=False,seed=0)
+    minuit_input_dict, param_names = tuning_file_to_minuit_input(filepath,random=False,seed=0)
 
-    tuning_dict = {}
+    return t, minuit_input_dict, param_names
 
-    #Open the tuning file and extract the lognormal/FGPA transformation parameters.
-    h = fits.open(tuning_file)
-    tuning_dict['z'] = h[1].data['z']
-    try:
-        tuning_dict['tau0_of_z'] = h[1].data['tau0_of_z']
-    except:
-        tuning_dict['tau0_of_z'] = h[1].data['alpha']
-    try:
-        tuning_dict['texp_of_z'] = h[1].data['texp_of_z']
-    except:
-        tuning_dict['texp_of_z'] = h[1].data['beta']
-    try:
-        tuning_dict['seps_of_z'] = h[1].data['seps_of_z']
-    except:
-        tuning_dict['seps_of_z'] = h[1].data['sigma_G']
+def tuning_file_to_minuit_input(filepath,random=False,seed=0):
 
-    #Extract additional parameters from the file's header.
-    try:
-        tuning_dict['tau0_A0'] = h[1].header['C0']
-    except:
-        tuning_dict['tau0_A0'] = h[1].header['C0']
-    try:
-        tuning_dict['tau0_A1'] = h[1].header['C1']
-    except:
-        tuning_dict['tau0_A1'] = h[1].header['C1']
-    try:
-        tuning_dict['tau0_A2'] = h[1].header['C2']
-    except:
-        tuning_dict['tau0_A2'] = h[1].header['C2']
+    # Open the tuning file.
+    with open(filepath, 'r') as json_file:
+        data = json.load(json_file)
 
-    try:
-        tuning_dict['texp_A0'] = h[1].header['D0']
-    except:
-        tuning_dict['texp_A0'] = h[1].header['D0']
-    try:
-        tuning_dict['texp_A1'] = h[1].header['D1']
-    except:
-        tuning_dict['texp_A1'] = h[1].header['D1']
-    try:
-        tuning_dict['texp_A2'] = h[1].header['D2']
-    except:
-        tuning_dict['texp_A2'] = h[1].header['D2']
+    # Randomise values if desired.
+    if random:
+        transformation.randomise_parameter_values(data,seed=seed)
 
-    try:
-        tuning_dict['seps_A0'] = h[1].header['D0']
-    except:
-        tuning_dict['seps_A0'] = h[1].header['D0']
-    try:
-        tuning_dict['seps_A1'] = h[1].header['D1']
-    except:
-        tuning_dict['seps_A1'] = h[1].header['D1']
-    try:
-        tuning_dict['seps_A2'] = h[1].header['D2']
-    except:
-        tuning_dict['seps_A2'] = h[1].header['D2']
+    minuit_input_dict = {}
+    param_names = []
 
-    tuning_dict['n'] = h[1].header['n']
-    tuning_dict['k1'] = h[1].header['k1']
-    try:
-        tuning_dict['R_kms'] = h[1].header['R_kms']
-    except:
-        tuning_dict['R_kms'] = h[1].header['R']
-    try:
-        tuning_dict['a_v'] = h[1].header['a_v']
-    except:
-        tuning_dict['a_v'] = h[1].header['vb']
+    # For each tuning quantity:
+    for k in data.keys():
+        # For each parameter defining that quantity:
+        for p in data[k]['parameters'].keys():
+            p_dict = data[k]['parameters'][p]
 
-    #Close the file.
-    h.close()
+            # Make a parameter name.
+            p_name = k+'-'+p
+            param_names += [p_name]
 
-    return tuning_dict
+            # Add the parameter's initial value, error and fix to the minuit
+            # input dictionary.
+            minuit_input_dict[p_name] = p_dict['value']
+            minuit_input_dict['error_'+p_name] = p_dict['error']
+            minuit_input_dict['fix_'+p_name] = p_dict['fix']
 
-def iminuit_input_from_tuning_file(filepath):
+            # If desired, also add limits.
+            if ('lower_limit' in p_dict.keys()) and ('upper_limit' in p_dict.keys()):
+                limit = (p_dict['lower_limit'], p_dict['upper_limit'])
+            elif ('lower_limit' in p_dict.keys()):
+                limit = (p_dict['lower_limit'], float("infinity"))
+            elif ('upper_limit' in p_dict.keys()):
+                limit = (-float("infinity"), p_dict['upper_limit'])
+            else:
+                limit = (-float("infinity"), float("infinity"))
+            minuit_input_dict['limit_'+p_name] = limit
 
-    td = load_tuning(filepath)
+    return minuit_input_dict, param_names
 
-    a_kwargs = {'C0' : td['tau0_A0'],      'error_C0' : 1.0,   'fix_C0' : fix_all|fix_C0,     'limit_C0' : (0., 100.),
-                'C1' : td['tau0_A1'],      'error_C1' : 1.0,   'fix_C1' : fix_all|fix_C1,     #'limit_C1' : (0., 20.),
-                'C2' : td['tau0_A2'],      'error_C2' : 1.0,   'fix_C2' : fix_all|fix_C2,     #'limit_C2' : (0., 20.),
-                }
+class MinimisationObject:
+    def __init__(self,tuning_args,run_args):
+        ## Given the inputs from config files, this constructs a set of SimulationData objects.
 
-    b_kwargs = {'beta' : td['texp_A0'],  'error_beta' : 1.0, 'fix_beta' : fix_all|fix_beta, 'limit_beta' : (0.,5.)
-                }
+        ## Choose the QSOs from the master file.
+        master = fits.open(run_args.out_dir+'/master.fits')
+        nobj_total = len(master[1].data)
+        w = np.random.choice(range(nobj_total),tuning_args.n_skewers,replace=False)
+        input_objects = master[1].data[w]
+        master.close()
 
-    sG_kwargs = {'D0' : td['seps_A0'],     'error_D0' : 1.0,   'fix_D0' : fix_all|fix_D0,     'limit_D0' : (0., 100.),
-                 'D1' : td['seps_A1'],     'error_D1' : 0.2,   'fix_D1' : fix_all|fix_D1,     #'limit_D1' : (0., 20.),
-                 'D2' : td['seps_A2'],     'error_D2' : 1.0,   'fix_D2' : fix_all|fix_D2,     #'limit_D2' : (0., 20.),
-                 }
+        ## Load the CoLoRe input skewers.
+        fnums = np.sort(list(set(input_objects['FILENUM'])))
+        fpaths = {fnum:get_in_file_name(run_args.in_dir,run_args.in_file_prefix,fnum) for fnum in fnums}
+        fmockids = {fnum:input_objects['MOCKID'][(input_objects['FILENUM']==fnum)] for filenum in filenums}
+        tasks = [fpaths[fnum],fnum,run_args.file_format,run_args.skewer_type,filemockids[fnum],run_args.lambda_min,run_args.rest_frame_weights_cut,None]
+        if __name__ == '__main__':
+            pool = Pool(processes = tuning_args.nproc)
+            results = []
+            for task in tasks:
+                pool.apply_async(simulation_data.get_skewers_object,task,callback=log_result,error_callback=log_error)
+            pool.close()
+            pool.join()
 
-    s_kwargs = {'n'  : td['n'],       'error_n' : 1.0,    'fix_n' : fix_all|fix_n,       'limit_n' : (-2., 10.),
-                'k1' : td['k1'],      'error_k1' : 0.001, 'fix_k1' : fix_all|fix_k1,     'limit_k1' : (0., 0.1),
-                }
+        ## Assign the results as an attribute.
+        self.data = results
 
-    other_kwargs = {'R'  : td,    'error_R' : 1.0,   'fix_R' : fix_all|fix_R,       'limit_R' : (0., 1000.),
-                    'a_v': td,  'error_a_v' : 0.1, 'fix_a_v' : fix_all|fix_a_v,   'limit_a_v' : (0., 2.0),
-                    'return_measurements'  : False,    'fix_return_measurements' : True,
-                    'errordef'             : 1,
-                    }
+        ## Load the initial tuning file as minuit input.
+        minuit_input = tuning_file_to_minuit_input(
+            file=tuning_args.initial_parameter_file,
+            random=tuning_args.randomise_initial_parameter_values,
+            seed=tuning_args.seed,
+            )
+        self.minuit_input = minuit_input
+
+        ## Check to see if the velocity boost is constant.
+        fixed_velocity_boost = True
+        for k in minuit_input.keys():
+            if (k[-3:]=='a_v') & (k[-4]=='_') & (k[:3]=='fix'):
+                fixed_velocity_boost *= minuit_input[k]
+
+        ## If so, pre-calculate the RSDs to make things faster.
+        if fixed_velocity_boost:
+            self.add_transformation(tuning_args.initial_parameter_file)
+            self.calculate_rsds(tuning_args,run_args)
+
+        return
+
+    def add_transformation(self,parameter_file):
+
+        transformation = Transformation.make_transformation_from_file(parameter_file)
+
+        for d in self.data:
+            d.add_transformation(transformation)
+            d.scale_velocities(use_transformation=True)
+
+        return
+
+    def calculate_rsds(self,tuning_args,run_args):
+
+        tasks = range(len(self.data))
+
+        def add_rsds_to_data_object(data):
+
+            seed = int(pixel * 10**5 + args.seed)
+
+            #trim skewers to the minimal length
+            lambda_buffer = 100. #Angstroms
+            z_lower_cut = np.min(tuning_args.z_values) - tuning_args.z_width/2.
+            z_upper_cut = np.max(tuning_args.z_values) + tuning_args.z_width/2.
+            lambda_min_val = np.min([run_args.lambda_min,utils.lya_rest*(1 + z_lower_cut)]) - lambda_buffer
+            lambda_max_val = utils.lya_rest*(1 + z_upper_cut) + lambda_buffer
+            data.trim_skewers(lambda_min_val,run_args.min_cat_z,lambda_max=lambda_max_val,whole_lambda_range=False)
+
+            #Add small scale fluctuations to the skewers.
+            generator = np.random.RandomState(seed)
+            data.add_small_scale_fluctuations(args.cell_size,generator,white_noise=False,lambda_min=0.0,IVAR_cutoff=args.lambda_rest_max,use_transformation=True,remove_P1D_data=remove_P1D_data)
+
+            #print('{:3.2f} checkpoint extra power'.format(time.time()-t))
+            t = time.time()
+
+            #If needed, compute the physical skewers
+            if args.skewer_type == 'gaussian':
+                data.compute_physical_skewers()
+
+            #Compute the tau skewers and add RSDs
+            data.compute_tau_skewers(data.lya_absorber)
+            #print('{:3.2f} checkpoint tau'.format(time.time()-t))
+            t = time.time()
+
+            if prep:
+                data.compute_RSD_weights(thermal=False)
+
+        return
+
+    def __call__(self,**args):
+        ## This calculates a loss function to be minimised, given a set of
+        ## parameters.
+        return
+
+    def save_tuning_file(self,minuit_output,tuning_filepath):
+
+        tuning_dict = {}
+        tuning_quantities = ['tau0', 'alpha', 'seps', 'ssf']
+
+        # For each tuning quantity, put the information for parameters relating to
+        # that quantity into a list. Store that list in a {tuning quantity: list}
+        # dictionary.
+        tuning_pre_dict = {}
+        for tq in tuning_quantities:
+            tq_list = []
+            for parameter_info in minuit_output.get_param_states():
+                if (parameter_info['name'][:len(tq)] == tq) and (parameter_info['name'][len(tq):len(tq)+1] == '_'):
+                    tq_list += [parameter_info]
+            tuning_pre_dict[tq] = tq_list
+
+        # Check that all parameters from the output are accounted for.
+        assert np.sum([len(tuning_pre_dict[tq]) for tq in tuning_quantities]) == len(minuit_output.get_param_states())
+
+        # Arrange the tuning output dictionary.
 
 
-    return iminuit_initial
-"""
+        # Save as a json file.
+
+        return
+
+
 ################################################################################
 """
 Below: new tuning, measurement based
 """
 
-#Object to store the transformation used to go from CoLoRe's Gaussian skewers to
-#flux skewers. Stores functions of redshift.
-class Transformation:
+
+
+"""class TuningQuantity:
     def __init__(self):
         return
 
     @classmethod
-    def make_transformation_from_file(cls,filepath):
-        # Initiate the transformation object.
-        transformation = cls()
-        # Add parameters from the filepath,
-        transformation.add_parameters_from_file(filepath)
-        return transformation
+    def make_tuning_quantity_from_dict(cls,tq_dict):
+        # Instantiate class.
+        tuning_quantity = cls()
 
+        # Load the parameters' properties.
+        parameters = {k:tq_dict['parameters'][k]['value'] for k in tq_dict['parameters'].keys()}
+        tuning_quantity = functiontypes[tq_dict['functiontype']](**parameters)
+
+        return"""
+
+"""
     #Function to add the transformation functions by interpolating data.
     def add_parameters_from_data(self,z_values,tau0_values,texp_values,seps_values,n,k1,R_kms,a_v):
         # For each of the redshift-dependent parameters, define a function which
@@ -155,6 +227,7 @@ class Transformation:
     #Function to add the transformation functions by interpolating data from a
     #given tuning file.
     def add_parameters_from_file(self,filepath):
+
         # Open the file.
         h = fits.open(filepath)
 
@@ -211,7 +284,7 @@ class Transformation:
 
     #Function to evaluate sigma_epsilon, the std of the extra power.
     def get_seps(self,z):
-        return self.f_seps_z(z)
+        return self.f_seps_z(z)"""
 
 class function_measurement:
     def __init__(self,parameter_ID,z_value,z_width,N_skewers,n,k1,C0,C1,C2,beta,D0,D1,D2,pixels=[]):
@@ -1070,7 +1143,7 @@ def find_sigma_G(mean_F_required,sigma_dF_required,beta,D,sigma_G_start=0.001,st
     return alpha,sigma_G,mean_F,sigma_dF
 
 #Function to calculate mean_F and sigma_dF for given values of sigma_G, alpha and beta.
-def get_flux_stats(sigma_G,alpha,beta,D,mean_only=False,int_lim_fac=10.0):
+def density_to_flux(sigma_G,alpha,beta,D,mean_only=False,int_lim_fac=10.0):
 
     int_lim = sigma_G*int_lim_fac
 
@@ -1092,3 +1165,112 @@ def get_flux_stats(sigma_G,alpha,beta,D,mean_only=False,int_lim_fac=10.0):
         sigma_dF = None
 
     return mean_F, sigma_dF
+
+# Not yet implemented.
+"""
+def load_tuning(f,mode='parameters'):
+
+    tuning_dict = {}
+
+    #Open the tuning file and extract the lognormal/FGPA transformation parameters.
+    h = fits.open(tuning_file)
+    tuning_dict['z'] = h[1].data['z']
+    try:
+        tuning_dict['tau0_of_z'] = h[1].data['tau0_of_z']
+    except:
+        tuning_dict['tau0_of_z'] = h[1].data['alpha']
+    try:
+        tuning_dict['texp_of_z'] = h[1].data['texp_of_z']
+    except:
+        tuning_dict['texp_of_z'] = h[1].data['beta']
+    try:
+        tuning_dict['seps_of_z'] = h[1].data['seps_of_z']
+    except:
+        tuning_dict['seps_of_z'] = h[1].data['sigma_G']
+
+    #Extract additional parameters from the file's header.
+    try:
+        tuning_dict['tau0_A0'] = h[1].header['C0']
+    except:
+        tuning_dict['tau0_A0'] = h[1].header['C0']
+    try:
+        tuning_dict['tau0_A1'] = h[1].header['C1']
+    except:
+        tuning_dict['tau0_A1'] = h[1].header['C1']
+    try:
+        tuning_dict['tau0_A2'] = h[1].header['C2']
+    except:
+        tuning_dict['tau0_A2'] = h[1].header['C2']
+
+    try:
+        tuning_dict['texp_A0'] = h[1].header['D0']
+    except:
+        tuning_dict['texp_A0'] = h[1].header['D0']
+    try:
+        tuning_dict['texp_A1'] = h[1].header['D1']
+    except:
+        tuning_dict['texp_A1'] = h[1].header['D1']
+    try:
+        tuning_dict['texp_A2'] = h[1].header['D2']
+    except:
+        tuning_dict['texp_A2'] = h[1].header['D2']
+
+    try:
+        tuning_dict['seps_A0'] = h[1].header['D0']
+    except:
+        tuning_dict['seps_A0'] = h[1].header['D0']
+    try:
+        tuning_dict['seps_A1'] = h[1].header['D1']
+    except:
+        tuning_dict['seps_A1'] = h[1].header['D1']
+    try:
+        tuning_dict['seps_A2'] = h[1].header['D2']
+    except:
+        tuning_dict['seps_A2'] = h[1].header['D2']
+
+    tuning_dict['n'] = h[1].header['n']
+    tuning_dict['k1'] = h[1].header['k1']
+    try:
+        tuning_dict['R_kms'] = h[1].header['R_kms']
+    except:
+        tuning_dict['R_kms'] = h[1].header['R']
+    try:
+        tuning_dict['a_v'] = h[1].header['a_v']
+    except:
+        tuning_dict['a_v'] = h[1].header['vb']
+
+    #Close the file.
+    h.close()
+
+    return tuning_dict
+
+def iminuit_input_from_tuning_file(filepath):
+
+    td = load_tuning(filepath)
+
+    a_kwargs = {'C0' : td['tau0_A0'],      'error_C0' : 1.0,   'fix_C0' : fix_all|fix_C0,     'limit_C0' : (0., 100.),
+                'C1' : td['tau0_A1'],      'error_C1' : 1.0,   'fix_C1' : fix_all|fix_C1,     #'limit_C1' : (0., 20.),
+                'C2' : td['tau0_A2'],      'error_C2' : 1.0,   'fix_C2' : fix_all|fix_C2,     #'limit_C2' : (0., 20.),
+                }
+
+    b_kwargs = {'beta' : td['texp_A0'],  'error_beta' : 1.0, 'fix_beta' : fix_all|fix_beta, 'limit_beta' : (0.,5.)
+                }
+
+    sG_kwargs = {'D0' : td['seps_A0'],     'error_D0' : 1.0,   'fix_D0' : fix_all|fix_D0,     'limit_D0' : (0., 100.),
+                 'D1' : td['seps_A1'],     'error_D1' : 0.2,   'fix_D1' : fix_all|fix_D1,     #'limit_D1' : (0., 20.),
+                 'D2' : td['seps_A2'],     'error_D2' : 1.0,   'fix_D2' : fix_all|fix_D2,     #'limit_D2' : (0., 20.),
+                 }
+
+    s_kwargs = {'n'  : td['n'],       'error_n' : 1.0,    'fix_n' : fix_all|fix_n,       'limit_n' : (-2., 10.),
+                'k1' : td['k1'],      'error_k1' : 0.001, 'fix_k1' : fix_all|fix_k1,     'limit_k1' : (0., 0.1),
+                }
+
+    other_kwargs = {'R'  : td,    'error_R' : 1.0,   'fix_R' : fix_all|fix_R,       'limit_R' : (0., 1000.),
+                    'a_v': td,  'error_a_v' : 0.1, 'fix_a_v' : fix_all|fix_a_v,   'limit_a_v' : (0., 2.0),
+                    'return_measurements'  : False,    'fix_return_measurements' : True,
+                    'errordef'             : 1,
+                    }
+
+
+    return iminuit_initial
+"""

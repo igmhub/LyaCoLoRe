@@ -185,7 +185,7 @@ if args.Pk1D_data is None:
     def get_pixel_P1D(pixel,file_type='image'):
         if file_type == 'image':
             dirname = utils.get_dir_name(args.base_dir,pixel)
-            filename = utils.get_file_name(dirname,'picca-'+args.quantity,args.nside,pixel,compressed=args.compressed_input)
+            filename = utils.get_out_file_name(dirname,'picca-'+args.quantity,args.nside,pixel,compressed=args.compressed_input)
             h = fits.open(filename)
             delta_rows = h[0].data.T
             ivar_rows = h[1].data.T

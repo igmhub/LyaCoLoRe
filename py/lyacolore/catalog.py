@@ -1,7 +1,50 @@
 import numpy as np
 from astropy.io import fits
 
-from lyacolore import utils, read_files
+from lyacolore import desi, read_files, utils
+
+def make_master_data(input_files,args,apply_footprint=True):
+
+    ## Get the file numbers.
+    file_numbers = utils.get_file_numbers(input_files,args.input_filename_prefix)
+
+    ## Get the QSO filter for the relevant footprint if desired.
+    if apply_footprint:
+        qso_filter = desi.Footprint(args.footprint,args.nside)
+
+    ## Set up the multiprocessing pool parameters and make a list of tasks.
+    tasks = [(input_files[i],fnum,args.file_format,args.skewer_type,args.nside,args.min_cat_z,args.downsampling,qso_filter,args.pixels,args.seed*10**5+fnum) for i,fnum in enumerate(file_numbers)]
+
+    #Run the multiprocessing pool
+    results = utils.run_multiprocessing(get_ID_data,tasks,args.nproc)
+
+    #Join the multiprocessing results into 'master' and 'bad_coordinates' arrays.
+    master_data, bad_coordinates_data, cosmology_data, MOCKID_lookup = join_ID_data(results,args.nside)
+
+    return master_data, bad_coordinates_data, cosmology_data
+
+def save_master_data(master_data,bad_coordinates_data,cosmology_data,args):
+
+    print('Saving the master files...')
+
+    #Write master and bad coordinates files.
+    master_filename = args.out_dir + '/master.fits'
+    write_ID(master_filename,args.nside,master_data,cosmology_data,overwrite=args.overwrite)
+    print(' -> Master file contains {} objects.'.format(master_data.shape[0]))
+
+    if bad_coordinates_data.shape[0] > 0:
+        bad_coordinates_filename = args.out_dir + '/bad_coordinates.fits'
+        catalog.write_ID(bad_coordinates_filename,args.nside,bad_coordinates_data,cosmology_data,overwrite=args.overwrite)
+        print(' -> "Bad coordinates" file contains {} objects.'.format(bad_coordinates_data.shape[0]))
+
+    #If desired, write the DRQ files for picca xcf to deal with.
+    if args.add_picca_drqs:
+        for RSD_option in ['RSD','NO_RSD']:
+            DRQ_filename = args.out_dir + '/master_picca_{}.fits'.format(RSD_option)
+            catalog.write_DRQ(DRQ_filename,RSD_option,master_data,args.nside,overwrite=args.overwrite)
+
+    return
+
 
 #Function to extract data suitable for making ID files from a set of colore or picca format files.
 def get_ID_data(filename,file_number,file_format,skewer_type,N_side,minimum_z=0.0,downsampling=1.0,QSO_filter=None,pixel_list=None,seed=0):
@@ -60,19 +103,16 @@ def get_ID_data(filename,file_number,file_format,skewer_type,N_side,minimum_z=0.
             random_QSOs = np.sort(gen.choice(N_qso,size=final_N_qso,replace=False))
             ID_sort = ID_sort[random_QSOs]
 
-        #Make file-pixel map element and MOCKID lookup.
+        #Make MOCKID lookup element.
         pixel_ID_set = list(sorted(set([pixel for pixel in ID_sort['PIXNUM'] if pixel>=0])))
-        file_pixel_map_element = np.zeros(N_pixels)
         MOCKID_lookup_element = {}
         for pixel in pixel_ID_set:
-            file_pixel_map_element[pixel] = 1
             MOCKID_pixel_list = [ID_sort['MOCKID'][i] for i in range(len(ID_sort['PIXNUM'])) if ID_sort['PIXNUM'][i]==pixel]
             MOCKID_lookup_element = {**MOCKID_lookup_element,**{(file_number,pixel):MOCKID_pixel_list}}
     else:
-        file_pixel_map_element = np.zeros(N_pixels)
         MOCKID_lookup_element = {}
 
-    return file_number, ID_sort, cosmology, file_pixel_map_element, MOCKID_lookup_element
+    return file_number, ID_sort, cosmology, MOCKID_lookup_element
 
 #Function to join together the outputs from 'get_ID_data' in several multiprocessing processes.
 def join_ID_data(results,N_side):
@@ -81,7 +121,6 @@ def join_ID_data(results,N_side):
     master_results = []
     bad_coordinates_results = []
     cosmology_results = []
-    file_pixel_map_results = []
     MOCKID_lookup = {}
 
     for result in results:
@@ -91,19 +130,14 @@ def join_ID_data(results,N_side):
         bad_coordinates_results += [ID_result[ID_result['PIXNUM']<0]]
         # TODO: Something to check that all cosmology results are the same
         cosmology_results = [result[2]]
-        file_pixel_map_results += [result[3]]
-        MOCKID_lookup = {**MOCKID_lookup,**result[4]}
+        MOCKID_lookup = {**MOCKID_lookup,**result[3]}
 
-    file_pixel_map = np.zeros((max(file_numbers)+1,12*(N_side**2)))
-    for i, file_number in enumerate(file_numbers):
-        file_pixel_map[file_number,:] = file_pixel_map_results[i]
     #print(master_results)
     master_data = np.concatenate(master_results)
     bad_coordinates_data = np.concatenate(bad_coordinates_results)
     cosmology_data = np.concatenate(cosmology_results)
-    file_pixel_map = np.vstack(file_pixel_map_results)
 
-    return master_data, bad_coordinates_data, cosmology_data, file_pixel_map, MOCKID_lookup
+    return master_data, bad_coordinates_data, cosmology_data, MOCKID_lookup
 
 #Function to write a single ID file, given the data.
 def write_ID(filename,N_side,ID_data,cosmology_data=None,overwrite=False):
@@ -166,16 +200,15 @@ def write_DRQ(filename,RSD_option,ID_data,N_side,overwrite=False):
     return
 
 #Function to make a MOCKID lookup from master data.
-def make_MOCKID_lookup(master_filepath,pixels):
-
-    master = fits.open(master_filepath)
-    master_data = master[1].data
-    master.close()
+def make_MOCKID_lookup(master_data,pixels=None):
 
     #Make a MOCKID lookup.
     master_data_pixel_set = set(master_data['PIXNUM'])
-    pixels_set = set(pixels)
-    pixel_list = list(sorted(master_data_pixel_set.intersection(pixels_set)))
+    if pixels is not None:
+        pixels_set = set(pixels)
+        pixel_list = list(sorted(master_data_pixel_set.intersection(pixels_set)))
+    else:
+        pixel_list = list(sorted(master_data_pixel_set))
 
     #For each pixel, find which QSOs are in it, and which files they come from.
     MOCKID_lookup = {}

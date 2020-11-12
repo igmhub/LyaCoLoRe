@@ -1,13 +1,14 @@
-import numpy as np
 from astropy.io import fits
-import time
-import os
 import healpy as hp
-import shutil
+import glob
 import gzip
+import numpy as np
+import os
+import shutil
 import sys
-import warnings
+import time
 import tqdm
+import warnings
 
 from multiprocessing import Pool
 
@@ -60,24 +61,31 @@ def run_multiprocessing(function,tasks,nproc,show_progress=True):
 
     return results
 
+def get_in_file_names(basedir,prefix):
 
-def get_in_file_name(basedir,basename,filenum,compressed=False):
+    ## Find the input files.
+    filename_format_nocom = get_in_file_name(basedir,prefix,'*',compressed=False)
+    filename_format_com = get_in_file_name(basedir,prefix,'*',compressed=True)
+    input_files = glob.glob(filename_format_nocom) + glob.glob(filename_format_com)
+
+    return input_files
+
+def get_in_file_name(basedir,prefix,filenum,compressed=False):
+    filename = '{}_{}.fits'.format(prefix,filenum)
     if compressed:
-        return base_dir+'/{}-{}.fits.gz'.format(basename,pixel)
-    else:
-        return base_dir+'/{}-{}.fits'.format(basename,pixel)
-    return
+        filename += '.gz'
+    return os.path.join(basedir,filename)
 
 #Function to get the file name using a defined structure.
-def get_file_name(base_dir,base_name,nside,pixel,compressed=False):
+def get_out_file_name(basedir,basename,nside,pixel,compressed=False):
+    filename = '{}-{}-{}.fits'.format(basename,nside,pixel)
     if compressed:
-        return base_dir+'/{}-{}-{}.fits.gz'.format(base_name,nside,pixel)
-    else:
-        return base_dir+'/{}-{}-{}.fits'.format(base_name,nside,pixel)
+        filename += '.gz'
+    return os.path.join(basedir,filename)
 
 #Function to get the directory name using a defined structure.
-def get_dir_name(base_dir,pixel):
-    return base_dir+'/{}/{}/'.format(pixel//100,pixel)
+def get_dir_name(basedir,pixel):
+    return os.path.join(basedir,'{}/{}/'.format(pixel//100,pixel))
 
 def compress_file(filename,ext='.gz',remove=True):
     with open(filename,'rb') as f_in, gzip.open(filename+ext,'wb') as f_out:
@@ -196,109 +204,15 @@ def add_pixel_neighbours(pixels,N_side=16):
         final_pixel_set = final_pixel_set.union(set(neighbours))
     return np.array(list(final_pixel_set))
 
-#TODO add pixel_list functionality.
-#Function to return a filter function for restricting the QSO footprint.
-def make_QSO_filter(footprint,N_side=16,pixel_list=None):
-
-    #See if we can use desimodel. This is preferable as it will be the most
-    #up-do-date footprint.
-    try:
-        from desimodel.footprint import tiles2pix, is_point_in_desi
-        from desimodel.io import load_tiles
-        desimodel_installed = True
-    except ModuleNotFoundError:
-        print('WARN: desimodel is not installed; footprint pixel data will be read from file.')
-        desimodel_installed = False
-
-    #If we have desimodel and want to replicate the footprint precisely, use
-    #function "is_point_in_desi".
-    if desimodel_installed and footprint=='desi':
-        tiles = load_tiles()
-        def QSO_filter(RA,DEC):
-            return is_point_in_desi(tiles,RA,DEC)
-
-    #If not, but we still want to filter...
-    elif footprint in ['desi','desi_pixel','desi_pixel_plus']:
-
-        #If desimodel is installed, then we use "tiles2pix" to determine which
-        #pixels to include.
-        if desimodel_installed:
-            from desimodel.footprint import tiles2pix
-            if footprint=='desi_pixel':
-                valid_pixels = tiles2pix(N_side)
-            elif footprint=='desi_pixel_plus':
-                valid_pixels = tiles2pix(N_side)
-                valid_pixels = add_pixel_neighbours(valid_pixels)
-
-        #Otherwise, we load pixel lists from file. Note: using desimodel is
-        #preferable to loading from file as the footprint could change, and
-        #desimodel will be more up to date than the lists in this case.
-        else:
-            if footprint=='desi':
-                print('WARN: desimodel is not installed; footprint pixel data will be read from file.')
-                valid_pixels = np.loadtxt('input_files/pixel_footprints/DESI_pixels.txt',dtype=int)
-            elif footprint=='desi_pixel':
-                valid_pixels = np.loadtxt('input_files/pixel_footprints/DESI_pixels.txt',dtype=int)
-            elif footprint=='desi_pixel_plus':
-                valid_pixels = np.loadtxt('input_files/pixel_footprints/DESI_pixels_plus.txt',dtype=int)
-
-        #With a list of valid pixels, we now can make a filter.
-        def QSO_filter(RA,DEC):
-            theta = (np.pi/180.0)*(90.0-DEC)
-            phi = (np.pi/180.0)*RA
-            pix = hp.ang2pix(N_side,theta,phi,nest=True)
-            w = np.in1d(pix,valid_pixels)
-            return w
-
-    #Else if we don't want to filter at all, set the filter to "None".
-    elif footprint=='full_sky':
-        def QSO_filter(RA,DEC):
-            return np.ones(RA.shape).astype('bool')
-
-    else:
-        print('Footprint not recognised; no filter applied.')
-        def QSO_filter(RA,DEC):
-            return np.ones(RA.shape).astype('bool')
-
-    return QSO_filter
-
-#Function to return a filter for restricting the QSO footprint.
-def choose_filter(desi_footprint,desi_footprint_pixel,desi_footprint_pixel_plus,desimodel_installed,N_side=16,pixel_list=None):
-
-    if np.sum((desi_footprint,desi_footprint_pixel,desi_footprint_pixel_plus)) > 1:
-            raise ValueError('Please choose only 1 type of DESI footprint.')
-
-    if desimodel_installed:
-        from desimodel.footprint import tiles2pix, is_point_in_desi
-        if desi_footprint:
-            def QSO_filter(RA,DEC):
-                return is_point_in_desi(tiles,RA,DEC)
-        elif desi_footprint_pixel:
-            QSO_filter = tiles2pix(N_side)
-        elif desi_footprint_pixel_plus:
-            QSO_filter = tiles2pix(N_side)
-            QSO_filter = add_pixel_neighbours(QSO_filter)
-        else:
-            QSO_filter = None
-    else:
-        if desi_footprint or desi_footprint_pixel:
-            QSO_filter = np.loadtxt('input_files/DESI_pixels.txt',dtype=int)
-        elif desi_footprint_pixel_plus:
-            QSO_filter = np.loadtxt('input_files/DESI_pixels_plus.txt',dtype=int)
-        else:
-            QSO_filter = None
-
-    return QSO_filter
-
-#Function to make ivar mask
-def make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP):
+#Function to make mask
+def make_IVAR_rows(lrf_cut,Z_QSO,LOGLAM_MAP):
 
     #Make an array of rest frame lambdas.
     lambdas = 10**LOGLAM_MAP
     lambdas_rf = np.outer(1/(1+Z_QSO),lambdas)
 
     #Filter according to the cutoff.
-    IVAR_rows = (lambdas_rf <= IVAR_cutoff).astype('float32')
+    IVAR_rows = (lambdas_rf <= lrf_cut).astype('float32')
 
     return IVAR_rows
 

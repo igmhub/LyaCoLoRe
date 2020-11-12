@@ -2,13 +2,26 @@ import numpy as np
 from astropy.io import fits
 from scipy.interpolate import interp1d
 import time
+import multiprocessing
 
-from lyacolore import absorber, bias, convert, DLA, independent, read_files, RSD, stats, tuning, utils
+from lyacolore import absorber, bias, convert, DLA, independent, read_files, RSD, stats, transformation, utils
 
-lya = utils.lya_rest
+def get_pixel_objects(pixels,args,MOCKID_lookup):
+
+    #Set up the multiprocessing pool parameters and make a list of tasks.
+    #what's the sharing doing here?
+    manager = multiprocessing.Manager()
+    shared_MOCKID_lookup = manager.dict(MOCKID_lookup)
+    tasks = [(pixel,args.in_dir,args.input_filename_prefix,args.file_format,args.skewer_type,shared_MOCKID_lookup,args.lambda_min,args.rest_frame_weights_cut,args.tuning_file) for pixel in pixels]
+
+    #Run the multiprocessing pool
+    results = utils.run_multiprocessing(make_pixel_object,tasks,args.nproc)
+    pixel_objects = {r[0]: r[1] for r in results}
+
+    return pixel_objects
 
 #Function to create a SimulationData object given a specific pixel, information about the complete simulation, and the filenames.
-def make_pixel_object(pixel,base_filename,file_format,skewer_type,MOCKID_lookup,lambda_min=0.,IVAR_cutoff=lya):
+def make_pixel_object(pixel,basedir,prefix,file_format,skewer_type,MOCKID_lookup,lambda_min=0.,IVAR_cutoff=utils.lya_rest,tuning_file=None):
 
     #Determine which file numbers we need to look at for the current pixel.
     relevant_keys = [key for key in MOCKID_lookup.keys() if key[1]==pixel]
@@ -24,7 +37,8 @@ def make_pixel_object(pixel,base_filename,file_format,skewer_type,MOCKID_lookup,
         #If there are some relevant quasars, open the data file and make it into a SimulationData object.
         #We use SimulationData.get_reduced_data to avoid loading all of the file's data into the object.
         if N_relevant_qso > 0:
-            filename = base_filename+'{}.fits'.format(file_number)
+            filename = utils.get_in_file_name(basedir,prefix,file_number,compressed=False)
+
             working = SimulationData.get_skewers_object(filename,file_number,file_format,skewer_type,MOCKIDs=relevant_MOCKIDs,lambda_min=lambda_min,IVAR_cutoff=IVAR_cutoff)
 
         #Combine the data from the working file with that from the files already looked at.
@@ -37,7 +51,204 @@ def make_pixel_object(pixel,base_filename,file_format,skewer_type,MOCKID_lookup,
 
     pixel_object = combined
 
-    return pixel_object
+    ## If we have a Gaussian object, calculate the true sigma_g.
+    if skewer_type == 'gaussian':
+        pixel_object.compute_SIGMA_G(type='single_value',lr_max=IVAR_cutoff)
+
+    if tuning_file is not None:
+        pixel_object.add_transformation_from_file(tuning_file)
+
+    return pixel, pixel_object
+
+def process_skewers(pixel_object,pixel,args,lambda_buffer=100,save_stages=False,save_transmission=True,trans=None):
+
+    t = time.time()
+    location = utils.get_dir_name(args.out_dir,pixel)
+
+    # Define a random seed for use in this pixel.
+    seed = int(pixel * 10**5 + args.seed)
+
+    #Scale the velocities.
+    if (trans is None) and (not hasattr(pixel_object,'transformation')):
+        print('WARNING: no transformation in object, adding from tuning file: {}'.format(args.tuning_file))
+        pixel_object.add_transformation_from_file(args.tuning_file)
+    elif trans is not None:
+        if hasattr(pixel_object,'transformation'):
+            print('WARNING: using transformation from kwarg rather than already attached to object.')
+        pixel_object.add_transformation(trans)
+    pixel_object.scale_velocities(use_transformation=True)
+
+    #print('{:3.2f} checkpoint object'.format(time.time()-t)); t = time.time()
+
+    #Add Lyb and metal absorbers if needed.
+    if args.add_Lyb:
+        pixel_object.setup_Lyb_absorber()
+    if args.add_metals:
+        pixel_object.setup_metal_absorbers(selection=args.metals_selection,metals_list=args.metals_list)
+
+    if save_stages or save_transmission:
+        #Make some useful headers
+        header = fits.Header()
+        header['HPXNSIDE'] = args.nside
+        header['HPXPIXEL'] = pixel
+        header['HPXNEST'] = True
+        header['LYA'] = utils.lya_rest
+        if args.skewer_type == 'gaussian':
+            header['SIGMA_G'] = pixel_object.SIGMA_G
+
+    #Save CoLoRe format files.
+    if save_stages:
+        if args.skewer_type == 'gaussian':
+
+            ## Save the pixelised colore file.
+            filename = utils.get_out_file_name(location,'gaussian-colore',args.nside,pixel)
+            pixel_object.save_as_colore('gaussian',filename,header,overwrite=args.overwrite,compress=args.compress)
+
+        """
+        ## These file types are deprecated.
+
+        pixel_object.compute_physical_skewers()
+        filename = utils.get_out_file_name(location,'density-colore',args.nside,pixel)
+        pixel_object.save_as_colore('density',filename,header,overwrite=args.overwrite,compress=args.compress)
+        """
+
+    #Trim the skewers (remove low lambda cells). Exit if no QSOs are left.
+    #We don't cut too tightly on the low lambda to allow for RSDs.
+    pixel_object.trim_skewers(lambda_min=args.lambda_min,min_catalog_z=args.min_cat_z,extra_cells=1,lambda_buffer=lambda_buffer)
+    if pixel_object.N_qso == 0:
+        print('\nwarning: no objects left in pixel {} after trimming.'.format(pixel))
+        return pixel
+
+    #Save files without adding small scale power.
+    if save_stages:
+
+        filename = utils.get_out_file_name(location,'gaussian-colore',args.nside,pixel)
+        pixel_object.save_as_desimock(filename,header,overwrite=args.overwrite,wave_min=args.transmission_lambda_min,wave_max=args.transmission_lambda_max,wave_step=args.transmission_delta_lambda,fmt=args.transmission_format,add_QSO_RSDs=args.add_QSO_RSDs,compress=args.compress,quantity='gaussian')
+
+        """
+        ## These file types are deprecated.
+        if args.skewer_type == 'gaussian':
+            filename = utils.get_out_file_name(location,'picca-gaussian-colorecell',args.nside,pixel)
+            pixel_object.save_as_picca_image('gaussian',filename,header,overwrite=args.overwrite,add_QSO_RSDs=args.add_QSO_RSDs,compress=args.compress)
+
+        filename = utils.get_out_file_name(location,'picca-density-colorecell',args.nside,pixel)
+        pixel_object.save_as_picca_image('density',filename,header,overwrite=args.overwrite,add_QSO_RSDs=args.add_QSO_RSDs,compress=args.compress)
+        """
+
+    #print('{:3.2f} checkpoint colore files'.format(time.time()-t)); t = time.time()
+
+    #Add a table with DLAs in to the pixel object.
+    # TODO: in future, we want DLAs all the way down to z=0.
+    #That means we need to store skewers all the way down to z=0.
+    #May need to adjust how many nodes are used when running.
+    if args.add_DLAs:
+        pixel_object.add_DLA_table(seed,dla_bias=args.DLA_bias,evol=args.DLA_bias_evol,method=args.DLA_bias_method)
+
+    #print('{:3.2f} checkpoint DLAs'.format(time.time()-t)); t = time.time()
+
+    #Add small scale power to the gaussian skewers:
+    if args.add_small_scale_fluctuations:
+        generator = np.random.RandomState(seed)
+        pixel_object.add_small_scale_fluctuations(args.cell_size,generator,white_noise=False,lambda_min=args.lambda_min,IVAR_cutoff=args.rest_frame_weights_cut)
+
+        if (args.skewer_type == 'gaussian') and (save_stages or save_transmission):
+            #Remove the 'SIGMA_G' header as SIGMA_G now varies with z, so can't be stored in a header.
+            del header['SIGMA_G']
+
+    #print('{:3.2f} checkpoint SSF'.format(time.time()-t)); t = time.time()
+
+    #Recompute physical skewers, and then the tau skewers.
+    if args.skewer_type == 'gaussian':
+        pixel_object.compute_physical_skewers()
+    pixel_object.compute_all_tau_skewers()
+
+    if save_stages:
+
+        filename = utils.get_out_file_name(location,'gaussian',args.nside,pixel)
+        pixel_object.save_as_desimock(filename,header,overwrite=args.overwrite,wave_min=args.transmission_lambda_min,wave_max=args.transmission_lambda_max,wave_step=args.transmission_delta_lambda,fmt=args.transmission_format,add_QSO_RSDs=args.add_QSO_RSDs,compress=args.compress,quantity='gaussian')
+
+        filename = utils.get_out_file_name(location,'density',args.nside,pixel)
+        pixel_object.save_as_desimock(filename,header,overwrite=args.overwrite,wave_min=args.transmission_lambda_min,wave_max=args.transmission_lambda_max,wave_step=args.transmission_delta_lambda,fmt=args.transmission_format,add_QSO_RSDs=args.add_QSO_RSDs,compress=args.compress,quantity='density')
+
+        filename = utils.get_out_file_name(location,'tau-norsd',args.nside,pixel)
+        pixel_object.save_as_desimock(filename,header,overwrite=args.overwrite,wave_min=args.transmission_lambda_min,wave_max=args.transmission_lambda_max,wave_step=args.transmission_delta_lambda,fmt=args.transmission_format,add_QSO_RSDs=args.add_QSO_RSDs,compress=args.compress,quantity='tau')
+
+        filename = utils.get_out_file_name(location,'transmission-norsd',args.nside,pixel)
+        pixel_object.save_as_desimock(filename,header,overwrite=args.overwrite,wave_min=args.transmission_lambda_min,wave_max=args.transmission_lambda_max,wave_step=args.transmission_delta_lambda,fmt=args.transmission_format,add_QSO_RSDs=args.add_QSO_RSDs,compress=args.compress,quantity='flux')
+
+        """
+        ## These file types are deprecated.
+
+        if args.skewer_type == 'gaussian':
+            #Picca Gaussian, small cells
+            filename = utils.get_out_file_name(location,'picca-gaussian',args.nside,pixel)
+            pixel_object.save_as_picca_image('gaussian',filename,header,overwrite=args.overwrite,add_QSO_RSDs=args.add_QSO_RSDs,compress=args.compress)
+
+        #Picca density
+        filename = utils.get_out_file_name(location,'picca-density',args.nside,pixel)
+        pixel_object.save_as_picca_image('density',filename,header,overwrite=args.overwrite,add_QSO_RSDs=args.add_QSO_RSDs,compress=args.compress)
+
+        #Picca tau
+        filename = utils.get_out_file_name(location,'picca-tau-noRSD-notnorm',args.nside,pixel)
+        pixel_object.save_as_picca_image('tau',filename,header,notnorm=True,overwrite=args.overwrite,add_QSO_RSDs=args.add_QSO_RSDs,compress=args.compress,all_absorbers=args.picca_all_absorbers)
+
+        #Picca flux
+        filename = utils.get_out_file_name(location,'picca-flux-noRSD-notnorm',args.nside,pixel)
+        pixel_object.save_as_picca_image('flux',filename,header,notnorm=True,overwrite=args.overwrite,add_QSO_RSDs=args.add_QSO_RSDs,compress=args.compress,all_absorbers=args.picca_all_absorbers)
+        """
+
+        """
+        ## Disable this for the moment.
+        #Save the no RSD statistics file for this pixel.
+        filename = utils.get_out_file_name(location,'statistics-noRSD',args.nside,pixel)
+        statistics = pixel_object.save_statistics(filename,overwrite=args.overwrite,compress=args.compress,all_absorbers=args.picca_all_absorbers)
+        """
+
+    #print('{:3.2f} checkpoint noRSD files'.format(time.time()-t)); t = time.time()
+
+    #Add RSDs from the velocity skewers provided by CoLoRe.
+    if args.add_RSDs:
+        pixel_object.add_all_RSDs(thermal=args.include_thermal_effects)
+
+    #print('{:3.2f} checkpoint RSDs'.format(time.time()-t)); t = time.time()
+
+    #Trim the skewers (remove low lambda cells). Exit if no QSOs are left.
+    #We now cut hard at lambda min as RSDs have been implemented.
+    pixel_object.trim_skewers(args.lambda_min,args.min_cat_z,extra_cells=1)
+    if pixel_object.N_qso == 0:
+        print('\nwarning: no objects left in pixel {} after trimming.'.format(pixel))
+        return pixel
+
+    #Save the transmission file.
+    if save_transmission:
+        filename = utils.get_out_file_name(location,'transmission',args.nside,pixel)
+        pixel_object.save_as_desimock(filename,header,overwrite=args.overwrite,wave_min=args.transmission_lambda_min,wave_max=args.transmission_lambda_max,wave_step=args.transmission_delta_lambda,fmt=args.transmission_format,add_QSO_RSDs=args.add_QSO_RSDs,compress=args.compress,quantity='flux')
+
+    if save_stages and args.add_RSDs:
+        filename = utils.get_out_file_name(location,'tau',args.nside,pixel)
+        pixel_object.save_as_desimock(filename,header,overwrite=args.overwrite,wave_min=args.transmission_lambda_min,wave_max=args.transmission_lambda_max,wave_step=args.transmission_delta_lambda,fmt=args.transmission_format,add_QSO_RSDs=args.add_QSO_RSDs,compress=args.compress,quantity='tau')
+
+        """
+        ## These file types are deprecated.
+
+        #Picca tau
+        filename = utils.get_out_file_name(location,'picca-tau-notnorm',args.nside,pixel)
+        pixel_object.save_as_picca_image('tau',filename,header,notnorm=True,overwrite=args.overwrite,add_QSO_RSDs=args.add_QSO_RSDs,compress=args.compress,all_absorbers=args.picca_all_absorbers)
+
+        #Picca flux
+        filename = utils.get_out_file_name(location,'picca-flux-notnorm',args.nside,pixel)
+        pixel_object.save_as_picca_image('flux',filename,header,notnorm=True,overwrite=args.overwrite,add_QSO_RSDs=args.add_QSO_RSDs,compress=args.compress,all_absorbers=args.picca_all_absorbers)
+        """
+        """
+        ## Disable this for the moment.
+        #Save the final statistics file for this pixel.
+        filename = utils.get_out_file_name(location,'statistics',args.nside,pixel)
+        statistics = pixel_object.save_statistics(filename,overwrite=args.overwrite,compress=args.compress,all_absorbers=args.picca_all_absorbers)
+        """
+
+    #print('{:3.2f} checkpoint RSD files'.format(time.time()-t)); t = time.time()
+
+    return
 
 #Definition of a generic SimulationData class, from which it is easy to save in new formats.
 class SimulationData:
@@ -75,7 +286,7 @@ class SimulationData:
         self.V = V
 
         # these will store the absorbing fields (Lya, Lyb, metals...)
-        self.lya_absorber = absorber.Absorber(name='Lya',rest_wave=lya,flux_transform_m=1.0)
+        self.lya_absorber = absorber.Absorber(name='Lya',rest_wave=utils.lya_rest,flux_transform_m=1.0)
         self.lyb_absorber = None
         self.metals = None
 
@@ -102,7 +313,7 @@ class SimulationData:
 
     #Method to extract reduced data from an input file of a given format, with a given list of MOCKIDs.
     @classmethod
-    def get_skewers_object(cls,filename,file_number,file_format,skewer_type,MOCKIDs=None,lambda_min=0.,IVAR_cutoff=lya,SIGMA_G=None):
+    def get_skewers_object(cls,filename,file_number,file_format,skewer_type,MOCKIDs=None,lambda_min=0.,IVAR_cutoff=utils.lya_rest,SIGMA_G=None):
 
         ## Open the file
         h = fits.open(filename)
@@ -145,7 +356,7 @@ class SimulationData:
         MOCKIDs = read_files.get_MOCKID(h,file_format,file_number,wqso=wqso)
 
         #Make LOGLAM_MAP and binary IVAR_rows for picca.
-        LOGLAM_MAP = np.log10(lya*(1+Z))
+        LOGLAM_MAP = np.log10(utils.lya_rest*(1+Z))
         IVAR_rows = utils.make_IVAR_rows(IVAR_cutoff,Z_QSO,LOGLAM_MAP)
 
         ## Make additional data that is required but is not used.
@@ -288,21 +499,21 @@ class SimulationData:
         #Remove DLAs that are no longer relevant, either because their QSO has
         #been removed, or they are outside the wavelength range.
         if self.DLA_table is not None:
-            DLA_lambdas = lya*(1+self.DLA_table['Z_DLA_NO_RSD'])
+            DLA_lambdas = utils.lya_rest*(1+self.DLA_table['Z_DLA_NO_RSD'])
             relevant_DLAs = [id for id in range(self.DLA_table['MOCKID'].shape[0]) if self.DLA_table['MOCKID'][id] in self.MOCKID and DLA_lambdas[id]>actual_lambda_min and DLA_lambdas[id]<actual_lambda_max]
             self.DLA_table = self.DLA_table[relevant_DLAs]
 
         return
 
     # Function to add transformation to the object formally.
-    def add_transformation(self,transformation):
-        self.transformation = transformation
+    def add_transformation(self,t):
+        self.transformation = t
         return
 
     # Function to add transformation to the object formally from a filepath.
     def add_transformation_from_file(self,filepath):
-        transformation = tuning.Transformation.make_transformation_from_file(filepath)
-        self.transformation = transformation
+        t = transformation.Transformation.make_transformation_from_tuning_file(filepath)
+        self.transformation = t
         return
 
     # Function to scale the velocities in the skewers up.
@@ -311,26 +522,29 @@ class SimulationData:
         if use_transformation and a_v != None:
             print('WARNING: asked to use transformation and specified a_v.\n -> Using transformation.')
             try:
-                self.VEL_rows *= self.transformation.a_v
+                self.VEL_rows *= self.transformation.quantities['a_v'](self.Z[None,:])
             except AttributeError:
-                print('WARNING: No tranformation found.\n -> Using specified value of a_v.')
+                print('WARNING: No transformation found.\n -> Using specified value of a_v.')
                 self.VEL_rows *= a_v
 
         elif use_transformation:
             try:
-                self.VEL_rows *= self.transformation.a_v
+                self.VEL_rows *= self.transformation.quantities['a_v'](self.Z[None,:])
             except AttributeError:
-                print('WARNING: No tranformation found.\n -> Using a_v=1.')
+                print('WARNING: No transformation found.\n -> Using a_v=1.')
 
         elif a_v == None:
-            print('WARNING: Not asked to use tranformation and no value of a_v specified.\n -> Using a_v=1.')
+            print('WARNING: Not asked to use transformation and no value of a_v specified.\n -> Using a_v=1.')
 
         return
 
     #Function to add small scale gaussian fluctuations.
-    def add_small_scale_fluctuations(self,cell_size,generator,white_noise=False,lambda_min=0.0,IVAR_cutoff=lya,use_transformation=True,n=None,k1=None,A0=None,R_kms=None,remove_P1D_data=None,remove_P1D_z=2.5):
+    def add_small_scale_fluctuations(self,cell_size,generator,white_noise=False,lambda_min=0.0,IVAR_cutoff=utils.lya_rest,R_kms=None,remove_P1D_data=None,remove_P1D_z=2.5):
 
-        if use_transformation and n != None:
+        if not hasattr(self,'transformation'):
+            raise ValueError('No transformation found, can not add small scale fluctuations!')
+
+        """if use_transformation and n != None:
             print('WARNING: asked to use transformation and specified parameter values.\n -> Using transformation.')
             try:
                 n = self.transformation.n
@@ -338,7 +552,7 @@ class SimulationData:
                 R_kms = self.transformation.R_kms
                 A0 = 58.6
             except AttributeError:
-                print('WARNING: No tranformation found.\n -> Using specified values of parameters.')
+                print('WARNING: No transformation found.\n -> Using specified values of parameters.')
 
         elif use_transformation:
             try:
@@ -347,18 +561,18 @@ class SimulationData:
                 R_kms = self.transformation.R_kms
                 A0 = 58.6
             except AttributeError:
-                print('WARNING: No tranformation found.\n -> Using default parameter values.')
+                print('WARNING: No transformation found.\n -> Using default parameter values.')
                 n = 0.7
                 k1 = 0.001
                 R_kms = 25.0
                 A0 = 58.6
 
         elif n == None:
-            print('WARNING: Not asked to use tranformation and no parameter values specified.\n -> Using default parameter values.')
+            print('WARNING: Not asked to use transformation and no parameter values specified.\n -> Using default parameter values.')
             n = 0.7
             k1 = 0.001
             R_kms = 25.0
-            A0 = 58.6
+            A0 = 58.6"""
 
         #Define the new R grid. Ensure that we include the entire range of R.
         old_R = self.R
@@ -391,26 +605,28 @@ class SimulationData:
         self.Z = interp1d(new_R_edges,new_Z_edges,fill_value='extrapolate')(new_R)
         self.D = interp1d(new_R_edges,new_D_edges,fill_value='extrapolate')(new_R)
         self.V = interp1d(new_R_edges,new_V_edges,fill_value='extrapolate')(new_R)
-        self.LOGLAM_MAP = np.log10(lya*(1+self.Z))
+        self.LOGLAM_MAP = np.log10(utils.lya_rest*(1+self.Z))
 
         #Expand the other skewers.
         expanded_VEL_rows = self.VEL_rows[:,NGPs]
         expanded_IVAR_rows = self.IVAR_rows[:,NGPs]
 
         #Get the extra sigma_G values from the transformation.
-        extra_sigma_G = self.transformation.get_seps(self.Z)
+        extra_sigma_G = self.transformation.quantities['seps'](self.Z)
 
         #Generate extra variance, either white noise or correlated.
         dkms_dhMpc = utils.get_dkms_dhMpc(0.)
         dv_kms = cell_size * dkms_dhMpc
-        remove_P1D_amp = self.transformation.get_seps(remove_P1D_z)**2
-        extra_var = independent.get_gaussian_fields(generator,self.N_cells,dv_kms=dv_kms,N_skewers=self.N_qso,white_noise=white_noise,n=n,k1=k1,A0=A0,R_kms=R_kms,norm=True,remove_P1D_data=remove_P1D_data,remove_P1D_amp=remove_P1D_amp)
+        if R_kms is None:
+            R_kms = cell_size*dkms_dhMpc
+        remove_P1D_amp = self.transformation.quantities['seps'](remove_P1D_z)**2
+        extra_var = independent.get_gaussian_fields(generator,self.N_cells,self.transformation.quantities['ssf'],dv_kms=dv_kms,N_skewers=self.N_qso,white_noise=white_noise,R_kms=R_kms,norm=True,remove_P1D_data=remove_P1D_data,remove_P1D_amp=remove_P1D_amp)
         extra_var *= extra_sigma_G
 
         ## Make mask to remove information from beyond QSOs.
         new_Z_ledges = new_Z_edges[:-1]
-        LOGLAM_ledges = np.log10(lya*(1+new_Z_ledges))
-        lya_lr_mask = utils.make_IVAR_rows(lya,self.Z_QSO,LOGLAM_ledges)
+        LOGLAM_ledges = np.log10(utils.lya_rest*(1+new_Z_ledges))
+        lya_lr_mask = utils.make_IVAR_rows(utils.lya_rest,self.Z_QSO,LOGLAM_ledges)
 
         ## Mask the velocity and ivar beyond the QSOs.
         expanded_VEL_rows *= lya_lr_mask
@@ -471,8 +687,8 @@ class SimulationData:
     #Function to add tau skewers to an absorber using FGPA.
     def compute_tau_skewers(self,absorber):
 
-        tau0 = self.transformation.get_tau0(self.Z)
-        texp = self.transformation.get_texp(self.Z)
+        tau0 = self.transformation.quantities['tau0'](self.Z)
+        texp = self.transformation.quantities['alpha'](self.Z)
 
         # scale optical depth for this particular absorber (=1 for Lya)
         absorber_tau0 = tau0*absorber.flux_transform_m
@@ -481,8 +697,8 @@ class SimulationData:
         #Set tau to 0 beyond the quasars.
         R_edges = utils.get_edges(self.R)
         Z_edges = interp1d(self.R,self.Z,fill_value='extrapolate')(R_edges)
-        LOGLAM_edges = np.log10(lya*(1+Z_edges))
-        lya_lr_mask = utils.make_IVAR_rows(lya,self.Z_QSO,LOGLAM_edges[:-1])
+        LOGLAM_edges = np.log10(utils.lya_rest*(1+Z_edges))
+        lya_lr_mask = utils.make_IVAR_rows(utils.lya_rest,self.Z_QSO,LOGLAM_edges[:-1])
         absorber.tau *= lya_lr_mask
 
         return
@@ -594,14 +810,14 @@ class SimulationData:
             if all_absorbers:
                 if self.lyb_absorber is not None:
                     #Shift the skewers according to absorber rest wavelength.
-                    lyb_lam = (10**self.LOGLAM_MAP)*self.lyb_absorber.rest_wave/lya
+                    lyb_lam = (10**self.LOGLAM_MAP)*self.lyb_absorber.rest_wave/utils.lya_rest
                     lyb_skewers = interp1d(lyb_lam,self.lyb_absorber.tau,axis=1,fill_value=(0.,0.),bounds_error=False)(10**self.LOGLAM_MAP)
                     #Add tau contribution and rest wavelength to header.
                     skewer_rows += lyb_skewers
                 if self.metals is not None:
                     for metal in iter(self.metals.values()):
                         #Shift the skewers according to absorber rest wavelength.
-                        metal_lam = (10**self.LOGLAM_MAP)*metal.rest_wave/lya
+                        metal_lam = (10**self.LOGLAM_MAP)*metal.rest_wave/utils.lya_rest
                         metal_skewers = interp1d(metal_lam,metal.tau,axis=1,fill_value=(0.,0.),bounds_error=False)(10**self.LOGLAM_MAP)
                         #Add tau contribution and rest wavelength to header.
                         skewer_rows += metal_skewers
@@ -617,14 +833,14 @@ class SimulationData:
             if all_absorbers:
                 if self.lyb_absorber is not None:
                     #Shift the skewers according to absorber rest wavelength.
-                    lyb_lam = (10**self.LOGLAM_MAP)*self.lyb_absorber.rest_wave/lya
+                    lyb_lam = (10**self.LOGLAM_MAP)*self.lyb_absorber.rest_wave/utils.lya_rest
                     lyb_skewers = interp1d(lyb_lam,self.lyb_absorber.transmission(),axis=1,fill_value=(1.,1.),bounds_error=False)(10**self.LOGLAM_MAP)
                     #Add tau contribution and rest wavelength to header.
                     skewer_rows *= lyb_skewers
                 if self.metals is not None:
                     for metal in iter(self.metals.values()):
                         #Shift the skewers according to absorber rest wavelength.
-                        metal_lam = (10**self.LOGLAM_MAP)*metal.rest_wave/lya
+                        metal_lam = (10**self.LOGLAM_MAP)*metal.rest_wave/utils.lya_rest
                         metal_skewers = interp1d(metal_lam,metal.transmission(),axis=1,fill_value=(1.,1.),bounds_error=False)(10**self.LOGLAM_MAP)
                         #Add tau contribution and rest wavelength to header.
                         skewer_rows *= metal_skewers
@@ -894,7 +1110,7 @@ class SimulationData:
         return
 
     #Function to save in the picca format.
-    def save_as_picca_delta(self,quantity,filename,header,mean_data=None,overwrite=False,min_number_cells=2,cell_size=None,notnorm=False,add_QSO_RSDs=True,compress=True,all_absorbers=False):
+    def save_as_picca_image(self,quantity,filename,header,mean_data=None,overwrite=False,min_number_cells=2,cell_size=None,notnorm=False,add_QSO_RSDs=True,compress=True,all_absorbers=False):
 
         t = time.time()
         lya_lambdas = 10**self.LOGLAM_MAP
@@ -911,7 +1127,7 @@ class SimulationData:
                 if all_absorbers:
                     if self.lyb_absorber is not None:
                         #Shift the skewers according to absorber rest wavelength.
-                        lyb_lam = (10**self.LOGLAM_MAP)*self.lyb_absorber.rest_wave/lya
+                        lyb_lam = (10**self.LOGLAM_MAP)*self.lyb_absorber.rest_wave/utils.lya_rest
                         lyb_skewers = interp1d(lyb_lam,self.lyb_absorber.tau,axis=1,fill_value=(0.,0.),bounds_error=False)(10**self.LOGLAM_MAP)
                         #Add tau contribution and rest wavelength to header.
                         skewer_rows += lyb_skewers
@@ -919,7 +1135,7 @@ class SimulationData:
                     if self.metals is not None:
                         for metal in iter(self.metals.values()):
                             #Shift the skewers according to absorber rest wavelength.
-                            metal_lam = (10**self.LOGLAM_MAP)*metal.rest_wave/lya
+                            metal_lam = (10**self.LOGLAM_MAP)*metal.rest_wave/utils.lya_rest
                             metal_skewers = interp1d(metal_lam,metal.tau,axis=1,fill_value=(0.,0.),bounds_error=False)(10**self.LOGLAM_MAP)
                             #Add tau contribution and rest wavelength to header.
                             skewer_rows += metal_skewers
@@ -930,7 +1146,7 @@ class SimulationData:
                 if all_absorbers:
                     if self.lyb_absorber is not None:
                         #Shift the skewers according to absorber rest wavelength.
-                        lyb_lam = (10**self.LOGLAM_MAP)*self.lyb_absorber.rest_wave/lya
+                        lyb_lam = (10**self.LOGLAM_MAP)*self.lyb_absorber.rest_wave/utils.lya_rest
                         lyb_skewers = interp1d(lyb_lam,self.lyb_absorber.transmission(),axis=1,fill_value=(1.,1.),bounds_error=False)(10**self.LOGLAM_MAP)
                         #Add tau contribution and rest wavelength to header.
                         skewer_rows *= lyb_skewers
@@ -938,7 +1154,7 @@ class SimulationData:
                     if self.metals is not None:
                         for metal in iter(self.metals.values()):
                             #Shift the skewers according to absorber rest wavelength.
-                            metal_lam = (10**self.LOGLAM_MAP)*metal.rest_wave/lya
+                            metal_lam = (10**self.LOGLAM_MAP)*metal.rest_wave/utils.lya_rest
                             metal_skewers = interp1d(metal_lam,metal.transmission(),axis=1,fill_value=(1.,1.),bounds_error=False)(10**self.LOGLAM_MAP)
                             #Add tau contribution and rest wavelength to header.
                             skewer_rows *= metal_skewers
@@ -959,7 +1175,7 @@ class SimulationData:
                 if all_absorbers:
                     if self.lyb_absorber is not None:
                         #Shift the skewers according to absorber rest wavelength.
-                        lyb_lam = (10**self.LOGLAM_MAP)*self.lyb_absorber.rest_wave/lya
+                        lyb_lam = (10**self.LOGLAM_MAP)*self.lyb_absorber.rest_wave/utils.lya_rest
                         lyb_skewers = interp1d(lyb_lam,self.lyb_absorber.tau,axis=1,fill_value=(0.,0.),bounds_error=False)(10**self.LOGLAM_MAP)
                         #Add tau contribution and rest wavelength to header.
                         skewer_rows += lyb_skewers
@@ -967,7 +1183,7 @@ class SimulationData:
                     if self.metals is not None:
                         for metal in iter(self.metals.values()):
                             #Shift the skewers according to absorber rest wavelength.
-                            metal_lam = (10**self.LOGLAM_MAP)*metal.rest_wave/lya
+                            metal_lam = (10**self.LOGLAM_MAP)*metal.rest_wave/utils.lya_rest
                             metal_skewers = interp1d(metal_lam,metal.tau,axis=1,fill_value=(0.,0.),bounds_error=False)(10**self.LOGLAM_MAP)
                             #Add tau contribution and rest wavelength to header.
                             skewer_rows += metal_skewers
@@ -988,7 +1204,7 @@ class SimulationData:
                 if all_absorbers:
                     if self.lyb_absorber is not None:
                         #Shift the skewers according to absorber rest wavelength.
-                        lyb_lam = (10**self.LOGLAM_MAP)*self.lyb_absorber.rest_wave/lya
+                        lyb_lam = (10**self.LOGLAM_MAP)*self.lyb_absorber.rest_wave/utils.lya_rest
                         lyb_skewers = interp1d(lyb_lam,self.lyb_absorber.transmission(),axis=1,fill_value=(1.,1.),bounds_error=False)(10**self.LOGLAM_MAP)
                         #Add tau contribution and rest wavelength to header.
                         skewer_rows *= lyb_skewers
@@ -996,7 +1212,7 @@ class SimulationData:
                     if self.metals is not None:
                         for metal in iter(self.metals.values()):
                             #Shift the skewers according to absorber rest wavelength.
-                            metal_lam = (10**self.LOGLAM_MAP)*metal.rest_wave/lya
+                            metal_lam = (10**self.LOGLAM_MAP)*metal.rest_wave/utils.lya_rest
                             metal_skewers = interp1d(metal_lam,metal.transmission(),axis=1,fill_value=(1.,1.),bounds_error=False)(10**self.LOGLAM_MAP)
                             #Add tau contribution and rest wavelength to header.
                             skewer_rows *= metal_skewers
@@ -1069,14 +1285,20 @@ class SimulationData:
         #Get data from the absorber.
         if quantity == 'gaussian':
             skewers = self.GAUSSIAN_DELTA_rows
+            extrap_val = 0.
         elif quantity == 'density':
             skewers = self.DENSITY_DELTA_rows
+            extrap_val = 0.
         elif quantity == 'tau':
             skewers = absorber.tau
+            extrap_val = 0.
         elif quantity == 'flux':
-            skewers =absorber.transmission()
-        rest_wave = absorber.rest_wave
-        wave_skewer = rest_wave*(1+self.Z)
+            skewers = absorber.transmission()
+            extrap_val = 1.
+        else:
+            raise ValueError('Quantity {} not recognised!'.format(quantity))
+
+        wave_skewer = absorber.rest_wave*(1+self.Z)
 
         #Create the F_grid.
         N_los = skewers.shape[0]
@@ -1085,20 +1307,18 @@ class SimulationData:
 
         #Interpolate the skewers.
         for i in range(N_los):
-            skewer_grid[i,] = np.interp(wave_grid,wave_skewer,skewers[i],left=1.0,right=1.0)
+            skewer_grid[i,] = np.interp(wave_grid,wave_skewer,skewers[i],left=extrap_val,right=extrap_val)
 
         return skewer_grid
 
-    #Function to save data as a transmission file.
-    def save_as_transmission(self,filename,header,overwrite=False,wave_min=3550.,wave_max=6500.,wave_step=0.2,fmt='final',add_QSO_RSDs=True,compress=True):
-
-        t = time.time()
+    #Function to save data in the desimock format (like the transmission files).
+    def save_as_desimock(self,filename,header,overwrite=False,wave_min=3550.,wave_max=6500.,wave_step=0.2,fmt='final',add_QSO_RSDs=True,compress=True,quantity='flux'):
 
         # define common wavelength grid to be written in files (in Angstroms)
         wave_grid = np.arange(wave_min,wave_max,wave_step).astype('float32')
 
         # compute Lyman alpha transmission on grid of wavelengths
-        F_grid_Lya = self.compute_grid_quantity(self.lya_absorber,wave_grid,quantity='flux').astype('float32')
+        skw_lya = self.compute_grid_quantity(self.lya_absorber,wave_grid,quantity=quantity).astype('float32')
 
         #construct quasar catalog HDU
         if add_QSO_RSDs:
@@ -1119,73 +1339,89 @@ class SimulationData:
         #Combine the HDUs into an HDUlist (including DLAs and metals, if they have been computed)
         list_hdu = [prihdu, hdu_METADATA, hdu_WAVELENGTH]
 
-        #Set up the absorber HDUs according to the input format 'fmt'.
-        if fmt=='single_HDU':
+        ## Set up the absorber HDUs according to the input format 'fmt'. Only do
+        ## this if we're interested in tau or flux.
+        if (quantity=='tau') or (quantity=='flux'):
+            skw = skw_lya
+            if quantity == 'tau':
+                skw_combine = lambda skw_list : np.sum(skw_list,axis=0)
+            elif quantity == 'flux':
+                skw_combine = lambda skw_list : np.prod(skw_list,axis=0)
 
-            #Transmission of all absorbers.
-            abs_header = header.copy()
-            abs_header['LYA'] = self.lya_absorber.rest_wave
-            F_grid = F_grid_Lya
-            if self.lyb_absorber is not None:
-                abs_header[self.lyb_absorber.HDU_name] = self.lyb_absorber.rest_wave
-                F_grid *= self.compute_grid_quantity(self.lyb_absorber,wave_grid,quantity='flux').astype('float32')
-            if self.metals is not None:
-                for metal in iter(self.metals.values()):
-                    abs_header[metal.HDU_name] = metal.rest_wave
-                    F_grid *= self.compute_grid_quantity(metal,wave_grid,quantity='flux').astype('float32')
-            hdu_F = fits.ImageHDU(data=F_grid,header=abs_header,name='F')
-            list_hdu += [hdu_F]
+            if fmt=='single_HDU':
 
-        elif fmt == 'final':
+                #Put all absorbers into a single HDU.
+                abs_header = header.copy()
+                abs_header['LYA'] = self.lya_absorber.rest_wave
+                if (self.lyb_absorber is not None):
+                    abs_header[self.lyb_absorber.HDU_name] = self.lyb_absorber.rest_wave
+                    skw_lyb = self.compute_grid_quantity(self.lyb_absorber,wave_grid,quantity=quantity).astype('float32')
+                    skw = skw_combine([skw,skw_lyb])
+                if (self.metals is not None) and (quantity in ['tau','flux']):
+                    for metal in iter(self.metals.values()):
+                        abs_header[metal.HDU_name] = metal.rest_wave
+                        skw_metal = self.compute_grid_quantity(metal,wave_grid,quantity=quantity).astype('float32')
+                        skw = skw_combine([skw,skw_metal])
 
-            #Gives transmission of Lya only
-            lya_header = header
-            lya_header['LYA'] = self.lya_absorber.rest_wave
-            list_hdu += [fits.ImageHDU(data=F_grid_Lya,header=lya_header,name='F_LYA')]
+                hdu_skw = fits.ImageHDU(data=skw,header=abs_header,name='F')
+                list_hdu += [hdu_skw]
 
-            # compute Lyman beta transmission on grid of wavelengths
-            if self.lyb_absorber is not None:
-                F_grid_Lyb = self.compute_grid_quantity(self.lyb_absorber,wave_grid).astype('float32')
-                HDU_name = 'F_'+self.lyb_absorber.HDU_name
-                lyb_header = header.copy()
-                lyb_header[self.lyb_absorber.HDU_name] = self.lyb_absorber.rest_wave
-                list_hdu += [fits.ImageHDU(data=F_grid_Lyb,header=lyb_header,name=HDU_name)]
+            elif fmt == 'final':
 
-            #Add an HDU for each metal computed.
-            if self.metals is not None:
-                F_grid_all_metals = np.ones_like(F_grid_Lya)
-                met_header = header.copy()
-                # compute metals' transmission on grid of wavelengths
-                for metal in iter(self.metals.values()):
-                    F_grid_all_metals *= self.compute_grid_quantity(metal,wave_grid,quantity='flux').astype('float32')
-                    met_header[metal.HDU_name] = metal.rest_wave
-                HDU_name = 'F_METALS'
-                list_hdu += [fits.ImageHDU(data=F_grid_all_metals,header=met_header,name=HDU_name)]
+                #Gives transmission of Lya only
+                lya_header = header
+                lya_header['LYA'] = self.lya_absorber.rest_wave
+                list_hdu += [fits.ImageHDU(data=skw_lya,header=lya_header,name='F_LYA')]
 
-        elif fmt == 'develop':
+                # compute Lyman beta transmission on grid of wavelengths
+                if self.lyb_absorber is not None:
+                    skw_lyb = self.compute_grid_quantity(self.lyb_absorber,wave_grid,quantity=quantity).astype('float32')
+                    HDU_name = 'F_'+self.lyb_absorber.HDU_name
+                    lyb_header = header.copy()
+                    lyb_header[self.lyb_absorber.HDU_name] = self.lyb_absorber.rest_wave
+                    list_hdu += [fits.ImageHDU(data=skw_lyb,header=lyb_header,name=HDU_name)]
 
-            #Gives transmission of Lya only
-            lya_header = header
-            lya_header['LYA'] = self.lya_absorber.rest_wave
-            list_hdu += [fits.ImageHDU(data=F_grid_Lya,header=lya_header,name='F_LYA')]
-
-            # compute Lyman beta transmission on grid of wavelengths
-            if self.lyb_absorber is not None:
-                F_grid_Lyb = self.compute_grid_quantity(self.lyb_absorber,wave_grid,quantity='flux').astype('float32')
-                HDU_name = 'F_'+self.lyb_absorber.HDU_name
-                lyb_header = header.copy()
-                lyb_header[self.lyb_absorber.HDU_name] = self.lyb_absorber.rest_wave
-                list_hdu += [fits.ImageHDU(data=F_grid_Lyb,header=lyb_header,name=HDU_name)]
-
-            #Add an HDU for each metal computed.
-            if self.metals is not None:
-                # compute metals' transmission on grid of wavelengths
-                for metal in iter(self.metals.values()):
-                    F_grid_metal = self.compute_grid_quantity(metal,wave_grid,quantity='flux').astype('float32')
-                    HDU_name = 'F_'+metal.HDU_name
+                #Add an HDU for each metal computed.
+                if self.metals is not None:
+                    skw_all_metals = np.ones_like(skw_lya)
                     met_header = header.copy()
-                    met_header[metal.HDU_name] = metal.rest_wave
-                    list_hdu += [fits.ImageHDU(data=F_grid_metal,header=met_header,name=HDU_name)]
+                    # compute metals' transmission on grid of wavelengths
+                    for metal in iter(self.metals.values()):
+                        met_header[metal.HDU_name] = metal.rest_wave
+                        skw_metal = self.compute_grid_quantity(metal,wave_grid,quantity=quantity).astype('float32')
+                        skw = skw_combine([skw,skw_metal])
+                    HDU_name = 'F_METALS'
+                    list_hdu += [fits.ImageHDU(data=skw_all_metals,header=met_header,name=HDU_name)]
+            elif fmt == 'develop':
+
+                #Gives transmission of Lya only
+                lya_header = header
+                lya_header['LYA'] = self.lya_absorber.rest_wave
+                list_hdu += [fits.ImageHDU(data=skw_lya,header=lya_header,name='F_LYA')]
+
+                # compute Lyman beta transmission on grid of wavelengths
+                if self.lyb_absorber is not None:
+                    skw_lyb = self.compute_grid_quantity(self.lyb_absorber,wave_grid,quantity=quantity).astype('float32')
+                    HDU_name = 'F_'+self.lyb_absorber.HDU_name
+                    lyb_header = header.copy()
+                    lyb_header[self.lyb_absorber.HDU_name] = self.lyb_absorber.rest_wave
+                    list_hdu += [fits.ImageHDU(data=skw_lyb,header=lyb_header,name=HDU_name)]
+
+                #Add an HDU for each metal computed.
+                if self.metals is not None:
+                    # compute metals' transmission on grid of wavelengths
+                    for metal in iter(self.metals.values()):
+                        skw_metal = self.compute_grid_quantity(metal,wave_grid,quantity=quantity).astype('float32')
+                        HDU_name = 'F_'+metal.HDU_name
+                        met_header = header.copy()
+                        met_header[metal.HDU_name] = metal.rest_wave
+                        list_hdu += [fits.ImageHDU(data=skw_metal,header=met_header,name=HDU_name)]
+
+        else:
+            #Gives skewers of Lya only
+            lya_header = header
+            lya_header['LYA'] = self.lya_absorber.rest_wave
+            list_hdu += [fits.ImageHDU(data=skw_lya,header=lya_header,name='F')]
 
         # add table of DLAs
         if self.DLA_table is not None:
@@ -1203,6 +1439,13 @@ class SimulationData:
         if compress:
             utils.compress_file(filename)
         #print('--> compressing takes {:2.3f}s'.format(time.time()-t))
+
+        return
+
+    #Function to save data as a transmission file.
+    def save_as_transmission(self,filename,header,overwrite=False,wave_min=3550.,wave_max=6500.,wave_step=0.2,fmt='final',add_QSO_RSDs=True,compress=True):
+
+        self.save_as_desimock(filename,header,overwrite=overwrite,wave_min=wave_min,wave_max=wave_max,wave_step=wave_step,fmt=fmt,add_QSO_RSDs=add_QSO_RSDs,compress=compress,quantity='flux')
 
         return
 
