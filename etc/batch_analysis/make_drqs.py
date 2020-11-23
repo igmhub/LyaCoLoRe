@@ -14,6 +14,12 @@ parser.add_argument('--in-dir',
                     required=True,
                     help='Directory containing zcat')
 
+parser.add_argument('--out-dir',
+                    type=str,
+                    default=None,
+                    required=True,
+                    help='Directory to save drqs to')
+
 parser.add_argument('--overwrite',
                     action='store_true',
                     default=False,
@@ -58,5 +64,5 @@ def zcat_to_drq(in_path, out_path):
 
 ## Make drq
 zcat = os.path.join(args.in_dir,'zcat.fits')
-drq = os.path.join()
-zcat_to_drq(zcat,)
+drq = os.path.join(args.out_dir,'drq.fits')
+zcat_to_drq(zcat,drq)
