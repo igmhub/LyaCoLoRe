@@ -87,7 +87,21 @@ def compress_file(filename,ext='.gz',remove=True):
     return
 
 def get_edges(x):
-    x_edges = np.concatenate([[(x[0]-(x[1]-x[0])/2)],(x[1:]+x[:-1])/2,[(x[-1]+(x[-1]-x[-2])/2)]])
+    if len(x.shape)==1:
+        flatten = True
+        x = x.reshape(1,x.shape[0])
+    else:
+        flatten = False
+    nrows = x.shape[0]
+    x_edges = np.concatenate([(x[:,0]-(x[:,1]-x[:,0])/2).reshape((nrows,1)),
+                              (x[:,1:]+x[:,:-1])/2,
+                              (x[:,-1]+(x[:,-1]-x[:,-2])/2).reshape((nrows,1)),
+                              ],
+                              axis=1,
+                             )
+
+    if flatten:
+        x_edges = x_edges.flatten()
     return x_edges
 
 def get_centres(x_edges):

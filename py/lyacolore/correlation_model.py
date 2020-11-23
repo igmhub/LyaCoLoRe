@@ -1,6 +1,5 @@
 import numpy as np
 from astropy.io import fits
-import mcfit
 import matplotlib.pyplot as plt
 import sys
 

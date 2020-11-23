@@ -5,7 +5,6 @@ from astropy.io import fits
 from picca import wedgize
 import sys
 from numpy import linalg
-import mcfit
 from lyacolore import correlation_model, utils
 import glob
 import h5py
@@ -108,11 +107,6 @@ class picca_correlation:
             rpmin=self.rpmin,rpmax=self.rpmax,nrp=self.np,nr=nr,rmax=rmax_plot,
             absoluteMu=abs_mu)
         r, xi_wed, cov_wed = b.wedge(self.xi,self.cov)
-
-        print(mubin)
-        print(r[:4])
-        print(xi_wed[:4])
-        print(' ')
 
         #Get the errors.
         Nr = len(r)
@@ -263,7 +257,6 @@ class picca_correlation:
         weights = np.maximum(0.,np.minimum(rp_bin_widths,np.minimum(self.rpmax-rp_model_edges[:-1],rp_model_edges[1:]-self.rpmin))) / rp_bin_widths
         weights_grid = np.outer(weights,np.ones(nt_model)).astype('int')
 
-        print(r_model_grid.shape,xi_model_grid.shape)
         #Plot the model.
         r_model = np.average(r_model_grid,weights=weights_grid,axis=0)
         xi_model = np.average(xi_model_grid,weights=weights_grid,axis=0)
