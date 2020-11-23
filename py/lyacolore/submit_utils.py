@@ -155,3 +155,23 @@ def concatenate_subsamples(fi,fout,corr_type):
     out.close
 
     return
+
+def nh_to_hhmmss(nh):
+    hh = int(np.floor(nh))
+    remh = nh - hh
+    mm = int(np.floor(remh*60))
+    remm = remh*60 - mm
+    ss = int(np.ceil(remm*60))
+    if ss==60:
+        ss = 0
+        mm += 1
+    hhmmss = '{:02d}:{:02d}:{:02d}'.format(hh,mm,ss)
+    return hhmmss
+
+def make_permission_group_desi(dir):
+    call(['chgrp', '-R', 'desi', dir])
+    return
+
+def make_file_executable(f):
+    call(['chmod', 'ug+x', f])
+    return

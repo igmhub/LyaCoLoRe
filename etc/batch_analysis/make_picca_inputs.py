@@ -32,6 +32,7 @@ args = parser.parse_args()
 qq_dir = os.path.join(args.qq_basedir,'desi-1.0-4')
 if not os.path.isdir(qq_dir):
     os.mkdir(qq_dir)
+    submit_utils.make_permission_group_desi(qq_dir)
 command = 'make_zcats.py --qq-dir {}'.format(qq_dir)
 call(command)
 
@@ -42,9 +43,11 @@ raw_in_dir = args.raw_dir
 raw_out_dir = os.path.join(args.picca_basedir,'desi-raw')
 if not os.path.isdir(raw_out_dir):
     os.mkdir(raw_out_dir)
+    submit_utils.make_permission_group_desi(qq_dir)
 randoms_dir = os.path.join(args.picca_basedir,'randoms')
 if not os.path.isdir(randoms_dir):
     os.mkdir(randoms_dir)
+    submit_utils.make_permission_group_desi(randoms_dir)
 qq_ref_zcat = os.path.join(qq_dir,'zcat.fits')
 command = 'make_raw_drqs.py --in-dir {} --out-dir {} --randoms-out-dir {} --qq-ref-zcat {}'.format(raw_in_dir,raw_out_dir,randoms_dir,qq_ref_zcat)
 call(command)
@@ -56,6 +59,7 @@ slurm_hours = 2.
 out_dir = os.path.join(args.picca_basedir,'desi-raw/deltas')
 if not os.path.isdir(out_dir):
     os.mkdir(out_dir)
+    submit_utils.make_permission_group_desi(out_dir)
 drq = os.path.join(args.raw_dir,'drq.fits')
 in_dir = args.raw_dir
 command = 'run_make_raw_deltas.py --python-script {} --slurm-script {} --slurm-hours {} --out-dir {} --drq {} --in-dir {}'.format(python_script,slurm_script,slurm_hours,out_dir,drq,in_dir)
@@ -66,6 +70,7 @@ command = 'run_make_raw_deltas.py --python-script {} --slurm-script {} --slurm-h
 qq_dir = os.path.join(args.qq_basedir,'desi-1.0-4')
 if not os.path.isdir(qq_dir):
     os.mkdir(qq_dir)
+    submit_utils.make_permission_group_desi(qq_dir)
 command = 'make_drqs.py --in-dir {}'.format(qq_dir)
 call(command)
 
@@ -75,6 +80,7 @@ slurm_hours = 2.
 out_dir = os.path.join(args.picca_basedir,'desi-1.0-4/deltas')
 if not os.path.isdir(out_dir):
     os.mkdir(out_dir)
+    submit_utils.make_permission_group_desi(out_dir)
 drq = os.path.join(args.qq_basedir,'desi-1.0-4/drq.fits')
 in_dir = os.path.join(args.qq_basedir,'desi-1.0-4')
 command = 'run_make_deltas.py --slurm-script {} --slurm-hours {} --out-dir {} --drq {} --in-dir {}'.format(slurm_script,slurm_hours,out_dir,drq,in_dir)

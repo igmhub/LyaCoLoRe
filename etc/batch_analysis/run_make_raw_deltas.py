@@ -94,8 +94,9 @@ text += 'export OMP_NUM_THREADS=1\n'
 text += 'srun -n 1 -c 64 {}'.format(args.python_script)
 
 ## Write the slurm script.
-with open(args.slurm_script,'rw') as f:
+with open(args.slurm_script,'w') as f:
     f.write(text)
+submit_utils.make_file_executable(args.slurm_script)
 
 ## Submit the job.
 call('sbatch {}'.format(args.slurm_script))

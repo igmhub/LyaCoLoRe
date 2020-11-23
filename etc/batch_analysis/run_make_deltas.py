@@ -99,8 +99,9 @@ text += 'export OMP_NUM_THREADS=1\n'
 text += 'srun -n 1 -c 64 picca_deltas.py --in-dir {} --drq {} --out-dir {} --mode desi --iter-out-prefix {}/iter --log {}/picca_deltas.log --nproc {} --zqso-min {} --lambda-min {} --lambda-max {} --lambda-rest-min {} --lambda-rest-max {} --rebin {} --npix-min {}'.format(args.in_dir,args.drq,args.out_dir,args.out_dir,args.out_dir,args.nproc,args.zqso_min,args.lambda_min,args.lambda_max,args.lambda_rest_min,args.lambda_rest_max,args.rebin,args.npix_min)
 
 ## Write the script.
-with open(args.slurm_script,'rw') as f:
+with open(args.slurm_script,'w') as f:
     f.write(text)
+submit_utils.make_file_executable(args.slurm_script)
 
 ## Submit the job.
 call('sbatch {}'.format(args.slurm_script))

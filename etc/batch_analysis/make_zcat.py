@@ -3,6 +3,7 @@
 import argparse
 import os
 
+from lyacolore import submit_utils
 from subprocess import call
 
 parser = argparse.ArgumentParser(
@@ -38,8 +39,9 @@ text += 'desi_zcatalog -i {} -o {} --fibermap\n'.format(spec_dir,zcat)
 
 ## Write it to file
 script = os.path.join(args.qq_dir,'make_zcat.sh')
-with open(script,'rw') as f:
+with open(script,'w') as f:
     f.write(text)
+submit_utils.make_file_executable(script)
 
 ## Execute it
 call(script)
