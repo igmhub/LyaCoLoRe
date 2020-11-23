@@ -92,7 +92,7 @@ text += 'delta_log_lambda=3.e-4, '
 text += 'nproc={})'.format(args.nproc)
 
 ## Write the python script.
-with open(args.python_script,'rw') as f:
+with open(args.python_script,'w') as f:
     f.write(text)
 
 ## Make the slurm script text.
