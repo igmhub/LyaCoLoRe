@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+qq_run#!/usr/bin/env python
 
 import argparse
 from subprocess import call
@@ -19,6 +19,12 @@ parser.add_argument('--qq-basedir',
                     required=True,
                     help='Directory that contains all of the qq runs for the given realisation')
 
+parser.add_argument('--qq-runs',
+                    type=str,
+                    default=None,
+                    required=True,
+                    help='Directory names of the qq runs')
+
 parser.add_argument('--picca-basedir',
                     type=str,
                     default=None,
@@ -27,14 +33,16 @@ parser.add_argument('--picca-basedir',
 
 args = parser.parse_args()
 
-## Make the 1.0 zcat
-## This needs to be done before the raw drqs and deltas
-qq_dir = os.path.join(args.qq_basedir,'desi-1.0-4')
-if not os.path.isdir(qq_dir):
-    os.mkdir(qq_dir)
-submit_utils.make_permission_group_desi(qq_dir)
-command = 'make_zcats.py --qq-dir {}'.format(qq_dir)
-call(command)
+## For each of a sequence of qq runs:
+for qq_run in args.qq_runs:
+
+    ## Make the zcat
+    qq_dir = os.path.join(args.qq_basedir,qq_run)
+    if not os.path.isdir(qq_dir):
+        os.mkdir(qq_dir)
+    submit_utils.make_permission_group_desi(qq_dir)
+    command = 'make_zcats.py --qq-dir {}'.format(qq_dir)
+    call(command)
 
 
 
@@ -54,35 +62,38 @@ call(command)
 
 ## Submit job to run the raw deltas
 python_script = os.path.join(args.picca_basedir,'desi-raw/run_picca_deltas.py')
-slurm_script = os.path.join(args.picca_basedir,'desi-raw/run_picca_deltas.sh')
+slurm_script = os.path.join(args.picca_basedir,'desi-raw/run_picca_deltas.sl')
 slurm_hours = 2.
 out_dir = os.path.join(args.picca_basedir,'desi-raw/deltas')
 if not os.path.isdir(out_dir):
     os.mkdir(out_dir)
 submit_utils.make_permission_group_desi(out_dir)
-drq = os.path.join(args.raw_dir,'drq.fits')
+drq = os.path.join(args.picca_basedir,'drq_qso.fits')
 in_dir = args.raw_dir
 command = 'run_make_raw_deltas.py --python-script {} --slurm-script {} --slurm-hours {} --out-dir {} --drq {} --in-dir {}'.format(python_script,slurm_script,slurm_hours,out_dir,drq,in_dir)
 
 
 
-## Make the 1.0 drq
-qq_dir = os.path.join(args.qq_basedir,'desi-1.0-4')
-qq_out_dir = os.path.join(args.picca_basedir,'desi-1.0-4')
-if not os.path.isdir(qq_dir):
-    os.mkdir(qq_dir)
-submit_utils.make_permission_group_desi(qq_dir)
-command = 'make_drqs.py --in-dir {} --out-dir {}'.format(qq_dir,qq_out_dir)
-call(command)
+## For each of a sequence of qq runs:
+for qq_run in args.qq_runs:
 
-## Submit job to run the 1.0 deltas
-slurm_script = os.path.join(args.picca_basedir,'desi-1.0-4/run_picca_deltas.sh')
-slurm_hours = 2.
-out_dir = os.path.join(args.picca_basedir,'desi-1.0-4/deltas')
-if not os.path.isdir(out_dir):
-    os.mkdir(out_dir)
-submit_utils.make_permission_group_desi(out_dir)
-drq = os.path.join(args.qq_basedir,'desi-1.0-4/drq.fits')
-in_dir = os.path.join(args.qq_basedir,'desi-1.0-4')
-command = 'run_make_deltas.py --slurm-script {} --slurm-hours {} --out-dir {} --drq {} --in-dir {}'.format(slurm_script,slurm_hours,out_dir,drq,in_dir)
-call(command)
+    ## Make the drq
+    qq_dir = os.path.join(args.qq_basedir,qq_run)
+    qq_out_dir = os.path.join(args.picca_basedir,qq_run)
+    if not os.path.isdir(qq_dir):
+        os.mkdir(qq_dir)
+    submit_utils.make_permission_group_desi(qq_dir)
+    command = 'make_drqs.py --in-dir {} --out-dir {}'.format(qq_dir,qq_out_dir)
+    call(command)
+
+    ## Submit job to run the deltas
+    slurm_script = os.path.join(args.picca_basedir,qq_run,'run_picca_deltas.sl')
+    slurm_hours = 2.
+    out_dir = os.path.join(args.picca_basedir,qq_run,'/deltas')
+    if not os.path.isdir(out_dir):
+        os.mkdir(out_dir)
+    submit_utils.make_permission_group_desi(out_dir)
+    drq = os.path.join(args.picca_basedir,qq_run,'/drq_qso.fits')
+    in_dir = os.path.join(args.qq_basedir,qq_run)
+    command = 'run_make_deltas.py --slurm-script {} --slurm-hours {} --out-dir {} --drq {} --in-dir {}'.format(slurm_script,slurm_hours,out_dir,drq,in_dir)
+    call(command)
