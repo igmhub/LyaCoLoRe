@@ -24,6 +24,7 @@ parser.add_argument('--qq-basedir',
 
 parser.add_argument('--qq-runs',
                     type=str,
+                    nargs='*',
                     default=None,
                     required=True,
                     help='Directory names of the qq runs')
