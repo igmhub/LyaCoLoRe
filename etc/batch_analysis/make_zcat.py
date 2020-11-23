@@ -32,12 +32,12 @@ args = parser.parse_args()
 ## Make the text of the script
 text = '#!/bin/bash -l\n\n'
 text += 'source /global/common/software/desi/desi_environment.sh {}\n'.format(args.desi_env)
-spec_dir = os.path.join(qq_dir,'spectra-{}'.format(args.nside))
-zcat = os.path.join(qq_dir,'zcat.fits')
+spec_dir = os.path.join(args.qq_dir,'spectra-{}'.format(args.nside))
+zcat = os.path.join(args.qq_dir,'zcat.fits')
 text += 'desi_zcatalog -i {} -o {} --fibermap\n'.format(spec_dir,zcat)
 
 ## Write it to file
-script = os.path.join(qq_dir,'make_zcat.sh')
+script = os.path.join(args.qq_dir,'make_zcat.sh')
 with open(script,'rw') as f:
     f.write(text)
 
