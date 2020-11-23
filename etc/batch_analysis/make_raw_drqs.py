@@ -8,13 +8,13 @@ parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         )
 
-parser.add_argument('--in-dir',
+parser.add_argument('-i','--in-dir',
                     type=str,
                     default=None,
                     required=True,
                     help='Directory to transmission files')
 
-parser.add_argument('--out-dir',
+parser.add_argument('-o','--out-dir',
                     type=str,
                     default=None,
                     required=True,
@@ -135,21 +135,21 @@ def master_dla_to_drq(in_path, out_path, randoms=False, zcat=None):
     results.close()
 
 ## Make raw drq
-master = os.path.join(args.raw_in_dir,'master.fits')
+master = os.path.join(args.in_dir,'master.fits')
 out = os.path.join(args.out_dir,'drq.fits')
 master_to_drq(master,out,randoms=False,zcat=args.qq_ref_zcat)
 
 ## Make qso randoms drq
-master = os.path.join(args.raw_in_dir,'master_randoms.fits')
+master = os.path.join(args.in_dir,'master_randoms.fits')
 out = os.path.join(args.randoms_out_dir,'drq_randoms.fits')
 master_to_drq(master,out,randoms=True,zcat=args.qq_ref_zcat)
 
 ## Make raw dla drq
-master = os.path.join(args.raw_in_dir,'master_dla.fits')
+master = os.path.join(args.in_dir,'master_dla.fits')
 out = os.path.join(args.out_dir,'drq_dla.fits')
 master_dla_to_drq(master,out,randoms=False,zcat=args.qq_ref_zcat)
 
 ## Make raw dla randoms drq
-master = os.path.join(args.raw_in_dir,'master_dla_randoms.fits')
+master = os.path.join(args.in_dir,'master_dla_randoms.fits')
 out = os.path.join(args.randoms_out_dir,'drq_dla_randoms.fits')
 master_dla_to_drq(master,out,randoms=True,zcat=args.qq_ref_zcat)

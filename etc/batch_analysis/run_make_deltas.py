@@ -22,7 +22,7 @@ parser.add_argument('--slurm-hours',
                     required=True,
                     help='Number of hours for slurm job')
 
-arser.add_argument('--out-dir',
+arser.add_argument('-o','--out-dir',
                     type=str,
                     default=None,
                     required=True,
@@ -34,7 +34,7 @@ parser.add_argument('--drq',
                     required=True,
                     help='Catalog of objects in DRQ format')
 
-parser.add_argument('--in-dir',
+parser.add_argument('-i','--in-dir',
                     type=str,
                     default=None,
                     required=True,

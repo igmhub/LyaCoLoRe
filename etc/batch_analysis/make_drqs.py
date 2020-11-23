@@ -8,13 +8,13 @@ parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         )
 
-parser.add_argument('--in-dir',
+parser.add_argument('-i','--in-dir',
                     type=str,
                     default=None,
                     required=True,
                     help='Directory containing zcat')
 
-parser.add_argument('--out-dir',
+parser.add_argument('-o','--out-dir',
                     type=str,
                     default=None,
                     required=True,
