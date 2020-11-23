@@ -86,8 +86,8 @@ text += '{}+"/deltas/", '.format(args.out_dir)
 text += 'in_dir={}, '.format(args.in_dir)
 text += 'lambda_min={}, '.format(args.lambda_min)
 text += 'lambda_max={}, '.format(args.lambda_max)
-text += 'lambda_min_rest_frame={}, '.format(args.lambda_min_rest_frame)
-text += 'lambda_max_rest_frame={}, '.format(args.lambda_max_rest_frame)
+text += 'lambda_min_rest_frame={}, '.format(args.lambda_rest_min)
+text += 'lambda_max_rest_frame={}, '.format(args.lambda_rest_max)
 text += 'delta_log_lambda=3.e-4, '
 text += 'nproc={})'.format(args.nproc)
 
