@@ -2,6 +2,7 @@
 
 import argparse
 import fitsio
+import numpy as np
 import os
 
 parser = argparse.ArgumentParser(
