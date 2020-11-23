@@ -137,7 +137,7 @@ def master_dla_to_drq(in_path, out_path, randoms=False, zcat=None):
         with fitsio.FITS(zcat) as zc:
             thingid_zcat = zc[1][:]['TARGETID']
         w = np.in1d(cat['THING_ID'],thingid_zcat)
-        print('INFO: zcat contains {} quasars, of which {} found in master.'.format(len(thingid_zcat),w.sum()))
+        print('INFO: zcat contains {} quasars, of which {} have DLAs.'.format(len(thingid_zcat),w.sum()))
         print('INFO: Reducing to this set now.')
         for k in cat.keys():
             cat[k] = cat[k][w]
