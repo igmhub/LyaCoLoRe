@@ -172,11 +172,11 @@ out_rand = os.path.join(args.randoms_out_dir,'drq_randoms.fits')
 master_to_drq(master_rand,out_rand,randoms=True,zcat=args.qq_ref_zcat,nobj=nobj_rand_drq)
 
 ## Make raw dla drq
-master_dla = os.path.join(args.in_dir,'master_dla.fits')
+master_dla = os.path.join(args.in_dir,'master_DLA.fits')
 out_dla = os.path.join(args.out_dir,'drq_dla.fits')
 master_dla_to_drq(master_dla,out_dla,randoms=False,zcat=args.qq_ref_zcat)
 
 ## Make raw dla randoms drq
-master_dla_rand = os.path.join(args.in_dir,'master_dla_randoms.fits')
+master_dla_rand = os.path.join(args.in_dir,'master_DLA_randoms.fits')
 out_dla_rand = os.path.join(args.randoms_out_dir,'drq_dla_randoms.fits')
 master_dla_to_drq(master_dla_rand,out_dla_rand,randoms=True,zcat=args.qq_ref_zcat)
