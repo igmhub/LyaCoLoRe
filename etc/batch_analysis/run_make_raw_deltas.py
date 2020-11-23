@@ -101,6 +101,7 @@ text += 'nproc={})\n'.format(args.nproc)
 ## Write the python script.
 with open(args.python_script,'w') as f:
     f.write(text)
+submit_utils.make_file_executable(args.python_script)
 
 ## Make the slurm script text.
 time = submit_utils.nh_to_hhmmss(args.slurm_hours)
