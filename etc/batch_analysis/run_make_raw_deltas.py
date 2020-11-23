@@ -80,7 +80,16 @@ args = parser.parse_args()
 ## Make the python script.
 text = '#!/usr/bin/env python\n\n'
 text += 'from picca import converters\n\n'
-text += 'converters.desi_convert_transmission_to_delta_files({}+"/drq.fits", {}+"/deltas/",in_dir={}, lambda_min={}, lambda_max={}, lambda_min_rest_frame={}, lambda_max_rest_frame={}, delta_log_lambda=3.e-4, nproc={})'.format(args.out_dir,args.out_dir,args.in_dir,args.lambda_min,args.lambda_max,,args.lambda_min_rest_frame,,args.lambda_max_rest_frame,args.nproc)
+text += 'converters.desi_convert_transmission_to_delta_files('
+text += '{}+"/drq.fits", '.format(args.out_dir)
+text += '{}+"/deltas/", '.format(args.out_dir)
+text += 'in_dir={}, '.format(args.in_dir)
+text += 'lambda_min={}, '.format(args.lambda_min)
+text += 'lambda_max={}, '.format(args.lambda_max)
+text += 'lambda_min_rest_frame={}, '.format(args.lambda_min_rest_frame)
+text += 'lambda_max_rest_frame={}, '.format(args.lambda_max_rest_frame)
+text += 'delta_log_lambda=3.e-4, '
+text += 'nproc={})'.format(args.nproc)
 
 ## Write the python script.
 with open(args.python_script,'rw') as f:

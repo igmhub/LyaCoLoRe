@@ -96,7 +96,21 @@ time = submit_utils.nh_to_hhmmss(args.slurm_hours)
 text = submit_utils.make_header(queue='regular',nnodes=1,time=time,job_name='picca_deltas',err_file='run-picca-deltas-%j.err',out_file='run-picca-deltas-%j.out')
 text += '\n\n'
 text += 'export OMP_NUM_THREADS=1\n'
-text += 'srun -n 1 -c 64 picca_deltas.py --in-dir {} --drq {} --out-dir {} --mode desi --iter-out-prefix {}/iter --log {}/picca_deltas.log --nproc {} --zqso-min {} --lambda-min {} --lambda-max {} --lambda-rest-min {} --lambda-rest-max {} --rebin {} --npix-min {}'.format(args.in_dir,args.drq,args.out_dir,args.out_dir,args.out_dir,args.nproc,args.zqso_min,args.lambda_min,args.lambda_max,args.lambda_rest_min,args.lambda_rest_max,args.rebin,args.npix_min)
+text += 'srun -n 1 -c 64 picca_deltas.py '
+text += '--in-dir {} '.format(args.in_dir)
+text += '--drq {} '.format(args.drq)
+text += '--out-dir {} '.format(args.out_dir)
+text += '--mode desi '
+text += '--iter-out-prefix {}/iter '.format(args.out_dir)
+text += '--log {}/picca_deltas.log '.format(args.out_dir)
+text += '--nproc {} '.format(args.nproc)
+text += '--zqso-min {} '.format(args.zqso_min)
+text += '--lambda-min {} '.format(args.lambda_min)
+text += '--lambda-max {} '.format(args.lambda_max)
+text += '--lambda-rest-min {} '.format(args.lambda_rest_min)
+text += '--lambda-rest-max {} '.format(args.lambda_rest_max)
+text += '--rebin {} '.format(args.rebin)
+text += '--npix-min'.format(args.npix_min)
 
 ## Write the script.
 with open(args.slurm_script,'w') as f:
