@@ -69,8 +69,8 @@ def master_to_drq(in_path, out_path, randoms=False, zcat=None):
         cat[key] = cat[key].astype('float64')
 
     if zcat is not None:
-        with zc as fits.open(zcat):
-            thingid_zcat = zc[1].data['']
+        with fits.open(zcat) as zc:
+            thingid_zcat = zc[1].data['TARGETID']
         w = np.in1d(cat['THING_ID'],thingid_zcat)
         print('INFO: zcat contains {} quasars, of which {} found in master.'.format(len(thingid_zcat),w.sum()))
         print('INFO: Reducing to this set now.')
@@ -119,8 +119,8 @@ def master_dla_to_drq(in_path, out_path, randoms=False, zcat=None):
         cat[key] = cat[key].astype('float64')
 
     if zcat is not None:
-        with zc as fits.open(zcat):
-            thingid_zcat = zc[1].data['']
+        with fits.open(zcat) as zc:
+            thingid_zcat = zc[1].data['TARGETID']
         w = np.in1d(cat['THING_ID'],thingid_zcat)
         print('INFO: zcat contains {} quasars, of which {} found in master.'.format(len(thingid_zcat),w.sum()))
         print('INFO: Reducing to this set now.')
