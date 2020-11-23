@@ -32,7 +32,7 @@ parser.add_argument('-o','--out-dir',
                     type=str,
                     default=None,
                     required=True,
-                    help='Output directory')
+                    help='Output directory (inside which deltas dir will be made)')
 
 parser.add_argument('--drq',
                     type=str,
@@ -82,7 +82,7 @@ args = parser.parse_args()
 text = '#!/usr/bin/env python\n\n'
 text += 'from picca import converters\n\n'
 text += 'converters.desi_convert_transmission_to_delta_files('
-text += '"{}", '.format(os.path.join(args.out_dir,'drq.fits'))
+text += '"{}", '.format(args.drq)
 text += '"{}", '.format(os.path.join(args.out_dir,'deltas/'))
 text += 'in_dir="{}", '.format(args.in_dir)
 text += 'lambda_min={}, '.format(args.lambda_min)
