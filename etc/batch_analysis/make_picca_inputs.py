@@ -63,14 +63,15 @@ call(command)
 ## Submit job to run the raw deltas
 python_script = os.path.join(args.picca_basedir,'desi-raw/run_picca_deltas.py')
 slurm_script = os.path.join(args.picca_basedir,'desi-raw/run_picca_deltas.sl')
-slurm_hours = 2.
+slurm_hours = 0.5
+slurm_queue = 'debug'
 out_dir = os.path.join(args.picca_basedir,'desi-raw/deltas')
 if not os.path.isdir(out_dir):
     os.mkdir(out_dir)
 submit_utils.make_permission_group_desi(out_dir)
 drq = os.path.join(args.picca_basedir,'drq_qso.fits')
 in_dir = args.raw_dir
-command = 'run_make_raw_deltas.py --python-script {} --slurm-script {} --slurm-hours {} --out-dir {} --drq {} --in-dir {}'.format(python_script,slurm_script,slurm_hours,out_dir,drq,in_dir)
+command = 'run_make_raw_deltas.py --python-script {} --slurm-script {} --slurm-hours {} --slurm-queue {} --out-dir {} --drq {} --in-dir {}'.format(python_script,slurm_script,slurm_hours,slurm_queue,out_dir,drq,in_dir)
 
 
 
@@ -89,6 +90,7 @@ for qq_run in args.qq_runs:
     ## Submit job to run the deltas
     slurm_script = os.path.join(args.picca_basedir,qq_run,'run_picca_deltas.sl')
     slurm_hours = 2.
+    slurm_queue = 'regular'
     out_dir = os.path.join(args.picca_basedir,qq_run)
     if not os.path.isdir(out_dir):
         os.mkdir(out_dir)
@@ -98,5 +100,5 @@ for qq_run in args.qq_runs:
     submit_utils.make_permission_group_desi(out_dir)
     drq = os.path.join(args.picca_basedir,qq_run,'drq_qso.fits')
     in_dir = os.path.join(args.qq_basedir,qq_run)
-    command = 'run_make_deltas.py --slurm-script {} --slurm-hours {} --out-dir {} --drq {} --in-dir {}'.format(slurm_script,slurm_hours,out_dir,drq,in_dir)
+    command = 'run_make_deltas.py --slurm-script {} --slurm-hours {} --slurm-queue {} --out-dir {} --drq {} --in-dir {}'.format(slurm_script,slurm_hours,slurm_queue,out_dir,drq,in_dir)
     call(command)

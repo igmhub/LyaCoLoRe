@@ -22,6 +22,12 @@ parser.add_argument('--slurm-hours',
                     required=True,
                     help='Number of hours for slurm job')
 
+parser.add_argument('--slurm-queue',
+                    type=str,
+                    default=None,
+                    required=True,
+                    help='Slurm queue to use')
+
 parser.add_argument('-o','--out-dir',
                     type=str,
                     default=None,
@@ -95,7 +101,7 @@ args = parser.parse_args()
 time = submit_utils.nh_to_hhmmss(args.slurm_hours)
 err_file = os.path.join(args.out_dir,'run-picca-deltas-%j.err')
 out_file = os.path.join(args.out_dir,'run-picca-deltas-%j.out')
-text = submit_utils.make_header(queue='regular',nnodes=1,time=time,job_name='picca_deltas',err_file=err_file,out_file=out_file)
+text = submit_utils.make_header(queue=args.slurm_queue,nnodes=1,time=time,job_name='picca_deltas',err_file=err_file,out_file=out_file)
 text += 'export OMP_NUM_THREADS=1\n'
 text += 'srun -n 1 -c 64 picca_deltas.py '
 text += '--in-dir {} '.format(args.in_dir)
@@ -104,8 +110,10 @@ text += '--out-dir {} '.format(os.path.join(args.out_dir,'deltas/'))
 text += '--mode desi '
 text += '--iter-out-prefix {}/iter '.format(args.out_dir)
 text += '--log {}/picca_deltas.log '.format(args.out_dir)
-text += '--nproc {} '.format(args.nproc)
-text += '--zqso-min {} '.format(args.zqso_min)
+if args.nproc is not None:
+    text += '--nproc {} '.format(args.nproc)
+if args.zqso_min is not None:
+    text += '--zqso-min {} '.format(args.zqso_min)
 text += '--lambda-min {} '.format(args.lambda_min)
 text += '--lambda-max {} '.format(args.lambda_max)
 text += '--lambda-rest-min {} '.format(args.lambda_rest_min)
