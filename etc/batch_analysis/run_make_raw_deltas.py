@@ -98,7 +98,7 @@ with open(args.python_script,'w') as f:
 
 ## Make the slurm script text.
 time = submit_utils.nh_to_hhmmss(args.slurm_hours)
-text = submit_utils.make_header(queue='regular',nnodes=1,time=time,job_name='picca_deltas',err_file='run-picca-deltas-%j.err',out_file='run-picca-deltas-%j.out')
+text = submit_utils.make_header(queue='regular',nnodes=1,time=time,job_name='raw_picca_deltas',err_file='run-picca-deltas-%j.err',out_file='run-picca-deltas-%j.out')
 text += 'export OMP_NUM_THREADS=1\n'
 text += 'srun -n 1 -c 64 {}\n'.format(args.python_script)
 
