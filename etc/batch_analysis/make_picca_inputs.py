@@ -62,7 +62,7 @@ if not os.path.isdir(randoms_dir):
 submit_utils.make_permission_group_desi(randoms_dir)
 qq_ref_zcat = os.path.join(qq_dir,'zcat.fits')
 command = '/global/homes/j/jfarr/Projects/LyaCoLoRe/etc/batch_analysis/make_raw_drqs.py --in-dir {} --out-dir {} --randoms-out-dir {} --qq-ref-zcat {}'.format(raw_in_dir,raw_out_dir,randoms_dir,qq_ref_zcat)
-call(command)
+call(command.split(' '))
 
 ## Submit job to run the raw deltas
 python_script = os.path.join(args.picca_basedir,'desi-raw/run_picca_deltas.py')
@@ -76,6 +76,7 @@ submit_utils.make_permission_group_desi(out_dir)
 drq = os.path.join(args.picca_basedir,'drq_qso.fits')
 in_dir = args.raw_dir
 command = '/global/homes/j/jfarr/Projects/LyaCoLoRe/etc/batch_analysis/run_make_raw_deltas.py --python-script {} --slurm-script {} --slurm-hours {} --slurm-queue {} --out-dir {} --drq {} --in-dir {}'.format(python_script,slurm_script,slurm_hours,slurm_queue,out_dir,drq,in_dir)
+call(command.split(' '))
 
 
 
@@ -89,7 +90,7 @@ for qq_run in args.qq_runs:
         os.mkdir(qq_dir)
     submit_utils.make_permission_group_desi(qq_dir)
     command = '/global/homes/j/jfarr/Projects/LyaCoLoRe/etc/batch_analysis/make_drqs.py --in-dir {} --out-dir {}'.format(qq_dir,qq_out_dir)
-    call(command)
+    call(command.split(' '))
 
     ## Submit job to run the deltas
     slurm_script = os.path.join(args.picca_basedir,qq_run,'run_picca_deltas.sl')
@@ -105,4 +106,4 @@ for qq_run in args.qq_runs:
     drq = os.path.join(args.picca_basedir,qq_run,'drq_qso.fits')
     in_dir = os.path.join(args.qq_basedir,qq_run)
     command = '/global/homes/j/jfarr/Projects/LyaCoLoRe/etc/batch_analysis/run_make_deltas.py --slurm-script {} --slurm-hours {} --slurm-queue {} --out-dir {} --drq {} --in-dir {}'.format(slurm_script,slurm_hours,slurm_queue,out_dir,drq,in_dir)
-    call(command)
+    call(command.split(' '))
