@@ -45,7 +45,7 @@ for qq_run in args.qq_runs:
         os.mkdir(qq_dir)
     submit_utils.make_permission_group_desi(qq_dir)
     command = 'make_zcats.py --qq-dir {}'.format(qq_dir)
-    call(command)
+    call(command.split(' '))
 
 
 
