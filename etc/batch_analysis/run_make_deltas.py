@@ -93,12 +93,14 @@ args = parser.parse_args()
 
 ## Make the script text.
 time = submit_utils.nh_to_hhmmss(args.slurm_hours)
-text = submit_utils.make_header(queue='regular',nnodes=1,time=time,job_name='picca_deltas',err_file='run-picca-deltas-%j.err',out_file='run-picca-deltas-%j.out')
+err_file = os.path.join(args.out_dir,'run-picca-deltas-%j.err')
+out_file = os.path.join(args.out_dir,'run-picca-deltas-%j.out')
+text = submit_utils.make_header(queue='regular',nnodes=1,time=time,job_name='picca_deltas',err_file=err_file,out_file=out_file)
 text += 'export OMP_NUM_THREADS=1\n'
 text += 'srun -n 1 -c 64 picca_deltas.py '
 text += '--in-dir {} '.format(args.in_dir)
 text += '--drq {} '.format(args.drq)
-text += '--out-dir {} '.format(args.out_dir)
+text += '--out-dir {} '.format(os.path.join(args.out_dir,'deltas/'))
 text += '--mode desi '
 text += '--iter-out-prefix {}/iter '.format(args.out_dir)
 text += '--log {}/picca_deltas.log '.format(args.out_dir)
@@ -109,7 +111,7 @@ text += '--lambda-max {} '.format(args.lambda_max)
 text += '--lambda-rest-min {} '.format(args.lambda_rest_min)
 text += '--lambda-rest-max {} '.format(args.lambda_rest_max)
 text += '--rebin {} '.format(args.rebin)
-text += '--npix-min\n'.format(args.npix_min)
+text += '--npix-min {}\n'.format(args.npix_min)
 
 ## Write the script.
 with open(args.slurm_script,'w') as f:
