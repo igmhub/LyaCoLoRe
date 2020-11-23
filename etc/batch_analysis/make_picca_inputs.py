@@ -3,6 +3,7 @@
 import argparse
 import os
 
+from lyacolore import submit_utils
 from subprocess import call
 
 parser = argparse.ArgumentParser(
