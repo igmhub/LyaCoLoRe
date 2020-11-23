@@ -153,7 +153,7 @@ def master_dla_to_drq(in_path, out_path, randoms=False, zcat=None):
 
 ## Make raw drq
 master = os.path.join(args.in_dir,'master.fits')
-out = os.path.join(args.out_dir,'drq.fits')
+out = os.path.join(args.out_dir,'drq_qso.fits')
 master_to_drq(master,out,randoms=False,zcat=args.qq_ref_zcat)
 
 ## Make qso randoms drq
@@ -168,7 +168,7 @@ with fitsio.FITS(master) as m:
 with fitsio.FITS(out) as drq:
     nobj_rand_drq = int(len(drq[1][:])*mult)
 
-out_rand = os.path.join(args.randoms_out_dir,'drq_randoms.fits')
+out_rand = os.path.join(args.randoms_out_dir,'drq_qso_randoms.fits')
 master_to_drq(master_rand,out_rand,randoms=True,zcat=args.qq_ref_zcat,nobj=nobj_rand_drq)
 
 ## Make raw dla drq
