@@ -65,5 +65,5 @@ def zcat_to_drq(in_path, out_path):
 
 ## Make drq
 zcat = os.path.join(args.in_dir,'zcat.fits')
-drq = os.path.join(args.out_dir,'drq.fits')
+drq = os.path.join(args.out_dir,'drq_qso.fits')
 zcat_to_drq(zcat,drq)
