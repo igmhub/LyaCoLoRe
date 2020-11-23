@@ -9,55 +9,200 @@ import multiprocessing
 import time
 import glob
 from iminuit import Minuit
+from iminuit.util import make_func_code
 import argparse
 import json
+import sys
 
-from lyacolore import simulation_data, tuning, utils
+from lyacolore import catalog, parse, simulation_data, tuning, utils
 
 ################################################################################
 ## Parse the input arguments.
 
 tuning_args, run_args = parse.get_tuning_args(sys.argv)
 
+## Hack for now
+run_args.tuning_file = tuning_args.initial_parameter_file
+
 ################################################################################
-## Initialise the parameter values.
-params = tuning.tuning_file_to_minuit_input(
-    file=tuning_args.initial_parameter_file,
+"""
+Prepare the initial transformation and its equivalent minuit input.
+"""
+
+## Make iniitial transformation and minuit input.
+initial_transformation, initial_param_dict, param_names = \
+tuning.get_initial_transformation_and_minuit_input(
+    filepath=tuning_args.initial_parameter_file,
     random=tuning_args.randomise_initial_parameter_values,
-    seed=tuning_args.seed)
+    seed=run_args.seed,
+)
 
 ################################################################################
 """
 Prepare the data.
+# TODO: This is largely shared with make_master. Could it be coordinated?
 """
-## Choose objects from data.
-master = fits.open(run_args.out_dir+'/master.fits')
-nobj_total = len(master[1].data)
+## Find the input files.
+input_files = utils.get_in_file_names(tuning_args.in_dir,run_args.input_filename_prefix)
+if len(input_files) == 0:
+    raise ValueError('No files found at {}'.format(tuning_args.in_dir))
+
+master_data, bad_coordinates_data, cosmology_data = catalog.make_master_data(input_files,run_args,apply_footprint=True)
+MOCKID_lookup = catalog.make_MOCKID_lookup(master_data)
+pixel_list = list(sorted(set([k[1] for k in MOCKID_lookup.keys()])))
+
+# TODO: Integrate this into make_master_data. Need to make sure no conflict with args.downsampling.
+## Select the number of object that we want from the data.
+nobj_total = len(master_data)
+np.random.seed(run_args.seed)
 w = np.random.choice(range(nobj_total),tuning_args.n_skewers,replace=False)
-input_objects = master[1].data[w]
-master.close()
+input_objects = master_data[w]
 
-## Load the CoLoRe input skewers.
-fnums = np.sort(list(set(input_objects['FILENUM'])))
-fpaths = {fnum:get_in_file_name(run_args.in_dir,run_args.in_file_prefix,fnum) for fnum in fnums}
-fmockids = {fnum:input_objects['MOCKID'][(input_objects['FILENUM']==fnum)] for filenum in filenums}
-tasks = [fpaths[fnum],fnum,run_args.file_format,run_args.skewer_type,filemockids[fnum],run_args.lambda_min,run_args.rest_frame_weights_cut,None]
+## Load the data objects.
+data_objects = simulation_data.get_pixel_objects(pixel_list,run_args,MOCKID_lookup)
 
+################################################################################
+## Process the skewers using the initial transformation.
+def process_data_objects(data_object,pixel,run_args):
+
+    simulation_data.process_skewers(data_object,pixel,run_args,save_stages=False,save_transmission=False,trans=initial_transformation)
+
+    # TODO: Need to compute b_eta weights as well?
+
+    return
+
+tasks = [(d,i,run_args) for i,d in data_objects.items()]
 if __name__ == '__main__':
-    pool = Pool(processes = tuning_args.nproc)
-    results = []
-
-    for task in tasks:
-        pool.apply_async(simulation_data.get_skewers_object,task,callback=log_result,error_callback=log_error)
-
-    pool.close()
-    pool.join()
-
-# Calculate RSDs.
-
+    utils.run_multiprocessing(process_data_objects,tasks,tuning_args.nproc)
 
 ################################################################################
 ## Carry out the minimisation.
+def measure_data_object(pixel,params):
+
+    data_object = data_objects[pixel]
+
+    data_object.transformation.update_parameters_from_minuit(params)
+
+    ## Update the skewers with the new transformation.
+    simulation_data.process_skewers(data_object,pixel,run_args,save_stages=False,save_transmission=False)
+    data_object.store_all_transmission_skewers()
+
+    ## Measure P1D, mean F etc.
+    measurements = []
+    times_m = np.zeros(6)
+    """for z_value in tuning_args.z_values:
+        ID = n
+        t_m = time.time()
+
+        # TODO: This won't work any more as we don't have the parameters like this
+        measurement = tuning.function_measurement(ID,z_value,tuning_args.z_width,simulation_data.N_qso,n,k1,C0,C1,C2,texp,D0,D1,D2,pixels=[pixel])
+
+        times_m[0] += time.time() - t_m
+        t_m = time.time()
+        measurement.add_mean_F_measurement(data_object)
+        times_m[1] += time.time() - t_m
+        t_m = time.time()
+        measurement.add_Pk1D_measurement(data_object)
+        times_m[2] += time.time() - t_m
+        t_m = time.time()
+        #measurement.add_sigma_dF_measurement(data_object)
+        times_m[3] += time.time() - t_m
+        t_m = time.time()
+        measurement.add_bias_delta_measurement(data_object,d=d_delta,weights=RSD_weights)
+        times_m[4] += time.time() - t_m
+        t_m = time.time()
+        #measurement.add_bias_eta_measurement(data_object,d=d_eta,weights_dict=bias_eta_weights,lambda_buffer=lambda_buffer)
+        times_m[5] += time.time() - t_m
+        measurements += [measurement]
+
+    #print('{:3.2f} checkpoint measurements'.format(time.time()-t))
+    #print('--> measurement_times: {:3.2f}, {:3.2f}, {:3.2f}, {:3.2f}, {:3.2f}, {:3.2f}'.format(times_m[0],times_m[1],times_m[2],times_m[3],times_m[4],times_m[5]))
+    """
+    return measurements
+
+class Cost:
+    def __init__(self,argnames):
+        self.argnames = argnames
+        self.__code__ = make_func_code(argnames)
+        return
+
+    def __call__(self,*params):
+
+        param_dict = {self.argnames[i]: params[i] for i in range(self.__code__.co_argcount)}
+
+        ## Update our transformation to track the parameters tested.
+        initial_transformation.update_parameters_from_minuit(param_dict)
+
+        print(initial_transformation.quantities['tau0'].parameter_history)
+
+        ## Get measurements from all pixels.
+        tasks = [(p,param_dict) for p in data_objects.keys()]
+        if __name__ == '__main__':
+            results = utils.run_multiprocessing(measure_data_object,tasks,tuning_args.nproc)
+
+        ## Combine the measurements.
+        measurements = []
+
+        """for result in results:
+            measurements += result
+        measurement_set = tuning.measurement_set(measurements=measurements)
+        combined_pixels_set = measurement_set.combine_pixels()
+
+        ## Get the cost.
+        for m in combined_pixels_set.measurements:
+
+            # TODO: Want to rename these "cost" rather than "chi2"
+            m.add_mean_F_chi2(eps=tuning_args.weight_mean_flux)
+            m.add_Pk1D_chi2(max_k=tuning_args.k_max,denom="npower_cutoff",eps=tuning_args.weight_p1d)
+            m.add_bias_delta_chi2(eps=tuning_args.weight_bias_delta)
+            #m.add_bias_eta_chi2(eps=tuning_args.weight_bias_eta)
+
+            Pk_kms_chi2 += m.Pk_kms_chi2
+            mean_F_chi2 += m.mean_F_chi2
+            bias_delta_chi2 += m.bias_delta_chi2
+            #bias_eta_chi2 += m.bias_eta_chi2
+            #print('z =',m.z_value,'number of k values =',m.k_kms.shape,'number of k values < max k =',np.sum(m.k_kms<max_k))
+
+        ## Combine to one cost
+        cost = mean_F_chi2 + Pk_kms_chi2 + bias_delta_chi2 + bias_eta_chi2
+
+        ## Add to the log.
+        # TODO: Also want to save a "history" output file, like TF for QN
+        log_text = 'chi2: Pk {:2.4f}, mean F {:2.4f}, b_del {:2.4f}, b_eta {:2.4f}, overall {:2.4f}'.format(Pk_kms_chi2,mean_F_chi2,bias_delta_chi2,bias_eta_chi2,chi2)
+        with open("parameter_log.txt","a") as f:
+            txt = str(time.ctime()+'\n')
+            txt += 'C0:{}, C1:{}, C2:{}, D0:{}, D1:{}, D2:{}, n:{}, k1:{}, texp:{}\n'.format(C0,C1,C2,D0,D1,D2,n,k1,texp)
+            txt += log_text + '\n\n'
+            f.write(txt)
+            f.close()
+            best = cost"""
+
+        cost = 1.
+        return cost
+
+## Initialise the cost function with the names of our arguments.
+cost = Cost(param_names)
+
+## Initialise the minuit object.
+minuit = Minuit(cost,**initial_param_dict)
+
+print('INFO: starting the minimisation with parameters given by:')
+print(minuit.params)
+minuit.migrad()
+print('INFO: minimisation completed with parameters given by:')
+print(minuit.params)
+
+################################################################################
+## Save the fitting history.
+
+################################################################################
+## Update the skewers to the best fit values.
+## This time, we do not need to calculate the RSDs.
+calculate_rsds = False
+initial_transformation.update_parameters_from_minuit(minuit.values)
+tasks = [(d,transformation,calculate_rsds) for d in data_objects]
+if __name__ == '__main__':
+    data_objects = utils.run_multiprocessing(process_data_objects,tasks,args.nproc)
 
 ################################################################################
 ## Make plots.
@@ -319,7 +464,7 @@ def measure_pixel_segment(pixel,C0,C1,C2,texp,D0,D1,D2,n,k1,R_kms,a_v,RSD_weight
 
     #Get the filename of the gaussian skewer.
     location = utils.get_dir_name(args.base_dir,pixel)
-    filename = utils.get_file_name(location,'{}-colore'.format(args.skewer_type),args.nside,pixel,compressed=args.compressed_input)
+    filename = utils.get_out_file_name(location,'{}-colore'.format(args.skewer_type),args.nside,pixel,compressed=args.compressed_input)
 
     #Make a pixel object from it.
     data = simulation_data.SimulationData.get_skewers_object(filename,None,args.file_format,args.skewer_type,IVAR_cutoff=args.lambda_rest_max)

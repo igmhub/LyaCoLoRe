@@ -98,7 +98,7 @@ if args.make_DLA_master:
 
     def get_DLA_data(pixel):
         dirname = utils.get_dir_name(base_dir,pixel)
-        filename = utils.get_file_name(dirname,'transmission',N_side,pixel,compressed=compressed_input)
+        filename = utils.get_out_file_name(dirname,'transmission',N_side,pixel,compressed=compressed_input)
         DLA_data = DLA.get_DLA_data_from_transmission(pixel,filename)
         return DLA_data
 
@@ -148,13 +148,13 @@ if not transmission_only:
         dirname = utils.get_dir_name(base_dir,pixel)
 
         #Open up the statistics file without RSDs and extract data.
-        s_noRSD_filename = utils.get_file_name(dirname,'statistics-noRSD',N_side,pixel,compressed=compressed_input)
+        s_noRSD_filename = utils.get_out_file_name(dirname,'statistics-noRSD',N_side,pixel,compressed=compressed_input)
         s_noRSD = fits.open(s_noRSD_filename)
         statistics_noRSD = s_noRSD[1].data
         s_noRSD.close()
 
         #Open up the statistics file with RSDs and extract data.
-        s_filename = utils.get_file_name(dirname,'statistics',N_side,pixel,compressed=compressed_input)
+        s_filename = utils.get_out_file_name(dirname,'statistics',N_side,pixel,compressed=compressed_input)
         s = fits.open(s_filename)
         statistics = s[1].data
         s.close()
@@ -222,9 +222,9 @@ if not transmission_only:
                 #print('rebinning {} file'.format(q))
                 t = time.time()
                 #Rebin the files.
-                filename = utils.get_file_name(dirname,'picca-'+q,N_side,pixel,compressed=compressed_input)
+                filename = utils.get_out_file_name(dirname,'picca-'+q,N_side,pixel,compressed=compressed_input)
                 if N_merge > 1:
-                    out = utils.get_file_name(dirname,'picca-'+q+'-rebin-{}'.format(N_merge),N_side,pixel)
+                    out = utils.get_out_file_name(dirname,'picca-'+q+'-rebin-{}'.format(N_merge),N_side,pixel)
                     utils.renorm_rebin_picca_file(filename,N_merge=N_merge,out_filepath=out,overwrite=overwrite)
                 #print('--> {:1.3f}s'.format(time.time()-t))
 
@@ -243,11 +243,11 @@ if not transmission_only:
                 #old_mean = s_noRSD[1].data[lookup_name]
                 old_mean = None
                 new_mean = statistics_noRSD[lookup_name]
-                filename = utils.get_file_name(dirname,'picca-'+q+'-noRSD-notnorm',N_side,pixel,compressed=compressed_input)
+                filename = utils.get_out_file_name(dirname,'picca-'+q+'-noRSD-notnorm',N_side,pixel,compressed=compressed_input)
                 if N_merge == 1:
-                    out = utils.get_file_name(dirname,'picca-'+q+'-noRSD',N_side,pixel)
+                    out = utils.get_out_file_name(dirname,'picca-'+q+'-noRSD',N_side,pixel)
                 else:
-                    out = utils.get_file_name(dirname,'picca-'+q+'-noRSD-rebin-{}'.format(N_merge),N_side,pixel)
+                    out = utils.get_out_file_name(dirname,'picca-'+q+'-noRSD-rebin-{}'.format(N_merge),N_side,pixel)
                 #print(out)
                 utils.renorm_rebin_picca_file(filename,old_mean=old_mean,new_mean=new_mean,N_merge=N_merge,out_filepath=out,overwrite=overwrite,compress=compress)
                 #print('--> {:1.3f}s'.format(time.time()-t))
@@ -258,11 +258,11 @@ if not transmission_only:
                 #old_mean = s[1].data[lookup_name]
                 old_mean = None
                 new_mean = statistics[lookup_name]
-                filename = utils.get_file_name(dirname,'picca-'+q+'-notnorm',N_side,pixel,compressed=compressed_input)
+                filename = utils.get_out_file_name(dirname,'picca-'+q+'-notnorm',N_side,pixel,compressed=compressed_input)
                 if N_merge == 1:
-                    out = utils.get_file_name(dirname,'picca-'+q,N_side,pixel)
+                    out = utils.get_out_file_name(dirname,'picca-'+q,N_side,pixel)
                 else:
-                    out = utils.get_file_name(dirname,'picca-'+q+'-rebin-{}'.format(N_merge),N_side,pixel)
+                    out = utils.get_out_file_name(dirname,'picca-'+q+'-rebin-{}'.format(N_merge),N_side,pixel)
                 #print(out)
                 utils.renorm_rebin_picca_file(filename,old_mean=old_mean,new_mean=new_mean,N_merge=N_merge,out_filepath=out,overwrite=overwrite,compress=compress)
                 #print('--> {:1.3f}s'.format(time.time()-t))

@@ -7,34 +7,29 @@ def lognormal_transform(y,sG,D):
 #Function to convert gaussian field skewers (in rows) to lognormal delta skewers (in rows).
 def gaussian_to_lognormal_delta(GAUSSIAN_DELTA_rows,SIGMA_G,D):
 
-    LN_DENSITY_rows = np.zeros(GAUSSIAN_DELTA_rows.shape)
-    SIGMA_G = SIGMA_G*np.ones(GAUSSIAN_DELTA_rows.shape[1])
-    D = D*np.ones(GAUSSIAN_DELTA_rows.shape[1])
+    ## Check that the inputs are the right size.
+    if isinstance(SIGMA_G,float):
+        SIGMA_G = SIGMA_G*np.ones(GAUSSIAN_DELTA_rows.shape[1])
+    if isinstance(D,float):
+        D = D*np.ones(GAUSSIAN_DELTA_rows.shape[1])
 
-    for j in range(GAUSSIAN_DELTA_rows.shape[1]):
-        LN_DENSITY_rows[:,j] = np.exp(D[j]*GAUSSIAN_DELTA_rows[:,j] - ((D[j])**2)*(SIGMA_G[j]**2)/2.)#lognormal_transform(GAUSSIAN_DELTA_rows[:,j],SIGMA_G[j],D[j])
-
-    LN_DENSITY_DELTA_rows = LN_DENSITY_rows - 1.
-
-    #Not sure why this was there?
-    #LN_DENSITY_DELTA_rows = LN_DENSITY_DELTA_rows.astype('float32')
+    ## Carry out the lognormal transformation.
+    LN_DENSITY_DELTA_rows = np.exp(D[None,:]*GAUSSIAN_DELTA_rows[:,:] - (D[None,:]**2)*(SIGMA_G[None,:]**2)/2.) - 1
 
     return LN_DENSITY_DELTA_rows
 
 #Function to convert from density to tau using alpha*density^beta
-def density_to_tau(density,alpha,beta):
+def density_to_tau(density,tau0,alpha):
 
-    tau = alpha*(density**beta)
+    if isinstance(tau0,float):
+        tau0 = tau0*np.ones(density.shape[1])
+    if isinstance(alpha,float):
+        alpha = alpha*np.ones(density.shape[1])
+
+    ## Evaluate the FGPA.
+    tau = tau0[None,:]*(density**alpha[None,:])
 
     return tau
-
-#Function to convert from density to flux using e^-(alpha*density^beta)
-def density_to_flux(density,alpha,beta):
-
-    tau = density_to_tau(density,alpha,beta)
-    F = np.exp(-tau)
-
-    return F
 
 #Function to convert lognormal delta skewers (in rows) to gaussian field skewers (in rows).
 def lognormal_delta_to_gaussian(LN_DENSITY_DELTA_rows,SIGMA_G,D):
@@ -59,10 +54,26 @@ def lognormal_delta_to_gaussian(LN_DENSITY_DELTA_rows,SIGMA_G,D):
 #Function to convert tau skewers (in rows) to density skewers (in rows).
 def tau_to_density(TAU_rows,alpha,beta):
 
-    DENSITY_rows = np.zeros(TAU_rows.shape)
-    N_cells = TAU_rows.shape[1]
+    ## Check that the inputs are the right size.
+    if isinstance(alpha,float):
+        alpha = alpha*np.ones(TAU_rows.shape[1])
+    if isinstance(beta,float):
+        beta = beta*np.ones(TAU_rows.shape[1])
 
-    for j in range(N_cells):
-        DENSITY_rows[:,j] = (TAU_rows[:,j]/alpha[j])**(1/beta)
+    DENSITY_rows = (TAU_rows/alpha[None,:])**(1/beta[None,:])
 
     return DENSITY_rows
+
+
+"""
+UNUSED
+
+#Function to convert from density to flux using e^-(alpha*density^beta)
+def density_to_flux(density,alpha,beta):
+
+    tau = density_to_tau(density,alpha,beta)
+    F = np.exp(-tau)
+
+    return F
+
+"""
