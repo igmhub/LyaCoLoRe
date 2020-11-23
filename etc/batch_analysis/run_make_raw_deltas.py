@@ -3,6 +3,7 @@
 import argparse
 import os
 
+from subprocess import call
 from lyacolore import submit_utils
 
 parser = argparse.ArgumentParser(
@@ -81,9 +82,9 @@ args = parser.parse_args()
 text = '#!/usr/bin/env python\n\n'
 text += 'from picca import converters\n\n'
 text += 'converters.desi_convert_transmission_to_delta_files('
-text += '{}, '.format(os.path.join(args.out_dir,'drq.fits'))
-text += '{}, '.format(os.path.join(args.out_dir,'deltas/'))
-text += 'in_dir={}, '.format(args.in_dir)
+text += '"{}"", '.format(os.path.join(args.out_dir,'drq.fits'))
+text += '"{}", '.format(os.path.join(args.out_dir,'deltas/'))
+text += 'in_dir="{}", '.format(args.in_dir)
 text += 'lambda_min={}, '.format(args.lambda_min)
 text += 'lambda_max={}, '.format(args.lambda_max)
 text += 'lambda_min_rest_frame={}, '.format(args.lambda_rest_min)
