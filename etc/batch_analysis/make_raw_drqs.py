@@ -38,9 +38,15 @@ parser.add_argument('--overwrite',
                     default=False,
                     help='Overwrite any existing catalog at the output location')
 
+parser.add_argument('--seed',
+                    type=int,
+                    default=0,
+                    required=False,
+                    help='Random seed for downsampling randoms appropriately')
+
 args = parser.parse_args()
 
-def master_to_drq(in_path, out_path, randoms=False, zcat=None):
+def master_to_drq(in_path, out_path, randoms=False, zcat=None, nobj=None):
 
     from_desi_key_to_picca_key = {
         'RA': 'RA',
@@ -69,12 +75,18 @@ def master_to_drq(in_path, out_path, randoms=False, zcat=None):
     for key in ['RA', 'DEC']:
         cat[key] = cat[key].astype('float64')
 
-    if zcat is not None:
+    if (zcat is not None) and (not randoms):
         with fitsio.FITS(zcat) as zc:
             thingid_zcat = zc[1][:]['TARGETID']
         w = np.in1d(cat['THING_ID'],thingid_zcat)
         print('INFO: zcat contains {} quasars, of which {} found in master.'.format(len(thingid_zcat),w.sum()))
         print('INFO: Reducing to this set now.')
+        for k in cat.keys():
+            cat[k] = cat[k][w]
+
+    if nobj is not None:
+        gen = np.random.default_rng(seed=args.seed)
+        w = gen.permutation(np.arange(len(cat['THING_ID'])))/nobj < 1
         for k in cat.keys():
             cat[k] = cat[k][w]
 
@@ -84,6 +96,8 @@ def master_to_drq(in_path, out_path, randoms=False, zcat=None):
     names = list(cat)
     results.write(cols, names=names, extname='CAT')
     results.close()
+
+    return
 
 def master_dla_to_drq(in_path, out_path, randoms=False, zcat=None):
 
@@ -135,22 +149,34 @@ def master_dla_to_drq(in_path, out_path, randoms=False, zcat=None):
     results.write(cols, names=names, extname='DLACAT')
     results.close()
 
+    return
+
 ## Make raw drq
 master = os.path.join(args.in_dir,'master.fits')
 out = os.path.join(args.out_dir,'drq.fits')
 master_to_drq(master,out,randoms=False,zcat=args.qq_ref_zcat)
 
 ## Make qso randoms drq
-master = os.path.join(args.in_dir,'master_randoms.fits')
-out = os.path.join(args.randoms_out_dir,'drq_randoms.fits')
-master_to_drq(master,out,randoms=True,zcat=args.qq_ref_zcat)
+master_rand = os.path.join(args.in_dir,'master_randoms.fits')
+
+# Work out the multiplier used for randoms
+with fitsio.FITS(master) as m:
+    nobj = len(m[1][:])
+    with fitsio.FITS(master_rand) as mr:
+        nobj_rand = len(mr[1][:])
+        mult = nobj_rand/nobj
+with fitsio.FITS(out) as drq:
+    nobj_rand_drq = int(len(drq[1][:])*mult)
+
+out_rand = os.path.join(args.randoms_out_dir,'drq_randoms.fits')
+master_to_drq(master_rand,out_rand,randoms=True,zcat=args.qq_ref_zcat,nobj=nobj_rand_drq)
 
 ## Make raw dla drq
-master = os.path.join(args.in_dir,'master_dla.fits')
-out = os.path.join(args.out_dir,'drq_dla.fits')
-master_dla_to_drq(master,out,randoms=False,zcat=args.qq_ref_zcat)
+master_dla = os.path.join(args.in_dir,'master_dla.fits')
+out_dla = os.path.join(args.out_dir,'drq_dla.fits')
+master_dla_to_drq(master_dla,out_dla,randoms=False,zcat=args.qq_ref_zcat)
 
 ## Make raw dla randoms drq
-master = os.path.join(args.in_dir,'master_dla_randoms.fits')
-out = os.path.join(args.randoms_out_dir,'drq_dla_randoms.fits')
-master_dla_to_drq(master,out,randoms=True,zcat=args.qq_ref_zcat)
+master_dla_rand = os.path.join(args.in_dir,'master_dla_randoms.fits')
+out_dla_rand = os.path.join(args.randoms_out_dir,'drq_dla_randoms.fits')
+master_dla_to_drq(master_dla_rand,out_dla_rand,randoms=True,zcat=args.qq_ref_zcat)
