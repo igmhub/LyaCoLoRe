@@ -22,7 +22,7 @@ parser.add_argument('--slurm-hours',
                     required=True,
                     help='Number of hours for slurm job')
 
-arser.add_argument('-o','--out-dir',
+parser.add_argument('-o','--out-dir',
                     type=str,
                     default=None,
                     required=True,
