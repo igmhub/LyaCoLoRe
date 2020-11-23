@@ -1,4 +1,4 @@
-qq_run#!/usr/bin/env python
+#!/usr/bin/env python
 
 import argparse
 from subprocess import call
