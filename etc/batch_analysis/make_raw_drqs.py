@@ -122,7 +122,7 @@ def master_dla_to_drq(in_path, out_path, randoms=False, zcat=None):
     for key, value in from_desi_key_to_picca_key.items():
         cat[key] = hdul['DLACAT'][value][:]
     hdul.close()
-    userprint(("INFO: Found {} DLA from {} "
+    print(("INFO: Found {} DLA from {} "
                "quasars").format(cat['Z'].size,
                                  np.unique(cat['THING_ID']).size))
     # sort by THING_ID
