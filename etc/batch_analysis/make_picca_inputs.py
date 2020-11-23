@@ -44,7 +44,7 @@ for qq_run in args.qq_runs:
     if not os.path.isdir(qq_dir):
         os.mkdir(qq_dir)
     submit_utils.make_permission_group_desi(qq_dir)
-    command = 'make_zcats.py --qq-dir {}'.format(qq_dir)
+    command = '~/Projects/LyaCoLoRe/etc/batch_analysis/make_zcats.py --qq-dir {}'.format(qq_dir)
     call(command.split(' '))
 
 
