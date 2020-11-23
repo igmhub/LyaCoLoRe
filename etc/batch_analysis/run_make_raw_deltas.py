@@ -82,7 +82,7 @@ args = parser.parse_args()
 text = '#!/usr/bin/env python\n\n'
 text += 'from picca import converters\n\n'
 text += 'converters.desi_convert_transmission_to_delta_files('
-text += '"{}"", '.format(os.path.join(args.out_dir,'drq.fits'))
+text += '"{}", '.format(os.path.join(args.out_dir,'drq.fits'))
 text += '"{}", '.format(os.path.join(args.out_dir,'deltas/'))
 text += 'in_dir="{}", '.format(args.in_dir)
 text += 'lambda_min={}, '.format(args.lambda_min)
@@ -108,4 +108,4 @@ with open(args.slurm_script,'w') as f:
 submit_utils.make_file_executable(args.slurm_script)
 
 ## Submit the job.
-call('sbatch {}'.format(args.slurm_script))
+call(['sbatch',args.slurm_script])

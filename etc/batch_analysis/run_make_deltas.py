@@ -117,4 +117,4 @@ with open(args.slurm_script,'w') as f:
 submit_utils.make_file_executable(args.slurm_script)
 
 ## Submit the job.
-call('sbatch {}'.format(args.slurm_script))
+call(['sbatch',args.slurm_script])
