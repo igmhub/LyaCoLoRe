@@ -69,11 +69,15 @@ python_script = os.path.join(args.picca_basedir,'desi-raw/run_picca_deltas.py')
 slurm_script = os.path.join(args.picca_basedir,'desi-raw/run_picca_deltas.sl')
 slurm_hours = 0.5
 slurm_queue = 'debug'
-out_dir = os.path.join(args.picca_basedir,'desi-raw/deltas')
+out_dir = os.path.join(args.picca_basedir,'desi-raw/')
 if not os.path.isdir(out_dir):
     os.mkdir(out_dir)
 submit_utils.make_permission_group_desi(out_dir)
-drq = os.path.join(args.picca_basedir,'drq_qso.fits')
+deltas_dir = os.path.join(out_dir,'deltas/')
+if not os.path.isdir(deltas_dir):
+    os.mkdir(deltas_dir)
+submit_utils.make_permission_group_desi(deltas_dir)
+drq = os.path.join(out_dir,'drq_qso.fits')
 in_dir = args.raw_dir
 command = '/global/homes/j/jfarr/Projects/LyaCoLoRe/etc/batch_analysis/run_make_raw_deltas.py --python-script {} --slurm-script {} --slurm-hours {} --slurm-queue {} --out-dir {} --drq {} --in-dir {}'.format(python_script,slurm_script,slurm_hours,slurm_queue,out_dir,drq,in_dir)
 call(command.split(' '))
@@ -99,9 +103,11 @@ for qq_run in args.qq_runs:
     out_dir = os.path.join(args.picca_basedir,qq_run)
     if not os.path.isdir(out_dir):
         os.mkdir(out_dir)
+    submit_utils.make_permission_group_desi(out_dir)
     deltas_dir = os.path.join(args.picca_basedir,qq_run,'deltas/')
     if not os.path.isdir(deltas_dir):
         os.mkdir(deltas_dir)
+    submit_utils.make_permission_group_desi(deltas_dir)
     submit_utils.make_permission_group_desi(out_dir)
     drq = os.path.join(args.picca_basedir,qq_run,'drq_qso.fits')
     in_dir = os.path.join(args.qq_basedir,qq_run)
