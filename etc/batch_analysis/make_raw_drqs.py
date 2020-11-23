@@ -91,7 +91,7 @@ def master_to_drq(in_path, out_path, randoms=False, zcat=None, nobj=None):
             cat[k] = cat[k][w]
 
     # save results
-    results = fitsio.FITS(out_path,clobber=args.overwrite)
+    results = fitsio.FITS(out_path, 'rw', clobber=args.overwrite)
     cols = list(cat.values())
     names = list(cat)
     results.write(cols, names=names, extname='CAT')
@@ -143,7 +143,7 @@ def master_dla_to_drq(in_path, out_path, randoms=False, zcat=None):
             cat[k] = cat[k][w]
 
     # save results
-    results = fitsio.FITS(out_path,clobber=args.overwrite)
+    results = fitsio.FITS(out_path, 'rw', clobber=args.overwrite)
     cols = list(cat.values())
     names = list(cat)
     results.write(cols, names=names, extname='DLACAT')
