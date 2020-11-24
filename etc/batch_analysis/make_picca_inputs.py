@@ -63,7 +63,7 @@ for qq_run in args.qq_runs:
     ## Submit job to run the deltas
     print('INFO: Submitting job to make deltas for quickquasars output in {}'.format(qq_dir))
     drq = os.path.join(analysis_dir.datadir,'drq_qso.fits')
-    in_dir = os.path.join(analysis_dir.datadir,'spectra-16')
+    in_dir = os.path.join(qq_dir,'spectra-16')
     command = '/global/homes/j/jfarr/Projects/LyaCoLoRe/etc/batch_analysis/run_make_deltas.py --out-dir {} --drq {} --in-dir {}'.format(analysis_dir.datadir,drq,in_dir)
     call(command.split(' '))
     print('')
