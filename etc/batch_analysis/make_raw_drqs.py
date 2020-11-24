@@ -2,6 +2,7 @@
 
 import argparse
 import fitsio
+import healpy as hp
 import numpy as np
 import os
 
@@ -76,6 +77,15 @@ def master_to_drq(in_path, out_path, randoms=False, zcat=None, nobj=None):
         w = np.in1d(cat['THING_ID'],thingid_zcat)
         print('INFO: zcat contains {} quasars, of which {} found in master.'.format(len(thingid_zcat),w.sum()))
         print('INFO: Reducing to this set now.')
+        for k in cat.keys():
+            cat[k] = cat[k][w]
+
+    elif (zcat is not None) and (randoms):
+        nside_high = 64
+        healpixs_master = hp.ang2pix(nside_high, np.pi/2 - cat['DEC']*np.pi/180., cat['RA']*np.pi/180.))
+        with fitsio.FITS(zcat) as zc:
+            healpixs_zcat = hp.ang2pix(nside_high, np.pi/2 - zc[1][:]['DEC']*np.pi/180., zc[1][:]['RA']*np.pi/180.))
+        w = np.in1d(healpixs_master,healpixs_zcat)
         for k in cat.keys():
             cat[k] = cat[k][w]
 
