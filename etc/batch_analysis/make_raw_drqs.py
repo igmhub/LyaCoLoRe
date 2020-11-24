@@ -28,6 +28,18 @@ parser.add_argument('--randoms-out-dir',
                     required=True,
                     help='Directory to save random drqs in')
 
+parser.add_argument('--randoms-zmin',
+                    type=float,
+                    default=1.7,
+                    required=False,
+                    help='Min value of z for QSOs (applied to randoms)')
+
+parser.add_argument('--randoms-downsampling',
+                    type=float,
+                    default=0.4,
+                    required=False,
+                    help='Proportion by which to downsample (applied to randoms)')
+
 parser.add_argument('--qq-ref-zcat',
                     type=str,
                     default=None,
@@ -42,7 +54,7 @@ parser.add_argument('--seed',
 
 args = parser.parse_args()
 
-def master_to_drq(in_path, out_path, randoms=False, zcat=None, nobj=None):
+def master_to_drq(in_path, out_path, randoms=False, zcat=None, randoms_downsampling=None, randoms_zmin=None):
 
     from_desi_key_to_picca_key = {
         'RA': 'RA',
@@ -80,23 +92,13 @@ def master_to_drq(in_path, out_path, randoms=False, zcat=None, nobj=None):
         for k in cat.keys():
             cat[k] = cat[k][w]
 
-    elif (zcat is not None) and (randoms):
-        nside_high = 2**10
-        healpixs_master = hp.ang2pix(nside_high, np.pi/2 - cat['DEC']*np.pi/180., cat['RA']*np.pi/180.)
-        with fitsio.FITS(zcat) as zc:
-            healpixs_zcat = hp.ang2pix(nside_high, np.pi/2 - zc[1][:]['DEC']*np.pi/180., zc[1][:]['RA']*np.pi/180.)
-        w = np.in1d(healpixs_master,healpixs_zcat)
-        print('INFO: randoms file contains {} quasars, of which {} are in the zcat footprint.'.format(len(healpixs_master),w.sum()))
-        print('INFO: Reducing to this set now.')
-        for k in cat.keys():
-            cat[k] = cat[k][w]
-
-    if nobj is not None:
-        print('INFO: downsampling to {} objects'.format(nobj))
-        gen = np.random.default_rng(seed=args.seed)
-        w = gen.permutation(np.arange(len(cat['THING_ID'])))/nobj < 1
-        for k in cat.keys():
-            cat[k] = cat[k][w]
+    elif randoms:
+        w = np.ones(cat['THING_ID'].shape)
+        if randoms_zmin is not None:
+            w &= (cat['Z']>=randoms_zmin)
+        if randoms_downsampling is not None:
+            gen = np.random.default_rng(seed=args.seed)
+            w &= (gen.permutation(np.arange(len(cat['THING_ID'])))/len(cat['THING_ID']) < randoms_downsampling)
 
     # save results
     results = fitsio.FITS(out_path, 'rw', clobber=True)
@@ -166,18 +168,8 @@ master_to_drq(master,out,randoms=False,zcat=args.qq_ref_zcat)
 
 ## Make qso randoms drq
 master_rand = os.path.join(args.in_dir,'master_randoms.fits')
-
-# Work out the multiplier used for randoms
-with fitsio.FITS(master) as m:
-    nobj = len(m[1][:])
-    with fitsio.FITS(master_rand) as mr:
-        nobj_rand = len(mr[1][:])
-        mult = nobj_rand/nobj
-with fitsio.FITS(out) as drq:
-    nobj_rand_drq = int(len(drq[1][:])*mult)
-
 out_rand = os.path.join(args.randoms_out_dir,'drq_qso_randoms.fits')
-master_to_drq(master_rand,out_rand,randoms=True,zcat=args.qq_ref_zcat,nobj=nobj_rand_drq)
+master_to_drq(master_rand,out_rand,randoms=True,zcat=args.qq_ref_zcat,randoms_downsampling=args.randoms_downsampling,randoms_zmin=args.randoms_zmin)
 
 ## Make raw dla drq
 master_dla = os.path.join(args.in_dir,'master_DLA.fits')
