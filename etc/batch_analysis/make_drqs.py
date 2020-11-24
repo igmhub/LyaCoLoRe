@@ -58,12 +58,12 @@ args = parser.parse_args()
     cols = list(cat.values())
     names = list(cat)
     results.write(cols, names=names, extname='CAT')
-    results.close()
+    results.close()"""
 
 ## Make drq
 zcat = os.path.join(args.in_dir,'zcat.fits')
 drq = os.path.join(args.out_dir,'drq_qso.fits')
-zcat_to_drq(zcat,drq)"""
+zcat_to_drq(zcat,drq)
 
 converters.desi_from_ztarget_to_drq(zcat,
                                     drq,
