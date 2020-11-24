@@ -12,26 +12,26 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument('--python-script',
                     type=str,
-                    default=None,
-                    required=True,
+                    default='run_picca_raw_deltas.py',
+                    required=False,
                     help='Output python script')
 
 parser.add_argument('--slurm-script',
                     type=str,
-                    default=None,
-                    required=True,
+                    default='run_picca_raw_deltas.sl',
+                    required=False,
                     help='Output slurm script')
 
 parser.add_argument('--slurm-hours',
                     type=float,
-                    default=None,
-                    required=True,
+                    default=0.5,
+                    required=False,
                     help='Number of hours for slurm job')
 
 parser.add_argument('--slurm-queue',
                     type=str,
-                    default=None,
-                    required=True,
+                    default='debug',
+                    required=False,
                     help='Slurm queue to use')
 
 parser.add_argument('-o','--out-dir',
