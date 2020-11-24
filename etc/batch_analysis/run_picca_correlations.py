@@ -19,10 +19,10 @@ parser.add_argument('--drq-dla', type = str, default = None, required=False,
                     help = 'dla catalogue')
 
 parser.add_argument('--drq-qso-randoms', type = str, default = None, required=False, nargs='*',
-                    help = 'qso randoms catalogue')
+                    help = 'qso randoms catalogues')
 
 parser.add_argument('--drq-dla-randoms', type = str, default = None, required=False, nargs='*',
-                    help = 'dla randoms catalogue')
+                    help = 'dla randoms catalogues')
 
 parser.add_argument('--corr-dir', type = str, default = None, required=False,
                     help = 'directory to put correlations into')
@@ -85,16 +85,15 @@ if args.run_all:
 ################################################################################
 
 #Functions to construct the job info dictionaries.
-def make_lya_auto_job_info(meas_dir,zmin,zmax,deltas_dir,time=None,no_project=False):
+def make_lya_auto_job_info(meas_dir,zmin,zmax,deltas_dir,time=24,no_project=False):
 
     dir = meas_dir + '/lya_auto/'
     out_dir = dir + '/correlations/'
     submit_utils.check_corr_dir(dir)
-    if time is None:
-        time = 24
+    time = submit_utils.nh_to_hhmmss(time)
 
     header_info = {'queue':    'regular',
-                   'time':     '{}:00:00'.format(int(time)),
+                   'time':     time,
                    'job_name': 'run_lya_auto_{}_{}'.format(zmin,zmax),
                    'err_file': 'lya_auto_{}_{}_%j.err'.format(zmin,zmax),
                    'out_file': 'lya_auto_{}_{}_%j.out'.format(zmin,zmax),
@@ -118,16 +117,15 @@ def make_lya_auto_job_info(meas_dir,zmin,zmax,deltas_dir,time=None,no_project=Fa
 
     return lya_auto_job_info
 
-def make_qso_auto_job_info(meas_dir,zmin,zmax,zcat,zcat_rand,corr_type='DD',time=None):
+def make_qso_auto_job_info(meas_dir,zmin,zmax,zcat,zcat_rand,corr_type='DD',time=24):
 
     dir = meas_dir + '/qso_auto/'
     out_dir = dir + '/correlations/'
     submit_utils.check_corr_dir(dir)
-    if time is None:
-        time = 24
+    time = submit_utils.nh_to_hhmmss(time)
 
     header_info = {'queue':    'regular',
-                   'time':     '{}:00:00'.format(int(time)),
+                   'time':     time,
                    'job_name': 'run_qso_auto_{}_{}_{}'.format(corr_type,zmin,zmax),
                    'err_file': 'qso_auto_{}_{}_{}_%j.err'.format(corr_type,zmin,zmax),
                    'out_file': 'qso_auto_{}_{}_{}_%j.out'.format(corr_type,zmin,zmax),
@@ -177,7 +175,7 @@ def make_dla_auto_job_info(meas_dir,zmin,zmax,zcat,zcat_rand,corr_type='DD',time
     submit_utils.check_corr_dir(dir)
     if time is None:
         time = 24
-    time = nh_to_hhmmss(time)
+    time = submit_utils.nh_to_hhmmss(time)
 
     header_info = {'queue':    'regular',
                    'time':     time,
@@ -223,16 +221,15 @@ def make_dla_auto_job_info(meas_dir,zmin,zmax,zcat,zcat_rand,corr_type='DD',time
 
     return dla_auto_job_info
 
-def make_lya_qso_cross_job_info(meas_dir,zmin,zmax,deltas_dir,zcat,cat_type='D',time=None,no_project=False,no_remove_mean_lambda_obs=False):
+def make_lya_qso_cross_job_info(meas_dir,zmin,zmax,deltas_dir,zcat,cat_type='D',time=24,no_project=False,no_remove_mean_lambda_obs=False):
 
     dir = meas_dir + '/lya_qso_cross/'
     out_dir = dir + '/correlations/'
     submit_utils.check_corr_dir(dir)
-    if time is None:
-        time = 24
+    time = submit_utils.nh_to_hhmmss(time)
 
     header_info = {'queue':    'regular',
-                   'time':     '{}:00:00'.format(int(time)),
+                   'time':     time,
                    'job_name': 'run_lya_qso_cross_{}_{}_{}'.format(cat_type,zmin,zmax),
                    'err_file': 'lya_qso_cross_{}_{}_{}_%j.err'.format(cat_type,zmin,zmax),
                    'out_file': 'lya_qso_cross_{}_{}_{}_%j.out'.format(cat_type,zmin,zmax),
@@ -260,16 +257,15 @@ def make_lya_qso_cross_job_info(meas_dir,zmin,zmax,deltas_dir,zcat,cat_type='D',
 
     return lya_qso_cross_job_info
 
-def make_lya_dla_cross_job_info(meas_dir,zmin,zmax,deltas_dir,zcat,cat_type='D',time=None,no_project=False,no_remove_mean_lambda_obs=False):
+def make_lya_dla_cross_job_info(meas_dir,zmin,zmax,deltas_dir,zcat,cat_type='D',time=24,no_project=False,no_remove_mean_lambda_obs=False):
 
     dir = meas_dir + '/lya_dla_cross/'
     out_dir = dir + '/correlations/'
     submit_utils.check_corr_dir(dir)
-    if time is None:
-        time = 24
+    time = submit_utils.nh_to_hhmmss(time)
 
     header_info = {'queue':    'regular',
-                   'time':     '{}:00:00'.format(int(time)),
+                   'time':     time,
                    'job_name': 'run_lya_dla_cross_{}_{}_{}'.format(cat_type,zmin,zmax),
                    'err_file': 'lya_dla_cross_{}_{}_{}_%j.err'.format(cat_type,zmin,zmax),
                    'out_file': 'lya_dla_cross_{}_{}_{}_%j.out'.format(cat_type,zmin,zmax),
@@ -297,16 +293,15 @@ def make_lya_dla_cross_job_info(meas_dir,zmin,zmax,deltas_dir,zcat,cat_type='D',
 
     return lya_dla_cross_job_info
 
-def make_qso_dla_cross_job_info(meas_dir,zmin,zmax,zcat_qso,zcat_qso_rand,zcat_dla,zcat_dla_rand,corr_type='DD',time=None):
+def make_qso_dla_cross_job_info(meas_dir,zmin,zmax,zcat_qso,zcat_qso_rand,zcat_dla,zcat_dla_rand,corr_type='DD',time=24):
 
     dir = meas_dir + '/qso_dla_cross/'
     out_dir = dir + '/correlations/'
     submit_utils.check_corr_dir(dir)
-    if time is None:
-        time = 24
+    time = submit_utils.nh_to_hhmmss(time)
 
     header_info = {'queue':    'regular',
-                   'time':     '{}:00:00'.format(int(time)),
+                   'time':     time,
                    'job_name': 'run_qso_dla_cross_{}_{}_{}'.format(corr_type,zmin,zmax),
                    'err_file': 'qso_dla_cross_{}_{}_{}_%j.err'.format(corr_type,zmin,zmax),
                    'out_file': 'qso_dla_cross_{}_{}_{}_%j.out'.format(corr_type,zmin,zmax),
@@ -352,20 +347,6 @@ def make_qso_dla_cross_job_info(meas_dir,zmin,zmax,zcat_qso,zcat_qso_rand,zcat_d
                               }
 
     return qso_dla_cross_job_info
-
-################################################################################
-
-def nh_to_hhmmss(nh):
-    hh = int(np.floor(nh))
-    remh = nh - hh
-    mm = int(np.floor(remh*60))
-    remm = remh*60 - mm
-    ss = int(np.ceil(remm*60))
-    if ss==60:
-        ss = 0
-        mm += 1
-    hhmmss = '{:02d}:{:02d}:{:02d}'.format(hh,mm,ss)
-    return hhmmss
 
 ################################################################################
 
