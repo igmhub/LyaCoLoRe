@@ -193,3 +193,41 @@ def make_analysis_dir(dirname):
     make_permission_group_desi(deltasdirname)
 
     return
+
+class AnalysisDir:
+
+    def __init__(self, dirloc, dirname, datadirname='data', corrdirname='correlations', fitsdirname='fits', deltasdirname='deltas'):
+
+        self.dirloc = dirloc
+        self.dirname = dirname
+        self.datadirname = datadirname
+        self.corrdirname = corrdirname
+        self.fitsdirname = fitsdirname
+        self.deltadirname = deltadirname
+
+        self.dir = os.path.join(self.dirloc,self.dirname)
+        if not os.path.isdir(self.dir):
+            os.mkdir(self.dir)
+        make_permission_group_desi(self.dir)
+
+        self.datadir = os.path.join(self.dir,self.datadirname)
+        if not os.path.isdir(self.datadir):
+            os.mkdir(self.datadir)
+        make_permission_group_desi(self.datadir)
+
+        self.corrdir = os.path.join(self.dir,self.corrdirname)
+        if not os.path.isdir(self.corrdir):
+            os.mkdir(self.corrdir)
+        make_permission_group_desi(self.corrdir)
+
+        self.fitsdir = os.path.join(self.dir,self.fitsdirname)
+        if not os.path.isdir(self.fitsdir):
+            os.mkdir(self.fitsdir)
+        make_permission_group_desi(self.fitsdir)
+
+        self.deltadir = os.path.join(self.datadir,self.deltadirname)
+        if not os.path.isdir(self.deltadir):
+            os.mkdir(self.deltadir)
+        make_permission_group_desi(self.deltadir)
+
+        return

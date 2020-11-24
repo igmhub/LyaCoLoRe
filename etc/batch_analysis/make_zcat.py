@@ -16,6 +16,12 @@ parser.add_argument('--qq-dir',
                     required=True,
                     help='Directory to transmission files')
 
+parser.add_argument('--out',
+                    type=str,
+                    default='zcat.fits',
+                    required=False,
+                    help='Name of the zcat file')
+
 parser.add_argument('--nside',
                     type=int,
                     default=16,
@@ -34,7 +40,7 @@ args = parser.parse_args()
 text = '#!/bin/bash -l\n\n'
 text += 'source /global/common/software/desi/desi_environment.sh {}\n'.format(args.desi_env)
 spec_dir = os.path.join(args.qq_dir,'spectra-{}'.format(args.nside))
-zcat = os.path.join(args.qq_dir,'zcat.fits')
+zcat = os.path.join(args.qq_dir,args.out)
 text += 'desi_zcatalog -i {} -o {} --fibermap\n'.format(spec_dir,zcat)
 
 ## Write it to file
