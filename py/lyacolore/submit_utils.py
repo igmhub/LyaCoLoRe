@@ -175,3 +175,21 @@ def make_permission_group_desi(dir):
 def make_file_executable(f):
     call(['chmod', 'ug+x', f])
     return
+
+def make_analysis_dir(dirname):
+    if not os.path.isdir(dirname):
+        os.mkdir(dirname)
+    make_permission_group_desi(dirname)
+
+    for ext in ['data','correlations','fits']:
+        extdirname = os.path.join(dirname,ext)
+        if not os.path.isdir(extdirname):
+            os.mkdir(extdirname)
+        make_permission_group_desi(extdirname)
+
+    deltasdirname = os.path.join(dirname,'data/deltas')
+    if not os.path.isdir(deltasdirname):
+        os.mkdir(deltasdirname)
+    make_permission_group_desi(deltasdirname)
+
+    return

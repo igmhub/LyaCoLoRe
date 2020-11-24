@@ -12,7 +12,7 @@ def get_pixel_objects(pixels,args,MOCKID_lookup):
     #what's the sharing doing here?
     manager = multiprocessing.Manager()
     shared_MOCKID_lookup = manager.dict(MOCKID_lookup)
-    tasks = [(pixel,args.in_dir,args.input_filename_prefix,args.file_format,args.skewer_type,shared_MOCKID_lookup,args.lambda_min,args.rest_frame_weights_cut,args.tuning_file) for pixel in pixels]
+    tasks = [(pixel,args.in_dir,args.input_filename_prefix,args.file_format,args.skewer_type,shared_MOCKID_lookup,0.,args.rest_frame_weights_cut,args.tuning_file) for pixel in pixels]
 
     #Run the multiprocessing pool
     results = utils.run_multiprocessing(make_pixel_object,tasks,args.nproc)
@@ -60,7 +60,7 @@ def make_pixel_object(pixel,basedir,prefix,file_format,skewer_type,MOCKID_lookup
 
     return pixel, pixel_object
 
-def process_skewers(pixel_object,pixel,args,lambda_buffer=100,save_stages=False,save_transmission=True,trans=None):
+def process_skewers(pixel_object,pixel,args,lambda_buffer=100.,save_stages=False,save_transmission=True,trans=None):
 
     t = time.time()
     location = utils.get_dir_name(args.out_dir,pixel)
@@ -374,7 +374,7 @@ class SimulationData:
         # Apply the lambda buffer.
         lambda_min = np.max([0.,lambda_min-lambda_buffer])
         if lambda_max is not None:
-            lambda_max = lambda_max+lambda_buffer
+            lambda_max += lambda_buffer
 
         #Find the first relevant cell, and the last one if desired.
         #We make sure to include all frequencies within (lambda_min,lambda_max).
