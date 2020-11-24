@@ -44,18 +44,16 @@ for qq_run in args.qq_runs:
     qq_dir = os.path.join(args.qq_basedir,qq_run)
 
     ## Make the directory structure for our outputs.
-    analysis_dir = submit_utils.AnalysisDir(args.picca_basedir,'desi-raw')
+    analysis_dir = submit_utils.AnalysisDir(args.picca_basedir,qq_dir)
 
     ## Make the zcat
     print('INFO: Making zcat for quickquasars output in {}'.format(qq_dir))
-    submit_utils.make_permission_group_desi(qq_dir)
     command = '/global/homes/j/jfarr/Projects/LyaCoLoRe/etc/batch_analysis/make_zcat.py --qq-dir {}'.format(qq_dir)
     call(command.split(' '))
     print('')
 
     ## Make the drq
     print('INFO: Making drqs for quickquasars output in {}'.format(qq_dir))
-    submit_utils.make_permission_group_desi(qq_dir)
     command = '/global/homes/j/jfarr/Projects/LyaCoLoRe/etc/batch_analysis/make_drqs.py --in-dir {} --out-dir {}'.format(qq_dir,analysis_dir.datadir)
     call(command.split(' '))
     print('')
