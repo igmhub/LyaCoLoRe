@@ -5,6 +5,8 @@ import fitsio
 import numpy as np
 import os
 
+from picca import converters
+
 parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         )
@@ -23,7 +25,7 @@ parser.add_argument('-o','--out-dir',
 
 args = parser.parse_args()
 
-def zcat_to_drq(in_path, out_path):
+"""def zcat_to_drq(in_path, out_path):
 
     from_desi_key_to_picca_key = {
         'RA': 'RA',
@@ -61,4 +63,10 @@ def zcat_to_drq(in_path, out_path):
 ## Make drq
 zcat = os.path.join(args.in_dir,'zcat.fits')
 drq = os.path.join(args.out_dir,'drq_qso.fits')
-zcat_to_drq(zcat,drq)
+zcat_to_drq(zcat,drq)"""
+
+converters.desi_from_ztarget_to_drq(zcat,
+                                    drq,
+                                    spec_type='QSO',
+                                    downsampling_z_cut=None,
+                                    downsampling_num=None)
