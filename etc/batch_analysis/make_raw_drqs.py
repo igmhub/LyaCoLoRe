@@ -86,6 +86,8 @@ def master_to_drq(in_path, out_path, randoms=False, zcat=None, nobj=None):
         with fitsio.FITS(zcat) as zc:
             healpixs_zcat = hp.ang2pix(nside_high, np.pi/2 - zc[1][:]['DEC']*np.pi/180., zc[1][:]['RA']*np.pi/180.)
         w = np.in1d(healpixs_master,healpixs_zcat)
+        print('INFO: randoms file contains {} quasars, of which {} are in the zcat footprint.'.format(len(healpixs_master),w.sum()))
+        print('INFO: Reducing to this set now.')
         for k in cat.keys():
             cat[k] = cat[k][w]
 
