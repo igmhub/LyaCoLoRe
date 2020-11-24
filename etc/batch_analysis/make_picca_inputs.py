@@ -98,7 +98,7 @@ for qq_run in args.qq_runs:
 
     ## Submit job to run the deltas
     slurm_script = os.path.join(args.picca_basedir,qq_run,'run_picca_deltas.sl')
-    slurm_hours = 2.
+    slurm_hours = 1.
     slurm_queue = 'regular'
     out_dir = os.path.join(args.picca_basedir,qq_run)
     if not os.path.isdir(out_dir):
