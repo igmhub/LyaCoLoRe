@@ -44,7 +44,7 @@ for qq_run in args.qq_runs:
     qq_dir = os.path.join(args.qq_basedir,qq_run)
 
     ## Make the directory structure for our outputs.
-    analysis_dir = submit_utils.AnalysisDir(args.picca_basedir,qq_dir)
+    analysis_dir = submit_utils.AnalysisDir(args.picca_basedir,qq_run)
 
     ## Make the zcat
     print('INFO: Making zcat for quickquasars output in {}'.format(qq_dir))
