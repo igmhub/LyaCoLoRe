@@ -108,8 +108,7 @@ for qq_run in args.qq_runs:
     if not os.path.isdir(deltas_dir):
         os.mkdir(deltas_dir)
     submit_utils.make_permission_group_desi(deltas_dir)
-    submit_utils.make_permission_group_desi(out_dir)
     drq = os.path.join(args.picca_basedir,qq_run,'drq_qso.fits')
-    in_dir = os.path.join(args.qq_basedir,qq_run)
+    in_dir = os.path.join(args.qq_basedir,qq_run,'spectra-16')
     command = '/global/homes/j/jfarr/Projects/LyaCoLoRe/etc/batch_analysis/run_make_deltas.py --slurm-script {} --slurm-hours {} --slurm-queue {} --out-dir {} --drq {} --in-dir {}'.format(slurm_script,slurm_hours,slurm_queue,out_dir,drq,in_dir)
     call(command.split(' '))
