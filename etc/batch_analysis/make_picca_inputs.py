@@ -57,8 +57,8 @@ for qq_run in args.qq_runs:
     call(command.split(' '))
 
     ## Submit job to run the deltas
-    drq = os.path.join(qq_out_data_dir,'drq_qso.fits')
-    in_dir = os.path.join(qq_out_data_dir,'spectra-16')
+    drq = os.path.join(analysis_dir.datadir,'drq_qso.fits')
+    in_dir = os.path.join(analysis_dir.datadir,'spectra-16')
     command = '/global/homes/j/jfarr/Projects/LyaCoLoRe/etc/batch_analysis/run_make_deltas.py --out-dir {} --drq {} --in-dir {}'.format(analysis_dir.datadir,drq,in_dir)
     call(command.split(' '))
 
@@ -81,7 +81,7 @@ command = '/global/homes/j/jfarr/Projects/LyaCoLoRe/etc/batch_analysis/make_raw_
 call(command.split(' '))
 
 ## Submit job to run the raw deltas
-drq = os.path.join(raw_out_data_dir,'drq_qso.fits')
+drq = os.path.join(analysis_dir.datadir,'drq_qso.fits')
 in_dir = args.raw_dir
 command = '/global/homes/j/jfarr/Projects/LyaCoLoRe/etc/batch_analysis/run_make_raw_deltas.py --out-dir {} --drq {} --in-dir {}'.format(analysis_dir.datadir,drq,in_dir)
 call(command.split(' '))
