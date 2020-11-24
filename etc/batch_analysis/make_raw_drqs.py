@@ -33,11 +33,6 @@ parser.add_argument('--qq-ref-zcat',
                     required=True,
                     help='Reference zcat file to make sure raw drqs have correct downsampling')
 
-parser.add_argument('--overwrite',
-                    action='store_true',
-                    default=False,
-                    help='Overwrite any existing catalog at the output location')
-
 parser.add_argument('--seed',
                     type=int,
                     default=0,
@@ -91,7 +86,7 @@ def master_to_drq(in_path, out_path, randoms=False, zcat=None, nobj=None):
             cat[k] = cat[k][w]
 
     # save results
-    results = fitsio.FITS(out_path, 'rw', clobber=args.overwrite)
+    results = fitsio.FITS(out_path, 'rw', clobber=True)
     cols = list(cat.values())
     names = list(cat)
     results.write(cols, names=names, extname='CAT')
@@ -143,7 +138,7 @@ def master_dla_to_drq(in_path, out_path, randoms=False, zcat=None):
             cat[k] = cat[k][w]
 
     # save results
-    results = fitsio.FITS(out_path, 'rw', clobber=args.overwrite)
+    results = fitsio.FITS(out_path, 'rw', clobber=True)
     cols = list(cat.values())
     names = list(cat)
     results.write(cols, names=names, extname='DLACAT')

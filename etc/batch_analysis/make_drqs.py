@@ -21,11 +21,6 @@ parser.add_argument('-o','--out-dir',
                     required=True,
                     help='Directory to save drqs to')
 
-parser.add_argument('--overwrite',
-                    action='store_true',
-                    default=False,
-                    help='Overwrite any existing catalog at the output location')
-
 args = parser.parse_args()
 
 def zcat_to_drq(in_path, out_path):
@@ -57,7 +52,7 @@ def zcat_to_drq(in_path, out_path):
         cat[key] = cat[key].astype('float64')
 
     # save results
-    results = fitsio.FITS(out_path, 'rw', clobber=args.overwrite)
+    results = fitsio.FITS(out_path, 'rw', clobber=True)
     cols = list(cat.values())
     names = list(cat)
     results.write(cols, names=names, extname='CAT')
