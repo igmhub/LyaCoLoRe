@@ -92,6 +92,7 @@ def master_to_drq(in_path, out_path, randoms=False, zcat=None, nobj=None):
             cat[k] = cat[k][w]
 
     if nobj is not None:
+        print('INFO: downsampling to {} objects'.format(nobj))
         gen = np.random.default_rng(seed=args.seed)
         w = gen.permutation(np.arange(len(cat['THING_ID'])))/nobj < 1
         for k in cat.keys():
