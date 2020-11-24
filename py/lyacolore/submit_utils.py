@@ -196,7 +196,7 @@ def make_analysis_dir(dirname):
 
 class AnalysisDir:
 
-    def __init__(self, dirloc, dirname, datadirname='data', corrdirname='correlations', fitsdirname='fits', deltasdirname='deltas'):
+    def __init__(self, dirloc, dirname, datadirname='data', corrdirname='correlations', fitsdirname='fits', deltadirname='deltas'):
 
         self.dirloc = dirloc
         self.dirname = dirname
