@@ -97,6 +97,8 @@ parser.add_argument('--nproc',
 
 args = parser.parse_args()
 
+args.slurm_script = os.path.join(args.out_dir,args.slurm_script)
+
 ## Make the script text.
 time = submit_utils.nh_to_hhmmss(args.slurm_hours)
 err_file = os.path.join(args.out_dir,'run-picca-deltas-%j.err')

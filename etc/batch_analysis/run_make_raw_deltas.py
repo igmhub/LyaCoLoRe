@@ -84,6 +84,9 @@ parser.add_argument('--nproc',
 
 args = parser.parse_args()
 
+args.python_script = os.path.join(args.out_dir,args.python_script)
+args.slurm_script = os.path.join(args.out_dir,args.slurm_script)
+
 ## Make the python script.
 text = '#!/usr/bin/env python\n\n'
 text += 'from picca import converters\n\n'
