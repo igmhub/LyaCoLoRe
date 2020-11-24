@@ -81,7 +81,7 @@ def master_to_drq(in_path, out_path, randoms=False, zcat=None, nobj=None):
             cat[k] = cat[k][w]
 
     elif (zcat is not None) and (randoms):
-        nside_high = 64
+        nside_high = 2**10
         healpixs_master = hp.ang2pix(nside_high, np.pi/2 - cat['DEC']*np.pi/180., cat['RA']*np.pi/180.)
         with fitsio.FITS(zcat) as zc:
             healpixs_zcat = hp.ang2pix(nside_high, np.pi/2 - zc[1][:]['DEC']*np.pi/180., zc[1][:]['RA']*np.pi/180.)
