@@ -47,24 +47,29 @@ for qq_run in args.qq_runs:
     analysis_dir = submit_utils.AnalysisDir(args.picca_basedir,'desi-raw')
 
     ## Make the zcat
+    print('INFO: Making zcat for quickquasars output in {}'.format(qq_dir))
     submit_utils.make_permission_group_desi(qq_dir)
     command = '/global/homes/j/jfarr/Projects/LyaCoLoRe/etc/batch_analysis/make_zcat.py --qq-dir {}'.format(qq_dir)
     call(command.split(' '))
+    print('')
 
     ## Make the drq
+    print('INFO: Making drqs for quickquasars output in {}'.format(qq_dir))
     submit_utils.make_permission_group_desi(qq_dir)
     command = '/global/homes/j/jfarr/Projects/LyaCoLoRe/etc/batch_analysis/make_drqs.py --in-dir {} --out-dir {}'.format(qq_dir,analysis_dir.datadir)
     call(command.split(' '))
+    print('')
 
     ## Submit job to run the deltas
+    print('INFO: Submitting job to make deltas for quickquasars output in {}'.format(qq_dir))
     drq = os.path.join(analysis_dir.datadir,'drq_qso.fits')
     in_dir = os.path.join(analysis_dir.datadir,'spectra-16')
     command = '/global/homes/j/jfarr/Projects/LyaCoLoRe/etc/batch_analysis/run_make_deltas.py --out-dir {} --drq {} --in-dir {}'.format(analysis_dir.datadir,drq,in_dir)
     call(command.split(' '))
-
+    print('')
 
 ## Point to the raw output.
-raw_in_dir = args.raw_dir
+raw_dir = args.raw_dir
 
 ## Make the directory structure for our outputs.
 analysis_dir = submit_utils.AnalysisDir(args.picca_basedir,'desi-raw')
@@ -76,12 +81,16 @@ if not os.path.isdir(randoms_dir):
 submit_utils.make_permission_group_desi(randoms_dir)
 
 ## Make the raw drqs
+print('INFO: Making drqs for raw output in {}'.format(raw_dir))
 qq_ref_zcat = os.path.join(args.qq_basedir,args.qq_runs[0],'zcat.fits')
-command = '/global/homes/j/jfarr/Projects/LyaCoLoRe/etc/batch_analysis/make_raw_drqs.py --in-dir {} --out-dir {} --randoms-out-dir {} --qq-ref-zcat {}'.format(raw_in_dir,analysis_dir.datadir,randoms_dir,qq_ref_zcat)
+command = '/global/homes/j/jfarr/Projects/LyaCoLoRe/etc/batch_analysis/make_raw_drqs.py --in-dir {} --out-dir {} --randoms-out-dir {} --qq-ref-zcat {}'.format(raw_dir,analysis_dir.datadir,randoms_dir,qq_ref_zcat)
 call(command.split(' '))
+print('')
 
 ## Submit job to run the raw deltas
+print('INFO: Submitting job to make deltas for raw output in {}'.format(raw_dir))
 drq = os.path.join(analysis_dir.datadir,'drq_qso.fits')
 in_dir = args.raw_dir
 command = '/global/homes/j/jfarr/Projects/LyaCoLoRe/etc/batch_analysis/run_make_raw_deltas.py --out-dir {} --drq {} --in-dir {}'.format(analysis_dir.datadir,drq,in_dir)
 call(command.split(' '))
+print('')
