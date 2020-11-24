@@ -14,7 +14,7 @@ parser.add_argument('--qq-dir',
                     type=str,
                     default=None,
                     required=True,
-                    help='Directory to transmission files')
+                    help='Directory of qq output')
 
 parser.add_argument('--out',
                     type=str,
@@ -26,7 +26,7 @@ parser.add_argument('--nside',
                     type=int,
                     default=16,
                     required=False,
-                    help='Value of nside used when running picca')
+                    help='Value of nside used when running quickquasars')
 
 parser.add_argument('--desi-env',
                     type=str,
