@@ -63,6 +63,9 @@ parser.add_argument('--fid-Or', type=float, default=0., required=False,
 parser.add_argument('--no-project', action="store_true", default = False, required=False,
                     help = 'use the "no-project" option for Lya forests')
 
+parser.add_argument('--no-dmats', action="store_true", default = False, required=False,
+                    help = 'don\'t make dmats alongside correlations')
+
 parser.add_argument('--no-remove-mean-lambda-obs', action="store_true", default = False, required=False,
                     help = 'use the "no-remove-mean-lambda-obs" option for Lya forest cross correlations')
 
@@ -85,7 +88,7 @@ if args.run_all:
 ################################################################################
 
 #Functions to construct the job info dictionaries.
-def make_lya_auto_job_info(meas_dir,zmin,zmax,deltas_dir,time=24,no_project=False):
+def make_lya_auto_job_info(meas_dir,zmin,zmax,deltas_dir,time=24,no_project=False,nodmat=False):
 
     dir = meas_dir + '/lya_auto/'
     out_dir = dir + '/correlations/'
@@ -115,7 +118,36 @@ def make_lya_auto_job_info(meas_dir,zmin,zmax,deltas_dir,time=24,no_project=Fals
                          'run_script':      'run_lya_auto_{}_{}.sh'.format(zmin,zmax),
                          }
 
-    return lya_auto_job_info
+    if not nodmat:
+
+        dmat_header_info = {'queue':    'regular',
+                            'time':     time,
+                            'job_name': 'run_dmat_lya_auto_{}_{}'.format(zmin,zmax),
+                            'err_file': 'dmat_lya_auto_{}_{}_%j.err'.format(zmin,zmax),
+                            'out_file': 'dmat_lya_auto_{}_{}_%j.out'.format(zmin,zmax),
+                            }
+
+        dmat_options = {'in-dir':        deltas_dir,
+                        'out':           out_dir+'/dmat_lya_auto_{}_{}.fits.gz'.format(zmin,zmax),
+                        'z-cut-min':     zmin,
+                        'z-cut-max':     zmax,
+                        'rej':           0.99,
+                        }
+
+        if no_project:
+            dmat_options['no-project'] = ''
+
+        dmat_lya_auto_job_info = {'dir':             dir,
+                                  'header_info':     dmat_header_info,
+                                  'picca_script':    'picca_dmat.py',
+                                  'options':         dmat_options,
+                                  'run_script':      'run_dmat_lya_auto_{}_{}.sh'.format(zmin,zmax),
+                                  }
+
+    else:
+        dmat_lya_auto_job_info = None
+
+    return lya_auto_job_info, dmat_lya_auto_job_info
 
 def make_qso_auto_job_info(meas_dir,zmin,zmax,zcat,zcat_rand,corr_type='DD',time=24):
 
@@ -221,7 +253,7 @@ def make_dla_auto_job_info(meas_dir,zmin,zmax,zcat,zcat_rand,corr_type='DD',time
 
     return dla_auto_job_info
 
-def make_lya_qso_cross_job_info(meas_dir,zmin,zmax,deltas_dir,zcat,cat_type='D',time=24,no_project=False,no_remove_mean_lambda_obs=False):
+def make_lya_qso_cross_job_info(meas_dir,zmin,zmax,deltas_dir,zcat,cat_type='D',time=24,no_project=False,no_remove_mean_lambda_obs=False,nodmat=False):
 
     dir = meas_dir + '/lya_qso_cross/'
     out_dir = dir + '/correlations/'
@@ -255,9 +287,40 @@ def make_lya_qso_cross_job_info(meas_dir,zmin,zmax,deltas_dir,zcat,cat_type='D',
                               'run_script':     'run_lya_qso_cross_{}_{}_{}.sh'.format(cat_type,zmin,zmax),
                               }
 
-    return lya_qso_cross_job_info
+    if not nodmat:
 
-def make_lya_dla_cross_job_info(meas_dir,zmin,zmax,deltas_dir,zcat,cat_type='D',time=24,no_project=False,no_remove_mean_lambda_obs=False):
+        xdmat_header_info = {'queue':    'regular',
+                             'time':     time,
+                             'job_name': 'run_xdmat_lya_qso_cross_{}_{}'.format(zmin,zmax),
+                             'err_file': 'xdmat_lya_qso_cross_{}_{}_%j.err'.format(zmin,zmax),
+                             'out_file': 'xdmat_lya_qso_cross_{}_{}_%j.out'.format(zmin,zmax),
+                             }
+
+        xdmat_options = {'drq':                       zcat,
+                         'in-dir':                    deltas_dir,
+                         'out':                       out_dir+'xdmat_lya_qso_cross_{}_{}_{}.fits.gz'.format(cat_type,zmin,zmax),
+                         'z-evol-obj':                1.44,
+                         'z-cut-min':                 zmin,
+                         'z-cut-max':                 zmax,
+                         'rej':           0.99,
+                         }
+
+        if no_project:
+            xdmat_options['no-project'] = ''
+
+        xdmat_lya_qso_cross_job_info = {'dir':             dir,
+                                        'header_info':     xdmat_header_info,
+                                        'picca_script':    'picca_xdmat.py',
+                                        'options':         xdmat_options,
+                                        'run_script':      'run_xdmat_lya_qso_cross_{}_{}.sh'.format(zmin,zmax),
+                                        }
+
+    else:
+        xdmat_lya_qso_cross_job_info = None
+
+    return lya_qso_cross_job_info, xdmat_lya_qso_cross_job_info
+
+def make_lya_dla_cross_job_info(meas_dir,zmin,zmax,deltas_dir,zcat,cat_type='D',time=24,no_project=False,no_remove_mean_lambda_obs=False,nodmat=False):
 
     dir = meas_dir + '/lya_dla_cross/'
     out_dir = dir + '/correlations/'
@@ -291,7 +354,38 @@ def make_lya_dla_cross_job_info(meas_dir,zmin,zmax,deltas_dir,zcat,cat_type='D',
                               'run_script':     'run_lya_dla_cross_{}_{}_{}.sh'.format(cat_type,zmin,zmax),
                               }
 
-    return lya_dla_cross_job_info
+    if not nodmat:
+
+        xdmat_header_info = {'queue':    'regular',
+                             'time':     time,
+                             'job_name': 'run_xdmat_lya_dla_cross_{}_{}'.format(zmin,zmax),
+                             'err_file': 'xdmat_lya_dla_cross_{}_{}_%j.err'.format(zmin,zmax),
+                             'out_file': 'xdmat_lya_dla_cross_{}_{}_%j.out'.format(zmin,zmax),
+                             }
+
+        xdmat_options = {'drq':                       zcat,
+                         'in-dir':                    deltas_dir,
+                         'out':                       out_dir+'xdmat_lya_dla_cross_{}_{}_{}.fits.gz'.format(cat_type,zmin,zmax),
+                         'z-evol-obj':                0.0,
+                         'z-cut-min':                 zmin,
+                         'z-cut-max':                 zmax,
+                         'rej':           0.99,
+                         }
+
+        if no_project:
+            options['no-project'] = ''
+
+        xdmat_lya_dla_cross_job_info = {'dir':             dir,
+                                        'header_info':     xdmat_header_info,
+                                        'picca_script':    'picca_xdmat.py',
+                                        'options':         xdmat_options,
+                                        'run_script':      'run_xdmat_lya_dla_cross_{}_{}.sh'.format(zmin,zmax),
+                                        }
+
+    else:
+        xdmat_lya_dla_cross_job_info = None
+
+    return lya_dla_cross_job_info, xdmat_lya_dla_cross_job_info
 
 def make_qso_dla_cross_job_info(meas_dir,zmin,zmax,zcat_qso,zcat_qso_rand,zcat_dla,zcat_dla_rand,corr_type='DD',time=24):
 
@@ -425,56 +519,69 @@ njobs = 0
 
 for zbin in cf_zbins:
 
-    print(' -> looking at zbin {}'.format(zbin))
-    zmin = zbin[0]
-    zmax = zbin[1]
+    if args.run_lya_auto:
+        print(' -> looking at zbin {}'.format(zbin))
+        zmin = zbin[0]
+        zmax = zbin[1]
 
     if args.run_lya_auto:
 
         time = job_time_dict['lya_auto'][zbin]
-        lya_auto_job_info = make_lya_auto_job_info(args.corr_dir,zmin,zmax,args.deltas_dir,time=time,no_project=args.no_project)
+        lya_auto_job_info, dmat_lya_auto_job_info = make_lya_auto_job_info(args.corr_dir,zmin,zmax,args.deltas_dir,time=time,no_project=args.no_project,nodmat=args.no_dmats)
         submit_utils.run_picca_job(lya_auto_job_info,global_job_info['options'],no_submit=args.no_submit)
+        if not args.no_dmats:
+            submit_utils.run_picca_job(dmat_lya_auto_job_info,global_job_info['options'],no_submit=args.no_submit)
         njobs += 1
 
 for zbin in xcf_zbins:
 
-    print(' -> looking at zbin {}'.format(zbin))
-    zmin = zbin[0]
-    zmax = zbin[1]
+    if args.run_lya_qso_cross or args.run_lya_dla_cross:
+        print(' -> looking at zbin {}'.format(zbin))
+        zmin = zbin[0]
+        zmax = zbin[1]
 
     if args.run_lya_qso_cross:
 
         time = job_time_dict['lya_qso_cross']['D'][zbin]
-        lya_qso_cross_job_info = make_lya_qso_cross_job_info(args.corr_dir,zmin,zmax,args.deltas_dir,args.drq_qso,cat_type='D',time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs)
+        lya_qso_cross_job_info, xdmat_lya_qso_cross_job_info = make_lya_qso_cross_job_info(args.corr_dir,zmin,zmax,args.deltas_dir,args.drq_qso,cat_type='D',time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs,nodmat=args.no_dmats)
         submit_utils.run_picca_job(lya_qso_cross_job_info,global_job_info['options'],no_submit=args.no_submit)
+        if not args.no_dmats:
+            submit_utils.run_picca_job(xdmat_lya_qso_cross_job_info,global_job_info['options'],no_submit=args.no_submit)
         njobs += 1
 
         for i,randcat in enumerate(args.drq_qso_randoms):
             cat_type = 'R{}'.format(i)
             time = job_time_dict['lya_qso_cross']['R'][zbin]
-            lya_qso_cross_job_info = make_lya_qso_cross_job_info(args.corr_dir,zmin,zmax,args.deltas_dir,randcat,cat_type=cat_type,time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs)
+            lya_qso_cross_job_info, xdmat_lya_qso_cross_job_info = make_lya_qso_cross_job_info(args.corr_dir,zmin,zmax,args.deltas_dir,randcat,cat_type=cat_type,time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs,nodmat=args.no_dmats)
             submit_utils.run_picca_job(lya_qso_cross_job_info,global_job_info['options'],no_submit=args.no_submit)
+            if not args.no_dmats:
+                submit_utils.run_picca_job(xdmat_lya_qso_cross_job_info,global_job_info['options'],no_submit=args.no_submit)
             njobs += 1
 
     if args.run_lya_dla_cross:
 
         time = job_time_dict['lya_dla_cross']['D'][zbin]
-        lya_dla_cross_job_info = make_lya_qso_cross_job_info(args.corr_dir,zmin,zmax,args.deltas_dir,args.drq_dla,cat_type='D',time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs)
+        lya_dla_cross_job_info, xdmat_lya_dla_cross_job_info = make_lya_qso_cross_job_info(args.corr_dir,zmin,zmax,args.deltas_dir,args.drq_dla,cat_type='D',time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs,nodmat=args.no_dmats)
         submit_utils.run_picca_job(lya_dla_cross_job_info,global_job_info['options'],no_submit=args.no_submit)
+        if not args.no_dmats:
+            submit_utils.run_picca_job(xdmat_lya_dla_cross_job_info,global_job_info['options'],no_submit=args.no_submit)
         njobs += 1
 
         for i,randcat in enumerate(args.drq_dla_randoms):
             cat_type = 'R{}'.format(i)
             time = job_time_dict['lya_dla_cross']['R'][zbin]
-            lya_dla_cross_job_info = make_lya_dla_cross_job_info(args.corr_dir,zmin,zmax,args.deltas_dir,randcat,cat_type=cat_type,time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs)
+            lya_dla_cross_job_info, xdmat_lya_dla_cross_job_info = make_lya_dla_cross_job_info(args.corr_dir,zmin,zmax,args.deltas_dir,randcat,cat_type=cat_type,time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs,nodmat=args.no_dmats)
             submit_utils.run_picca_job(lya_dla_cross_job_info,global_job_info['options'],no_submit=args.no_submit)
+            if not args.no_dmats:
+                submit_utils.run_picca_job(xdmat_lya_dla_cross_job_info,global_job_info['options'],no_submit=args.no_submit)
             njobs += 1
 
 for zbin in co_zbins:
 
-    print(' -> looking at zbin {}'.format(zbin))
-    zmin = zbin[0]
-    zmax = zbin[1]
+    if args.run_qso_auto or args.run_dla_auto or args.run_qso_dla_cross:
+        print(' -> looking at zbin {}'.format(zbin))
+        zmin = zbin[0]
+        zmax = zbin[1]
 
     if args.run_qso_auto:
 
