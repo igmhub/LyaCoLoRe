@@ -180,3 +180,19 @@ master_dla_to_drq(master_dla,out_dla,randoms=False,zcat=args.qq_ref_zcat)
 master_dla_rand = os.path.join(args.in_dir,'master_DLA_randoms.fits')
 out_dla_rand = os.path.join(args.randoms_out_dir,'drq_dla_randoms.fits')
 master_dla_to_drq(master_dla_rand,out_dla_rand,randoms=True,zcat=args.qq_ref_zcat)
+
+
+## Make script to fix randoms drq footprint.
+# Make the text of the script
+text = '#!/bin/bash -l\n\n'
+text += 'source /global/common/software/desi/desi_environment.sh {}\n'.format(args.desi_env)
+text += '/global/homes/j/jfarr/Projects/LyaCoLoRe/etc/batch_analysis/apply_randoms_footprint.py --randoms-dir {}'.format(args.randoms_out_dir)
+
+# Write it to file
+script = os.path.join(args.randoms_out_dir,'apply_randoms_footprint.sh')
+with open(script,'w') as f:
+    f.write(text)
+submit_utils.make_file_executable(script)
+
+# Execute it
+call(script)
