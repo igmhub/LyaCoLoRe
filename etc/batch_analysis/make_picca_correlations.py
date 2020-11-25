@@ -62,13 +62,12 @@ for qq_run in args.qq_runs:
     command += ' --drq-dla {}'.format(os.path.join(raw_analysis_dir.datadir,'drq_dla.fits'))
     command += ' --drq-qso-randoms {}'.format(os.path.join(randoms_dir,'drq_qso_randoms.fits'))
     command += ' --drq-dla-randoms {}'.format(os.path.join(randoms_dir,'drq_dla_randoms.fits'))
-    command += ' --corr-dir {}'.format(analysis_dirr.corrdir)
+    command += ' --corr-dir {}'.format(analysis_dir.corrdir)
     command += ' --fid-Om {}'.format(fid_Om)
     command += ' --fid-Or {}'.format(fid_Or)
     command += ' --run-lya-auto'
     command += ' --run-lya-qso-cross'
     command += ' --no-submit'
-    command += '\n'
     call(command.split(' '))
     print('')
 
@@ -88,6 +87,5 @@ command += ' --run-lya-auto'
 command += ' --run-lya-qso-cross'
 command += ' --no-project'
 command += ' --no-submit'
-command += '\n'
 call(command.split(' '))
 print('')
