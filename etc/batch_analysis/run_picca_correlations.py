@@ -312,7 +312,7 @@ def make_lya_qso_cross_job_info(meas_dir,zmin,zmax,deltas_dir,zcat,cat_type='D',
                                         'header_info':     xdmat_header_info,
                                         'picca_script':    'picca_xdmat.py',
                                         'options':         xdmat_options,
-                                        'run_script':      'run_xdmat_lya_qso_cross_{}_{}.sh'.format(zmin,zmax),
+                                        'run_script':      'run_xdmat_lya_qso_cross_{}_{}_{}.sh'.format(cat_type,zmin,zmax),
                                         }
 
     else:
@@ -379,7 +379,7 @@ def make_lya_dla_cross_job_info(meas_dir,zmin,zmax,deltas_dir,zcat,cat_type='D',
                                         'header_info':     xdmat_header_info,
                                         'picca_script':    'picca_xdmat.py',
                                         'options':         xdmat_options,
-                                        'run_script':      'run_xdmat_lya_dla_cross_{}_{}.sh'.format(zmin,zmax),
+                                        'run_script':      'run_xdmat_lya_dla_cross_{}_{}_{}.sh'.format(cat_type,zmin,zmax),
                                         }
 
     else:
