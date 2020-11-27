@@ -549,14 +549,15 @@ for zbin in xcf_zbins:
             submit_utils.run_picca_job(xdmat_lya_qso_cross_job_info,global_job_info['options'],no_submit=args.no_submit)
         njobs += 1
 
-        for i,randcat in enumerate(args.drq_qso_randoms):
-            cat_type = 'R{}'.format(i)
-            time = job_time_dict['lya_qso_cross']['R'][zbin]
-            lya_qso_cross_job_info, xdmat_lya_qso_cross_job_info = make_lya_qso_cross_job_info(args.corr_dir,zmin,zmax,args.deltas_dir,randcat,cat_type=cat_type,time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs,nodmat=args.no_dmats)
-            submit_utils.run_picca_job(lya_qso_cross_job_info,global_job_info['options'],no_submit=args.no_submit)
-            if not args.no_dmats:
-                submit_utils.run_picca_job(xdmat_lya_qso_cross_job_info,global_job_info['options'],no_submit=args.no_submit)
-            njobs += 1
+        if args.drq_qso_randoms is not None:
+            for i,randcat in enumerate(args.drq_qso_randoms):
+                cat_type = 'R{}'.format(i)
+                time = job_time_dict['lya_qso_cross']['R'][zbin]
+                lya_qso_cross_job_info, xdmat_lya_qso_cross_job_info = make_lya_qso_cross_job_info(args.corr_dir,zmin,zmax,args.deltas_dir,randcat,cat_type=cat_type,time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs,nodmat=args.no_dmats)
+                submit_utils.run_picca_job(lya_qso_cross_job_info,global_job_info['options'],no_submit=args.no_submit)
+                if not args.no_dmats:
+                    submit_utils.run_picca_job(xdmat_lya_qso_cross_job_info,global_job_info['options'],no_submit=args.no_submit)
+                njobs += 1
 
     if args.run_lya_dla_cross:
 
@@ -567,14 +568,15 @@ for zbin in xcf_zbins:
             submit_utils.run_picca_job(xdmat_lya_dla_cross_job_info,global_job_info['options'],no_submit=args.no_submit)
         njobs += 1
 
-        for i,randcat in enumerate(args.drq_dla_randoms):
-            cat_type = 'R{}'.format(i)
-            time = job_time_dict['lya_dla_cross']['R'][zbin]
-            lya_dla_cross_job_info, xdmat_lya_dla_cross_job_info = make_lya_dla_cross_job_info(args.corr_dir,zmin,zmax,args.deltas_dir,randcat,cat_type=cat_type,time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs,nodmat=args.no_dmats)
-            submit_utils.run_picca_job(lya_dla_cross_job_info,global_job_info['options'],no_submit=args.no_submit)
-            if not args.no_dmats:
-                submit_utils.run_picca_job(xdmat_lya_dla_cross_job_info,global_job_info['options'],no_submit=args.no_submit)
-            njobs += 1
+        if args.drq_dla_randoms is not None:
+            for i,randcat in enumerate(args.drq_dla_randoms):
+                cat_type = 'R{}'.format(i)
+                time = job_time_dict['lya_dla_cross']['R'][zbin]
+                lya_dla_cross_job_info, xdmat_lya_dla_cross_job_info = make_lya_dla_cross_job_info(args.corr_dir,zmin,zmax,args.deltas_dir,randcat,cat_type=cat_type,time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs,nodmat=args.no_dmats)
+                submit_utils.run_picca_job(lya_dla_cross_job_info,global_job_info['options'],no_submit=args.no_submit)
+                if not args.no_dmats:
+                    submit_utils.run_picca_job(xdmat_lya_dla_cross_job_info,global_job_info['options'],no_submit=args.no_submit)
+                njobs += 1
 
 for zbin in co_zbins:
 
