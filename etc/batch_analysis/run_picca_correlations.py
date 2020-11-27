@@ -562,7 +562,7 @@ for zbin in xcf_zbins:
     if args.run_lya_dla_cross:
 
         time = job_time_dict['lya_dla_cross']['D'][zbin]
-        lya_dla_cross_job_info, xdmat_lya_dla_cross_job_info = make_lya_qso_cross_job_info(args.corr_dir,zmin,zmax,args.deltas_dir,args.drq_dla,cat_type='D',time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs,nodmat=args.no_dmats)
+        lya_dla_cross_job_info, xdmat_lya_dla_cross_job_info = make_lya_dla_cross_job_info(args.corr_dir,zmin,zmax,args.deltas_dir,args.drq_dla,cat_type='D',time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs,nodmat=args.no_dmats)
         submit_utils.run_picca_job(lya_dla_cross_job_info,global_job_info['options'],no_submit=args.no_submit)
         if not args.no_dmats:
             submit_utils.run_picca_job(xdmat_lya_dla_cross_job_info,global_job_info['options'],no_submit=args.no_submit)
