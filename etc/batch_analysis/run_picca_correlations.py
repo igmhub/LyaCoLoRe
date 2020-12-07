@@ -454,8 +454,8 @@ global_job_info = {'options':   {'fid-Om':    args.fid_Om,
                                  },
                    }
 
-job_time_dict = {'lya_auto':        {cf_zbins[0]: 3.,   cf_zbins[1]: 3.,  cf_zbins[2]: 3.,  cf_zbins[3]: 3.,
-                                     cf_zbins[4]: 3.,   cf_zbins[5]: 3.,  cf_zbins[6]: 3.,  cf_zbins[7]: 3.,
+job_time_dict = {'lya_auto':        {cf_zbins[0]: 1.,   cf_zbins[1]: 1.,  cf_zbins[2]: 1.,  cf_zbins[3]: 1.,
+                                     cf_zbins[4]: 1.,   cf_zbins[5]: 1.,  cf_zbins[6]: 1.,  cf_zbins[7]: 1.,
                                      },
                  'qso_auto':        {'DD':   {co_zbins[0]: 3., co_zbins[1]: 3., co_zbins[2]: 3., co_zbins[3]: 3.,
                                               co_zbins[4]: 3., co_zbins[5]: 3., co_zbins[6]: 3., co_zbins[7]: 3.,
