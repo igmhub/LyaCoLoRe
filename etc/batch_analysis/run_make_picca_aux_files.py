@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
-import numpy as np
-from astropy.io import fits
 import argparse
+from astropy.io import fits
+import numpy as np
+import os
 from scipy.interpolate import interp1d
 
 from lyacolore import submit_utils
