@@ -1764,7 +1764,7 @@ def get_beta_obj(z,obj='QSO'):
 
 for corr_dir in args.corr_dirs:
     print('\nMaking fit files for correlations in {}:'.format(corr_dir))
-    analysis_dir = AnalysisDir(corr_dir, dirname)
+    analysis_dir = submit_utils.AnalysisDir(corr_dir, dirname)
 
     exp_filepaths = {'lya_auto':        analysis_dir.corrdir + '/lya_auto/correlations/cf_exp_lya_auto.fits.gz',
                      'qso_auto':        analysis_dir.corrdir + '/qso_auto/correlations/co_exp_qso_auto.fits.gz',
