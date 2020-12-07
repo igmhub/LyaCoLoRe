@@ -1766,12 +1766,12 @@ for corr_dir in args.corr_dirs:
     print('\nMaking fit files for correlations in {}:'.format(corr_dir))
     analysis_dir = AnalysisDir(corr_dir, dirname)
 
-    exp_filepaths = {'lya_auto':        analysis_dir.fitsdir + '/lya_auto/correlations/cf_exp_lya_auto.fits.gz',
-                     'qso_auto':        analysis_dir.fitsdir + '/qso_auto/correlations/co_exp_qso_auto.fits.gz',
-                     'dla_auto':        analysis_dir.fitsdir + '/dla_auto/correlations/co_exp_dla_auto.fits.gz',
-                     'lya_aa_auto':     analysis_dir.fitsdir + '/lya_aa_auto/correlations/cf_exp_lya_aa_auto.fits.gz',
-                     'lya_qso_cross':   analysis_dir.fitsdir + '/lya_qso_cross/correlations/xcf_exp_lya_qso_cross.fits.gz',
-                     'lya_dla_cross':   analysis_dir.fitsdir + '/lya_dla_cross/correlations/xcf_exp_lya_dla_cross.fits.gz',
+    exp_filepaths = {'lya_auto':        analysis_dir.corrdir + '/lya_auto/correlations/cf_exp_lya_auto.fits.gz',
+                     'qso_auto':        analysis_dir.corrdir + '/qso_auto/correlations/co_exp_qso_auto.fits.gz',
+                     'dla_auto':        analysis_dir.corrdir + '/dla_auto/correlations/co_exp_dla_auto.fits.gz',
+                     'lya_aa_auto':     analysis_dir.corrdir + '/lya_aa_auto/correlations/cf_exp_lya_aa_auto.fits.gz',
+                     'lya_qso_cross':   analysis_dir.corrdir + '/lya_qso_cross/correlations/xcf_exp_lya_qso_cross.fits.gz',
+                     'lya_dla_cross':   analysis_dir.corrdir + '/lya_dla_cross/correlations/xcf_exp_lya_dla_cross.fits.gz',
                      #'qso_dla_cross':   acvm_dir + '/qso_dla_cross/correlations/co_exp_lya_dla_cross.fits.gz',
                      }
 
@@ -1801,7 +1801,8 @@ for corr_dir in args.corr_dirs:
             corr_type = 'co'
             q1 = 'QSO'
             q2 = 'DLA'
-        make_corr_info_file(acvm_dir+'/'+name+'/corr_info.txt',corr_type,q1,q2)
+        os.mkdir(analysis_dir.corrdir+'/'+name)
+        make_corr_info_file(analysis_dir.corrdir+'/'+name+'/corr_info.txt',corr_type,q1,q2)
 
     #create config files for doing fits
     for rmin in args.rmin_values:
@@ -1811,40 +1812,40 @@ for corr_dir in args.corr_dirs:
 
                 if args.fit_lya_auto:
                     print(' -> -> making lya_auto files')
-                    make_lya_auto_fit_files(acvf_dir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
+                    make_lya_auto_fit_files(analysis_dir.fitsdir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
                 if args.fit_qso_auto:
                     print(' -> -> making qso_auto files')
-                    make_qso_auto_fit_files(acvf_dir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
+                    make_qso_auto_fit_files(analysis_dir.fitsdir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
                 if args.fit_dla_auto:
                     print(' -> -> making dla_auto files')
-                    make_dla_auto_fit_files(acvf_dir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
+                    make_dla_auto_fit_files(analysis_dir.fitsdir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
                 if args.fit_lya_aa_auto:
                     print(' -> -> making lya_aa_auto files')
-                    make_lya_aa_auto_fit_files(acvf_dir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
+                    make_lya_aa_auto_fit_files(analysis_dir.fitsdir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
                 if args.fit_lya_qso_cross:
                     print(' -> -> making lya_qso_cross files')
-                    make_lya_qso_cross_fit_files(acvf_dir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
+                    make_lya_qso_cross_fit_files(analysis_dir.fitsdir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
                 if args.fit_lya_dla_cross:
                     print(' -> -> making lya_dla_cross files')
-                    make_lya_dla_cross_fit_files(acvf_dir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
+                    make_lya_dla_cross_fit_files(analysis_dir.fitsdir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
                 if args.fit_qso_dla_cross:
                     print(' -> -> making qso_dla_cross files')
-                    make_qso_dla_cross_fit_files(acvf_dir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
+                    make_qso_dla_cross_fit_files(analysis_dir.fitsdir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
                 if args.fit_lya_auto__lya_qso_cross:
                     print(' -> -> making joint lya_auto__lya_qso_cross files')
-                    make_lya_auto__lya_qso_cross_fit_files(acvf_dir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
+                    make_lya_auto__lya_qso_cross_fit_files(analysis_dir.fitsdir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
                 if args.fit_lya_auto__lya_qso_cross__qso_auto:
                     print(' -> -> making joint lya_auto__lya_qso_cross__qso_auto files')
-                    make_lya_auto__lya_qso_cross__qso_auto_fit_files(acvf_dir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
+                    make_lya_auto__lya_qso_cross__qso_auto_fit_files(analysis_dir.fitsdir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
                 if args.fit_lya_auto__lya_dla_cross:
                     print(' -> -> making joint lya_auto__lya_dla_cross files')
-                    make_lya_auto__lya_dla_cross_fit_files(acvf_dir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
+                    make_lya_auto__lya_dla_cross_fit_files(analysis_dir.fitsdir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
                 if args.fit_lya_auto__lya_dla_cross__dla_auto:
                     print(' -> -> making joint lya_auto__lya_dla_cross__dla_auto files')
-                    make_lya_auto__lya_dla_cross__dla_auto_fit_files(acvf_dir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
+                    make_lya_auto__lya_dla_cross__dla_auto_fit_files(analysis_dir.fitsdir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
                 if args.fit_qso_auto__qso_dla_cross__dla_auto:
                     print(' -> -> making joint qso_auto__qso_dla_cross__dla_auto files')
-                    make_qso_auto__qso_dla_cross__dla_auto_fit_files(acvf_dir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
+                    make_qso_auto__qso_dla_cross__dla_auto_fit_files(analysis_dir.fitsdir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
                 if args.fit_all_correlations:
                     print(' -> -> making joint all correlations files')
-                    make_all_correlations_fit_files(acvf_dir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
+                    make_all_correlations_fit_files(analysis_dir.fitsdir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
