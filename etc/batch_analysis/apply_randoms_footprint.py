@@ -28,7 +28,7 @@ randoms_path = os.path.join(args.randoms_dir,args.randoms_name)
 with fitsio.FITS(randoms_path,'rw') as h:
     tiles = load_tiles()
     w = is_point_in_desi(tiles,h[1][:]['RA'],h[1][:]['DEC'])
-    cat = h[1][w]
+    cat = h[1][:][w]
 
 h = fitsio.FITS(randoms_path,'rw',clobber=True)
 h.write(cat, extname='CAT')

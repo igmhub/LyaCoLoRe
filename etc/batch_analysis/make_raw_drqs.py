@@ -6,6 +6,9 @@ import healpy as hp
 import numpy as np
 import os
 
+from lyacolore import submit_utils
+from subprocess import call
+
 parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         )
@@ -52,6 +55,12 @@ parser.add_argument('--seed',
                     required=False,
                     help='Random seed for downsampling randoms appropriately')
 
+parser.add_argument('--desi-env',
+                    type=str,
+                    default='master',
+                    required=False,
+                    help='DESI env to use for making randoms have right footprint')
+
 args = parser.parse_args()
 
 def master_to_drq(in_path, out_path, randoms=False, zcat=None, randoms_downsampling=None, randoms_zmin=None):
@@ -93,7 +102,7 @@ def master_to_drq(in_path, out_path, randoms=False, zcat=None, randoms_downsampl
             cat[k] = cat[k][w]
 
     elif randoms:
-        w = np.ones(cat['THING_ID'].shape)
+        w = np.ones(cat['THING_ID'].shape).astype(bool)
         if randoms_zmin is not None:
             w &= (cat['Z']>=randoms_zmin)
         if randoms_downsampling is not None:
@@ -162,27 +171,36 @@ def master_dla_to_drq(in_path, out_path, randoms=False, zcat=None):
     return
 
 ## Make raw drq
+print('INFO: Making raw drq')
 master = os.path.join(args.in_dir,'master.fits')
 out = os.path.join(args.out_dir,'drq_qso.fits')
 master_to_drq(master,out,randoms=False,zcat=args.qq_ref_zcat)
+print('')
 
 ## Make qso randoms drq
+print('INFO: Making randoms drq')
 master_rand = os.path.join(args.in_dir,'master_randoms.fits')
 out_rand = os.path.join(args.randoms_out_dir,'drq_qso_randoms.fits')
 master_to_drq(master_rand,out_rand,randoms=True,zcat=args.qq_ref_zcat,randoms_downsampling=args.randoms_downsampling,randoms_zmin=args.randoms_zmin)
+print('')
 
 ## Make raw dla drq
+print('INFO: Making raw dla drq')
 master_dla = os.path.join(args.in_dir,'master_DLA.fits')
 out_dla = os.path.join(args.out_dir,'drq_dla.fits')
 master_dla_to_drq(master_dla,out_dla,randoms=False,zcat=args.qq_ref_zcat)
+print('')
 
 ## Make raw dla randoms drq
+print('INFO: Making dla randoms drq')
 master_dla_rand = os.path.join(args.in_dir,'master_DLA_randoms.fits')
 out_dla_rand = os.path.join(args.randoms_out_dir,'drq_dla_randoms.fits')
 master_dla_to_drq(master_dla_rand,out_dla_rand,randoms=True,zcat=args.qq_ref_zcat)
-
+print('')
 
 ## Make script to fix randoms drq footprint.
+print('INFO: Correcting footprint of randoms drq')
+
 # Make the text of the script
 text = '#!/bin/bash -l\n\n'
 text += 'source /global/common/software/desi/desi_environment.sh {}\n'.format(args.desi_env)
