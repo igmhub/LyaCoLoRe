@@ -1805,7 +1805,9 @@ for corr_dir in args.corr_dirs:
             corr_type = 'co'
             q1 = 'QSO'
             q2 = 'DLA'
-        os.mkdir(analysis_dir.corrdir+'/'+name)
+        dir = os.path.join(analysis_dir.corrdir,name)
+        if not os.path.isdir(dir):
+            os.mkdir(dir)
         make_corr_info_file(analysis_dir.corrdir+'/'+name+'/corr_info.txt',corr_type,q1,q2)
 
     #create config files for doing fits
