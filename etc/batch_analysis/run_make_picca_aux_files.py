@@ -1748,7 +1748,7 @@ def get_growth_rate(z,Om_z0=0.3147):
 #Calculate beta_QSO by interpolating the input bias.
 # TODO: work out how to set the location more appropriately.
 def get_beta_obj(z,obj='QSO'):
-    b_qso_data_loc='/global/homes/j/jfarr/Projects/LyaCoLoRe/input_files/Bz_qso_G18.txt'
+    b_qso_data_loc='/global/homes/j/jfarr/Projects/LyaCoLoRe/etc/run_CoLoRe/input_files/Bz_qso_G18.txt'
     b_qso_data = np.loadtxt(b_qso_data_loc)
     if obj == 'QSO':
         bias_of_z = interp1d(b_qso_data[:,0],b_qso_data[:,1])
