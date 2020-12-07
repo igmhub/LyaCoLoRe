@@ -205,6 +205,10 @@ class AnalysisDir:
         self.fitsdirname = fitsdirname
         self.deltadirname = deltadirname
 
+        if not os.path.isdir(self.dirloc):
+            os.mkdir(self.dirloc)
+        make_permission_group_desi(self.dirloc)
+
         self.dir = os.path.join(self.dirloc,self.dirname)
         if not os.path.isdir(self.dir):
             os.mkdir(self.dir)
