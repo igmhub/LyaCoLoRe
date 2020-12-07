@@ -13,29 +13,14 @@ parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFo
 
 #locations and names
 
-parser.add_argument('--base-dir', type = str, default = None, required=True,
+parser.add_argument('--corr-dirs', type = str, nargs='*', default = None, required=True,
                     help = 'base directory')
-
-parser.add_argument('--out-dir', type = str, default = None, required=False,
-                    help = 'output directory')
-
-parser.add_argument('--v-maj', type = int, default = 9, required=False,
-                    help = 'major version of lyacolore realisations')
-
-parser.add_argument('--v-min', type = int, default = 0, required=False,
-                    help = 'minor version of lyacolore realisations')
-
-parser.add_argument('--v-realisations', type = int, default = [0], required=False,
-                    help = 'realisation numbers of lyacolore realisations', nargs='*')
 
 parser.add_argument('--fid-Om', type=float, default=0.315, required=False,
                     help='Omega_matter(z=0) of fiducial LambdaCDM cosmology')
 
 parser.add_argument('--fid-Or', type=float, default=0., required=False,
                     help='Omega_radiation(z=0) of fiducial LambdaCDM cosmology')
-
-parser.add_argument('--fit-stack', action="store_true", default = False, required=False,
-                    help = 'make files for fitting the stack of all realisations')
 
 #Fit variables
 
@@ -95,9 +80,6 @@ parser.add_argument('--fit-all', action="store_true", default = False, required=
 args = parser.parse_args()
 
 ################################################################################
-
-if args.out_dir is None:
-    args.out_dir = args.base_dir
 
 if args.fit_all:
     args.fit_lya_auto = True
@@ -1780,34 +1762,16 @@ def get_beta_obj(z,obj='QSO'):
 
 ################################################################################
 
-a_dir = args.base_dir+'/analysis/'
-submit_utils.check_dir(a_dir)
-ac_dir = a_dir+'/correlation_functions/'
-submit_utils.check_dir(ac_dir)
+for corr_dir in args.corr_dirs:
+    print('\nMaking fit files for correlations in {}:'.format(corr_dir))
+    analysis_dir = AnalysisDir(corr_dir, dirname)
 
-vers = []
-for v_rea in args.v_realisations:
-    ver = 'v{}.{}.{}'.format(args.v_maj,args.v_min,v_rea)
-    vers += [ver]
-if args.fit_stack:
-    vers += ['stack']
-
-for ver in vers:
-    print('\nMaking fit files for version {}:'.format(ver))
-
-    acv_dir = ac_dir+'/'+ver+'/'
-    submit_utils.check_dir(acv_dir)
-    acvf_dir = acv_dir+'/fits/'
-    submit_utils.check_dir(acvf_dir)
-    acvm_dir = acv_dir+'/measurements/'
-    submit_utils.check_dir(acvm_dir)
-
-    exp_filepaths = {'lya_auto':        acvm_dir + '/lya_auto/correlations/cf_exp_lya_auto.fits.gz',
-                     'qso_auto':        acvm_dir + '/qso_auto/correlations/co_exp_qso_auto.fits.gz',
-                     'dla_auto':        acvm_dir + '/dla_auto/correlations/co_exp_dla_auto.fits.gz',
-                     'lya_aa_auto':     acvm_dir + '/lya_aa_auto/correlations/cf_exp_lya_aa_auto.fits.gz',
-                     'lya_qso_cross':   acvm_dir + '/lya_qso_cross/correlations/xcf_exp_lya_qso_cross.fits.gz',
-                     'lya_dla_cross':   acvm_dir + '/lya_dla_cross/correlations/xcf_exp_lya_dla_cross.fits.gz',
+    exp_filepaths = {'lya_auto':        analysis_dir.fitsdir + '/lya_auto/correlations/cf_exp_lya_auto.fits.gz',
+                     'qso_auto':        analysis_dir.fitsdir + '/qso_auto/correlations/co_exp_qso_auto.fits.gz',
+                     'dla_auto':        analysis_dir.fitsdir + '/dla_auto/correlations/co_exp_dla_auto.fits.gz',
+                     'lya_aa_auto':     analysis_dir.fitsdir + '/lya_aa_auto/correlations/cf_exp_lya_aa_auto.fits.gz',
+                     'lya_qso_cross':   analysis_dir.fitsdir + '/lya_qso_cross/correlations/xcf_exp_lya_qso_cross.fits.gz',
+                     'lya_dla_cross':   analysis_dir.fitsdir + '/lya_dla_cross/correlations/xcf_exp_lya_dla_cross.fits.gz',
                      #'qso_dla_cross':   acvm_dir + '/qso_dla_cross/correlations/co_exp_lya_dla_cross.fits.gz',
                      }
 
