@@ -203,7 +203,7 @@ def make_co_job_info(correlations_dir,corrname,zmin,zmax,zcat,zcat2=None,time=24
                 'header_info':     header_info,
                 'picca_script':    'picca_co.py',
                 'options':         options,
-                'run_script':      'run_{}_{}_{}.sh'.format(corrname,zmin,zmax),
+                'run_script':      'run_{}_{}_{}.sl'.format(corrname,zmin,zmax),
                 }
 
     return job_info
@@ -239,7 +239,7 @@ def make_xcf_job_info(correlations_dir,corrname,zmin,zmax,deltas_dir,zcat,time=2
                 'header_info':  header_info,
                 'picca_script': 'picca_xcf.py',
                 'options':      options,
-                'run_script':   'run_{}_{}_{}.sh'.format(corrname,zmin,zmax),
+                'run_script':   'run_{}_{}_{}.sl'.format(corrname,zmin,zmax),
                 }
 
     if not nodmat:
@@ -253,7 +253,7 @@ def make_xcf_job_info(correlations_dir,corrname,zmin,zmax,deltas_dir,zcat,time=2
 
         xdmat_options = {'drq':         zcat,
                          'in-dir':      deltas_dir,
-                         'out':         out_dir+'xdmat_{}_{}_{}.fits.gz'.format(corrname,cat_type,zmin,zmax),
+                         'out':         out_dir+'xdmat_{}_{}_{}.fits.gz'.format(corrname,zmin,zmax),
                          'z-evol-obj':  zevolobj,
                          'z-cut-min':   zmin,
                          'z-cut-max':   zmax,
@@ -267,7 +267,7 @@ def make_xcf_job_info(correlations_dir,corrname,zmin,zmax,deltas_dir,zcat,time=2
                           'header_info':     xdmat_header_info,
                           'picca_script':    'picca_xdmat.py',
                           'options':         xdmat_options,
-                          'run_script':      'run_xdmat_{}_{}_{}.sh'.format(corrname,zmin,zmax),
+                          'run_script':      'run_xdmat_{}_{}_{}.sl'.format(corrname,zmin,zmax),
                           }
 
     else:
@@ -659,6 +659,7 @@ for zbin in zbins:
                     submit_utils.run_picca_job(dmat_job_info,global_job_info['options'],no_submit=args.no_submit)
                     njobs += 1
 
+    print('')
 
 
 ################################################################################
