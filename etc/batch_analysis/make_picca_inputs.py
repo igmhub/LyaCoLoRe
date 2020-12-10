@@ -60,7 +60,7 @@ if (args.qq_basedir is not None) and (args.qq_runs is not None):
         print('')
 
         ## Submit job to run the lya region deltas
-        print('INFO: Submitting job to make deltas for quickquasars output in {}'.format(qq_dir))
+        print('INFO: Submitting job to make Lya region deltas for quickquasars output in {}'.format(qq_dir))
         drq = os.path.join(analysis_dir.objdir,'drq_qso.fits')
         in_dir = os.path.join(qq_dir,'spectra-16')
         command = '/global/homes/j/jfarr/Projects/LyaCoLoRe/etc/batch_analysis/run_make_deltas.py --slurm-script {} --out-dir {} --deltas-dir {} --drq {} --in-dir {} --lambda-rest-min 1040.0 --lambda-rest-max 1200.0'.format('run_picca_deltas_lyaregion.sl',analysis_dir.datadir,analysis_dir.lyadeltadirname,drq,in_dir)
@@ -68,7 +68,7 @@ if (args.qq_basedir is not None) and (args.qq_runs is not None):
         print('')
 
         ## Submit job to run the lyb region deltas
-        print('INFO: Submitting job to make deltas for quickquasars output in {}'.format(qq_dir))
+        print('INFO: Submitting job to make Lyb region deltas for quickquasars output in {}'.format(qq_dir))
         command = '/global/homes/j/jfarr/Projects/LyaCoLoRe/etc/batch_analysis/run_make_deltas.py --slurm-script {} --out-dir {} --deltas-dir {} --drq {} --in-dir {} --lambda-rest-min 920.0 --lambda-rest-max 1020.0'.format('run_picca_deltas_lybregion.sl',analysis_dir.datadir,analysis_dir.lybdeltadirname,drq,in_dir)
         call(command.split(' '))
         print('')
@@ -93,7 +93,7 @@ if args.raw_dir is not None:
     print('')
 
     ## Submit job to run the raw lya region deltas
-    print('INFO: Submitting job to make deltas for raw output in {}'.format(args.raw_dir))
+    print('INFO: Submitting job to make Lya region deltas for raw output in {}'.format(args.raw_dir))
     drq = os.path.join(analysis_dir.objdir,'drq_qso.fits')
     in_dir = args.raw_dir
     command = '/global/homes/j/jfarr/Projects/LyaCoLoRe/etc/batch_analysis/run_make_raw_deltas.py --slurm-script {} --python-script {} --out-dir {} --deltas-dir {} --drq {} --in-dir {} --lambda-rest-min 1040.0 --lambda-rest-max 1200.0'.format('run_picca_raw_deltas_lyaregion.sl','run_picca_raw_deltas_lyaregion.py',analysis_dir.datadir,analysis_dir.lyadeltadirname,drq,in_dir)
@@ -101,7 +101,7 @@ if args.raw_dir is not None:
     print('')
 
     ## Submit job to run the raw lyb region deltas
-    print('INFO: Submitting job to make deltas for raw output in {}'.format(args.raw_dir))
+    print('INFO: Submitting job to make Lyb region deltas for raw output in {}'.format(args.raw_dir))
     command = '/global/homes/j/jfarr/Projects/LyaCoLoRe/etc/batch_analysis/run_make_raw_deltas.py --slurm-script {} --python-script {} --out-dir {} --deltas-dir {} --drq {} --in-dir {} --lambda-rest-min 920.0 --lambda-rest-max 1020.0'.format('run_picca_raw_deltas_lybregion.sl','run_picca_raw_deltas_lybregion.py',analysis_dir.datadir,analysis_dir.lybdeltadirname,drq,in_dir)
     call(command.split(' '))
     print('')
