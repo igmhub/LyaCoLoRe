@@ -58,7 +58,8 @@ if (args.qq_basedir is not None) and (args.qq_runs is not None):
         ## Setting up the correlation jobs
         print('INFO: Setting up correlations from picca data in {}'.format(analysis_dir.datadir))
         command = '/global/homes/j/jfarr/Projects/LyaCoLoRe/etc/batch_analysis/run_picca_correlations.py'
-        command += ' --deltas-dir {}'.format(analysis_dir.deltadir)
+        command += ' --deltas-dir-lya {}'.format(analysis_dir.lyadeltadir)
+        command += ' --deltas-dir-lyb {}'.format(analysis_dir.lybdeltadir)
         command += ' --drq-qso {}'.format(os.path.join(analysis_dir.datadir,'drq_qso.fits'))
         command += ' --drq-dla {}'.format(os.path.join(raw_analysis_dir.datadir,'drq_dla.fits'))
         command += ' --drq-qso-randoms {}'.format(os.path.join(randoms_dir,'drq_qso_randoms.fits'))
@@ -66,8 +67,10 @@ if (args.qq_basedir is not None) and (args.qq_runs is not None):
         command += ' --corr-dir {}'.format(analysis_dir.corrdir)
         command += ' --fid-Om {}'.format(fid_Om)
         command += ' --fid-Or {}'.format(fid_Or)
-        command += ' --run-lya-auto'
-        command += ' --run-lya-qso-cross'
+        command += ' --run-lyalya-lyalya'
+        command += ' --run-lyalya-qso'
+        command += ' --run-lyalya-lyalyb'
+        command += ' --run-lyalyb-qso'
         command += ' --no-submit'
         call(command.split(' '))
         print('')
@@ -77,7 +80,8 @@ if args.raw_dir is not None:
     ## Setting up the correlation jobs
     print('INFO: Setting up correlations from picca data in {}'.format(raw_analysis_dir.datadir))
     command = '/global/homes/j/jfarr/Projects/LyaCoLoRe/etc/batch_analysis/run_picca_correlations.py'
-    command += ' --deltas-dir {}'.format(raw_analysis_dir.deltadir)
+    command += ' --deltas-dir-lya {}'.format(raw_analysis_dir.lyadeltadir)
+    command += ' --deltas-dir-lyb {}'.format(raw_analysis_dir.lybdeltadir)
     command += ' --drq-qso {}'.format(os.path.join(raw_analysis_dir.datadir,'drq_qso.fits'))
     command += ' --drq-dla {}'.format(os.path.join(raw_analysis_dir.datadir,'drq_dla.fits'))
     command += ' --drq-qso-randoms {}'.format(os.path.join(randoms_dir,'drq_qso_randoms.fits'))
@@ -85,8 +89,10 @@ if args.raw_dir is not None:
     command += ' --corr-dir {}'.format(raw_analysis_dir.corrdir)
     command += ' --fid-Om {}'.format(fid_Om)
     command += ' --fid-Or {}'.format(fid_Or)
-    command += ' --run-lya-auto'
-    command += ' --run-lya-qso-cross'
+    command += ' --run-lyalya-lyalya'
+    command += ' --run-lyalya-qso'
+    command += ' --run-lyalya-lyalyb'
+    command += ' --run-lyalyb-qso'
     command += ' --no-project'
     command += ' --no-dmats'
     command += ' --no-submit'
