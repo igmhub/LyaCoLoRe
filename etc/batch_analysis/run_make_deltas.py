@@ -40,6 +40,12 @@ parser.add_argument('--deltas-dir',
                     required=True,
                     help='Name of directory to put deltas in')
 
+parser.add_argument('--region-name',
+                    type=str,
+                    default=None,
+                    required=True,
+                    help='Name of region computing deltas in (lya/lyb)')
+
 parser.add_argument('--drq',
                     type=str,
                     default=None,
@@ -109,17 +115,17 @@ args.slurm_script = os.path.join(args.out_dir,'scripts',args.slurm_script)
 
 ## Make the script text.
 time = submit_utils.nh_to_hhmmss(args.slurm_hours)
-err_file = os.path.join(args.out_dir,'run_files','run-picca-deltas-%j.err')
-out_file = os.path.join(args.out_dir,'run_files','run-picca-deltas-%j.out')
-text = submit_utils.make_header(queue=args.slurm_queue,nnodes=1,time=time,job_name='picca_deltas',err_file=err_file,out_file=out_file)
+err_file = os.path.join(args.out_dir,'run_files','run-picca-deltas-{}region-%j.err'.format(args.region_name))
+out_file = os.path.join(args.out_dir,'run_files','run-picca-deltas-{}region-%j.out'.format(args.region_name))
+text = submit_utils.make_header(queue=args.slurm_queue,nnodes=1,time=time,job_name='picca_deltas_{}region',err_file=err_file,out_file=out_file)
 text += 'export OMP_NUM_THREADS=1\n'
 text += 'srun -n 1 -c 64 picca_deltas.py '
 text += '--in-dir {} '.format(args.in_dir)
 text += '--drq {} '.format(args.drq)
 text += '--out-dir {} '.format(os.path.join(args.out_dir,args.deltas_dir))
 text += '--mode desi '
-text += '--iter-out-prefix {}/iter '.format(args.out_dir)
-text += '--log {}/picca_deltas.log '.format(args.out_dir)
+text += '--iter-out-prefix {}/iter_{}region '.format(args.out_dir,args.region_name)
+text += '--log {}/picca_deltas_{}region.log '.format(args.out_dir,args.region_name)
 if args.nproc is not None:
     text += '--nproc {} '.format(args.nproc)
 if args.zqso_min is not None:

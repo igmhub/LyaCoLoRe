@@ -46,6 +46,12 @@ parser.add_argument('--deltas-dir',
                     required=True,
                     help='Name of directory to put deltas in')
 
+parser.add_argument('--region-name',
+                    type=str,
+                    default=None,
+                    required=True,
+                    help='Name of region computing deltas in (lya/lyb)')
+
 parser.add_argument('--drq',
                     type=str,
                     default=None,
@@ -100,7 +106,7 @@ text = '#!/usr/bin/env python\n\n'
 text += 'from picca import converters\n\n'
 text += 'converters.desi_convert_transmission_to_delta_files('
 text += '"{}", '.format(args.drq)
-text += '"{}", '.format(os.path.join(args.out_dir,'deltas/'))
+text += '"{}", '.format(os.path.join(args.out_dir,args.deltas_dir))
 text += 'in_dir="{}", '.format(args.in_dir)
 text += 'lambda_min={}, '.format(args.lambda_min)
 text += 'lambda_max={}, '.format(args.lambda_max)
@@ -116,9 +122,9 @@ submit_utils.make_file_executable(args.python_script)
 
 ## Make the slurm script text.
 time = submit_utils.nh_to_hhmmss(args.slurm_hours)
-err_file = os.path.join(args.out_dir,'run_files','run-picca-raw-deltas-%j.err')
-out_file = os.path.join(args.out_dir,'run_files','run-picca-raw-deltas-%j.out')
-text = submit_utils.make_header(queue=args.slurm_queue,nnodes=1,time=time,job_name='raw_picca_deltas',err_file=err_file,out_file=out_file)
+err_file = os.path.join(args.out_dir,'run_files','run-picca-raw-deltas-{}region-%j.err'.format(args.region_name))
+out_file = os.path.join(args.out_dir,'run_files','run-picca-raw-deltas-{}region-%j.out'.format(args.region_name))
+text = submit_utils.make_header(queue=args.slurm_queue,nnodes=1,time=time,job_name='raw_picca_deltas_{}region'.format(args.region_name),err_file=err_file,out_file=out_file)
 text += 'export OMP_NUM_THREADS=1\n'
 text += 'srun -n 1 -c 64 {}\n'.format(args.python_script)
 
