@@ -6,7 +6,7 @@ import healpy as hp
 import numpy as np
 import os
 
-from lyacolore import submit_utils
+from lyacolore import submit_utils, utils
 from subprocess import call
 
 parser = argparse.ArgumentParser(
@@ -118,7 +118,7 @@ def master_to_drq(in_path, out_path, randoms=False, zcat=None, randoms_downsampl
 
     return
 
-def master_dla_to_drq(in_path, out_path, randoms=False, zcat=None):
+def master_dla_to_drq(in_path, out_path, randoms=False, zcat=None, lrmin=1040., lrmax=1200.):
 
     from_desi_key_to_picca_key = {
         'RA': 'RA',
@@ -144,6 +144,13 @@ def master_dla_to_drq(in_path, out_path, randoms=False, zcat=None):
     print(("INFO: Found {} DLA from {} "
                "quasars").format(cat['Z'].size,
                                  np.unique(cat['THING_ID']).size))
+
+    # implement rest frame wavelength cut
+    lr_dla = utils.lya_rest*(1+cat['Z'])/(1+cat['ZQSO'])
+    w = (lr_dla>=lrmin) & (lr_dla<lrmax)
+    for key in cat:
+        cat[key] = cat[key][w]
+
     # sort by THING_ID
     w = np.argsort(cat['THING_ID'])
     for key in cat:
@@ -162,10 +169,19 @@ def master_dla_to_drq(in_path, out_path, randoms=False, zcat=None):
             cat[k] = cat[k][w]
 
     # save results
+    header = [{'name': 'LRMIN',
+               'value': lrmin,
+               'comment': 'Minimum rest-frame wavelength value for HCDs'
+               },
+              {'name': 'LRMAX',
+               'value': lrmax,
+               'comment': 'Maximum rest-frame wavelength value for HCDs'
+               },
+             ]
     results = fitsio.FITS(out_path, 'rw', clobber=True)
     cols = list(cat.values())
     names = list(cat)
-    results.write(cols, names=names, extname='DLACAT')
+    results.write(cols, names=names, extname='DLACAT', header=header)
     results.close()
 
     return
