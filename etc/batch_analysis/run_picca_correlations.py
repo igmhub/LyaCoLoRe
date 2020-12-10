@@ -118,7 +118,7 @@ def make_cf_job_info(correlations_dir,corrname,zmin,zmax,deltas_dir,deltas_dir2=
                    }
 
     options = {'in-dir':        deltas_dir,
-               'out':           out_dir+'/cf_{}_{}_{}.fits.gz'.format(corrname,zmin,zmax),
+               'out':           os.path.join(out_dir,'/cf_{}_{}_{}.fits.gz'.format(corrname,zmin,zmax)),
                'z-cut-min':     zmin,
                'z-cut-max':     zmax,
                }
@@ -146,7 +146,7 @@ def make_cf_job_info(correlations_dir,corrname,zmin,zmax,deltas_dir,deltas_dir2=
                             }
 
         dmat_options = {'in-dir':        deltas_dir,
-                        'out':           out_dir+'/dmat_{}_{}_{}.fits.gz'.format(corrname,zmin,zmax),
+                        'out':           os.path.join(out_dir,'dmat_{}_{}_{}.fits.gz'.format(corrname,zmin,zmax)),
                         'z-cut-min':     zmin,
                         'z-cut-max':     zmax,
                         'rej':           rej,
@@ -193,7 +193,7 @@ def make_co_job_info(correlations_dir,corrname,zmin,zmax,zcat,zcat2=None,time=24
         options['z-evol-obj2'] = zevolobj2
 
     options = {**options,
-               'out':           out_dir+'co_{}_{}_{}.fits.gz'.format(corrname,zmin,zmax),
+               'out':           os.path.join(out_dir,'co_{}_{}_{}.fits.gz'.format(corrname,zmin,zmax)),
                'type-corr':     corr_type,
                'z-cut-min':     zmin,
                'z-cut-max':     zmax,
@@ -224,7 +224,7 @@ def make_xcf_job_info(correlations_dir,corrname,zmin,zmax,deltas_dir,zcat,time=2
 
     options = {'drq':           zcat,
                'in-dir':        deltas_dir,
-               'out':           out_dir+'xcf_{}_{}_{}.fits.gz'.format(corrname,zmin,zmax),
+               'out':           os.path.join(out_dir,'xcf_{}_{}_{}.fits.gz'.format(corrname,zmin,zmax)),
                'z-evol-obj':    zevolobj,
                'z-cut-min':     zmin,
                'z-cut-max':     zmax,
@@ -253,7 +253,7 @@ def make_xcf_job_info(correlations_dir,corrname,zmin,zmax,deltas_dir,zcat,time=2
 
         xdmat_options = {'drq':         zcat,
                          'in-dir':      deltas_dir,
-                         'out':         out_dir+'xdmat_{}_{}_{}.fits.gz'.format(corrname,zmin,zmax),
+                         'out':         os.path.join(out_dir,'xdmat_{}_{}_{}.fits.gz'.format(corrname,zmin,zmax)),
                          'z-evol-obj':  zevolobj,
                          'z-cut-min':   zmin,
                          'z-cut-max':   zmax,
