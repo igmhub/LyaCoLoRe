@@ -118,7 +118,7 @@ def make_cf_job_info(correlations_dir,corrname,zmin,zmax,deltas_dir,deltas_dir2=
                    }
 
     options = {'in-dir':        deltas_dir,
-               'out':           os.path.join(out_dir,'/cf_{}_{}_{}.fits.gz'.format(corrname,zmin,zmax)),
+               'out':           os.path.join(out_dir,'cf_{}_{}_{}.fits.gz'.format(corrname,zmin,zmax)),
                'z-cut-min':     zmin,
                'z-cut-max':     zmax,
                }
