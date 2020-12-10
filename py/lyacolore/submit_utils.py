@@ -28,10 +28,9 @@ def make_header(queue='regular',nnodes=1,time='01:00:00',job_name='run_script',e
 #Function to check that a directory exists.
 def check_dir(dir):
 
-    try:
+    if not os.path.isdir(dir):
         os.mkdir(dir)
-    except FileExistsError:
-        pass
+        make_permission_group_desi(dir)
 
     return
 
@@ -40,9 +39,9 @@ def check_dir(dir):
 def check_corr_dir(corr_dir):
 
     check_dir(corr_dir)
-    check_dir(corr_dir+'/scripts/')
-    check_dir(corr_dir+'/correlations/')
-    check_dir(corr_dir+'/run_files/')
+    check_dir(os.path.join(corr_dir,'measurements'))
+    check_dir(os.path.join(corr_dir,'run_files'))
+    check_dir(os.path.join(corr_dir,'scripts'))
 
     return
 
@@ -176,62 +175,64 @@ def make_file_executable(f):
     call(['chmod', 'ug+x', f])
     return
 
-def make_analysis_dir(dirname):
-    if not os.path.isdir(dirname):
-        os.mkdir(dirname)
-    make_permission_group_desi(dirname)
-
-    for ext in ['data','correlations','fits']:
-        extdirname = os.path.join(dirname,ext)
-        if not os.path.isdir(extdirname):
-            os.mkdir(extdirname)
-        make_permission_group_desi(extdirname)
-
-    deltasdirname = os.path.join(dirname,'data/deltas')
-    if not os.path.isdir(deltasdirname):
-        os.mkdir(deltasdirname)
-    make_permission_group_desi(deltasdirname)
-
-    return
-
 class AnalysisDir:
 
-    def __init__(self, dirloc, dirname, datadirname='data', corrdirname='correlations', fitsdirname='fits', deltadirname='deltas'):
+    def __init__(self, dirloc, dirname, datadirname='data', corrdirname='correlations', fitsdirname='fits', lyadeltadirname='deltas_lyaregion', lybdeltadirname='deltas_lybregion', objdirname='object_catalogs'):
 
         self.dirloc = dirloc
         self.dirname = dirname
         self.datadirname = datadirname
         self.corrdirname = corrdirname
         self.fitsdirname = fitsdirname
-        self.deltadirname = deltadirname
+        self.lyadeltadirname = lyadeltadirname
+        self.lybdeltadirname = lybdeltadirname
+        self.objdirname = objdirname
 
+        # Make sure that containing dir exists.
         if not os.path.isdir(self.dirloc):
             os.mkdir(self.dirloc)
         make_permission_group_desi(self.dirloc)
 
+        # Make analysis directory.
         self.dir = os.path.join(self.dirloc,self.dirname)
         if not os.path.isdir(self.dir):
             os.mkdir(self.dir)
         make_permission_group_desi(self.dir)
 
+        # Make data directory.
         self.datadir = os.path.join(self.dir,self.datadirname)
         if not os.path.isdir(self.datadir):
             os.mkdir(self.datadir)
         make_permission_group_desi(self.datadir)
 
+        # Make correlations directory.
         self.corrdir = os.path.join(self.dir,self.corrdirname)
         if not os.path.isdir(self.corrdir):
             os.mkdir(self.corrdir)
         make_permission_group_desi(self.corrdir)
 
+        # Make fits directory.
         self.fitsdir = os.path.join(self.dir,self.fitsdirname)
         if not os.path.isdir(self.fitsdir):
             os.mkdir(self.fitsdir)
         make_permission_group_desi(self.fitsdir)
 
-        self.deltadir = os.path.join(self.datadir,self.deltadirname)
-        if not os.path.isdir(self.deltadir):
-            os.mkdir(self.deltadir)
-        make_permission_group_desi(self.deltadir)
+        # Make data/deltas_lyaregion directory.
+        self.lyadeltadir = os.path.join(self.datadir,self.lyadeltadirname)
+        if not os.path.isdir(self.lyadeltadir):
+            os.mkdir(self.lyadeltadir)
+        make_permission_group_desi(self.lyadeltadir)
+
+        # Make data/deltas_lybregion directory.
+        self.lybdeltadir = os.path.join(self.datadir,self.lybdeltadirname)
+        if not os.path.isdir(self.lybdeltadir):
+            os.mkdir(self.lybdeltadir)
+        make_permission_group_desi(self.lybdeltadir)
+
+        # Make data/object_catalogs directory.
+        self.objdir = os.path.join(self.datadir,self.objdirname)
+        if not os.path.isdir(self.objdir):
+            os.mkdir(self.objdir)
+        make_permission_group_desi(self.objdir)
 
         return
