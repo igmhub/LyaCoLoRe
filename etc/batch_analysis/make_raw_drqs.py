@@ -148,6 +148,7 @@ def master_dla_to_drq(in_path, out_path, randoms=False, zcat=None, lrmin=1040., 
     # implement rest frame wavelength cut
     lr_dla = utils.lya_rest*(1+cat['Z'])/(1+cat['ZQSO'])
     w = (lr_dla>=lrmin) & (lr_dla<lrmax)
+    print("INFO: {} of these lie in rest frame wavelength range ({},{})".format(w.sum(),lrmin,lrmax))
     for key in cat:
         cat[key] = cat[key][w]
 
