@@ -103,12 +103,15 @@ if args.run_all:
 ################################################################################
 
 #Functions to construct the job info dictionaries.
-def make_cf_job_info(correlations_dir,corrname,zmin,zmax,deltas_dir,deltas_dir2=None,time=24,no_project=False,nodmat=False,rej=0.99):
+def make_cf_job_info(correlations_dir,corrname,zmin,zmax,deltas_dir,deltas_dir2=None,time=24,no_project=False,nodmat=False,rej=0.99,corrname_ext=None):
 
     dir = os.path.join(correlations_dir,corrname)
     submit_utils.check_corr_dir(dir)
     out_dir = os.path.join(dir,'measurements')
     time = submit_utils.nh_to_hhmmss(time)
+
+    if corrname_ext is not None:
+        corrname = corrname + '_' + corrname_ext
 
     header_info = {'queue':    'regular',
                    'time':     time,
@@ -170,12 +173,15 @@ def make_cf_job_info(correlations_dir,corrname,zmin,zmax,deltas_dir,deltas_dir2=
 
     return job_info, dmat_job_info
 
-def make_co_job_info(correlations_dir,corrname,zmin,zmax,zcat,zcat2=None,time=24,zevolobj=1.44,zevolobj2=1.44):
+def make_co_job_info(correlations_dir,corrname,zmin,zmax,zcat,zcat2=None,time=24,zevolobj=1.44,zevolobj2=1.44,corrname_ext=None):
 
     dir = os.path.join(correlations_dir,corrname)
     submit_utils.check_corr_dir(dir)
     out_dir = os.path.join(dir,'measurements')
     time = submit_utils.nh_to_hhmmss(time)
+
+    if corrname_ext is not None:
+        corrname = corrname + '_' + corrname_ext
 
     header_info = {'queue':    'regular',
                    'time':     time,
@@ -208,12 +214,15 @@ def make_co_job_info(correlations_dir,corrname,zmin,zmax,zcat,zcat2=None,time=24
 
     return job_info
 
-def make_xcf_job_info(correlations_dir,corrname,zmin,zmax,deltas_dir,zcat,time=24,no_project=False,no_remove_mean_lambda_obs=False,nodmat=False,rej=0.99,zevolobj=1.44):
+def make_xcf_job_info(correlations_dir,corrname,zmin,zmax,deltas_dir,zcat,time=24,no_project=False,no_remove_mean_lambda_obs=False,nodmat=False,rej=0.99,zevolobj=1.44,corrname_ext=None):
 
     dir = os.path.join(correlations_dir,corrname)
     submit_utils.check_corr_dir(dir)
     out_dir = os.path.join(dir,'measurements')
     time = submit_utils.nh_to_hhmmss(time)
+
+    if corrname_ext is not None:
+        corrname = corrname + '_' + corrname_ext
 
     header_info = {'queue':    'regular',
                    'time':     time,
@@ -411,11 +420,11 @@ for zbin in zbins:
         print(' -> -> looking at co {}'.format(name))
 
         ## Make the job info for DD
-        tempname = name+'_DD'
-        time = job_time_dict[name]['DD'][zbin]
+        corrname_ext = 'DD'
+        time = job_time_dict[name][corrname_ext][zbin]
 
         ## Submit the correlation job for DD
-        job_info = make_co_job_info(args.corr_dir,tempname,zmin,zmax,args.drq_qso,time=time,zevolobj=1.44)
+        job_info = make_co_job_info(args.corr_dir,tempname,zmin,zmax,args.drq_qso,time=time,zevolobj=1.44,corrname_ext=corrname_ext)
         submit_utils.run_picca_job(job_info,global_job_info['options'],no_submit=args.no_submit)
         njobs += 1
 
@@ -428,7 +437,7 @@ for zbin in zbins:
 
             for i,randcat in enumerate(args.drq_qso_randoms):
                 ## Make the job info for DD
-                tempname = name+'_DR{}'.format(i)
+                corrname_ext = 'DR{}'.format(i)
                 time = job_time_dict[name][zbin]
 
                 ## Submit the correlation job for DD
@@ -452,11 +461,11 @@ for zbin in zbins:
         print(' -> -> looking at co {}'.format(name))
 
         ## Make the job info for DD
-        tempname = name+'_DD'
-        time = job_time_dict[name]['DD'][zbin]
+        corrname_ext = 'DD'
+        time = job_time_dict[name][corrname_ext][zbin]
 
         ## Submit the correlation job for DD
-        job_info = make_co_job_info(args.corr_dir,name,zmin,zmax,args.drq_dla,time=time,zevolobj=0.)
+        job_info = make_co_job_info(args.corr_dir,name,zmin,zmax,args.drq_dla,time=time,zevolobj=0.,corrname_ext=corrname_ext)
         submit_utils.run_picca_job(job_info,global_job_info['options'],no_submit=args.no_submit)
         njobs += 1
 
@@ -493,11 +502,11 @@ for zbin in zbins:
         print(' -> -> looking at co {}'.format(name))
 
         ## Make the job info for DD
-        tempname = name+'_DD'
-        time = job_time_dict[name]['DD'][zbin]
+        corrname_ext = 'DD'
+        time = job_time_dict[name][corrname_ext][zbin]
 
         ## Submit the correlation job for DD
-        job_info = make_co_job_info(args.corr_dir,name,zmin,zmax,args.drq_qso,zcat2=args.drq_dla,time=time,zevolobj=1.44,zevolobj2=0.)
+        job_info = make_co_job_info(args.corr_dir,name,zmin,zmax,args.drq_qso,zcat2=args.drq_dla,time=time,zevolobj=1.44,zevolobj2=0.,corrname_ext=corrname_ext)
         submit_utils.run_picca_job(job_info,global_job_info['options'],no_submit=args.no_submit)
         njobs += 1
 
@@ -534,11 +543,11 @@ for zbin in zbins:
         print(' -> -> looking at xcf {}'.format(name))
 
         ## Make the job info for D
-        tempname = name+'_D'
-        time = job_time_dict[name]['D'][zbin]
+        corrname_ext = 'D'
+        time = job_time_dict[name][corrname_ext][zbin]
 
         ## Submit the correlation job for D
-        job_info, dmat_job_info = make_xcf_job_info(args.corr_dir,tempname,zmin,zmax,args.deltas_dir_lya,args.drq_qso,time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs,nodmat=args.no_dmats,rej=args.rej,zevolobj=1.44)
+        job_info, dmat_job_info = make_xcf_job_info(args.corr_dir,tempname,zmin,zmax,args.deltas_dir_lya,args.drq_qso,time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs,nodmat=args.no_dmats,rej=args.rej,zevolobj=1.44,corrname_ext=corrname_ext)
         submit_utils.run_picca_job(job_info,global_job_info['options'],no_submit=args.no_submit)
         njobs += 1
         if not args.no_dmats:
@@ -549,11 +558,11 @@ for zbin in zbins:
 
             for i,randcat in enumerate(args.drq_qso_randoms):
                 ## Make the job info for R
-                tempname = name+'_R{}'.format(i)
+                corrname_ext = 'R{}'.format(i)
                 time = job_time_dict[name]['R'][zbin]
 
                 ## Submit the correlation job for R
-                job_info, dmat_job_info = make_xcf_job_info(args.corr_dir,tempname,zmin,zmax,args.deltas_dir_lya,randcat,time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs,nodmat=args.no_dmats,rej=args.rej,zevolobj=1.44)
+                job_info, dmat_job_info = make_xcf_job_info(args.corr_dir,tempname,zmin,zmax,args.deltas_dir_lya,randcat,time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs,nodmat=args.no_dmats,rej=args.rej,zevolobj=1.44,corrname_ext=corrname_ext)
                 submit_utils.run_picca_job(job_info,global_job_info['options'],no_submit=args.no_submit)
                 njobs += 1
                 if not args.no_dmats:
@@ -567,11 +576,11 @@ for zbin in zbins:
         print(' -> -> looking at xcf {}'.format(name))
 
         ## Make the job info for D
-        tempname = name+'_D'
-        time = job_time_dict[name]['D'][zbin]
+        corrname_ext = 'D'
+        time = job_time_dict[name][corrname_ext][zbin]
 
         ## Submit the correlation job for D
-        job_info, dmat_job_info = make_xcf_job_info(args.corr_dir,tempname,zmin,zmax,args.deltas_dir_lyb,args.drq_qso,time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs,nodmat=args.no_dmats,rej=args.rej,zevolobj=1.44)
+        job_info, dmat_job_info = make_xcf_job_info(args.corr_dir,tempname,zmin,zmax,args.deltas_dir_lyb,args.drq_qso,time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs,nodmat=args.no_dmats,rej=args.rej,zevolobj=1.44,corrname_ext=corrname_ext)
         submit_utils.run_picca_job(job_info,global_job_info['options'],no_submit=args.no_submit)
         njobs += 1
         if not args.no_dmats:
@@ -582,11 +591,11 @@ for zbin in zbins:
 
             for i,randcat in enumerate(args.drq_qso_randoms):
                 ## Make the job info for R
-                tempname = name+'_R{}'.format(i)
+                corrname_ext = 'R{}'.format(i)
                 time = job_time_dict[name]['R'][zbin]
 
                 ## Submit the correlation job for R
-                job_info, dmat_job_info = make_xcf_job_info(args.corr_dir,tempname,zmin,zmax,args.deltas_dir_lyb,randcat,time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs,nodmat=args.no_dmats,rej=args.rej,zevolobj=1.44)
+                job_info, dmat_job_info = make_xcf_job_info(args.corr_dir,tempname,zmin,zmax,args.deltas_dir_lyb,randcat,time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs,nodmat=args.no_dmats,rej=args.rej,zevolobj=1.44,corrname_ext=corrname_ext)
                 submit_utils.run_picca_job(job_info,global_job_info['options'],no_submit=args.no_submit)
                 njobs += 1
                 if not args.no_dmats:
@@ -600,11 +609,11 @@ for zbin in zbins:
         print(' -> -> looking at xcf {}'.format(name))
 
         ## Make the job info for D
-        tempname = name+'_D'
-        time = job_time_dict[name]['D'][zbin]
+        corrname_ext = 'D'
+        time = job_time_dict[name][corrname_ext][zbin]
 
         ## Submit the correlation job for D
-        job_info, dmat_job_info = make_xcf_job_info(args.corr_dir,tempname,zmin,zmax,args.deltas_dir_lya,args.drq_dla,time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs,nodmat=args.no_dmats,rej=args.rej,zevolobj=0.)
+        job_info, dmat_job_info = make_xcf_job_info(args.corr_dir,tempname,zmin,zmax,args.deltas_dir_lya,args.drq_dla,time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs,nodmat=args.no_dmats,rej=args.rej,zevolobj=0.,corrname_ext=corrname_ext)
         submit_utils.run_picca_job(job_info,global_job_info['options'],no_submit=args.no_submit)
         njobs += 1
         if not args.no_dmats:
@@ -615,11 +624,11 @@ for zbin in zbins:
 
             for i,randcat in enumerate(args.drq_dla_randoms):
                 ## Make the job info for R
-                tempname = name+'_R{}'.format(i)
+                corrname_ext = 'R{}'.format(i)
                 time = job_time_dict[name]['R'][zbin]
 
                 ## Submit the correlation job for R
-                job_info, dmat_job_info = make_xcf_job_info(args.corr_dir,tempname,zmin,zmax,args.deltas_dir_lya,randcat,time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs,nodmat=args.no_dmats,rej=args.rej,zevolobj=0.)
+                job_info, dmat_job_info = make_xcf_job_info(args.corr_dir,tempname,zmin,zmax,args.deltas_dir_lya,randcat,time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs,nodmat=args.no_dmats,rej=args.rej,zevolobj=0.,corrname_ext=corrname_ext)
                 submit_utils.run_picca_job(job_info,global_job_info['options'],no_submit=args.no_submit)
                 njobs += 1
                 if not args.no_dmats:
@@ -633,11 +642,11 @@ for zbin in zbins:
         print(' -> -> looking at xcf {}'.format(name))
 
         ## Make the job info for D
-        tempname = name+'_D'
-        time = job_time_dict[name]['D'][zbin]
+        corrname_ext = 'D'
+        time = job_time_dict[name][corrname_ext][zbin]
 
         ## Submit the correlation job for D
-        job_info, dmat_job_info = make_xcf_job_info(args.corr_dir,tempname,zmin,zmax,args.deltas_dir_lyb,args.drq_dla,time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs,nodmat=args.no_dmats,rej=args.rej,zevolobj=0.)
+        job_info, dmat_job_info = make_xcf_job_info(args.corr_dir,tempname,zmin,zmax,args.deltas_dir_lyb,args.drq_dla,time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs,nodmat=args.no_dmats,rej=args.rej,zevolobj=0.,corrname_ext=corrname_ext)
         submit_utils.run_picca_job(job_info,global_job_info['options'],no_submit=args.no_submit)
         njobs += 1
         if not args.no_dmats:
@@ -648,11 +657,11 @@ for zbin in zbins:
 
             for i,randcat in enumerate(args.drq_dla_randoms):
                 ## Make the job info for R
-                tempname = name+'_R{}'.format(i)
+                corrname_ext = 'R{}'.format(i)
                 time = job_time_dict[name]['R'][zbin]
 
                 ## Submit the correlation job for R
-                job_info, dmat_job_info = make_xcf_job_info(args.corr_dir,tempname,zmin,zmax,args.deltas_dir_lyb,randcat,time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs,nodmat=args.no_dmats,rej=args.rej,zevolobj=0.)
+                job_info, dmat_job_info = make_xcf_job_info(args.corr_dir,tempname,zmin,zmax,args.deltas_dir_lyb,randcat,time=time,no_project=args.no_project,no_remove_mean_lambda_obs=args.no_remove_mean_lambda_obs,nodmat=args.no_dmats,rej=args.rej,zevolobj=0.,corrname_ext=corrname_ext)
                 submit_utils.run_picca_job(job_info,global_job_info['options'],no_submit=args.no_submit)
                 njobs += 1
                 if not args.no_dmats:
