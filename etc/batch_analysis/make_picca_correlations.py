@@ -60,8 +60,8 @@ if (args.qq_basedir is not None) and (args.qq_runs is not None):
         command = '/global/homes/j/jfarr/Projects/LyaCoLoRe/etc/batch_analysis/run_picca_correlations.py'
         command += ' --deltas-dir-lya {}'.format(analysis_dir.lyadeltadir)
         command += ' --deltas-dir-lyb {}'.format(analysis_dir.lybdeltadir)
-        command += ' --drq-qso {}'.format(os.path.join(analysis_dir.datadir,'drq_qso.fits'))
-        command += ' --drq-dla {}'.format(os.path.join(raw_analysis_dir.datadir,'drq_dla.fits'))
+        command += ' --drq-qso {}'.format(os.path.join(analysis_dir.objdir,'drq_qso.fits'))
+        command += ' --drq-dla {}'.format(os.path.join(raw_analysis_dir.objdir,'drq_dla.fits'))
         command += ' --drq-qso-randoms {}'.format(os.path.join(randoms_dir,'drq_qso_randoms.fits'))
         command += ' --drq-dla-randoms {}'.format(os.path.join(randoms_dir,'drq_dla_randoms.fits'))
         command += ' --corr-dir {}'.format(analysis_dir.corrdir)
@@ -82,8 +82,8 @@ if args.raw_dir is not None:
     command = '/global/homes/j/jfarr/Projects/LyaCoLoRe/etc/batch_analysis/run_picca_correlations.py'
     command += ' --deltas-dir-lya {}'.format(raw_analysis_dir.lyadeltadir)
     command += ' --deltas-dir-lyb {}'.format(raw_analysis_dir.lybdeltadir)
-    command += ' --drq-qso {}'.format(os.path.join(raw_analysis_dir.datadir,'drq_qso.fits'))
-    command += ' --drq-dla {}'.format(os.path.join(raw_analysis_dir.datadir,'drq_dla.fits'))
+    command += ' --drq-qso {}'.format(os.path.join(raw_analysis_dir.objdir,'drq_qso.fits'))
+    command += ' --drq-dla {}'.format(os.path.join(raw_analysis_dir.objdir,'drq_dla.fits'))
     command += ' --drq-qso-randoms {}'.format(os.path.join(randoms_dir,'drq_qso_randoms.fits'))
     command += ' --drq-dla-randoms {}'.format(os.path.join(randoms_dir,'drq_dla_randoms.fits'))
     command += ' --corr-dir {}'.format(raw_analysis_dir.corrdir)
