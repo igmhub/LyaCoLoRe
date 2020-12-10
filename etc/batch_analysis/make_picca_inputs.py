@@ -55,15 +55,21 @@ if (args.qq_basedir is not None) and (args.qq_runs is not None):
 
         ## Make the drq
         print('INFO: Making drqs for quickquasars output in {}'.format(qq_dir))
-        command = '/global/homes/j/jfarr/Projects/LyaCoLoRe/etc/batch_analysis/make_drqs.py --in-dir {} --out-dir {}'.format(qq_dir,analysis_dir.datadir)
+        command = '/global/homes/j/jfarr/Projects/LyaCoLoRe/etc/batch_analysis/make_drqs.py --in-dir {} --out-dir {}'.format(qq_dir,analysis_dir.objdir)
         call(command.split(' '))
         print('')
 
-        ## Submit job to run the deltas
+        ## Submit job to run the lya region deltas
         print('INFO: Submitting job to make deltas for quickquasars output in {}'.format(qq_dir))
-        drq = os.path.join(analysis_dir.datadir,'drq_qso.fits')
+        drq = os.path.join(analysis_dir.objdir,'drq_qso.fits')
         in_dir = os.path.join(qq_dir,'spectra-16')
-        command = '/global/homes/j/jfarr/Projects/LyaCoLoRe/etc/batch_analysis/run_make_deltas.py --out-dir {} --drq {} --in-dir {}'.format(analysis_dir.datadir,drq,in_dir)
+        command = '/global/homes/j/jfarr/Projects/LyaCoLoRe/etc/batch_analysis/run_make_deltas.py --slurm-script {} --out-dir {} --deltas-dir {} --drq {} --in-dir {} --lambda-rest-min 1040.0 --lambda-rest-max 1200.0'.format('run_picca_deltas_lyaregion.sl',analysis_dir.datadir,analysis_dir.lyadeltadirname,drq,in_dir)
+        call(command.split(' '))
+        print('')
+
+        ## Submit job to run the lyb region deltas
+        print('INFO: Submitting job to make deltas for quickquasars output in {}'.format(qq_dir))
+        command = '/global/homes/j/jfarr/Projects/LyaCoLoRe/etc/batch_analysis/run_make_deltas.py --slurm-script {} --out-dir {} --deltas-dir {} --drq {} --in-dir {} --lambda-rest-min 920.0 --lambda-rest-max 1020.0'.format('run_picca_deltas_lybregion.sl',analysis_dir.datadir,analysis_dir.lybdeltadirname,drq,in_dir)
         call(command.split(' '))
         print('')
 
@@ -82,14 +88,20 @@ if args.raw_dir is not None:
     ## Make the raw drqs
     print('INFO: Making drqs for raw output in {}'.format(args.raw_dir))
     qq_ref_zcat = os.path.join(args.qq_basedir,args.qq_runs[0],'zcat.fits')
-    command = '/global/homes/j/jfarr/Projects/LyaCoLoRe/etc/batch_analysis/make_raw_drqs.py --in-dir {} --out-dir {} --randoms-out-dir {} --qq-ref-zcat {}'.format(args.raw_dir,analysis_dir.datadir,randoms_dir,qq_ref_zcat)
+    command = '/global/homes/j/jfarr/Projects/LyaCoLoRe/etc/batch_analysis/make_raw_drqs.py --in-dir {} --out-dir {} --randoms-out-dir {} --qq-ref-zcat {}'.format(args.raw_dir,analysis_dir.objdir,randoms_dir,qq_ref_zcat)
     call(command.split(' '))
     print('')
 
-    ## Submit job to run the raw deltas
+    ## Submit job to run the raw lya region deltas
     print('INFO: Submitting job to make deltas for raw output in {}'.format(args.raw_dir))
-    drq = os.path.join(analysis_dir.datadir,'drq_qso.fits')
+    drq = os.path.join(analysis_dir.objdir,'drq_qso.fits')
     in_dir = args.raw_dir
-    command = '/global/homes/j/jfarr/Projects/LyaCoLoRe/etc/batch_analysis/run_make_raw_deltas.py --out-dir {} --drq {} --in-dir {}'.format(analysis_dir.datadir,drq,in_dir)
+    command = '/global/homes/j/jfarr/Projects/LyaCoLoRe/etc/batch_analysis/run_make_raw_deltas.py --slurm-script {} --python-script {} --out-dir {} --deltas-dir {} --drq {} --in-dir {} --lambda-rest-min 1040.0 --lambda-rest-max 1200.0'.format('run_picca_raw_deltas_lyaregion.sl','run_picca_raw_deltas_lyaregion.py',analysis_dir.datadir,analysis_dir.lyadeltadirname,drq,in_dir)
+    call(command.split(' '))
+    print('')
+
+    ## Submit job to run the raw lyb region deltas
+    print('INFO: Submitting job to make deltas for raw output in {}'.format(args.raw_dir))
+    command = '/global/homes/j/jfarr/Projects/LyaCoLoRe/etc/batch_analysis/run_make_raw_deltas.py --slurm-script {} --python-script {} --out-dir {} --deltas-dir {} --drq {} --in-dir {} --lambda-rest-min 920.0 --lambda-rest-max 1020.0'.format('run_picca_raw_deltas_lybregion.sl','run_picca_raw_deltas_lybregion.py',analysis_dir.datadir,analysis_dir.lybdeltadirname,drq,in_dir)
     call(command.split(' '))
     print('')

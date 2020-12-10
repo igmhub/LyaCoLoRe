@@ -38,7 +38,13 @@ parser.add_argument('-o','--out-dir',
                     type=str,
                     default=None,
                     required=True,
-                    help='Output directory (inside which deltas dir will be made)')
+                    help='Path to output directory (inside which deltas dir will be made)')
+
+parser.add_argument('--deltas-dir',
+                    type=str,
+                    default=None,
+                    required=True,
+                    help='Name of directory to put deltas in')
 
 parser.add_argument('--drq',
                     type=str,
@@ -84,8 +90,10 @@ parser.add_argument('--nproc',
 
 args = parser.parse_args()
 
-args.python_script = os.path.join(args.out_dir,args.python_script)
-args.slurm_script = os.path.join(args.out_dir,args.slurm_script)
+submit_utils.check_dir(os.path.join(args.out_dir,'run_files'))
+submit_utils.check_dir(os.path.join(args.out_dir,'scripts'))
+args.python_script = os.path.join(args.out_dir,'scripts',args.python_script)
+args.slurm_script = os.path.join(args.out_dir,'scripts',args.slurm_script)
 
 ## Make the python script.
 text = '#!/usr/bin/env python\n\n'
@@ -108,8 +116,8 @@ submit_utils.make_file_executable(args.python_script)
 
 ## Make the slurm script text.
 time = submit_utils.nh_to_hhmmss(args.slurm_hours)
-err_file = os.path.join(args.out_dir,'run-picca-raw-deltas-%j.err')
-out_file = os.path.join(args.out_dir,'run-picca-raw-deltas-%j.out')
+err_file = os.path.join(args.out_dir,'run_files','run-picca-raw-deltas-%j.err')
+out_file = os.path.join(args.out_dir,'run_files','run-picca-raw-deltas-%j.out')
 text = submit_utils.make_header(queue=args.slurm_queue,nnodes=1,time=time,job_name='raw_picca_deltas',err_file=err_file,out_file=out_file)
 text += 'export OMP_NUM_THREADS=1\n'
 text += 'srun -n 1 -c 64 {}\n'.format(args.python_script)
