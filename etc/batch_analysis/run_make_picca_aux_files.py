@@ -408,7 +408,7 @@ for corr_dir in args.corr_dirs:
                     }
 
     for k,c in correlations.items():
-        for i,t in enumerate(c.split('_')):
+        for i,t in enumerate(k.split('_')):
             if t in ['lyalya','lyalyb']:
                 c['tracer{}'.format(i)] = 'lya'
             else:
