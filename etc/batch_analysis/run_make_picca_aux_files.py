@@ -37,7 +37,26 @@ beta_dla_fix_dict = {
     'lyalya_lyalya__lyalya_lyalyb__lyalya_dla__lyalyb_dla': 'free',
 }
 
-fits_recognised = list(set(list(beta_qso_fix_dict.keys())+list(beta_dla_fix_dict.keys())))
+fits_recognised = [
+    'lyalya_lyalya',
+    'lyalya_lyalyb',
+    'lyalya_qso',
+    'lyalyb_qso',
+    'lyalya_dla',
+    'lyalyb_dla',
+    'qso_qso',
+    'qso_dla',
+    'dla_dla',
+    'lyalya_lyalya__lyalya_lyalyb',
+    'lyalya_lyalya__lyalya_qso',
+    'lyalya_lyalyb__lyalyb_qso',
+    'lyalya_lyalya__lyalya_dla',
+    'lyalya_lyalyb__lyalyb_dla',
+    'lyalya_qso__lyalyb_qso',
+    'lyalya_dla__lyalyb_dla',
+    'lyalya_lyalya__lyalya_lyalyb__lyalya_qso__lyalyb_qso',
+    'lyalya_lyalya__lyalya_lyalyb__lyalya_dla__lyalyb_dla',
+]
 
 ################################################################################
 
@@ -215,7 +234,7 @@ def make_fit_files(fitsdir,fitname,correlations,rmin=20.,rmax=180.,afix='free',b
                     _ = info[k]['options_dict']['parameters'].pop(p)
 
         ## Make the config file
-        config_filepath = os.path.join(fitdir,'config_{}_{}.ini'.format(k,suffix)
+        config_filepath = os.path.join(fitdir,'config_{}_{}.ini'.format(k,suffix))
         make_config_file(config_filepath,info[k]['options_dict'])
         configs += [k]
         config_filepaths += [config_filepath]
