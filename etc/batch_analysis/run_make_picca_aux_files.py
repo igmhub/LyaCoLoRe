@@ -366,7 +366,7 @@ for corr_dir in args.corr_dirs:
                     else:
                         beta_dla_fix = 'fixed'
 
-                    fit_correlations = {correlations[c] for c in fitname.split('__')}
+                    fit_correlations = {c: correlations[c] for c in fitname.split('__')}
                     print(' -> -> making {} files'.format(fitname))
                     make_fit_files(analysis_dir.fitsdir,fitname,fit_correlations,rmin=rmin,rmax=rmax,afix=afix,beta_qso_fix=beta_qso_fix,beta_dla_fix=beta_dla_fix)
 
@@ -502,7 +502,7 @@ def make_lya_auto_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix='free
     make_chi2_file(chi2_filepath,zeff,configs,result_filepath)
 
     return options_dict
-    
+
 def make_qso_auto_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix='free'):
 
     name = 'qso_auto'
