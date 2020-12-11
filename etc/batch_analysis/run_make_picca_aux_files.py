@@ -246,78 +246,6 @@ def make_fit_files(fitsdir,fitname,correlations,rmin=20.,rmax=180.,afix='free',b
 
     return
 
-## Functions to make chi2 and config files for each fit combination.
-def make_lya_auto_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix='free'):
-
-    name = 'lya_auto'
-    suffix = 'rmin{}_rmax{}_a{}'.format(rmin,rmax,afix)
-    fit_dir = fits_dir + '/' + name + '/'
-    submit_utils.check_dir(fit_dir)
-
-    exp_files = [exp_filepaths[key] for key in exp_filepaths.keys() if key in name]
-    zeff = get_zeff(exp_files)
-    f = get_growth_rate(zeff,Om_z0=args.fid_Om)
-
-    configs = []
-
-
-    data_dict = {'name':            'LYA(LYA)xLYA(LYA)',
-                 'tracer1':         'LYA',
-                 'tracer2':         'LYA',
-                 'tracer1-type':    'continuous',
-                 'tracer2-type':    'continuous',
-                 'filename':        exp_filepaths['lya_auto'],
-                 'ell-max':         6,
-                 }
-
-    cuts_dict = {'rp-min':  0.,
-                 'rp-max':  200.,
-                 'rt-min':  0.,
-                 'rt-max':  200.,
-                 'r-min':   rmin,
-                 'r-max':   rmax,
-                 'mu-min':  0.,
-                 'mu-max':  1.
-                 }
-
-    model_dict = {'model-pk':           'pk_kaiser',
-                  'model-xi':           'xi',
-                  'z evol LYA':         'bias_vs_z_std',
-                  'growth function':    'growth_factor_de',
-                  'pk-gauss-smoothing': 'pk_gauss_smoothing',
-                  }
-
-    parameters_dict = {'ap':                            '1.     0.1     0.8     1.2     {}'.format(afix),
-                       'at':                            '1.     0.1     0.8     1.2     {}'.format(afix),
-                       'bao_amp':                       '1.     0.      None    None    fixed',
-                       'sigmaNL_per':                   '0.     0.      None    None    fixed',
-                       'sigmaNL_par':                   '0.     0.      None    None    fixed',
-                       'growth_rate':                   '{}     0.      None    None    fixed'.format(f),
-                       'bias_eta_LYA':                  '-0.1   1.      None    None    free',
-                       'beta_LYA':                      '0.5    1.      None    None    free',
-                       'alpha_LYA':                     '2.9    0.      None    None    fixed',
-                       'par binsize LYA(LYA)xLYA(LYA)': '4      0.      None    None    fixed',
-                       'per binsize LYA(LYA)xLYA(LYA)': '4      0.      None    None    fixed',
-                       'par_sigma_smooth':              '2.     2.      None    None    free',
-                       'per_sigma_smooth':              '2.     2.      None    None    free',
-                       }
-
-    options_dict = {'data':         data_dict,
-                    'cuts':         cuts_dict,
-                    'model':        model_dict,
-                    'parameters':   parameters_dict,
-                    }
-
-    config_filepath = fit_dir + '/config_lya_auto_{}.ini'.format(suffix)
-    make_config_file(config_filepath,options_dict)
-    configs += [config_filepath]
-
-    chi2_filepath = fit_dir + 'chi2_{}_{}.ini'.format(name,suffix)
-    result_filepath = fit_dir + 'result_{}_{}.h5'.format(name,suffix)
-    make_chi2_file(chi2_filepath,zeff,configs,result_filepath)
-
-    return options_dict
-
 ################################################################################
 
 #Calculate the effective redshift.
@@ -416,7 +344,7 @@ for corr_dir in args.corr_dirs:
         c['tracer1-type'] = tracer_types[c['tracer1']]
         c['tracer2-type'] = tracer_types[c['tracer2']]
         c['exp_filepath'] = os.path.join(analysis_dir.corrdir,
-                                        name,
+                                        k,
                                         'measurements',
                                         '{}_exp_{}.fits.gz'.format(c['type'],k)
                                         )
@@ -502,6 +430,79 @@ parser.add_argument('--fit-qso-qso--qso-dla--dla-dla', action="store_true", defa
 parser.add_argument('--fit-all', action="store_true", default = False, required=False,
                     help = 'make files for fitting all correlations')
 
+
+## Functions to make chi2 and config files for each fit combination.
+def make_lya_auto_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix='free'):
+
+    name = 'lya_auto'
+    suffix = 'rmin{}_rmax{}_a{}'.format(rmin,rmax,afix)
+    fit_dir = fits_dir + '/' + name + '/'
+    submit_utils.check_dir(fit_dir)
+
+    exp_files = [exp_filepaths[key] for key in exp_filepaths.keys() if key in name]
+    zeff = get_zeff(exp_files)
+    f = get_growth_rate(zeff,Om_z0=args.fid_Om)
+
+    configs = []
+
+
+    data_dict = {'name':            'LYA(LYA)xLYA(LYA)',
+                 'tracer1':         'LYA',
+                 'tracer2':         'LYA',
+                 'tracer1-type':    'continuous',
+                 'tracer2-type':    'continuous',
+                 'filename':        exp_filepaths['lya_auto'],
+                 'ell-max':         6,
+                 }
+
+    cuts_dict = {'rp-min':  0.,
+                 'rp-max':  200.,
+                 'rt-min':  0.,
+                 'rt-max':  200.,
+                 'r-min':   rmin,
+                 'r-max':   rmax,
+                 'mu-min':  0.,
+                 'mu-max':  1.
+                 }
+
+    model_dict = {'model-pk':           'pk_kaiser',
+                  'model-xi':           'xi',
+                  'z evol LYA':         'bias_vs_z_std',
+                  'growth function':    'growth_factor_de',
+                  'pk-gauss-smoothing': 'pk_gauss_smoothing',
+                  }
+
+    parameters_dict = {'ap':                            '1.     0.1     0.8     1.2     {}'.format(afix),
+                       'at':                            '1.     0.1     0.8     1.2     {}'.format(afix),
+                       'bao_amp':                       '1.     0.      None    None    fixed',
+                       'sigmaNL_per':                   '0.     0.      None    None    fixed',
+                       'sigmaNL_par':                   '0.     0.      None    None    fixed',
+                       'growth_rate':                   '{}     0.      None    None    fixed'.format(f),
+                       'bias_eta_LYA':                  '-0.1   1.      None    None    free',
+                       'beta_LYA':                      '0.5    1.      None    None    free',
+                       'alpha_LYA':                     '2.9    0.      None    None    fixed',
+                       'par binsize LYA(LYA)xLYA(LYA)': '4      0.      None    None    fixed',
+                       'per binsize LYA(LYA)xLYA(LYA)': '4      0.      None    None    fixed',
+                       'par_sigma_smooth':              '2.     2.      None    None    free',
+                       'per_sigma_smooth':              '2.     2.      None    None    free',
+                       }
+
+    options_dict = {'data':         data_dict,
+                    'cuts':         cuts_dict,
+                    'model':        model_dict,
+                    'parameters':   parameters_dict,
+                    }
+
+    config_filepath = fit_dir + '/config_lya_auto_{}.ini'.format(suffix)
+    make_config_file(config_filepath,options_dict)
+    configs += [config_filepath]
+
+    chi2_filepath = fit_dir + 'chi2_{}_{}.ini'.format(name,suffix)
+    result_filepath = fit_dir + 'result_{}_{}.h5'.format(name,suffix)
+    make_chi2_file(chi2_filepath,zeff,configs,result_filepath)
+
+    return options_dict
+    
 def make_qso_auto_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix='free'):
 
     name = 'qso_auto'
