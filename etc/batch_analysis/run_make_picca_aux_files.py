@@ -164,7 +164,7 @@ def make_fit_files(fitsdir,fitname,correlations,rmin=20.,rmax=180.,afix='free',b
     zeff = get_zeff(exp_files)
     f = get_growth_rate(zeff,Om_z0=args.fid_Om)
 
-    info = {cname: {'filepath': '', 'options_dict': {}} for cname in correlations.keys}
+    info = {cname: {'filepath': '', 'options_dict': {}} for cname in correlations.keys()}
 
     ## For each correlation in the fit:
     configs = []
