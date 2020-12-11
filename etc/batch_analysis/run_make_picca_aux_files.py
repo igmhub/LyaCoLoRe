@@ -230,10 +230,13 @@ def make_fit_files(fitsdir,fitname,correlations,rmin=20.,rmax=180.,afix='free',b
 
         ## Make sure that parameters are not repeated from previous config files
         for k_past in configs:
-            to_check = info[k]['options_dict']['parameters'].keys()
-            for p in to_check:
+            to_remove = []
+            for p in info[k]['options_dict']['parameters'].keys():
                 if p in info[k_past]['options_dict']['parameters'].keys():
-                    _ = info[k]['options_dict']['parameters'].pop(p)
+                    to_remove += [p]
+            for p in to_remove:        
+                _ = info[k]['options_dict']['parameters'].pop(p)
+
 
         ## Make the config file
         config_filepath = os.path.join(fitdir,'config_{}_{}.ini'.format(k,suffix))
