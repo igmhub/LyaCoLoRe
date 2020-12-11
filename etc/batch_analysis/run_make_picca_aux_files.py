@@ -146,6 +146,7 @@ def make_config_file(filepath,options_dict):
         sect_dict = options_dict[key]
         for option in sect_dict.keys():
             config_text += '{} = {}\n'.format(option,sect_dict[option])
+        config_text += '\n'
 
     file = open(filepath,'w')
     file.write(config_text)
@@ -229,7 +230,8 @@ def make_fit_files(fitsdir,fitname,correlations,rmin=20.,rmax=180.,afix='free',b
 
         ## Make sure that parameters are not repeated from previous config files
         for k_past in configs:
-            for p in info[k]['options_dict']['parameters'].keys():
+            to_check = info[k]['options_dict']['parameters'].keys()
+            for p in to_check:
                 if p in info[k_past]['options_dict']['parameters'].keys():
                     _ = info[k]['options_dict']['parameters'].pop(p)
 
