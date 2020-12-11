@@ -410,9 +410,9 @@ for corr_dir in args.corr_dirs:
     for k,c in correlations.items():
         for i,t in enumerate(k.split('_')):
             if t in ['lyalya','lyalyb']:
-                c['tracer{}'.format(i)] = 'lya'
+                c['tracer{}'.format(i+1)] = 'lya'
             else:
-                c['tracer{}'.format(i)] = t
+                c['tracer{}'.format(i+1)] = t
         c['tracer1-type'] = tracer_types[c['tracer1']]
         c['tracer2-type'] = tracer_types[c['tracer2']]
         c['exp_filepath'] = os.path.join(analysis_dir.corrdir,
