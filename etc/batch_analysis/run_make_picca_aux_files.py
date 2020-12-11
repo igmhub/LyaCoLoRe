@@ -10,6 +10,37 @@ from lyacolore import submit_utils
 
 ################################################################################
 
+tracer_types = {
+    'lya': 'continuous',
+    'qso': 'discrete',
+    'dla': 'discrete',
+}
+
+beta_qso_fix_dict = {
+    'lyalya_qso': 'fixed',
+    'lyalyb_qso': 'fixed',
+    'qso_qso': 'free',
+    'qso_dla': 'free',
+    'lyalya_lyalya__lyalya_qso': 'free',
+    'lyalya_lyalyb__lyalyb_qso': 'free',
+    'lyalya_qso__lyalyb_qso': 'fixed',
+    'lyalya_lyalya__lyalya_lyalyb__lyalya_qso__lyalyb_qso': 'free',
+}
+beta_dla_fix_dict = {
+    'lyalya_dla': 'fixed',
+    'lyalyb_dla': 'fixed',
+    'qso_dla': 'fixed',
+    'dla_dla': 'free',
+    'lyalya_lyalya__lyalya_dla': 'free',
+    'lyalya_lyalyb__lyalyb_dla': 'free',
+    'lyalya_dla__lyalyb_dla': 'fixed',
+    'lyalya_lyalya__lyalya_lyalyb__lyalya_dla__lyalyb_dla': 'free',
+}
+
+fits_recognised = list(set(list(beta_qso_fix_dict.keys())+list(beta_dla_fix_dict.keys())))
+
+################################################################################
+
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
 #locations and names
@@ -36,67 +67,16 @@ parser.add_argument('--afix-values', type = str, default = ['free'], required=Fa
 
 #Correlations to fit
 
-parser.add_argument('--fit-lya-auto', action="store_true", default = False, required=False,
-                    help = 'make files for fitting the lya auto correlation')
-
-parser.add_argument('--fit-qso-auto', action="store_true", default = False, required=False,
-                    help = 'make files for fitting the qso auto correlation')
-
-parser.add_argument('--fit-dla-auto', action="store_true", default = False, required=False,
-                    help = 'make files for fitting the dla auto correlation')
-
-parser.add_argument('--fit-lya-aa-auto', action="store_true", default = False, required=False,
-                    help = 'make files for fitting the lya all absorber auto correlation')
-
-parser.add_argument('--fit-lya-qso-cross', action="store_true", default = False, required=False,
-                    help = 'make files for fitting the lya qso cross correlation')
-
-parser.add_argument('--fit-lya-dla-cross', action="store_true", default = False, required=False,
-                    help = 'make files for fitting the lya dla cross correlation')
-
-parser.add_argument('--fit-qso-dla-cross', action="store_true", default = False, required=False,
-                    help = 'make files for fitting the qso dla cross correlation')
-
-parser.add_argument('--fit-lya-auto--lya-qso-cross', action="store_true", default = False, required=False,
-                    help = 'make files for joint lya-auto, lya-qso-cross fit')
-
-parser.add_argument('--fit-lya-auto--lya-qso-cross--qso-auto', action="store_true", default = False, required=False,
-                    help = 'make files for joint lya-auto, lya-qso-cross, qso-auto fit')
-
-parser.add_argument('--fit-lya-auto--lya-dla-cross', action="store_true", default = False, required=False,
-                    help = 'make files for joint lya-auto, lya-dla-cross fit')
-
-parser.add_argument('--fit-lya-auto--lya-dla-cross--dla-auto', action="store_true", default = False, required=False,
-                    help = 'make files for joint lya-auto, lya-dla-cross, dla-auto fit')
-
-parser.add_argument('--fit-qso-auto--qso-dla-cross--dla-auto', action="store_true", default = False, required=False,
-                    help = 'make files for joint qso-auto, qso-dla-cross, dla-auto fit')
-
-parser.add_argument('--fit-all-correlations', action="store_true", default = False, required=False,
-                    help = 'make files for the joint fit of all correlations')
-
-parser.add_argument('--fit-all', action="store_true", default = False, required=False,
-                    help = 'make files for fitting all correlations')
+parser.add_argument('--fitnames', type = str, default = ['lyalya_lyalya'], required=False,
+                    help = 'fits to make, formatted as {corr1}__{corr2}__{corr3}\
+                     where each of the "corr"s is a correlation name such as\
+                     lyalya_lyalya or lyalya_qso', nargs='*')
 
 args = parser.parse_args()
 
-################################################################################
-
-if args.fit_all:
-    args.fit_lya_auto = True
-    args.fit_qso_auto = True
-    args.fit_dla_auto = True
-    args.fit_lya_aa_auto = True
-    args.fit_lya_qso_cross = True
-    args.fit_lya_dla_cross = True
-    args.fit_qso_dla_cross = True
-    args.fit_lya_auto__lya_qso_cross = True
-    args.fit_lya_auto__lya_qso_cross__qso_auto = True
-    args.fit_lya_auto__lya_dla_cross = True
-    args.fit_lya_auto__lya_dla_cross__dla_auto = True
-    args.fit_qso_auto__qso_dla_cross = True
-    args.fit_qso_auto__qso_dla_cross__dla_auto = True
-    args.fit_all_correlations = True
+for f in args.fitnames:
+    if f not in fits_recognised:
+        raise ValueError('Fit {} not recognised!\nPlease choose from these options:\n{}'.format(f,fits_recognised))
 
 ################################################################################
 
@@ -151,6 +131,99 @@ def make_config_file(filepath,options_dict):
     file = open(filepath,'w')
     file.write(config_text)
     file.close()
+
+    return
+
+## Function to make chi2 and config files for any given fit.
+def make_fit_files(fitsdir,fitname,correlations,rmin=20.,rmax=180.,afix='free',beta_qso_fix='free',beta_dla_fix='free'):
+
+    suffix = 'rmin{}_rmax{}_a{}'.format(rmin,rmax,afix)
+    fitdir = os.path.join(fitsdir,fitname)
+    submit_utils.check_dir(fitdir)
+
+    exp_files = [c['exp_filepath'] for c in correlations.values()]
+    zeff = get_zeff(exp_files)
+    f = get_growth_rate(zeff,Om_z0=args.fid_Om)
+
+    info = {cname: {'filepath': '', 'options_dict': {}} for cname in correlations.keys}
+
+    ## For each correlation in the fit:
+    configs = []
+    config_filepaths = []
+    for k,c in correlations.items():
+
+        ## Make the data dict
+        info[k]['options_dict']['data'] = {
+            'name': k,
+            'tracer1': c['tracer1'],
+            'tracer1-type': c['tracer1-type'],
+            'tracer2': c['tracer2'],
+            'tracer2-type': c['tracer2-type'],
+            'filename': c['exp_filepath'],
+            'ell-max': 6,
+        }
+
+        ## Make the cuts dict
+        info[k]['options_dict']['cuts'] = {
+            'rp-min':  -200.,
+            'rp-max':  200.,
+            'rt-min':  0.,
+            'rt-max':  200.,
+            'r-min':   rmin,
+            'r-max':   rmax,
+            'mu-min':  -1.,
+            'mu-max':  1.
+        }
+
+        ## Make the model dict
+        info[k]['options_dict']['model'] = {
+            'model-pk': 'pk_kaiser',
+            'growth function': 'growth_factor_de',
+            'pk-gauss-smoothing': 'pk_gauss_smoothing'
+        }
+        for t in set([c['tracer1'], c['tracer2']]):
+            info[k]['options_dict']['model']['z evol {}'.format(t)] = 'bias_vs_z_std'
+        if 'discrete' in set([c['tracer1-type'], c['tracer2-type']]):
+            info[k]['options_dict']['model']['model-xi'] = 'xi_drp'
+            info[k]['options_dict']['model']['velocity dispersion'] = 'pk_velo_lorentz'
+        else:
+            info[k]['options_dict']['model']['model-xi'] = 'xi'
+
+        ## Make the parameters dict
+        info[k]['options_dict']['parameters'] = {
+            'ap':                       '1.     0.1     0.8     1.2     {}'.format(afix),
+            'at':                       '1.     0.1     0.8     1.2     {}'.format(afix),
+            'bao_amp':                  '1.     0.      None    None    fixed',
+            'sigmaNL_per':              '0.     0.      None    None    fixed',
+            'sigmaNL_par':              '0.     0.      None    None    fixed',
+            'growth_rate':              '{}     0.      None    None    fixed'.format(f),
+            'par binsize {}'.format(k): '4      0.      None    None    fixed',
+            'per binsize {}'.format(k): '4      0.      None    None    fixed',
+            'par_sigma_smooth':         '2.     2.      None    None    free',
+            'per_sigma_smooth':         '2.     2.      None    None    free',
+        }
+        for t in set([c['tracer1'], c['tracer2']]):
+            info[k]['options_dict']['parameters'] = {
+                **info[k]['options_dict']['parameters'],
+                **get_tracer_parameter_dict(t,beta_qso_fix=beta_qso_fix,beta_dla_fix=beta_dla_fix),
+            }
+
+        ## Make sure that parameters are not repeated from previous config files
+        for k_past in configs:
+            for p in info[k]['options_dict']['parameters'].keys():
+                if p in info[k_past]['options_dict']['parameters'].keys():
+                    _ = info[k]['options_dict']['parameters'].pop(p)
+
+        ## Make the config file
+        config_filepath = os.path.join(fitdir,'config_{}_{}.ini'.format(k,suffix)
+        make_config_file(config_filepath,info[k]['options_dict'])
+        configs += [k]
+        config_filepaths += [config_filepath]
+
+    ## Make the chi2 file
+    chi2_filepath = os.path.join(fitdir,'chi2_{}_{}.ini'.format(fitname,suffix))
+    result_filepath = os.path.join(fitdir,'result_{}_{}.h5'.format(fitname,suffix))
+    make_chi2_file(chi2_filepath,zeff,config_filepaths,result_filepath)
 
     return
 
@@ -225,6 +298,190 @@ def make_lya_auto_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix='free
     make_chi2_file(chi2_filepath,zeff,configs,result_filepath)
 
     return options_dict
+
+################################################################################
+
+#Calculate the effective redshift.
+def get_zeff(fi,rmin=80.,rmax=120.):
+    zeffs = []
+    weights = []
+    for f in fi:
+        h = fits.open(f)
+        R = np.sqrt(h[1].data['RP']**2 + h[1].data['RT']**2)
+        cells = (R > rmin) * (R < rmax)
+        #Should this be weighted by WE or by NB?
+        zeff = np.average(h[1].data['Z'][cells],weights=h[1].data['NB'][cells])
+        weight = np.sum(h[1].data['NB'][cells])
+        h.close()
+        zeffs += [zeff]
+        weights += [weight]
+    zeff = np.average(zeffs,weights=weights)
+    return zeff
+
+#Calculate f. Assume Or=0 for now.
+# TODO: include the input Om and Or from picca
+def get_growth_rate(z,Om_z0=0.3147):
+    Om = Om_z0 * ((1+z)**3) / (Om_z0 * ((1+z)**3) + 1 - Om_z0)
+    Ol = 1 - Om
+    f = (Om**0.6) + (Ol/70.)*(1 + Om/2.)
+    return f
+
+#Calculate beta_QSO by interpolating the input bias.
+# TODO: work out how to set the location more appropriately.
+def get_beta_obj(z,obj='QSO'):
+    b_qso_data_loc='/global/homes/j/jfarr/Projects/LyaCoLoRe/etc/run_CoLoRe/input_files/Bz_qso_G18.txt'
+    b_qso_data = np.loadtxt(b_qso_data_loc)
+    if obj == 'QSO':
+        bias_of_z = interp1d(b_qso_data[:,0],b_qso_data[:,1])
+    elif obj == 'DLA':
+        print(' -> -> -> DLA bias assumed to be constant with z.')
+        bias_of_z = interp1d(b_qso_data[:,0],2.*np.ones_like(b_qso_data[:,0]))
+    bias = bias_of_z(z)
+    f = get_growth_rate(z)
+    beta = f/bias
+    print(z,bias,f,beta)
+    return beta
+
+def get_tracer_parameter_dict(tracer,beta_qso_fix='free',beta_dla_fix='free'):
+
+    tracer_parameters = {
+        'lya': {
+            'bias_eta_lya':  '-0.2   0.1     None    None    free',
+            'beta_lya':      '1.5    0.1     None    None    free',
+            'alpha_lya':     '2.9    0.1     None    None    fixed',
+        },
+        'qso': {
+            'bias_eta_qso':             '1.0    0.1     None    None    fixed',
+            'beta_qso':                 '0.25   0.1     None    None    {}'.format(beta_qso_fix),
+            'alpha_qso':                '1.44   0.1     None    None    fixed',
+            'drp_qso':                  '0.     0.1     None    None    fixed',
+            'sigma_velo_lorentz_qso':   '0.     0.1     None    None    fixed',
+        },
+        'dla': {
+            'bias_eta_dla':             '1.0    0.1     None    None    fixed',
+            'beta_dla':                 '0.25   0.1     None    None    {}'.format(beta_dla_fix),
+            'alpha_dla':                '0.     0.1     None    None    fixed',
+            'drp_dla':                  '0.     0.1     None    None    fixed',
+            'sigma_velo_lorentz_dla':   '0.     0.1     None    None    fixed',
+        }
+    }
+
+    return tracer_parameters[tracer]
+
+################################################################################
+
+for corr_dir in args.corr_dirs:
+    print('\nMaking fit files for correlations in {}:'.format(corr_dir))
+
+    dirloc = os.path.dirname(corr_dir)
+    dirname = os.path.basename(corr_dir)
+    analysis_dir = submit_utils.AnalysisDir(dirloc, dirname)
+
+    correlations = {'lyalya_lyalya':    {'type': 'cf'},
+                    'lyalya_lyalyb':    {'type': 'cf'},
+                    'lyalya_qso':       {'type': 'xcf'},
+                    'lyalyb_qso':       {'type': 'xcf'},
+                    'lyalya_dla':       {'type': 'xcf'},
+                    'lyalyb_dla':       {'type': 'xcf'},
+                    'qso_qso':          {'type': 'co'},
+                    'dla_dla':          {'type': 'co'},
+                    'qso_dla':          {'type': 'co'},
+                    }
+
+    for k,c in correlations.items():
+        for i,t in enumerate(c.split('_')):
+            if t in ['lyalya','lyalyb']:
+                c['tracer{}'.format(i)] = 'lya'
+            else:
+                c['tracer{}'.format(i)] = t
+        c['tracer1-type'] = tracer_types[c['tracer1']]
+        c['tracer2-type'] = tracer_types[c['tracer2']]
+        c['exp_filepath'] = os.path.join(analysis_dir.corrdir,
+                                        name,
+                                        'measurements',
+                                        '{}_exp_{}.fits.gz'.format(c['type'],k)
+                                        )
+
+    #create config files for doing fits
+    for rmin in args.rmin_values:
+        for rmax in args.rmax_values:
+            for afix in args.afix_values:
+                print(' -> making files for rmin={}, rmax={}, afix={}'.format(rmin,rmax,afix))
+                for fitname in args.fitnames:
+
+                    if 'qso' in fitname:
+                        beta_qso_fix = beta_qso_fix_dict[fitname]
+                    else:
+                        beta_qso_fix = 'fixed'
+
+                    if 'dla' in fitname:
+                        beta_dla_fix = beta_dla_fix_dict[fitname]
+                    else:
+                        beta_dla_fix = 'fixed'
+
+                    fit_correlations = {correlations[c] for c in fitname.split('__')}
+                    print(' -> -> making {} files'.format(fitname))
+                    make_fit_files(analysis_dir.fitsdir,fitname,fit_correlations,rmin=rmin,rmax=rmax,afix=afix,beta_qso_fix=beta_qso_fix,beta_dla_fix=beta_dla_fix)
+
+
+
+"""
+
+
+
+parser.add_argument('--fit-lyalya-lyalya', action="store_true", default = False, required=False,
+                    help = 'make files for fitting the auto correlation of lya absorption in lya region')
+
+parser.add_argument('--fit-lyalya-lyalyb', action="store_true", default = False, required=False,
+                    help = 'make files for fitting the cross correlation of lya absorption in lya and lyb regions')
+
+parser.add_argument('--fit-qso-qso', action="store_true", default = False, required=False,
+                    help = 'make files for fitting the auto correlation of qsos')
+
+parser.add_argument('--fit-dla-dla', action="store_true", default = False, required=False,
+                    help = 'make files for fitting the auto correlation of dlas')
+
+parser.add_argument('--fit-lyalya-qso', action="store_true", default = False, required=False,
+                    help = 'make files for fitting the cross correlation of lya absorption in lya region and qsos')
+
+parser.add_argument('--fit-lyalyb-qso', action="store_true", default = False, required=False,
+                    help = 'make files for fitting the cross correlation of lya absorption in lyb region and qsos')
+
+parser.add_argument('--fit-lyalya-dla', action="store_true", default = False, required=False,
+                    help = 'make files for fitting the cross correlation of lya absorption in lya region and dlas')
+
+parser.add_argument('--fit-lyalyb-dla', action="store_true", default = False, required=False,
+                    help = 'make files for fitting the cross correlation of lya absorption in lyb region and dlas')
+
+parser.add_argument('--fit-qso-dla', action="store_true", default = False, required=False,
+                    help = 'make files for fitting the cross correlation of qsos and dlas')
+
+parser.add_argument('--fit-full-auto', action="store_true", default = False, required=False,
+                    help = 'make files for jointly fitting lyalya-lyalya and lyalya-lyalyb (DR16 "full auto")')
+
+parser.add_argument('--fit-full-cross', action="store_true", default = False, required=False,
+                    help = 'make files for jointly fitting lyalya-qso and lyalyb-qso (DR16 "full cross")')
+
+parser.add_argument('--fit-all-combined', action="store_true", default = False, required=False,
+                    help = 'make files for jointly fitting lyalya-lyalya, lyalya-lyalyb, lyalya-qso, and lyalyb-qso (DR16 "all combined")')
+
+parser.add_argument('--fit-lyalya--lyalya-qso', action="store_true", default = False, required=False,
+                    help = 'make files for joint lyalya-lyalya, lyalya-qso fit')
+
+parser.add_argument('--fit-lyalya--lyalya-qso--qso-qso', action="store_true", default = False, required=False,
+                    help = 'make files for joint lyalya-lyalya, lyalya-qso, qso-qso fit')
+
+parser.add_argument('--fit-lyalya--lyalya-dla', action="store_true", default = False, required=False,
+                    help = 'make files for joint lyalya-lyalya, lyalya-dla fit')
+
+parser.add_argument('--fit-lyalya--lyalya-dla--dla-dla', action="store_true", default = False, required=False,
+                    help = 'make files for joint lyalya-lyalya, lyalya-dla, dla-dla fit')
+
+parser.add_argument('--fit-qso-qso--qso-dla--dla-dla', action="store_true", default = False, required=False,
+                    help = 'make files for joint qso-qso, qso-dla, dla-dla fit')
+
+parser.add_argument('--fit-all', action="store_true", default = False, required=False,
+                    help = 'make files for fitting all correlations')
 
 def make_qso_auto_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,afix='free'):
 
@@ -1718,140 +1975,49 @@ def make_all_correlations_fit_files(fits_dir,exp_filepaths,rmin=20.,rmax=160.,af
 
     return
 
-################################################################################
-
-#Calculate the effective redshift.
-def get_zeff(fi,rmin=80.,rmax=120.):
-    zeffs = []
-    weights = []
-    for f in fi:
-        h = fits.open(f)
-        R = np.sqrt(h[1].data['RP']**2 + h[1].data['RT']**2)
-        cells = (R > rmin) * (R < rmax)
-        #Should this be weighted by WE or by NB?
-        zeff = np.average(h[1].data['Z'][cells],weights=h[1].data['NB'][cells])
-        weight = np.sum(h[1].data['NB'][cells])
-        h.close()
-        zeffs += [zeff]
-        weights += [weight]
-    zeff = np.average(zeffs,weights=weights)
-    return zeff
-
-#Calculate f. Assume Or=0 for now.
-# TODO: include the input Om and Or from picca
-def get_growth_rate(z,Om_z0=0.3147):
-    Om = Om_z0 * ((1+z)**3) / (Om_z0 * ((1+z)**3) + 1 - Om_z0)
-    Ol = 1 - Om
-    f = (Om**0.6) + (Ol/70.)*(1 + Om/2.)
-    return f
-
-#Calculate beta_QSO by interpolating the input bias.
-# TODO: work out how to set the location more appropriately.
-def get_beta_obj(z,obj='QSO'):
-    b_qso_data_loc='/global/homes/j/jfarr/Projects/LyaCoLoRe/etc/run_CoLoRe/input_files/Bz_qso_G18.txt'
-    b_qso_data = np.loadtxt(b_qso_data_loc)
-    if obj == 'QSO':
-        bias_of_z = interp1d(b_qso_data[:,0],b_qso_data[:,1])
-    elif obj == 'DLA':
-        print(' -> -> -> DLA bias assumed to be constant with z.')
-        bias_of_z = interp1d(b_qso_data[:,0],2.*np.ones_like(b_qso_data[:,0]))
-    bias = bias_of_z(z)
-    f = get_growth_rate(z)
-    beta = f/bias
-    print(z,bias,f,beta)
-    return beta
-
-################################################################################
-
-for corr_dir in args.corr_dirs:
-    print('\nMaking fit files for correlations in {}:'.format(corr_dir))
-
-    dirloc = os.path.dirname(corr_dir)
-    dirname = os.path.basename(corr_dir)
-    analysis_dir = submit_utils.AnalysisDir(dirloc, dirname)
-
-    exp_filepaths = {'lya_auto':        analysis_dir.corrdir + '/lya_auto/correlations/cf_exp_lya_auto.fits.gz',
-                     'qso_auto':        analysis_dir.corrdir + '/qso_auto/correlations/co_exp_qso_auto.fits.gz',
-                     'dla_auto':        analysis_dir.corrdir + '/dla_auto/correlations/co_exp_dla_auto.fits.gz',
-                     'lya_aa_auto':     analysis_dir.corrdir + '/lya_aa_auto/correlations/cf_exp_lya_aa_auto.fits.gz',
-                     'lya_qso_cross':   analysis_dir.corrdir + '/lya_qso_cross/correlations/xcf_exp_lya_qso_cross.fits.gz',
-                     'lya_dla_cross':   analysis_dir.corrdir + '/lya_dla_cross/correlations/xcf_exp_lya_dla_cross.fits.gz',
-                     #'qso_dla_cross':   acvm_dir + '/qso_dla_cross/correlations/co_exp_lya_dla_cross.fits.gz',
-                     }
-
-    #For each correlation, make the correlation information file
-    for name,exp_filepath in exp_filepaths.items():
-        if name == 'lya_auto':
-            corr_type = 'cf'
-            q1 = q2 = 'LYA'
-        if name == 'qso_auto':
-            corr_type = 'co'
-            q1 = q2 = 'QSO'
-        if name == 'dla_auto':
-            corr_type = 'co'
-            q1 = q2 = 'DLA'
-        if name == 'lya_aa_auto':
-            corr_type = 'cf'
-            q1 = q2 = 'LYA'
-        if name == 'lya_qso_cross':
-            corr_type = 'xcf'
-            q1 = 'LYA'
-            q2 = 'QSO'
-        if name == 'lya_dla_cross':
-            corr_type = 'xcf'
-            q1 = 'LYA'
-            q2 = 'DLA'
-        if name == 'qso_dla_cross':
-            corr_type = 'co'
-            q1 = 'QSO'
-            q2 = 'DLA'
-        dir = os.path.join(analysis_dir.corrdir,name)
-        if not os.path.isdir(dir):
-            os.mkdir(dir)
-        make_corr_info_file(analysis_dir.corrdir+'/'+name+'/corr_info.txt',corr_type,q1,q2)
-
     #create config files for doing fits
     for rmin in args.rmin_values:
         for rmax in args.rmax_values:
             for afix in args.afix_values:
                 print(' -> making files for rmin={}, rmax={}, afix={}'.format(rmin,rmax,afix))
 
-                if args.fit_lya_auto:
+                if args.fit_lya_auto | args.fit_all:
                     print(' -> -> making lya_auto files')
                     make_lya_auto_fit_files(analysis_dir.fitsdir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
-                if args.fit_qso_auto:
+                if args.fit_qso_auto | args.fit_all:
                     print(' -> -> making qso_auto files')
                     make_qso_auto_fit_files(analysis_dir.fitsdir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
-                if args.fit_dla_auto:
+                if args.fit_dla_auto | args.fit_all:
                     print(' -> -> making dla_auto files')
                     make_dla_auto_fit_files(analysis_dir.fitsdir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
-                if args.fit_lya_aa_auto:
+                if args.fit_lya_aa_auto | args.fit_all:
                     print(' -> -> making lya_aa_auto files')
                     make_lya_aa_auto_fit_files(analysis_dir.fitsdir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
-                if args.fit_lya_qso_cross:
+                if args.fit_lya_qso_cross | args.fit_all:
                     print(' -> -> making lya_qso_cross files')
                     make_lya_qso_cross_fit_files(analysis_dir.fitsdir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
-                if args.fit_lya_dla_cross:
+                if args.fit_lya_dla_cross | args.fit_all:
                     print(' -> -> making lya_dla_cross files')
                     make_lya_dla_cross_fit_files(analysis_dir.fitsdir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
-                if args.fit_qso_dla_cross:
+                if args.fit_qso_dla_cross | args.fit_all:
                     print(' -> -> making qso_dla_cross files')
                     make_qso_dla_cross_fit_files(analysis_dir.fitsdir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
-                if args.fit_lya_auto__lya_qso_cross:
+                if args.fit_lya_auto__lya_qso_cross | args.fit_all:
                     print(' -> -> making joint lya_auto__lya_qso_cross files')
                     make_lya_auto__lya_qso_cross_fit_files(analysis_dir.fitsdir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
-                if args.fit_lya_auto__lya_qso_cross__qso_auto:
+                if args.fit_lya_auto__lya_qso_cross__qso_auto | args.fit_all:
                     print(' -> -> making joint lya_auto__lya_qso_cross__qso_auto files')
                     make_lya_auto__lya_qso_cross__qso_auto_fit_files(analysis_dir.fitsdir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
-                if args.fit_lya_auto__lya_dla_cross:
+                if args.fit_lya_auto__lya_dla_cross | args.fit_all:
                     print(' -> -> making joint lya_auto__lya_dla_cross files')
                     make_lya_auto__lya_dla_cross_fit_files(analysis_dir.fitsdir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
-                if args.fit_lya_auto__lya_dla_cross__dla_auto:
+                if args.fit_lya_auto__lya_dla_cross__dla_auto | args.fit_all:
                     print(' -> -> making joint lya_auto__lya_dla_cross__dla_auto files')
                     make_lya_auto__lya_dla_cross__dla_auto_fit_files(analysis_dir.fitsdir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
-                if args.fit_qso_auto__qso_dla_cross__dla_auto:
+                if args.fit_qso_auto__qso_dla_cross__dla_auto | args.fit_all:
                     print(' -> -> making joint qso_auto__qso_dla_cross__dla_auto files')
                     make_qso_auto__qso_dla_cross__dla_auto_fit_files(analysis_dir.fitsdir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
-                if args.fit_all_correlations:
-                    print(' -> -> making joint all correlations files')
-                    make_all_correlations_fit_files(analysis_dir.fitsdir,exp_filepaths,rmin=rmin,rmax=rmax,afix=afix)
+
+
+
+"""
