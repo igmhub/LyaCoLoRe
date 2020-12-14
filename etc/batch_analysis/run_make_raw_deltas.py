@@ -30,7 +30,7 @@ parser.add_argument('--slurm-hours',
 
 parser.add_argument('--slurm-queue',
                     type=str,
-                    default='debug',
+                    default='regular',
                     required=False,
                     help='Slurm queue to use')
 

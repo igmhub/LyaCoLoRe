@@ -56,15 +56,13 @@ def add_to_command(command,extra,ns=False):
 #suitably to the queue.
 def run_picca_job(job_info,global_options,no_submit=False):
 
-    dir = job_info['dir']
-
     #Make the header.
     header_info = job_info['header_info']
     header = make_header(queue=header_info['queue'],
                          time=header_info['time'],
                          job_name=header_info['job_name'],
-                         err_file=dir+'/run_files/'+header_info['err_file'],
-                         out_file=dir+'/run_files/'+header_info['out_file']
+                         err_file=job_info['dir']+'/run_files/'+header_info['err_file'],
+                         out_file=job_info['dir']+'/run_files/'+header_info['out_file']
                          )
 
     command = 'command="'
@@ -79,7 +77,7 @@ def run_picca_job(job_info,global_options,no_submit=False):
 
     #Make the run script.
     run_script_text = header + command
-    run_script_path = dir+'/scripts/'+job_info['run_script']
+    run_script_path = job_info['dir']+'/scripts/'+job_info['run_script']
     run_script = open(run_script_path,'w+')
     run_script.write(run_script_text)
     run_script.close()
