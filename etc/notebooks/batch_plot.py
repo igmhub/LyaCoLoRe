@@ -152,7 +152,7 @@ def mean_quant_sky(cat,cattype,nside=64,quant='z',vmin=2.0,vmax=2.5,zmin=None,ti
         q[w] = zmsums[w]/counts[w]
         qname = r'$\langle m_Z \rangle$'
             
-    fig = plt.figure(figsize=(12,8))
+    fig = plt.figure(figsize=(10,20/3))
     ax = fig.add_subplot(111,projection='mollweide')
     
     phi_grid = np.linspace(0,2*np.pi,1000)
