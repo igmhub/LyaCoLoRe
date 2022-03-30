@@ -37,6 +37,9 @@ else:
     N_pix = 12*args.nside**2
 
 #Define the original file structure
+
+if args.in_dir[-1] != '/':
+    args.in_dir += '/'
 input_filename_structure = 'out_srcs_s1_{}.fits' #file_number
 input_files = glob.glob(args.in_dir+input_filename_structure.format('*'))
 file_numbers = utils.get_file_numbers(args.in_dir,input_filename_structure,input_files)
