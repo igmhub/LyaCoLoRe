@@ -16,7 +16,8 @@ def get_metal_dict(selection=None,metals_list=None):
 
     if metals_list is None:
         if selection=='standard':
-            metals_list = ['SiII(1260)', 'SiIII(1207)', 'SiII(1193)', 'SiII(1190)']
+            metals_list = ['CIV(1551)', 'CIV(1548)']
+            #print(metals_list)
         elif selection=='full':
             metals_list = list(metals_data.keys())
 

@@ -14,8 +14,8 @@ CONFIG_FILE="./input_files/config_files/config_v9.0.ini"
 
 # Set where your CoLoRe output is located, and where you would like your
 # LyaCoLoRe output to be located.
-COLORE_OUT_LOC=...
-LYACOLORE_OUT_LOC=...
+COLORE_OUT_LOC="/global/project/projectdirs/desi/users/andreamg/LyaCoLoRe_CIV/CoLoRe_outputs/"
+LYACOLORE_OUT_LOC="/global/project/projectdirs/desi/users/andreamg/LyaCoLoRe_CIV/LyaCoLoRe_outputs/example/"
 
 # Specify number of cores to use.
 NCORES=64

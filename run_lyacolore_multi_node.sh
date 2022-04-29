@@ -14,8 +14,8 @@ CONFIG_FILE="./input_files/config_files/config_v9.0.ini"
 
 # Set where your CoLoRe output is located, and where you would like your
 # LyaCoLoRe output to be located.
-COLORE_OUT_LOC="..."
-LYACOLORE_OUT_LOC="..."
+COLORE_OUT_LOC="/global/project/projectdirs/desi/users/andreamg/LyaCoLoRe_CIV/CoLoRe_outputs/"
+LYACOLORE_OUT_LOC="/global/project/projectdirs/desi/users/andreamg/LyaCoLoRe_CIV/LyaCoLoRe_outputs/example/"
 
 # Specify the queue to use for this set of realisations, and the number of
 # nodes/cores.
@@ -74,7 +74,8 @@ cat > $RUN_FILE <<EOF
 #SBATCH -C haswell
 #SBATCH -A desi
 
-conda activate lyacolore
+source /global/u2/a/andreamg/Programs/LyaCoLoRe_2022/load_LyaCoLoRe.sh
+#conda activate lyacolore
 umask 0002
 export OMP_NUM_THREADS=64
 

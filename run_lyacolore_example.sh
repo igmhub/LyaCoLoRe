@@ -16,7 +16,7 @@
 #      - runs off 2LPT output skewers from CoLoRe
 # Take a look at the config files to get some more detail on the arguments
 # chosen, and for instructions on how to find out more about the options.
-CONFIG_FILE=input_files/config_files/example_gaussian.ini
+CONFIG_FILE=input_files/config_files/config_v9.0.ini
 
 # Specify number of cores to use.
 NCORES=1
