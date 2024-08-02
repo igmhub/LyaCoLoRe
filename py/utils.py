@@ -160,7 +160,7 @@ def make_QSO_filter(footprint,N_side=16,pixel_list=None):
             return is_point_in_desi(tiles,RA,DEC)
 
     #If not, but we still want to filter...
-    elif footprint in ['desi','desi_pixel','desi_pixel_plus']:
+    elif footprint in ['desi','desi_pixel','desi_pixel_plus','desi_pixel_ext','desi_pixel_ext_plus']:
 
         #If desimodel is installed, then we use "tiles2pix" to determine which
         #pixels to include.
@@ -183,7 +183,11 @@ def make_QSO_filter(footprint,N_side=16,pixel_list=None):
                 valid_pixels = np.loadtxt('input_files/pixel_footprints/DESI_pixels.txt',dtype=int)
             elif footprint=='desi_pixel_plus':
                 valid_pixels = np.loadtxt('input_files/pixel_footprints/DESI_pixels_plus.txt',dtype=int)
-
+            elif footprint=='desi_pixel_ext':
+                valid_pixels = np.loadtxt('input_files/pixel_footprints/DESI_pixels_ext.txt',dtype=int)
+            elif footprint=='desi_pixel_ext_plus':
+                valid_pixels = np.loadtxt('input_files/pixel_footprints/DESI_pixels_ext_plus.txt',dtype=int)                
+                
         #With a list of valid pixels, we now can make a filter.
         def QSO_filter(RA,DEC):
             theta = (np.pi/180.0)*(90.0-DEC)
@@ -205,9 +209,9 @@ def make_QSO_filter(footprint,N_side=16,pixel_list=None):
     return QSO_filter
 
 #Function to return a filter for restricting the QSO footprint.
-def choose_filter(desi_footprint,desi_footprint_pixel,desi_footprint_pixel_plus,desimodel_installed,N_side=16,pixel_list=None):
+def choose_filter(desi_footprint,desi_footprint_pixel,desi_footprint_pixel_plus,desi_footprint_pixel_ext,desi_footprint_pixel_ext_plus,desimodel_installed,N_side=16,pixel_list=None):
 
-    if np.sum((desi_footprint,desi_footprint_pixel,desi_footprint_pixel_plus)) > 1:
+    if np.sum((desi_footprint,desi_footprint_pixel,desi_footprint_pixel_plus,desi_footprint_pixel_ext,desi_footprint_pixel_ext_plus)) > 1:
             raise ValueError('Please choose only 1 type of DESI footprint.')
 
     if desimodel_installed:
@@ -227,6 +231,10 @@ def choose_filter(desi_footprint,desi_footprint_pixel,desi_footprint_pixel_plus,
             QSO_filter = np.loadtxt('input_files/DESI_pixels.txt',dtype=int)
         elif desi_footprint_pixel_plus:
             QSO_filter = np.loadtxt('input_files/DESI_pixels_plus.txt',dtype=int)
+        elif desi_footprint_pixel_ext:
+            QSO_filter = np.loadtxt('input_files/DESI_pixels_ext.txt',dtype=int)
+        elif desi_footprint_pixel_ext_plus:
+            QSO_filter = np.loadtxt('input_files/DESI_pixels_ext_plus.txt',dtype=int)            
         else:
             QSO_filter = None
 

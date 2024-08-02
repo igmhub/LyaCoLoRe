@@ -35,7 +35,7 @@ def get_args(argv):
     parser.add('--pixels', type = int, required=False,
                 help = 'List of HEALPix pixel numbers to work on.', nargs='*')
     parser.add('--footprint', type = str, required = False,
-                choices=['full_sky','desi','desi_pixel','desi_pixel_plus'],
+                choices=['full_sky','desi','desi_pixel','desi_pixel_plus','desi_pixel_ext','desi_pixel_ext_plus'],
                 help = 'Choice of footprint of QSOs on sky.')
     parser.add('--downsampling', type = float, required=False,
                 help = 'Proportion by which to downsample the CoLoRe output.')

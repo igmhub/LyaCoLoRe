@@ -49,7 +49,7 @@ parser.add_argument('--add-picca-DLA-drqs', action="store_true", default = False
                     help = 'save picca format drq files for DLAs')
 
 parser.add_argument('--footprint', type = str, default = None, required = False,
-                    choices=['full_sky','desi','desi_pixel','desi_pixel_plus'],
+                    choices=['full_sky','desi','desi_pixel','desi_pixel_plus','desi_pixel_ext','desi_pixel_ext_plus'],
                     help = 'name of footprint to use')
 
 args = parser.parse_args()
@@ -106,6 +106,10 @@ if args.make_DLA_master:
         footprint_pixels = np.loadtxt('/global/homes/j/jfarr/Projects/LyaCoLoRe/input_files/DESI_pixels.txt')
     elif args.footprint in ['desi_pixel_plus']:
         footprint_pixels = np.loadtxt('/global/homes/j/jfarr/Projects/LyaCoLoRe/input_files/DESI_pixels_plus.txt')
+    elif args.footprint in ['desi_pixel_ext']:
+        footprint_pixels = np.loadtxt('/pscratch/sd/l/lauracdp/lyacolore/input_files/pixel_footprints/DESI_pixels_ext.txt')
+    elif args.footprint in ['desi_pixel_ext_plus']:
+        footprint_pixels = np.loadtxt('/pscratch/sd/l/lauracdp/lyacolore/input_files/pixel_footprints/DESI_pixels_ext_plus.txt')        
     else:
         footprint_pixels = np.array(list(range(12*args.nside*args.nside)))
 
