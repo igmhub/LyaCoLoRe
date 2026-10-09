@@ -23,6 +23,13 @@ except:
     print('WARN: pyigm not found, DLA distributions will not be perfect!')
     use_pyigm = False
 
+# This is an empirical 2LPT threshold for objects with b=2 coming from CoLoRe-2LPT snapshot version.
+def lpt_threshold(z):
+    a=5.33080934
+    b=-2.44382773
+    c= -0.26016998
+    return a * (z+1)**b + c
+
 def get_threshold(b2f):
     """ Compute the field threshold for a given bias
     Arguments:
@@ -219,34 +226,37 @@ def get_DLA_table(object,dla_bias=2.0,dla_bias_z=2.25,extrapolate_z_down=None,NH
         else:
             raise ValueError('DLA bias evol not recognised.')
         deltas = object.GAUSSIAN_DELTA_rows
+        nu_arr = get_threshold(b2f)
+        flagged_cells = flag_DLA(z_qso,z_cell,deltas,nu_arr,sigma_g)
+
+        #Mean of the poisson is the mean number of DLAs with redshift scaled up by
+        #the proportion of expected flagged cells.
+        p_nu_z = 1.0-norm.cdf(nu_arr)
+        mean_N_per_cell = z_width * dndz(z_cell,NHI_min=NHI_min,NHI_max=NHI_max)
+        w = p_nu_z>0
+        mu = np.zeros(p_nu_z.shape)
+        mu[w] = mean_N_per_cell[w]/p_nu_z[w]        
 
     elif object.DENSITY_DELTA_rows is not None:
-        """
-        ## Also need the pdf pf the skewers.
-        ## For now, just raise an error.
-        if evol == "b_const":
-            b2f = dla_bias
-        elif evol == "bD_const":
-            b2f = dla_bias*y(dla_bias_z)*np.ones(z.shape)/D_cell
-        else:
-            raise ValueError('DLA bias evol not recognised.')
+        #This only supports constant bias = 2.
+        #We use the threshold derived from CoLoRe-2LPT snapshots for b_HCD = 2, check above
         deltas = object.DENSITY_DELTA_rows
-        """
-        raise ValueError('Adding DLAs without Gaussian skewers is not implemented as yet.')
+        nu_arr = lpt_threshold(z_cell) #Get the 2LPT threshold
+        flagged_cells = flag_DLA(z_qso,z_cell,deltas,nu_arr,1) #We flag cells assuming (by construction) sigma_G=1 for 2LPT case
+        
+        #Get number of expected flagged cells for each z_cell (here we first assume that all z cells are flagged!)
+        mean_N_per_cell = z_width * dndz(z_cell,NHI_min=NHI_min,NHI_max=NHI_max)
+
+        #Now we correct for the fact that not all z cells are flagged. We rescale the previous mean by the expected number of flagged cells per z_cell.
+        #We get this probability computing it directly from a full-sky LyaCoLoRe-2LPT realization and just read it (see Ruiz-Herrera+2026).
+        p_emp_t = np.genfromtxt(os.environ['LYACOLORE_PATH']+'/input_files/dla_files/expected_2lpt_flagged_cells_vs_z_cell.txt')
+        p_emp = p_emp_t[:,1]
+        w = p_emp>0
+        mu = np.zeros(p_emp.shape)
+        mu[w] = mean_N_per_cell[w]/p_emp[w]
 
     else:
         raise ValueError('Cannot find Gaussian or density delta skewers when flagging cells for DLAs')
-
-    nu_arr = get_threshold(b2f)
-    flagged_cells = flag_DLA(z_qso,z_cell,deltas,nu_arr,sigma_g)
-
-    #Mean of the poisson is the mean number of DLAs with redshift scaled up by
-    #the proportion of expected flagged cells.
-    mean_N_per_cell = z_width * dndz(z_cell,NHI_min=NHI_min,NHI_max=NHI_max)
-    p_nu_z = 1.0-norm.cdf(nu_arr)
-    w = p_nu_z>0
-    mu = np.zeros(p_nu_z.shape)
-    mu[w] = mean_N_per_cell[w]/p_nu_z[w]
 
     #Draw number of DLAs per cell from a Poisson distribution, place them only
     #in flagged cells.
