@@ -67,9 +67,9 @@ def get_gaussian_fields(generator,N_cells,z=0.0,dv_kms=10.0,N_skewers=1,white_no
     #print('Input   ',pk_measured)
 
     times += [time.time()]
-    #print('sigma of Pk added (no smoothing)',np.sqrt((1/np.pi)*np.trapz(power_kms(z,k_kms,dv_kms,white_noise=white_noise,n=n,k1=k1,A0=A0,smooth=False,norm=True),k_kms)))
-    #print('sigma of Pk added (smoothing)   ',np.sqrt((1/np.pi)*np.trapz(power_kms(z,k_kms,dv_kms,white_noise=white_noise,n=n,k1=k1,A0=A0,smooth=True,norm=True),k_kms)))
-    #print('sigma measured inside ggf       ',np.sqrt((1/np.pi)*np.trapz(pk_measured,k_kms)))
+    #print('sigma of Pk added (no smoothing)',np.sqrt((1/np.pi)*np.trapezoid(power_kms(z,k_kms,dv_kms,white_noise=white_noise,n=n,k1=k1,A0=A0,smooth=False,norm=True),k_kms)))
+    #print('sigma of Pk added (smoothing)   ',np.sqrt((1/np.pi)*np.trapezoid(power_kms(z,k_kms,dv_kms,white_noise=white_noise,n=n,k1=k1,A0=A0,smooth=True,norm=True),k_kms)))
+    #print('sigma measured inside ggf       ',np.sqrt((1/np.pi)*np.trapezoid(pk_measured,k_kms)))
     #print('std measured inside ggf         ',np.std(delta))
     #print(' ')
 
@@ -107,7 +107,7 @@ def power_kms(z_c,k_kms,dv_kms,white_noise=False,n=0.7,k1=0.001,A0=58.6,R_kms=25
         P *= np.exp(-pow(k_kms*R_kms,2)) * pow(np.sin(kdv/2)/(kdv/2),2)
     if norm:
         # normalise to have sigma of 1
-        sigma2 = (1/np.pi) * np.trapz(P,k_kms)
+        sigma2 = (1/np.pi) * np.trapezoid(P,k_kms)
         P /= sigma2
     return P
 
@@ -127,7 +127,7 @@ def alternative_power_kms(z_c,k_kms,dv_kms,white_noise=False,A0=58.6,k0=0.009,E1
         P *= np.exp(-pow(k_kms*R_kms,2)) * pow(np.sin(kdv/2)/(kdv/2),2)
     if norm:
         # normalise to have sigma of 1
-        sigma2 = (1/np.pi) * np.trapz(P,k_kms)
+        sigma2 = (1/np.pi) * np.trapezoid(P,k_kms)
         P /= sigma2
 
     return P

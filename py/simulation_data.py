@@ -113,7 +113,7 @@ class SimulationData:
         h_lya_lambdas = read_files.get_lya_lambdas(h,file_format)
         if MOCKIDs is None:
             MOCKIDs = h_MOCKIDs
-        wqso = np.in1d(h_MOCKIDs,MOCKIDs)
+        wqso = np.isin(h_MOCKIDs,MOCKIDs)
         wcell = h_lya_lambdas>lambda_min
 
         ## Calculate the number of cells and number of QSOs.
@@ -296,11 +296,11 @@ class SimulationData:
             raise ValueError('Inconsistent arguments provided:\n-> please specify one way to reduce the number of skewers only!')
 
         if MOCKIDs is not None:
-            w = np.in1d(self.MOCKID,MOCKIDs)
+            w = np.isin(self.MOCKID,MOCKIDs)
 
         elif nskw is not None:
             MOCKIDs = np.random.choice(self.MOCKID,size=nskw,replace=False)
-            w = np.in1d(self.MOCKID,MOCKIDs)
+            w = np.isin(self.MOCKID,MOCKIDs)
 
         else:
             return

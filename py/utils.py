@@ -189,7 +189,7 @@ def make_QSO_filter(footprint,N_side=16,pixel_list=None):
             theta = (np.pi/180.0)*(90.0-DEC)
             phi = (np.pi/180.0)*RA
             pix = hp.ang2pix(N_side,theta,phi,nest=True)
-            w = np.in1d(pix,valid_pixels)
+            w = np.isin(pix,valid_pixels)
             return w
 
     #Else if we don't want to filter at all, set the filter to "None".

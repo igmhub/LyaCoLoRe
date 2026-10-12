@@ -909,7 +909,7 @@ def get_sigma_dF_P1D(z,l_hMpc=0.25,Om=0.3147):
 
     # compute Fourier transform of Top-Hat filter of size l_hMpc
     W_hMpc = np.sinc((k_hMpc*l_hMpc)/(2*np.pi))
-    sigma_dF = np.sqrt((1/np.pi)*np.trapz((W_hMpc**2)*pk_hMpc,k_hMpc))
+    sigma_dF = np.sqrt((1/np.pi)*np.trapezoid((W_hMpc**2)*pk_hMpc,k_hMpc))
 
     return sigma_dF
 
@@ -1082,12 +1082,12 @@ def get_flux_stats(sigma_G,alpha,beta,D,mean_only=False,int_lim_fac=10.0):
     density_integral = convert.gaussian_to_lognormal_delta(delta_G_integral,sigma_G,D) + 1
     F_integral = convert.density_to_flux(density_integral,alpha,beta)
 
-    mean_F = np.trapz(prob_delta_G*F_integral,delta_G_integral)[0]
+    mean_F = np.trapezoid(prob_delta_G*F_integral,delta_G_integral)[0]
 
     if mean_only == False:
         delta_F_integral = F_integral/mean_F - 1
         integrand = prob_delta_G*(delta_F_integral**2)
-        sigma_dF = (np.sqrt(np.trapz(integrand,delta_G_integral)[0]))
+        sigma_dF = (np.sqrt(np.trapezoid(integrand,delta_G_integral)[0]))
     else:
         sigma_dF = None
 
