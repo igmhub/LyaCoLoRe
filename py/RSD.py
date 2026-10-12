@@ -188,6 +188,26 @@ def get_weights(initial_density,velocity_skewer_dz,z,r_hMpc,z_qso,thermal=False,
 
         #Go through each cell up to the cell the QSO is in.
         j_limit = np.searchsorted(z_edges[:-1],z_qso[i])
+
+        #Without thermal effects every shifted cell contributes to the contiguous range of old
+        #cells that it overlaps (the edges increase monotonically), so find the ranges with a
+        #search over all cells at once instead of testing every old cell for every cell.
+        if thermal == False:
+            l_new = x_ledges_shifted[:j_limit]
+            u_new = x_uedges_shifted[:j_limit]
+            lo = np.searchsorted(x_uedges,l_new,side='right')
+            hi = np.searchsorted(x_ledges,u_new,side='left')
+            n_overlap = np.maximum(hi-lo,0)
+            col = np.repeat(np.arange(j_limit),n_overlap)
+            first = np.cumsum(n_overlap) - n_overlap
+            old_idx = lo[col] + (np.arange(col.size) - first[col])
+            overlap = np.maximum(0.,np.minimum(x_uedges[old_idx],u_new[col]) - np.maximum(x_ledges[old_idx],l_new[col]))
+            data = overlap/new_cell_sizes[col]
+            indptr = np.concatenate(([0],np.cumsum(n_overlap)))
+            indptr = np.concatenate((indptr,np.full(N_cells + 1 - len(indptr),indptr[-1])))
+            weights[i] = csc_matrix((data, old_idx, indptr), shape=(N_cells,N_cells))
+            continue
+
         for j in range(j_limit):
 
             #Define new variables for commonly used vector elements.

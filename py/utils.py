@@ -88,21 +88,15 @@ def number_to_string(number,string_length):
     return string
 
 #Function to construct an array of MOCKIDs given a file_number and a list of row_numbers.
+#The MOCKID is the decimal string of the file number followed by the 7-digit, zero-padded row
+#number + 1, read as an integer, i.e. file_number*10**7 + row_number + 1.
 def make_MOCKID(file_number,row_numbers):
 
-    N_qso = len(row_numbers)
-    node = '0'*(len(str(file_number))-5) + str(file_number)
+    rows = np.asarray(row_numbers,dtype=np.int64)
+    if rows.size>0 and rows.max()+1>=10**7:
+        exit('The row number is too great to construct a unique MOCKID (more than 7 digits).')
 
-    MOCKID = ['']*N_qso
-    for i in range(N_qso):
-        row_numbers[i] = str(row_numbers[i]+1)
-        if len(row_numbers[i])<=7:
-            row_numbers[i] = '0'*(7-len(row_numbers[i]))+row_numbers[i]
-        else:
-            exit('The row number is too great to construct a unique MOCKID (more than 7 digits).')
-        MOCKID[i] = int(node+row_numbers[i])
-
-    MOCKID = np.array(MOCKID)
+    MOCKID = np.int64(file_number)*10**7 + rows + 1
 
     return MOCKID
 
