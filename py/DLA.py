@@ -2,7 +2,7 @@ from __future__ import print_function, division
 import numpy as np
 import astropy.io.fits as fits
 from scipy.stats import norm
-from scipy.interpolate import interp1d, interp2d
+from scipy.interpolate import interp1d, bisplrep, bisplev
 import astropy.table
 import os
 import matplotlib.pyplot as plt
@@ -84,9 +84,23 @@ def flag_DLA(z_qso,z_cells,deltas,nu_arr,sigma_g):
 #number per unit redshift from minimum lg(N) in file (17.2) to argument
 # Reading file from https://arxiv.org/pdf/astro-ph/0407378.pdf
 
+def interp2d_scattered(x,y,z):
+    """The removed scipy.interpolate.interp2d(x,y,z,fill_value=None) (kind='linear') for scattered points, as it
+    worked up to scipy 1.13: a linear spline through the points with bisplrep, evaluated with bisplev after
+    sorting the arguments, transposed, and one row returned as a vector."""
+    tck = bisplrep(np.ravel(x),np.ravel(y),np.ravel(z),kx=1,ky=1,s=0.0)
+    def interpolate(xi,yi):
+        xi = np.sort(np.atleast_1d(xi),kind="mergesort")
+        yi = np.sort(np.atleast_1d(yi),kind="mergesort")
+        zi = np.transpose(np.atleast_2d(bisplev(xi,yi,tck)))
+        if len(zi)==1:
+            zi = zi[0]
+        return np.array(zi)
+    return interpolate
+
 def dnHD_dz_cumlgN(z,logN):
     tab = astropy.table.Table.read(os.environ['LYACOLORE_PATH']+'/input_files/dla_files/zheng_cumulative.overz',format='ascii')
-    y = interp2d(tab['col1'],tab['col2'],tab['col3'],fill_value=None)
+    y = interp2d_scattered(tab['col1'],tab['col2'],tab['col3'])
     return y(z,logN)
 
 def dndz(z, NHI_min=17.2, NHI_max=22.5):
