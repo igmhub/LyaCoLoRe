@@ -35,9 +35,13 @@ For three pixels in one process the time went from 176 s to 36 s. One run each; 
   (3072 of 3072 files identical).
 - The speed-up commit was checked again on top of the current `master` (24 pixels of the same box, DLAs switched
   off because of the table size above): 25 of 25 files identical with and without it, 24.6 s against 67.7 s.
-- The `interp2d` replacement has **not** been compared with the output of a scipy older than 1.14: both sides of
-  my comparisons used the replacement, because the original code does not run on the current scipy. A comparison
-  needs an environment with an older scipy. On the current `master` the DLA part itself was not run (see above).
+- The `interp2d` replacement was compared with scipy's own `interp2d` in DESI 25.3 (scipy 1.8.1, which still has it),
+  on the real table `zheng_cumulative.overz` (637 points) with the call patterns of `DLA.py` (an unsorted array of
+  redshifts with a scalar column density, with the 100 column-density edges, a scalar redshift, and points outside
+  the table, which `interp2d` extrapolates): the results are bit-identical in all seven cases. The replacement then
+  gives the same bits in scipy 1.17.1 (`vega_master`) and 1.18.0 (DESI 26.9). So the DLA numbers drawn from the table
+  do not depend on the scipy version. The test script is `tools/lyacolore_interp2d_test.py` in the lya-mocks
+  workspace (outside the repository). The whole DLA part on the current `master` was not run (see above).
 
 ## Things noticed
 
